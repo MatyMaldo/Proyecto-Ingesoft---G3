@@ -1,0 +1,147 @@
+@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  /* Marca y neutros */
+  --color-marca: #0B2C7A;
+  --color-marca-borde: rgba(255, 255, 255, 0.10);
+  --color-marca-hover: rgba(255, 255, 255, 0.08);
+  --color-marca-activo: #0C5AD1;
+  --color-marca-icono-fondo: rgba(255, 255, 255, 0.10);
+  --color-marca-texto: #FFFFFF;
+  --color-marca-texto-suave: #C9D5F2;
+  --color-marca-seccion: #9DB0E0;
+  --color-primario: #0B2A6F;
+  --color-primario-intenso: #0B3D91;
+  --color-fondo: #F5F7FB;
+  --color-superficie: #FFFFFF;
+  --color-superficie-suave: #F1F4F9;
+  --color-borde: #E3E8F0;
+  --color-borde-fuerte: #CBD5E1;
+  --color-texto: #0F172A;
+  --color-texto-secundario: #334155;
+  --color-texto-suave: #64748B;
+  --color-texto-tenue: #7A8699;
+  --color-foco: #2563EB;
+  --color-notificacion: #DC2626;
+
+  /* Estados (insignias de cabecera) */
+  --color-exito-fondo: #ECFDF3;
+  --color-exito-borde: #BBEFCF;
+  --color-exito-texto: #15803D;
+  --color-peligro-fondo: #FEF2F2;
+  --color-peligro-borde: #FCC9C9;
+  --color-peligro-texto: #C81E1E;
+  --color-peligro-acento: #F8B4B4;
+
+  /* Cifras de la barra de resumen */
+  --color-cifra-azul-marino: #0B3D91;
+  --color-cifra-azul: #1D5FD0;
+  --color-cifra-violeta: #7C3AED;
+  --color-cifra-verde: #16A34A;
+  --color-cifra-roja: #DC2626;
+  --color-cifra-naranja: #D97706;
+
+  /* Tonos de módulo / tipo de error */
+  --tono-verde-fondo: #ECFDF3;
+  --tono-verde-borde: #BBEFCF;
+  --tono-verde-texto: #15803D;
+
+  --tono-azul-fondo: #EAF2FE;
+  --tono-azul-borde: #BCD4F8;
+  --tono-azul-texto: #1D4ED8;
+
+  --tono-violeta-fondo: #F3EEFE;
+  --tono-violeta-borde: #D6C7FB;
+  --tono-violeta-texto: #6D28D9;
+
+  --tono-ambar-fondo: #FFF7E0;
+  --tono-ambar-borde: #F5D27A;
+  --tono-ambar-texto: #B45309;
+
+  --tono-turquesa-fondo: #E7F8F5;
+  --tono-turquesa-borde: #A8E2D6;
+  --tono-turquesa-texto: #0F766E;
+
+  --tono-indigo-fondo: #EEF0FE;
+  --tono-indigo-borde: #C7CCF9;
+  --tono-indigo-texto: #4338CA;
+
+  --tono-gris-fondo: #F1F4F9;
+  --tono-gris-borde: #D5DCE6;
+  --tono-gris-texto: #475569;
+
+  --tono-rosa-fondo: #FDEEF6;
+  --tono-rosa-borde: #F6C2DE;
+  --tono-rosa-texto: #BE185D;
+
+  --tono-rojo-fondo: #FEF2F2;
+  --tono-rojo-borde: #FCC9C9;
+  --tono-rojo-texto: #B91C1C;
+
+  --tono-cian-fondo: #E6F6FB;
+  --tono-cian-borde: #9FD8EA;
+  --tono-cian-texto: #0E7490;
+
+  /* Avatar de usuario en tablas */
+  --color-avatar-fondo: #F6EBD3;
+  --color-avatar-borde: #E6D2A6;
+  --color-avatar-texto: #7A5410;
+
+  /* Tipografía */
+  --fuente-base: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+  --texto-xs: 0.75rem;
+  --texto-sm: 0.8125rem;
+  --texto-md: 0.875rem;
+  --texto-base: 1rem;
+  --texto-lg: 1.125rem;
+  --texto-xl: 1.375rem;
+  --texto-titulo: clamp(1.5rem, 1.1rem + 1.6vw, 2rem);
+  --peso-normal: 400;
+  --peso-medio: 500;
+  --peso-seminegrita: 600;
+  --peso-negrita: 700;
+  --espaciado-letra-ancho: 0.06em;
+  --interlineado: 1.5;
+
+  /* Espaciado */
+  --espacio-1: 4px;
+  --espacio-2: 8px;
+  --espacio-3: 12px;
+  --espacio-4: 16px;
+  --espacio-5: 20px;
+  --espacio-6: 24px;
+  --espacio-8: 32px;
+  --espacio-10: 40px;
+
+  /* Radios, sombras, medidas y movimiento */
+  --radio-sm: 8px;
+  --radio-md: 10px;
+  --radio-lg: 12px;
+  --radio-pildora: 999px;
+  --sombra-sm: 0 1px 2px rgba(15, 23, 42, 0.04);
+  --sombra-lg: 0 12px 32px rgba(15, 23, 42, 0.18);
+  --velo: rgba(15, 23, 42, 0.45);
+  --ancho-barra-lateral: 300px;
+  --alto-barra-superior: 72px;
+  --tactil-min: 44px;
+  --transicion: 180ms ease;
+  --ancho-panel-detalle: 480px;
+  --borde-acento: 3px;
+  --tamano-logo: 56px;
+  --tamano-recuadro-icono: 36px;
+  --tamano-avatar: 40px;
+  --tamano-avatar-sm: 32px;
+  --ancho-aviso: 480px;
+
+  /* Capas (z-index) */
+  --capa-barra-superior: 10;
+  --capa-velo: 30;
+  --capa-cajon: 40;
+  --capa-panel: 50;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  :root {
+    --transicion: 0ms linear;
+  }
+}

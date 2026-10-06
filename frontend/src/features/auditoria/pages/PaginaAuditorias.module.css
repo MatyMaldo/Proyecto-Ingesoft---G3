@@ -1,0 +1,102 @@
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-6);
+}
+
+.cabecera {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--espacio-3);
+}
+
+.sobretitulo {
+  margin: 0 0 var(--espacio-1);
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--texto-titulo);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+}
+
+.espacioInsignia {
+  display: flex;
+  align-items: center;
+  min-height: calc(var(--espacio-6) + var(--espacio-1));
+}
+
+.insigniaEstado {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  padding: var(--espacio-1) var(--espacio-3);
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-seminegrita);
+  white-space: nowrap;
+  color: var(--color-exito-texto);
+  background: var(--color-exito-fondo);
+  border: 1px solid var(--color-exito-borde);
+  border-radius: var(--radio-pildora);
+}
+
+.puntoEstado {
+  width: var(--espacio-2);
+  height: var(--espacio-2);
+  background: var(--color-exito-texto);
+  border-radius: var(--radio-pildora);
+}
+
+.barraHerramientas {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+}
+
+.campoBusquedaContenedor {
+  width: 100%;
+}
+
+.tarjetaResultados {
+  overflow: hidden;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-sm);
+}
+
+.notaPie {
+  margin: 0;
+  font-size: var(--texto-sm);
+  color: var(--color-texto-tenue);
+  text-align: left;
+}
+
+@media (min-width: 1024px) {
+  .cabecera {
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+  }
+
+  .barraHerramientas {
+    flex-direction: row;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .campoBusquedaContenedor {
+    max-width: calc(var(--espacio-10) * 8);
+  }
+
+  .notaPie {
+    text-align: right;
+  }
+}

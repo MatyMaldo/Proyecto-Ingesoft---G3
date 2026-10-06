@@ -1,5 +1,5 @@
-import PaginaAsistencia from './pages/Asistencia/PaginaAsistencia.jsx';
+import EnrutadorAplicacion from './app/EnrutadorAplicacion.jsx';
 
 export default function Aplicacion() {
-  return <PaginaAsistencia />;
+  return <EnrutadorAplicacion />;
 }
