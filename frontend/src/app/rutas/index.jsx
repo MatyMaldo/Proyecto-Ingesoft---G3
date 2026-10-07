@@ -1,16 +1,20 @@
-import { Routes, Route, Link } from 'react-router-dom';
+import { Routes, Route, Link, Navigate } from 'react-router-dom';
 
 import PaginaAsistencia from '../../pages/Asistencia/PaginaAsistencia.jsx';
+import PaginaLogin from '../../features/autenticacion/pages/PaginaLogin.jsx';
 import RutaProtegida from '../../shared/auth/RutaProtegida.jsx';
+import RutaPublica from '../../shared/auth/RutaPublica.jsx';
+import { RUTA_LOGIN } from '../../shared/auth/constantesSesion.js';
+import useAuth from '../../shared/auth/useAuth.js';
 import LimiteErrores from '../../shared/components/LimiteErrores.jsx';
 import ModuloEnConstruccion from '../../shared/components/ModuloEnConstruccion.jsx';
 import Icono from '../../shared/components/Icono.jsx';
 import estilosAviso from '../../shared/components/AvisoPagina.module.css';
 import LayoutPrincipal from '../layout/LayoutPrincipal.jsx';
-import { obtenerItemsNavegacion } from '../navegacion/navegacion.config.js';
+import { obtenerItemsNavegacion, RUTA_INICIO_POR_ROL } from '../navegacion/navegacion.config.js';
 
 const RUTA_ASISTENCIA = '/asistencia';
-const RUTAS_RESERVADAS = new Set(['/', RUTA_ASISTENCIA]);
+const RUTAS_RESERVADAS = new Set(['/', RUTA_ASISTENCIA, RUTA_LOGIN]);
 
 /**
  * Quita la barra final (`'/usuarios/'` ≡ `'/usuarios'`) y normaliza la raíz (`''` → `'/'`).
@@ -127,6 +131,22 @@ const METADATOS_RUTAS = [
 ];
 
 /**
+ * Ruta `index` (`/`): redirige a la pantalla principal del rol de la sesión
+ * (`RUTA_INICIO_POR_ROL`). Un rol sin pantalla principal ve el marcador
+ * "Módulo en construcción", igual que antes de esta tarea.
+ */
+function RedireccionInicio() {
+  const { usuario } = useAuth();
+  const ruta = usuario ? RUTA_INICIO_POR_ROL[usuario.rol] : undefined;
+
+  if (ruta) {
+    return <Navigate to={ruta} replace />;
+  }
+
+  return <ModuloEnConstruccion nombre="Inicio" />;
+}
+
+/**
  * Página 404: ninguna ruta coincidió. Vive dentro del layout.
  */
 function PaginaNoEncontrada() {
@@ -162,6 +182,17 @@ export default function RutasAplicacion() {
         }
       />
 
+      <Route
+        path={RUTA_LOGIN}
+        element={
+          <RutaPublica>
+            <LimiteErrores clave={RUTA_LOGIN}>
+              <PaginaLogin />
+            </LimiteErrores>
+          </RutaPublica>
+        }
+      />
+
       {rutasFeaturesSinLayout.map((ruta) => (
         <Route
           key={ruta.path}
@@ -181,7 +212,7 @@ export default function RutasAplicacion() {
           </RutaProtegida>
         }
       >
-        <Route index element={<ModuloEnConstruccion nombre="Inicio" />} />
+        <Route index element={<RedireccionInicio />} />
         {rutasDeLayout.map((ruta) => (
           <Route
             key={ruta.path}

@@ -52,3 +52,12 @@ export function obtenerItemsNavegacion() {
     }))
   );
 }
+
+/**
+ * Pantalla principal de cada rol, a la que redirige la ruta `/` (docs/planes/login.md §6.6).
+ * Un rol sin entrada aquí no tiene pantalla principal en esta iteración y ve
+ * `ModuloEnConstruccion nombre="Inicio"`.
+ */
+export const RUTA_INICIO_POR_ROL = Object.freeze({
+  [ROLES.ADMIN]: '/administracion/auditorias'
+});

@@ -24,7 +24,7 @@ function obtenerElementosEnfocables(contenedor) {
  * @param {() => void} props.alCerrar Cierra el cajón (botón "Cerrar menú", Esc, velo).
  */
 export default function BarraLateral({ modoCajon, abierto, alCerrar }) {
-  const { usuario, tieneAcceso } = useAuth();
+  const { usuario, tieneAcceso, cerrarSesion } = useAuth();
   const refAside = useRef(null);
   const refBotonCerrar = useRef(null);
 
@@ -132,19 +132,16 @@ export default function BarraLateral({ modoCajon, abierto, alCerrar }) {
           {inicial}
         </span>
         <div className={estilos.datosUsuario}>
-          <p className={estilos.nombreUsuario}>{usuario?.nombreCompleto}</p>
-          <p className={estilos.correoUsuario} title={usuario?.correo}>
-            {usuario?.correo}
+          <p className={estilos.nombreUsuario}>{usuario?.nombre}</p>
+          <p className={estilos.detalleUsuario} title={usuario?.etiquetaRol}>
+            {usuario?.etiquetaRol}
           </p>
         </div>
-        {/* TODO(pregunta): cerrar sesión fuera del alcance del shell */}
         <button
           type="button"
           className={estilos.botonCerrarSesion}
           aria-label="Cerrar sesión"
-          aria-disabled="true"
-          aria-describedby="aviso-no-disponible"
-          title="Función no disponible por ahora"
+          onClick={cerrarSesion}
         >
           <Icono nombre="salir" tamano={18} />
         </button>

@@ -23,6 +23,7 @@
   --color-texto-tenue: #7A8699;
   --color-foco: #2563EB;
   --color-notificacion: #DC2626;
+  --color-marca-acento: #60A5FA;
 
   /* Estados (insignias de cabecera) */
   --color-exito-fondo: #ECFDF3;
@@ -132,6 +133,9 @@
   --tamano-avatar: 40px;
   --tamano-avatar-sm: 32px;
   --ancho-aviso: 480px;
+  --ancho-tarjeta-login: 600px;
+  --tamano-logo-grande: 96px;
+  --opacidad-deshabilitado: 0.5;
 
   /* Capas (z-index) */
   --capa-barra-superior: 10;

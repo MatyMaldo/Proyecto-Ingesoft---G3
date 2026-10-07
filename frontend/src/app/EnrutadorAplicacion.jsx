@@ -6,7 +6,7 @@ import RutasAplicacion from './rutas/index.jsx';
 
 /**
  * Punto de entrada del enrutador de la aplicación: router, tokens de diseño
- * y sesión (simulada hoy; ver `shared/auth/sesionSimulada.js`).
+ * y sesión (real, JWT en `sessionStorage`; ver `shared/auth/AuthContext.jsx`).
  */
 export default function EnrutadorAplicacion() {
   return (

@@ -188,7 +188,7 @@
   color: var(--color-marca-texto);
 }
 
-.correoUsuario {
+.detalleUsuario {
   margin: 0;
   font-size: var(--texto-sm);
   color: var(--color-marca-texto-suave);
@@ -210,7 +210,12 @@
   font-weight: var(--peso-seminegrita);
   border: 0;
   border-radius: var(--radio-sm);
-  cursor: not-allowed;
+  cursor: pointer;
+  transition: background var(--transicion);
+}
+
+.botonCerrarSesion:hover {
+  background: var(--color-marca-hover);
 }
 
 .botonCerrarSesion:focus-visible {

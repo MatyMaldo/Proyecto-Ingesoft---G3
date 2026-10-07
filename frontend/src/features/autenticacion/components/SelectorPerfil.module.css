@@ -1,0 +1,88 @@
+.fieldset {
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.leyenda {
+  margin: 0 0 var(--espacio-2);
+  padding: 0;
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-medio);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+.lista {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--espacio-1);
+  margin: 0;
+  padding: var(--espacio-1);
+  list-style: none;
+  background: var(--color-superficie-suave);
+  border-radius: var(--radio-lg);
+}
+
+.item {
+  min-width: 0;
+}
+
+.radio {
+  /* Oculto visualmente (clase compartida), pero sigue siendo enfocable. */
+}
+
+.opcion {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espacio-1);
+  min-height: var(--tactil-min);
+  padding: var(--espacio-2);
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+  text-align: center;
+  border-radius: var(--radio-md);
+  cursor: pointer;
+  transition: background var(--transicion), color var(--transicion);
+}
+
+.opcion span {
+  overflow: hidden;
+  white-space: nowrap;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+
+.radio:not(:disabled):not(:checked) + .opcion:hover {
+  background: var(--color-superficie);
+  color: var(--color-texto-secundario);
+}
+
+.radio:checked + .opcion {
+  background: var(--color-marca);
+  color: var(--color-marca-texto);
+  box-shadow: var(--sombra-sm);
+}
+
+.radio:focus-visible + .opcion {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.radio:disabled + .opcion {
+  opacity: var(--opacidad-deshabilitado);
+  cursor: not-allowed;
+}
+
+@media (max-width: 767px) {
+  .lista {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .opcion {
+    min-height: calc(var(--tactil-min) + var(--espacio-3));
+  }
+}

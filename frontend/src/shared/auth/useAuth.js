@@ -3,12 +3,14 @@ import { useContext } from 'react';
 import { AuthContext } from './AuthContext.jsx';
 
 /**
- * Lee el contexto de autenticación.
+ * Lee el contexto de autenticación (sesión real, JWT en `sessionStorage`).
  *
  * @returns {{
- *   usuario: { nombre: string, nombreCompleto: string, rol: string, etiquetaRol: string, correo: string }|null,
+ *   usuario: { id: *, nombre: string, rol: string, etiquetaRol: string }|null,
  *   estaAutenticado: boolean,
- *   tieneAcceso: (rolesPermitidos?: string[]) => boolean
+ *   tieneAcceso: (rolesPermitidos?: string[]) => boolean,
+ *   establecerSesion: (resultado: { token: string, usuario: { id: *, nombre: string, rol: string } }) => void,
+ *   cerrarSesion: () => void
  * }}
  */
 export default function useAuth() {

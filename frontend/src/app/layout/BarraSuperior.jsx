@@ -5,8 +5,9 @@ import estilos from './BarraSuperior.module.css';
 
 /**
  * Barra superior: botón de menú (móvil/tableta), contexto de marca, búsqueda,
- * notificaciones, menú de usuario y "Salir". Los últimos cuatro controles son
- * visibles pero no disponibles (ver `docs/planes/shell.md` §6.4).
+ * notificaciones, menú de usuario y "Salir". Búsqueda, notificaciones y menú
+ * de usuario son visibles pero no disponibles (ver `docs/planes/shell.md`
+ * §6.4); "Salir" cierra la sesión real (docs/planes/login.md §4.7).
  *
  * @param {Object} props
  * @param {boolean} props.cajonAbierto Para `aria-expanded` del botón de menú.
@@ -14,7 +15,7 @@ import estilos from './BarraSuperior.module.css';
  * @param {import('react').RefObject<HTMLButtonElement>} props.refBotonMenu
  */
 export default function BarraSuperior({ cajonAbierto, alAlternarCajon, refBotonMenu }) {
-  const { usuario } = useAuth();
+  const { usuario, cerrarSesion } = useAuth();
   const inicial = usuario?.nombre?.charAt(0)?.toUpperCase() ?? '';
 
   return (
@@ -87,15 +88,7 @@ export default function BarraSuperior({ cajonAbierto, alAlternarCajon, refBotonM
         <Icono nombre="chevron-abajo" tamano={16} />
       </button>
 
-      {/* TODO(pregunta): cerrar sesión fuera de alcance del shell */}
-      <button
-        type="button"
-        className={estilos.botonSalir}
-        aria-label="Salir"
-        aria-disabled="true"
-        aria-describedby="aviso-no-disponible"
-        title="Función no disponible por ahora"
-      >
+      <button type="button" className={estilos.botonSalir} aria-label="Salir" onClick={cerrarSesion}>
         <Icono nombre="salir" tamano={18} />
         <span className={estilos.textoSalir}>Salir</span>
       </button>
