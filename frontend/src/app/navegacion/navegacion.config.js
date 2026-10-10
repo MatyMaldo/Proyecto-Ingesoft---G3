@@ -22,6 +22,13 @@ export const SECCIONES_NAVEGACION = Object.freeze([
     titulo: 'Administración',
     items: Object.freeze([
       Object.freeze({
+        id: 'anio-escolar',
+        etiqueta: 'Año escolar',
+        ruta: '/administracion/anio-escolar',
+        icono: 'libro',
+        roles: Object.freeze([ROLES.ADMIN])
+      }),
+      Object.freeze({
         id: 'auditorias',
         etiqueta: 'Auditorías',
         ruta: '/administracion/auditorias',
