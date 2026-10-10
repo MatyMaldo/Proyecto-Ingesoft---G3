@@ -132,6 +132,14 @@ const CATALOGO_ICONOS = {
   ],
   cargando: [
     { tag: 'path', props: { d: 'M21 12a9 9 0 1 1-6.219-8.56' } }
+  ],
+  agregar: [
+    { tag: 'path', props: { d: 'M12 5v14' } },
+    { tag: 'path', props: { d: 'M5 12h14' } }
+  ],
+  archivo: [
+    { tag: 'path', props: { d: 'M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z' } },
+    { tag: 'path', props: { d: 'M14 2v6h6' } }  
   ]
 };
 
