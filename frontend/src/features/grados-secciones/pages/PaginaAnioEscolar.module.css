@@ -1,0 +1,34 @@
+.pagina, .panel { display: flex; flex-direction: column; gap: var(--espacio-6); }
+.pagina h1 { margin: 0; font-size: var(--texto-titulo); }
+.pagina h2 { margin: 0; font-size: var(--texto-lg); }
+.sobretitulo { margin: 0 0 8px; color: var(--color-texto-suave); text-transform: uppercase; font-size: var(--texto-xs); letter-spacing: .06em; }
+.subtitulo, .cabeceraTarjeta p, .pie { color: var(--color-texto-suave); font-size: var(--texto-md); line-height: 1.6; }
+.subtitulo { margin-bottom: 0; }
+.encabezadoBloque { border-bottom: 2px solid var(--color-borde); padding-bottom: 16px; color: var(--color-primario); }
+.tarjeta { background: var(--color-superficie); border: 1px solid var(--color-borde); border-radius: var(--radio-lg); padding: 24px; box-shadow: var(--sombra-sm); }
+.cabeceraTarjeta { display: flex; justify-content: space-between; align-items: flex-start; gap: 20px; }
+.cabeceraTarjeta p { margin: 8px 0 0; }
+.primario, .secundario, .grados button { min-height: 44px; padding: 10px 18px; border-radius: var(--radio-sm); font: inherit; cursor: pointer; border: 1px solid var(--color-borde-fuerte); }
+.primario { color: white; background: var(--color-primario); border-color: var(--color-primario); white-space: nowrap; }
+.secundario, .grados button { background: var(--color-superficie); color: var(--color-texto-secundario); }
+.grados { display: flex; gap: 12px; flex-wrap: wrap; list-style: none; padding: 0; margin: 24px 0 0; }
+.grados button[aria-pressed='true'] { background: var(--tono-azul-fondo); color: var(--tono-azul-texto); border-color: var(--tono-azul-texto); }
+.filtros { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 20px; margin: 24px 0; }
+.campo { display: flex; flex-direction: column; gap: 8px; font-size: var(--texto-md); font-weight: 500; }
+.campo input, .campo select { min-height: 44px; width: 100%; box-sizing: border-box; padding: 10px 12px; font: inherit; color: var(--color-texto); background: white; border: 1px solid var(--color-borde-fuerte); border-radius: var(--radio-sm); }
+.campo input[aria-invalid='true'] { border-color: var(--color-peligro-texto); }
+.pagina button:disabled, .pagina input:disabled, .pagina select:disabled { opacity: .55; cursor: not-allowed; }
+.pagina button:focus-visible, .pagina input:focus-visible, .pagina select:focus-visible { outline: 3px solid var(--color-foco); outline-offset: 3px; }
+.tablaContenedor { overflow-x: auto; border: 1px solid var(--color-borde); border-radius: var(--radio-sm); }
+.tablaContenedor table { width: 100%; border-collapse: collapse; text-align: left; font-size: var(--texto-md); }
+.tablaContenedor caption { padding: 16px; text-align: left; font-weight: 600; }
+.tablaContenedor th { background: var(--color-superficie-suave); color: var(--color-texto-suave); }
+.tablaContenedor th, .tablaContenedor td { padding: 16px; border-top: 1px solid var(--color-borde); white-space: nowrap; }
+.acciones { display: flex; justify-content: flex-end; gap: 12px; margin-top: 24px; }
+.error { color: var(--color-peligro-texto); font-size: var(--texto-md); }
+.aviso, .confirmacion { padding: 16px; border-radius: var(--radio-sm); line-height: 1.5; }
+.aviso { background: var(--tono-ambar-fondo); color: var(--tono-ambar-texto); }
+.confirmacion { margin: 0; background: var(--color-exito-fondo); color: var(--color-exito-texto); border: 1px solid var(--color-exito-borde); }
+.contexto { padding: 16px; background: var(--color-superficie-suave); border-radius: var(--radio-sm); }
+.pie { margin-bottom: 0; }
+@media (max-width: 640px) { .tarjeta { padding: 16px; } .cabeceraTarjeta { flex-direction: column; } .filtros { grid-template-columns: 1fr; } .cabeceraTarjeta .primario { width: 100%; } }
