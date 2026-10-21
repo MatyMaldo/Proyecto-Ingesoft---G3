@@ -1,1 +1,1 @@
-# Proyecto-Ingesoft---G3
+# SistemaEscolarSecundaria-Frontend
