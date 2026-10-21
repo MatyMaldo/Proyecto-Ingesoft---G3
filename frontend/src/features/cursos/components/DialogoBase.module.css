@@ -1,0 +1,208 @@
+.dialogo {
+  width: calc(100% - var(--espacio-6));
+  max-width: 30rem;
+  max-height: calc(100dvh - var(--espacio-6));
+  margin: auto;
+  padding: 0;
+  overflow: hidden;
+  background: var(--color-superficie);
+  color: var(--color-texto);
+  border: 0;
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-lg);
+}
+
+.dialogo::backdrop {
+  background: var(--velo);
+}
+
+.dialogo[open] {
+  display: flex;
+  flex-direction: column;
+}
+
+.formulario {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+}
+
+.encabezado {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  flex-shrink: 0;
+  gap: var(--espacio-3);
+  padding: var(--espacio-5) var(--espacio-6);
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.titulo {
+  margin: 0 0 var(--espacio-1);
+  font-size: var(--texto-lg);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+  overflow-wrap: anywhere;
+}
+
+.subtitulo {
+  margin: 0;
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}
+
+.botonCerrar {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--tactil-min);
+  height: var(--tactil-min);
+  color: var(--color-texto-secundario);
+  background: none;
+  border: 0;
+  border-radius: var(--radio-md);
+  cursor: pointer;
+  transition: background var(--transicion);
+}
+
+.botonCerrar:hover {
+  background: var(--color-superficie-suave);
+}
+
+.botonCerrar:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.botonCerrar:disabled {
+  opacity: var(--opacidad-deshabilitado);
+  cursor: not-allowed;
+}
+
+.cuerpo {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  gap: var(--espacio-4);
+  min-height: 0;
+  padding: var(--espacio-5) var(--espacio-6);
+  overflow-y: auto;
+}
+
+.alertaGeneral {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  padding: var(--espacio-3) var(--espacio-4);
+  font-size: var(--texto-md);
+  color: var(--color-peligro-texto);
+  background: var(--color-peligro-fondo);
+  border: 1px solid var(--color-peligro-borde);
+  border-radius: var(--radio-md);
+}
+
+.pie {
+  display: flex;
+  flex-shrink: 0;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--espacio-3);
+  padding: var(--espacio-4) var(--espacio-6);
+  background: var(--color-superficie-suave);
+  border-top: 1px solid var(--color-borde);
+}
+
+.notaPie {
+  margin-right: auto;
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}
+
+.botonPrimario,
+.botonSecundario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espacio-2);
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-5);
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+  transition: background var(--transicion);
+}
+
+.botonPrimario {
+  color: var(--color-marca-texto);
+  background: var(--color-marca);
+  border: 0;
+  box-shadow: var(--sombra-sm);
+}
+
+.botonPrimario:hover:not(:disabled) {
+  background: var(--color-primario-intenso);
+}
+
+.botonSecundario {
+  color: var(--color-texto-secundario);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
+}
+
+.botonSecundario:hover:not(:disabled) {
+  background: var(--color-superficie-suave);
+}
+
+.botonPrimario:focus-visible,
+.botonSecundario:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.botonPrimario:disabled,
+.botonSecundario:disabled {
+  opacity: var(--opacidad-deshabilitado);
+  cursor: not-allowed;
+}
+
+.iconoCargando {
+  animation: girar 800ms linear infinite;
+}
+
+@keyframes girar {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iconoCargando {
+    animation: none;
+  }
+}
+
+@media (max-width: 767px) {
+  .encabezado,
+  .cuerpo,
+  .pie {
+    padding-right: var(--espacio-4);
+    padding-left: var(--espacio-4);
+  }
+
+  .notaPie {
+    flex-basis: 100%;
+    margin-right: 0;
+  }
+
+  .botonPrimario,
+  .botonSecundario {
+    flex: 1 1 0;
+  }
+}

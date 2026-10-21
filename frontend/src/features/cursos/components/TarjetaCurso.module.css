@@ -1,0 +1,94 @@
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  padding: var(--espacio-5);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-sm);
+}
+
+.cabecera {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espacio-3);
+}
+
+.recuadroIcono {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--tamano-recuadro-icono);
+  height: var(--tamano-recuadro-icono);
+  font-size: var(--texto-lg);
+  background: var(--tono-azul-fondo);
+  border: 1px solid var(--tono-azul-borde);
+  border-radius: var(--radio-md);
+}
+
+.contenido {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.filaNombre {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-2);
+}
+
+.nombre {
+  margin: 0;
+  font-size: var(--texto-base);
+  font-weight: var(--peso-negrita);
+  color: var(--color-texto);
+  overflow-wrap: anywhere;
+}
+
+.descripcion {
+  margin: var(--espacio-1) 0 0;
+  font-size: var(--texto-md);
+  line-height: 1.5;
+  color: var(--color-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+.pie {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: auto;
+  padding-top: var(--espacio-3);
+  border-top: 1px solid var(--color-borde);
+}
+
+.botonCompetencias {
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-4);
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-primario-intenso);
+  background: transparent;
+  border: 1px solid var(--color-primario-intenso);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+  transition: background var(--transicion), color var(--transicion);
+}
+
+.botonCompetencias:hover {
+  color: var(--color-marca-texto);
+  background: var(--color-primario-intenso);
+}
+
+.botonCompetencias:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  .botonCompetencias {
+    width: 100%;
+  }
+}
