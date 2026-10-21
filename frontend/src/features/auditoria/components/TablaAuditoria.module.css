@@ -1,0 +1,236 @@
+.contenedorTabla {
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .contenedorTabla {
+    overflow-x: auto;
+  }
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla thead th {
+  padding: var(--espacio-3) var(--espacio-4);
+  text-align: left;
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-secundario);
+  background: var(--color-superficie-suave);
+  border-bottom: 1px solid var(--color-borde);
+  white-space: nowrap;
+}
+
+.tabla tbody td {
+  padding: var(--espacio-4);
+  text-align: left;
+  font-size: var(--texto-md);
+  color: var(--color-texto);
+  border-bottom: 1px solid var(--color-borde);
+  vertical-align: middle;
+}
+
+/* Columna "Ver historial": se ajusta a su contenido, no se estira (docs/planes/auditorias.md §10). */
+.tabla thead th:last-child,
+.tabla tbody td:last-child {
+  width: 1%;
+  white-space: nowrap;
+}
+
+.fila {
+  cursor: pointer;
+  transition: background var(--transicion);
+}
+
+.fila:hover {
+  background: var(--color-superficie-suave);
+}
+
+.fila:focus-within {
+  outline: 2px solid var(--color-foco);
+  outline-offset: -2px;
+  background: var(--color-superficie-suave);
+}
+
+.fila:last-child td {
+  border-bottom: 0;
+}
+
+/* MASTER.md no define un token de opacidad; valor local para el estado de
+   refiltrado (docs/planes/auditorias.md §5, "Refiltrado"). */
+.filasAtenuadas {
+  opacity: 0.6;
+  transition: opacity var(--transicion);
+}
+
+.celdaFecha,
+.fechaTarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.fecha {
+  font-weight: var(--peso-seminegrita);
+  font-variant-numeric: tabular-nums;
+  letter-spacing: var(--espaciado-letra-ancho);
+  color: var(--color-texto);
+}
+
+.hora {
+  font-size: var(--texto-xs);
+  color: var(--color-texto-suave);
+}
+
+.celdaUsuario {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+}
+
+.avatar {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--tamano-avatar-sm);
+  height: var(--tamano-avatar-sm);
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-avatar-texto);
+  background: var(--color-avatar-fondo);
+  border: 1px solid var(--color-avatar-borde);
+  border-radius: var(--radio-pildora);
+}
+
+.nombreUsuario {
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+}
+
+.celdaRol {
+  font-size: var(--texto-md);
+  font-weight: var(--peso-normal);
+  color: var(--color-texto-secundario);
+}
+
+.accionTexto {
+  font-size: var(--texto-md);
+  font-weight: var(--peso-normal);
+  color: var(--color-texto);
+}
+
+.botonHistorial {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-2);
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-primario);
+  text-align: left;
+  white-space: nowrap;
+  background: none;
+  border: 0;
+  border-radius: var(--radio-sm);
+  cursor: pointer;
+}
+
+.botonHistorial:hover {
+  text-decoration: underline;
+}
+
+.botonHistorial:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.listaTarjetas {
+  display: none;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  margin: 0;
+  padding: var(--espacio-4);
+  list-style: none;
+}
+
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  width: 100%;
+  min-height: var(--tactil-min);
+  padding: var(--espacio-4);
+  font: inherit;
+  font-weight: var(--peso-normal);
+  color: var(--color-texto);
+  text-align: left;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+  transition: background var(--transicion), border-color var(--transicion);
+}
+
+.tarjeta:hover {
+  background: var(--color-superficie-suave);
+}
+
+.tarjeta:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.filaSuperiorTarjeta {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espacio-2);
+}
+
+.filaUsuarioTarjeta {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+}
+
+.bloqueUsuarioTarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.accionTarjeta {
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+}
+
+.filaInferiorTarjeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-2);
+}
+
+.pistaHistorial {
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-primario);
+  white-space: nowrap;
+}
+
+@media (max-width: 767px) {
+  .contenedorTabla {
+    display: none;
+  }
+
+  .listaTarjetas {
+    display: flex;
+  }
+}

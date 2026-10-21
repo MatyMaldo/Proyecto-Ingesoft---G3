@@ -1,0 +1,68 @@
+.grupo {
+  display: flex;
+  gap: var(--espacio-2);
+  flex-wrap: wrap;
+}
+
+@media (max-width: 767px) {
+  .grupo {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: var(--espacio-1);
+  }
+}
+
+.chip {
+  position: relative;
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  height: calc(var(--tactil-min) - var(--espacio-2));
+  padding: 0 var(--espacio-4);
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-medio);
+  white-space: nowrap;
+  color: var(--color-texto-secundario);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-pildora);
+  cursor: pointer;
+  transition: border-color var(--transicion), background var(--transicion), color var(--transicion);
+}
+
+.chip::before {
+  /* Amplía el área táctil a --tactil-min (44px) sin cambiar el alto visual (36px). */
+  content: '';
+  position: absolute;
+  top: calc(var(--espacio-1) * -1);
+  bottom: calc(var(--espacio-1) * -1);
+  left: 0;
+  right: 0;
+}
+
+@media (max-width: 767px) {
+  .chip {
+    height: var(--tactil-min);
+  }
+
+  .chip::before {
+    content: none;
+  }
+}
+
+.chip:hover {
+  border-color: var(--color-borde-fuerte);
+}
+
+.chip:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.chip[aria-pressed='true'] {
+  font-weight: var(--peso-seminegrita);
+  background: var(--tono-fondo);
+  border-color: var(--tono-borde);
+  color: var(--tono-texto);
+}
