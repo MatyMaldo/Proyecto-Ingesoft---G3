@@ -2,10 +2,11 @@ import { useEffect, useRef, useState } from 'react';
 
 import { formatearFechaHora, calcularDiasAbarcados } from '../../../shared/utils/formatoFecha.js';
 import { obtenerTonoModulo } from '../../../shared/constants/tonosModulo.js';
+import { obtenerMensajeRangoFechas } from '../../../shared/utils/rangoFechas.js';
 import {
   listarRegistrosAuditoria,
   obtenerResumenAuditoria,
-  obtenerHistorialTransaccion
+  obtenerHistorialElemento
 } from '../services/auditoriaService.js';
 import { obtenerEtiquetaCategoria, obtenerEtiquetaRol } from '../constants/categoriasAuditoria.js';
 
@@ -53,7 +54,9 @@ function transformarRegistro(registroApi) {
 
   return {
     id: registroApi.id,
-    idTransaccion: registroApi.idTransaccion,
+    // LAB05: reemplaza a `idTransaccion`. Clave opaca del elemento afectado (el mismo
+    // pago, nota, bloque horario, usuario…), con la que se pide el historial (§6.2, §8.3).
+    idElemento: registroApi.idElemento,
     fechaHoraIso: registroApi.fechaHora,
     fecha,
     hora,
@@ -88,8 +91,9 @@ function ordenarAscendentePorFecha(lista) {
 
 /**
  * Lógica de la página de Auditorías: carga el listado y el resumen, aplica
- * filtro por categoría y búsqueda (en servidor), y gestiona el panel de detalle
- * con el historial de una transacción. Ver docs/planes/auditorias.md §6.
+ * filtro por categoría, búsqueda y rango de fechas (en servidor, LAB05), y
+ * gestiona el panel de detalle con el historial del elemento afectado.
+ * Ver docs/planes/auditorias.md §6.
  *
  * @returns {Object} Ver docs/planes/auditorias.md §6.1 para la forma completa.
  */
@@ -100,6 +104,9 @@ export default function useAuditoria() {
   const [resumen, establecerResumen] = useState(null);
   const [categoria, establecerCategoriaEstado] = useState(CATEGORIA_TODOS);
   const [busqueda, establecerBusquedaEstado] = useState('');
+  const [tipoTransaccion, establecerTipoTransaccionEstado] = useState('');
+  const [fechaDesde, establecerFechaDesdeEstado] = useState('');
+  const [fechaHasta, establecerFechaHastaEstado] = useState('');
 
   const [detalleRegistro, establecerDetalleRegistro] = useState(null);
   const [historial, establecerHistorial] = useState({ estado: 'listo', registros: [] });
@@ -109,6 +116,13 @@ export default function useAuditoria() {
   const temporizadorBusquedaRef = useRef(null);
   const secuenciaHistorialRef = useRef(0);
   const elementoOrigenRef = useRef(null);
+  // (LAB05) Último rango de fechas válido aplicado: chip, búsqueda y `reintentar`
+  // siempre consultan con este rango, nunca con uno inválido (docs/planes/auditorias.md §6.3).
+  const rangoAplicadoRef = useRef({ fechaDesde: '', fechaHasta: '' });
+  // Filtro explícito por tipo de transacción (D2/D14): se aplica de inmediato, como el chip.
+  const tipoTransaccionRef = useRef('');
+
+  const mensajeErrorRango = obtenerMensajeRangoFechas(fechaDesde, fechaHasta);
 
   /**
    * Pide el listado (y el resumen, si aún no se cargó con éxito) con los filtros
@@ -120,7 +134,7 @@ export default function useAuditoria() {
    * antes de que la carga inicial responda, la siguiente llamada que gane la carrera
    * siga trayendo el resumen y no se quede sin él.
    */
-  async function cargarListado(categoriaActual, busquedaActual) {
+  async function cargarListado(categoriaActual, busquedaActual, rangoActual, tipoTransaccionActual) {
     const idSolicitud = (secuenciaListadoRef.current += 1);
     const necesitaResumen = !cargaInicialCompletaRef.current;
 
@@ -132,7 +146,10 @@ export default function useAuditoria() {
 
     const filtros = {
       categoria: categoriaActual === CATEGORIA_TODOS ? null : categoriaActual,
-      busqueda: busquedaActual
+      busqueda: busquedaActual,
+      fechaDesde: rangoActual.fechaDesde,
+      fechaHasta: rangoActual.fechaHasta,
+      tipoTransaccion: tipoTransaccionActual || ''
     };
 
     const [resultadoListado, resultadoResumen] = await Promise.all([
@@ -174,7 +191,7 @@ export default function useAuditoria() {
   }
 
   useEffect(() => {
-    cargarListado(CATEGORIA_TODOS, '');
+    cargarListado(CATEGORIA_TODOS, '', rangoAplicadoRef.current, tipoTransaccionRef.current);
 
     return () => {
       if (temporizadorBusquedaRef.current) {
@@ -182,6 +199,7 @@ export default function useAuditoria() {
       }
     };
     // Carga inicial: se ejecuta una sola vez al montar.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   /**
@@ -191,7 +209,19 @@ export default function useAuditoria() {
    */
   function establecerCategoria(valor) {
     establecerCategoriaEstado(valor);
-    cargarListado(valor, busqueda.trim());
+    cargarListado(valor, busqueda.trim(), rangoAplicadoRef.current, tipoTransaccionRef.current);
+  }
+
+  /**
+   * (D2/D14) Cambia el tipo de transacción activo y refiltra de inmediato (sin
+   * debounce), igual que el chip de categoría. Se combina con Y con los demás filtros.
+   *
+   * @param {string} valor Tipo de transacción exacto, o `''` para "Todos los tipos".
+   */
+  function establecerTipoTransaccion(valor) {
+    establecerTipoTransaccionEstado(valor);
+    tipoTransaccionRef.current = valor;
+    cargarListado(categoria, busqueda.trim(), rangoAplicadoRef.current, valor);
   }
 
   /**
@@ -208,28 +238,63 @@ export default function useAuditoria() {
     }
 
     temporizadorBusquedaRef.current = setTimeout(() => {
-      cargarListado(categoria, texto.trim());
+      cargarListado(categoria, texto.trim(), rangoAplicadoRef.current, tipoTransaccionRef.current);
     }, RETRASO_BUSQUEDA_MS);
   }
 
   /**
-   * Repite la consulta con los filtros vigentes. Si el resumen nunca llegó a
-   * cargarse con éxito, `cargarListado` lo vuelve a pedir también.
+   * (LAB05) Actualiza el input "Desde" y, si el rango resultante es válido, lo
+   * aplica y refiltra de inmediato (docs/planes/auditorias.md §6.3, paso 3b).
+   *
+   * @param {string} valor `'AAAA-MM-DD'` o `''`.
    */
-  function reintentar() {
-    cargarListado(categoria, busqueda.trim());
+  function establecerFechaDesde(valor) {
+    establecerFechaDesdeEstado(valor);
+
+    const mensaje = obtenerMensajeRangoFechas(valor, fechaHasta);
+    if (mensaje === '') {
+      const rango = { fechaDesde: valor, fechaHasta };
+      rangoAplicadoRef.current = rango;
+      cargarListado(categoria, busqueda.trim(), rango, tipoTransaccionRef.current);
+    }
   }
 
   /**
-   * Pide el historial de una transacción. El historial se pide siempre al
-   * servicio, sin reutilizar el listado, porque este puede estar filtrado
-   * (docs/planes/auditorias.md §6.3, paso 7).
+   * (LAB05) Actualiza el input "Hasta" y, si el rango resultante es válido, lo
+   * aplica y refiltra de inmediato (docs/planes/auditorias.md §6.3, paso 3b).
+   *
+   * @param {string} valor `'AAAA-MM-DD'` o `''`.
    */
-  async function cargarHistorial(idTransaccion) {
+  function establecerFechaHasta(valor) {
+    establecerFechaHastaEstado(valor);
+
+    const mensaje = obtenerMensajeRangoFechas(fechaDesde, valor);
+    if (mensaje === '') {
+      const rango = { fechaDesde, fechaHasta: valor };
+      rangoAplicadoRef.current = rango;
+      cargarListado(categoria, busqueda.trim(), rango, tipoTransaccionRef.current);
+    }
+  }
+
+  /**
+   * Repite la consulta con los filtros vigentes (incluido el último rango de
+   * fechas válido). Si el resumen nunca llegó a cargarse con éxito, `cargarListado`
+   * lo vuelve a pedir también.
+   */
+  function reintentar() {
+    cargarListado(categoria, busqueda.trim(), rangoAplicadoRef.current, tipoTransaccionRef.current);
+  }
+
+  /**
+   * Pide el historial del mismo elemento (LAB05). El historial se pide siempre al
+   * servicio, sin reutilizar el listado, porque este puede estar filtrado
+   * (docs/planes/auditorias.md §6.3, paso 7), y no aplica los filtros del listado.
+   */
+  async function cargarHistorial(idElemento) {
     const idSolicitud = (secuenciaHistorialRef.current += 1);
     establecerHistorial({ estado: 'cargando', registros: [] });
 
-    const resultado = await obtenerHistorialTransaccion(idTransaccion);
+    const resultado = await obtenerHistorialElemento(idElemento);
 
     if (idSolicitud !== secuenciaHistorialRef.current) {
       return;
@@ -245,7 +310,7 @@ export default function useAuditoria() {
   }
 
   /**
-   * Abre el panel de detalle de un registro y pide su historial.
+   * Abre el panel de detalle de un registro y pide el historial de su elemento.
    *
    * @param {Object} registro RegistroVista.
    * @param {HTMLElement} elementoOrigen Elemento al que se devuelve el foco al cerrar.
@@ -253,7 +318,7 @@ export default function useAuditoria() {
   function abrir(registro, elementoOrigen) {
     elementoOrigenRef.current = elementoOrigen ?? null;
     establecerDetalleRegistro(registro);
-    cargarHistorial(registro.idTransaccion);
+    cargarHistorial(registro.idElemento);
   }
 
   /**
@@ -273,7 +338,7 @@ export default function useAuditoria() {
 
   function reintentarHistorial() {
     if (detalleRegistro) {
-      cargarHistorial(detalleRegistro.idTransaccion);
+      cargarHistorial(detalleRegistro.idElemento);
     }
   }
 
@@ -287,6 +352,13 @@ export default function useAuditoria() {
     establecerCategoria,
     busqueda,
     establecerBusqueda,
+    tipoTransaccion,
+    establecerTipoTransaccion,
+    fechaDesde,
+    establecerFechaDesde,
+    fechaHasta,
+    establecerFechaHasta,
+    mensajeErrorRango,
     reintentar,
     detalle: {
       registro: detalleRegistro,

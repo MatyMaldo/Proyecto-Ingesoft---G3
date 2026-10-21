@@ -153,7 +153,7 @@ export default function FormularioLogin({
           </>
         ) : (
           <>
-            Ingresar al Sistema
+            Iniciar sesión
             <Icono nombre="flecha-derecha" tamano={18} />
           </>
         )}

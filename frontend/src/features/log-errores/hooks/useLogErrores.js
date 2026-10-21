@@ -1,23 +1,29 @@
 import { useEffect, useRef, useState } from 'react';
 
 import { obtenerTonoModulo } from '../../../shared/constants/tonosModulo.js';
-import { calcularDiasAbarcados, formatearFechaHora } from '../../../shared/utils/formatoFecha.js';
+import { formatearFechaHora } from '../../../shared/utils/formatoFecha.js';
+import { obtenerMensajeRangoFechas } from '../../../shared/utils/rangoFechas.js';
 import { obtenerErrores, obtenerResumenErrores } from '../services/logErroresService.js';
 
 /**
- * Opciones del filtro de módulo (`FiltroChips`), en el orden del prototipo.
+ * Opciones del filtro de módulo (`FiltroChips`). Catálogo corregido (decisión del
+ * dueño del producto, 2026-10-20, Duda U4 de `docs/planes/log-errores.md`): sigue
+ * HU-SAT-05 LV3 ("Usuarios, Matrícula, Pagos, Asistencia, Notas, Horarios,
+ * Configuración u Otros"), sin "Autenticación" ni "Reportes".
  * El valor `'TODOS'` identifica el chip "Todos" (ajuste aprobado en `shell.md` §19).
+ * "Configuración" y "Otros" usan tono `gris` provisional: MASTER.md no les asigna
+ * tono todavía (mismo criterio que `CONFIGURACION` en `auditorias.md` D8).
  */
 export const OPCIONES_MODULO = [
   { valor: 'TODOS', etiqueta: 'Todos' },
-  { valor: 'NOTAS', etiqueta: 'Notas', tono: 'azul' },
-  { valor: 'PAGOS', etiqueta: 'Pagos', tono: 'turquesa' },
-  { valor: 'MATRICULAS', etiqueta: 'Matrículas', tono: 'ambar' },
-  { valor: 'HORARIOS', etiqueta: 'Horarios', tono: 'indigo' },
-  { valor: 'AUTENTICACION', etiqueta: 'Autenticación', tono: 'rojo' },
   { valor: 'USUARIOS', etiqueta: 'Usuarios', tono: 'violeta' },
+  { valor: 'MATRICULAS', etiqueta: 'Matrícula', tono: 'ambar' },
+  { valor: 'PAGOS', etiqueta: 'Pagos', tono: 'turquesa' },
   { valor: 'ASISTENCIA', etiqueta: 'Asistencia', tono: 'verde' },
-  { valor: 'REPORTES', etiqueta: 'Reportes', tono: 'cian' }
+  { valor: 'NOTAS', etiqueta: 'Notas', tono: 'azul' },
+  { valor: 'HORARIOS', etiqueta: 'Horarios', tono: 'indigo' },
+  { valor: 'CONFIGURACION', etiqueta: 'Configuración', tono: 'gris' },
+  { valor: 'OTROS', etiqueta: 'Otros', tono: 'gris' }
 ];
 
 const ETIQUETAS_MODULO = Object.fromEntries(
@@ -38,9 +44,6 @@ export const TONOS_TIPO_ERROR = {
 };
 
 const DEBOUNCE_BUSQUEDA_MS = 300;
-
-// TODO(pregunta): texto propuesto, confirmar con la HU (docs/planes/log-errores.md §7).
-const MENSAJE_RANGO_INVALIDO = 'La fecha «Desde» no puede ser posterior a la fecha «Hasta».';
 
 function obtenerTonoTipoError(tipoError) {
   return TONOS_TIPO_ERROR[tipoError] ?? 'gris';
@@ -126,6 +129,11 @@ export default function useLogErrores() {
 
   const idSolicitudRef = useRef(0);
   const esPrimerFiltroRef = useRef(true);
+  // Evita la condición de carrera entre la carga inicial y un cambio de filtro
+  // disparado antes de que esta termine (mismo patrón que `useAuditoria`): el
+  // resumen se vuelve a pedir mientras este ref siga en `false`, sin importar
+  // qué llamada a `cargarLista` gane la carrera de `idSolicitudRef`.
+  const cargaInicialCompletaRef = useRef(false);
 
   // Búsqueda con debounce de 300 ms.
   useEffect(() => {
@@ -136,8 +144,7 @@ export default function useLogErrores() {
     return () => clearTimeout(temporizador);
   }, [busqueda]);
 
-  const mensajeErrorRango =
-    fechaDesde && fechaHasta && fechaDesde > fechaHasta ? MENSAJE_RANGO_INVALIDO : '';
+  const mensajeErrorRango = obtenerMensajeRangoFechas(fechaDesde, fechaHasta);
 
   // El rango solo se aplica (y se consulta) cuando es válido.
   useEffect(() => {
@@ -146,105 +153,84 @@ export default function useLogErrores() {
     }
   }, [fechaDesde, fechaHasta, mensajeErrorRango]);
 
-  // Carga inicial y reintentos: pide resumen + lista en paralelo (§6.3 paso 1 y 7).
-  useEffect(() => {
-    let cancelado = false;
+  /**
+   * Pide la lista (y el resumen, si aún no se cargó con éxito) con los filtros
+   * vigentes. Descarta la respuesta si ya no es la última solicitud en curso.
+   *
+   * El resumen se pide mientras `cargaInicialCompletaRef` siga en `false` (en vez
+   * de comparar con `estado === 'cargando'`): así, si el usuario cambia un filtro
+   * antes de que la carga inicial responda, la llamada que gane la carrera de
+   * `idSolicitudRef` sigue trayendo el resumen y la lista queda filtrada
+   * correctamente (en vez de quedarse sin refiltrar, que era el bug).
+   */
+  async function cargarLista(filtrosActuales) {
     const idActual = ++idSolicitudRef.current;
+    const necesitaResumen = !cargaInicialCompletaRef.current;
 
-    async function cargar() {
+    if (necesitaResumen) {
       establecerEstado('cargando');
-
-      const filtros = construirFiltros({ modulo, busqueda: busquedaDebounced, rangoAplicado });
-      const [resResumen, resErrores] = await Promise.all([
-        obtenerResumenErrores(),
-        obtenerErrores(filtros)
-      ]);
-
-      if (cancelado || idActual !== idSolicitudRef.current) {
-        return;
-      }
-
-      if (!resResumen.exitoso || !resErrores.exitoso) {
-        establecerEstado('error');
-        return;
-      }
-
-      establecerResumen(resResumen.datos);
-      establecerErrores(ordenarYAdaptar(resErrores.datos));
-      establecerEstado('listo');
+    } else {
+      establecerRecargando(true);
     }
 
-    cargar();
+    const filtros = construirFiltros(filtrosActuales);
+    const [resResumen, resErrores] = await Promise.all([
+      necesitaResumen ? obtenerResumenErrores() : Promise.resolve(null),
+      obtenerErrores(filtros)
+    ]);
 
-    return () => {
-      cancelado = true;
-    };
+    if (idActual !== idSolicitudRef.current) {
+      return;
+    }
+
+    if (!resErrores.exitoso || (necesitaResumen && !resResumen.exitoso)) {
+      establecerEstado('error');
+      establecerRecargando(false);
+      return;
+    }
+
+    establecerErrores(ordenarYAdaptar(resErrores.datos));
+
+    if (necesitaResumen) {
+      establecerResumen(resResumen.datos);
+      cargaInicialCompletaRef.current = true;
+    }
+
+    establecerEstado('listo');
+    establecerRecargando(false);
+  }
+
+  // Carga inicial y reintentos: pide resumen + lista en paralelo (§6.3 paso 1 y 7).
+  useEffect(() => {
+    cargarLista({ modulo, busqueda: busquedaDebounced, rangoAplicado });
     // El resumen y la lista inicial solo se repiten cuando cambia `intentoClave`
     // (al llamar `reintentar`); el cambio de filtros lo maneja el efecto de abajo.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [intentoClave]);
 
-  // Recarga solo la lista cuando cambian los filtros (el resumen no se vuelve a pedir).
+  // Recarga la lista (y el resumen, si todavía no se cargó con éxito) cuando
+  // cambian los filtros. Sin guarda sobre `estado`: si la carga inicial sigue en
+  // curso, esta llamada compite por `idSolicitudRef` y la última en resolver es
+  // la que queda, ya con los filtros vigentes.
   useEffect(() => {
     if (esPrimerFiltroRef.current) {
       esPrimerFiltroRef.current = false;
       return;
     }
 
-    if (estado === 'cargando') {
-      // La carga inicial (resumen + lista) todavía no terminó; esa carga ya
-      // usa los filtros vigentes en este render, así que no se duplica la petición.
-      return;
-    }
-
-    let cancelado = false;
-    const idActual = ++idSolicitudRef.current;
-
-    async function recargar() {
-      establecerRecargando(true);
-
-      const filtros = construirFiltros({ modulo, busqueda: busquedaDebounced, rangoAplicado });
-      const resultado = await obtenerErrores(filtros);
-
-      if (cancelado || idActual !== idSolicitudRef.current) {
-        return;
-      }
-
-      if (!resultado.exitoso) {
-        establecerEstado('error');
-        establecerRecargando(false);
-        return;
-      }
-
-      establecerErrores(ordenarYAdaptar(resultado.datos));
-      establecerEstado('listo');
-      establecerRecargando(false);
-    }
-
-    recargar();
-
-    return () => {
-      cancelado = true;
-    };
+    cargarLista({ modulo, busqueda: busquedaDebounced, rangoAplicado });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [modulo, busquedaDebounced, rangoAplicado.fechaDesde, rangoAplicado.fechaHasta]);
 
   const reintentar = () => establecerIntentoClave((valor) => valor + 1);
 
+  // Decisión del dueño del producto (2026-10-20, Duda U3): la insignia dice
+  // "N errores", sin la parte de "Últimos N días" (el log es permanente y ese
+  // rango puede crecer sin límite).
   let textoInsignia = '';
   if (resumen) {
     const total = resumen.totalErrores ?? 0;
-    const textoTotal = `${total} ${total === 1 ? 'error' : 'errores'}`;
-
-    if (total === 0) {
-      textoInsignia = textoTotal;
-    } else {
-      const dias = calcularDiasAbarcados(
-        [resumen.fechaPrimerError, resumen.fechaUltimoError].filter(Boolean)
-      );
-      const textoDias = dias === 1 ? 'Último día' : `Últimos ${dias} días`;
-      textoInsignia = `${textoTotal} · ${textoDias}`;
-    }
+    textoInsignia = `${total} ${total === 1 ? 'error' : 'errores'}`;
   }
 
   return {

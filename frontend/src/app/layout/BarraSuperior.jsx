@@ -5,9 +5,9 @@ import estilos from './BarraSuperior.module.css';
 
 /**
  * Barra superior: botón de menú (móvil/tableta), contexto de marca, búsqueda,
- * notificaciones, menú de usuario y "Salir". Búsqueda, notificaciones y menú
- * de usuario son visibles pero no disponibles (ver `docs/planes/shell.md`
- * §6.4); "Salir" cierra la sesión real (docs/planes/login.md §4.7).
+ * notificaciones, menú de usuario y "Cerrar sesión". Búsqueda, notificaciones
+ * y menú de usuario son visibles pero no disponibles (ver `docs/planes/shell.md`
+ * §6.4); "Cerrar sesión" cierra la sesión real (docs/planes/login.md §4.7, D22).
  *
  * @param {Object} props
  * @param {boolean} props.cajonAbierto Para `aria-expanded` del botón de menú.
@@ -88,9 +88,9 @@ export default function BarraSuperior({ cajonAbierto, alAlternarCajon, refBotonM
         <Icono nombre="chevron-abajo" tamano={16} />
       </button>
 
-      <button type="button" className={estilos.botonSalir} aria-label="Salir" onClick={cerrarSesion}>
+      <button type="button" className={estilos.botonSalir} aria-label="Cerrar sesión" onClick={cerrarSesion}>
         <Icono nombre="salir" tamano={18} />
-        <span className={estilos.textoSalir}>Salir</span>
+        <span className={estilos.textoSalir}>Cerrar sesión</span>
       </button>
     </header>
   );

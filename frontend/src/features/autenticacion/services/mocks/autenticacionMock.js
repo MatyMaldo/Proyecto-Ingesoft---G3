@@ -9,15 +9,29 @@ const IDENTIFICADOR_ERROR_INESPERADO = '00000000';
 
 /**
  * Usuarios ficticios para desarrollar sin backend (docs/planes/login.md §8.5).
+ * Los DNI son obviamente falsos (empiezan en `0000000x`) para que no se
+ * confundan con DNI peruanos reales. El usuario 4 (Ana Torres) comparte DNI
+ * con el usuario 1 (Admin) mostrando perfiles distintos, para probar la regla
+ * "la cuenta se identifica por DNI + perfil" (HU-GEMAP-01) y va primero en el
+ * arreglo para que una búsqueda que ignorara el perfil la encontrara antes.
  */
 const USUARIOS = Object.freeze([
+  Object.freeze({
+    id: 4,
+    nombre: 'Ana Torres',
+    rol: ROLES.DOCENTE,
+    activo: true,
+    correo: 'docente.ana@sanmarcos.edu.pe',
+    dni: '00000001',
+    contrasena: 'DocenteAna2026!'
+  }),
   Object.freeze({
     id: 1,
     nombre: 'Admin',
     rol: ROLES.ADMIN,
     activo: true,
     correo: 'admin@sanmarcos.edu.pe',
-    dni: '40000001',
+    dni: '00000001',
     contrasena: 'Admin2026!'
   }),
   Object.freeze({
@@ -26,7 +40,7 @@ const USUARIOS = Object.freeze([
     rol: ROLES.ADMIN,
     activo: false,
     correo: 'inactivo@sanmarcos.edu.pe',
-    dni: '40000002',
+    dni: '00000002',
     contrasena: 'Inactivo2026!'
   }),
   Object.freeze({
@@ -35,7 +49,7 @@ const USUARIOS = Object.freeze([
     rol: ROLES.DOCENTE,
     activo: true,
     correo: 'docente@sanmarcos.edu.pe',
-    dni: '40000003',
+    dni: '00000003',
     contrasena: 'Docente2026!'
   })
 ]);
@@ -46,11 +60,27 @@ function simularLatencia(calcularResultado) {
   });
 }
 
-function buscarUsuarioPorIdentificador(identificador) {
-  const normalizado = identificador.trim().toLowerCase();
-  return USUARIOS.find(
-    (usuario) => usuario.correo.toLowerCase() === normalizado || usuario.dni === identificador.trim()
-  );
+/**
+ * Busca la cuenta por identificador **y** perfil (docs/planes/login.md §8.5,
+ * corregido 2026-10-20): con DNI, la cuenta se identifica por el par
+ * DNI + perfil, porque un mismo DNI puede tener cuentas de roles distintos
+ * (HU-GEMAP-01); con correo (único en el sistema), se busca por correo y se
+ * exige que el rol de la cuenta coincida con el perfil elegido. Nunca toma el
+ * primer usuario que coincida solo por identificador.
+ *
+ * @param {string} identificador
+ * @param {string} perfil
+ * @returns {Object | undefined}
+ */
+function buscarCuentaPorIdentificadorYPerfil(identificador, perfil) {
+  const recortado = identificador.trim();
+
+  if (/^\d{8}$/.test(recortado)) {
+    return USUARIOS.find((usuario) => usuario.dni === recortado && usuario.rol === perfil);
+  }
+
+  const normalizado = recortado.toLowerCase();
+  return USUARIOS.find((usuario) => usuario.correo.toLowerCase() === normalizado && usuario.rol === perfil);
 }
 
 /**
@@ -58,8 +88,11 @@ function buscarUsuarioPorIdentificador(identificador) {
  * `{ exitoso: true, datos, mensaje: '' }`; fallo `{ exitoso: false, datos: null, mensaje, estado }`.
  * Nunca devuelve la contraseña.
  *
- * Orden de verificación, igual al de la HU: identificador existe → contraseña
- * coincide → perfil coincide con el rol → cuenta activa → éxito.
+ * Orden de verificación, igual al de la HU: cuenta (identificador + perfil) →
+ * contraseña coincide → cuenta activa → éxito. Los tres motivos de rechazo de
+ * la cuenta (identificador no registrado para ese perfil, contraseña
+ * incorrecta o perfil que no corresponde) devuelven la **misma** respuesta
+ * 401, sin distinguirse ni siquiera internamente (Esc. 3).
  *
  * @param {{ perfil: string, identificador: string, password: string }} credenciales
  * @returns {Promise<{ exitoso: boolean, datos: Object|null, mensaje: string, estado?: number }>}
@@ -70,9 +103,9 @@ export function iniciarSesionMock({ perfil, identificador, password }) {
       return { exitoso: false, datos: null, mensaje: 'Error simulado.', estado: 500 };
     }
 
-    const usuario = buscarUsuarioPorIdentificador(identificador);
+    const usuario = buscarCuentaPorIdentificadorYPerfil(identificador, perfil);
 
-    if (!usuario || usuario.contrasena !== password || usuario.rol !== perfil) {
+    if (!usuario || usuario.contrasena !== password) {
       return {
         exitoso: false,
         datos: null,

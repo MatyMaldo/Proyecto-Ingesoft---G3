@@ -2,9 +2,9 @@ import BarraResumen from '../../../shared/components/BarraResumen.jsx';
 import CampoBusqueda from '../../../shared/components/CampoBusqueda.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import FiltroChips from '../../../shared/components/FiltroChips.jsx';
+import FiltroRangoFechas from '../../../shared/components/FiltroRangoFechas.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
 import estilosUtil from '../../../shared/styles/utilidades.module.css';
-import FiltroRangoFechas from '../components/FiltroRangoFechas.jsx';
 import TablaLogErrores from '../components/TablaLogErrores.jsx';
 import useLogErrores, { OPCIONES_MODULO } from '../hooks/useLogErrores.js';
 import estilos from './PaginaLogErrores.module.css';
@@ -118,7 +118,8 @@ export default function PaginaLogErrores() {
       </section>
 
       <p className={estilos.notaPie}>
-        Los errores se retienen 30 días. Contacta al área de sistemas para investigar errores críticos.
+        Los errores registrados se conservan de forma permanente y no se pueden modificar ni eliminar. Contacta al área de
+        sistemas para investigar errores críticos.
       </p>
     </div>
   );

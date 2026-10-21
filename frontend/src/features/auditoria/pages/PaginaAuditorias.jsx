@@ -1,5 +1,6 @@
 import CampoBusqueda from '../../../shared/components/CampoBusqueda.jsx';
 import FiltroChips from '../../../shared/components/FiltroChips.jsx';
+import FiltroRangoFechas from '../../../shared/components/FiltroRangoFechas.jsx';
 import BarraResumen from '../../../shared/components/BarraResumen.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import estilosUtil from '../../../shared/styles/utilidades.module.css';
@@ -7,6 +8,7 @@ import TablaAuditoria from '../components/TablaAuditoria.jsx';
 import DetalleTransaccion from '../components/DetalleTransaccion.jsx';
 import useAuditoria from '../hooks/useAuditoria.js';
 import { obtenerOpcionesFiltroCategoria } from '../constants/categoriasAuditoria.js';
+import { TIPOS_TRANSACCION_AUDITORIA } from '../constants/tiposTransaccionAuditoria.js';
 import estilos from './PaginaAuditorias.module.css';
 
 const OPCIONES_CATEGORIA = obtenerOpcionesFiltroCategoria();
@@ -15,22 +17,14 @@ const MENSAJE_VACIO_TOTAL = 'Aún no hay registros de auditoría.';
 const MENSAJE_VACIO_FILTRADO = 'No hay registros de auditoría que coincidan con los filtros aplicados.';
 
 /**
- * Texto de la insignia de cabecera: "{N} registros · Últimos {N} días".
- * Con 0 registros se muestra solo el conteo (docs/planes/auditorias.md §4.1).
+ * Texto de la insignia de cabecera: "{N} registros" (LAB05, D13: sin referencia a días,
+ * porque los registros son permanentes y "Últimos N días" abarcaría todo el histórico).
  *
- * @param {{ totalAcciones: number, diasCubiertos: number }} resumen
+ * @param {{ totalAcciones: number }} resumen
  * @returns {string}
  */
 function formatearTextoInsignia(resumen) {
-  const textoRegistros =
-    resumen.totalAcciones === 1 ? '1 registro' : `${resumen.totalAcciones} registros`;
-
-  if (resumen.totalAcciones === 0) {
-    return textoRegistros;
-  }
-
-  const textoDias = resumen.diasCubiertos === 1 ? 'Último día' : `Últimos ${resumen.diasCubiertos} días`;
-  return `${textoRegistros} · ${textoDias}`;
+  return resumen.totalAcciones === 1 ? '1 registro' : `${resumen.totalAcciones} registros`;
 }
 
 /**
@@ -49,6 +43,13 @@ export default function PaginaAuditorias() {
     establecerCategoria,
     busqueda,
     establecerBusqueda,
+    tipoTransaccion,
+    establecerTipoTransaccion,
+    fechaDesde,
+    establecerFechaDesde,
+    fechaHasta,
+    establecerFechaHasta,
+    mensajeErrorRango,
     reintentar,
     detalle
   } = useAuditoria();
@@ -100,23 +101,53 @@ export default function PaginaAuditorias() {
         </div>
       </header>
 
-      <div className={estilos.barraHerramientas}>
-        <div className={estilos.campoBusquedaContenedor}>
-          <CampoBusqueda
-            id="busqueda-auditorias"
-            etiqueta="Buscar usuario, acción o módulo"
-            placeholder="Buscar usuario, acción o módulo..."
-            valor={busqueda}
-            alCambiar={establecerBusqueda}
+      <section className={estilos.barraHerramientas} aria-label="Filtros de auditoría">
+        <div className={estilos.filaUno}>
+          <div className={estilos.campoBusquedaContenedor}>
+            <CampoBusqueda
+              id="busqueda-auditorias"
+              etiqueta="Buscar usuario, acción o módulo"
+              placeholder="Buscar usuario, acción o módulo..."
+              valor={busqueda}
+              alCambiar={establecerBusqueda}
+            />
+          </div>
+
+          <div className={estilos.campoTipoTransaccion}>
+            <label htmlFor="tipo-transaccion-auditorias" className={estilos.etiquetaTipoTransaccion}>
+              Tipo de transacción
+            </label>
+            <select
+              id="tipo-transaccion-auditorias"
+              className={estilos.selectorTipoTransaccion}
+              value={tipoTransaccion}
+              onChange={(evento) => establecerTipoTransaccion(evento.target.value)}
+            >
+              <option value="">Todos los tipos</option>
+              {TIPOS_TRANSACCION_AUDITORIA.map((tipo) => (
+                <option key={tipo} value={tipo}>
+                  {tipo}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <FiltroRangoFechas
+            fechaDesde={fechaDesde}
+            fechaHasta={fechaHasta}
+            alCambiarFechaDesde={establecerFechaDesde}
+            alCambiarFechaHasta={establecerFechaHasta}
+            mensajeError={mensajeErrorRango}
           />
         </div>
+
         <FiltroChips
           etiquetaGrupo="Filtrar por módulo"
           opciones={OPCIONES_CATEGORIA}
           valorSeleccionado={categoria}
           alSeleccionar={establecerCategoria}
         />
-      </div>
+      </section>
 
       <BarraResumen etiqueta="Resumen de auditorías" metricas={metricas} />
 
@@ -136,7 +167,7 @@ export default function PaginaAuditorias() {
       </section>
 
       <p className={estilos.notaPie}>
-        Los registros de auditoría son de solo lectura. Se retienen por 90 días según política institucional.
+        Los registros de auditoría son de solo lectura y se conservan de forma permanente.
       </p>
 
       <p role="status" aria-live="polite" className={estilosUtil.ocultoVisualmente}>

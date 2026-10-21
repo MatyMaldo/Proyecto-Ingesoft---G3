@@ -14,6 +14,10 @@ const ERRORES = [
     mensaje: 'Valor fuera de rango: se esperaba AD/A/B/C',
     usuario: 'Prof. García'
   },
+  // Decisión (2026-10-20): se mantienen "Autenticación" y "Reportes" tal cual en
+  // este registro y en el id 1, porque pertenecen a esos módulos; no se reasignan
+  // al catálogo de chips de Duda U4. Se muestran sin chip y con tono gris (código
+  // fuera del catálogo de filtro).
   {
     id: 8,
     fechaHora: '2026-09-18T19:47:00-05:00',
@@ -85,6 +89,28 @@ const ERRORES = [
     tipoError: 'NullPointerException',
     mensaje: 'Referencia nula al obtener el periodo académico',
     usuario: 'Est. Huamán'
+  },
+  // Registros agregados en la actualización 2026-10-20 (HU-SAT-06 E3 y E4, §6.6 del plan).
+  // Los ids no siguen el orden cronológico; no importa, porque el mock y el hook ordenan por `fechaHora`.
+  {
+    id: 10,
+    fechaHora: '2026-09-16T00:05:00-05:00',
+    modulo: 'MATRICULAS',
+    operacion: 'Cierre del periodo de matrícula',
+    tipoError: 'NullPointerException',
+    mensaje: 'Referencia nula al obtener el periodo de matrícula vigente',
+    usuario: 'Sistema'
+  },
+  // TODO(pregunta): usuario del fallo de correo (Duda U8). HU-SAT-06 E4 no lo menciona
+  // entre los campos registrados; se deja `null` (sin línea de usuario) hasta aclarar.
+  {
+    id: 11,
+    fechaHora: '2026-09-18T11:21:00-05:00',
+    modulo: 'PAGOS',
+    operacion: 'Envío de notificación por correo',
+    tipoError: 'MailSendException',
+    mensaje: 'No se pudo enviar el correo de notificación del comprobante registrado',
+    usuario: null
   }
 ];
 
@@ -176,7 +202,11 @@ export async function obtenerResumenErroresMock() {
   }
 
   const modulos = new Set(ERRORES.map((registro) => registro.modulo));
-  const usuarios = new Set(ERRORES.map((registro) => registro.usuario).filter(Boolean));
+  // "Sistema" no cuenta como usuario involucrado (decisión del dueño del producto,
+  // 2026-10-20, Duda U5): es un proceso automático, no una persona.
+  const usuarios = new Set(
+    ERRORES.map((registro) => registro.usuario).filter((usuario) => usuario && usuario !== 'Sistema')
+  );
   const ordenadasPorFecha = [...ERRORES].sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora));
 
   return {

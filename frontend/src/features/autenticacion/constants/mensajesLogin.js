@@ -13,7 +13,7 @@ export const IDENTIFICADOR_FORMATO = 'Ingresa un correo electrónico válido o u
 /** Campo "Contraseña" vacío. */
 export const CONTRASENA_OBLIGATORIA = 'Ingresa tu contraseña.';
 
-/** Literal de la HU (Esc. 3 y 8): credenciales o perfil incorrectos, sin indicar cuál dato falló. */
+/** Literal de la HU (Esc. 3: credenciales o perfil incorrectos), sin indicar cuál dato falló. */
 export const MENSAJE_CREDENCIALES_INCORRECTAS = 'Correo/DNI o contraseña incorrectos';
 
 /** Propuesto a partir del Esc. 5 (cuenta desactivada). */

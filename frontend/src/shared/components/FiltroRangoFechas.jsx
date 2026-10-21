@@ -1,13 +1,14 @@
 import { useId } from 'react';
 
-import Icono from '../../../shared/components/Icono.jsx';
-import estilosUtil from '../../../shared/styles/utilidades.module.css';
+import Icono from './Icono.jsx';
+import estilosUtil from '../styles/utilidades.module.css';
 import estilos from './FiltroRangoFechas.module.css';
 
 /**
  * Dos campos de fecha controlados ("Desde" / "Hasta") con el mensaje de
  * validación del rango. Es presentacional: no valida ni filtra, solo muestra
- * lo que recibe (la validación vive en `useLogErrores`).
+ * lo que recibe. Compartido por Auditorías y Log de errores
+ * (docs/planes/auditorias.md §3.2; antes vivía en `features/log-errores/components`).
  *
  * @param {Object} props
  * @param {string} props.fechaDesde `'YYYY-MM-DD'` o `''`.

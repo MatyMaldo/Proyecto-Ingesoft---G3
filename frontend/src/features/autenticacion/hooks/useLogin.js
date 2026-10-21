@@ -5,15 +5,48 @@ import { PERFILES_ACCESO } from '../constants/perfilesAcceso.js';
 import { MENSAJES_RECHAZO, MENSAJE_ERROR_INESPERADO } from '../constants/mensajesLogin.js';
 import { validarCredenciales, validarIdentificador, validarContrasena } from '../utils/validacionLogin.js';
 import { iniciarSesion, MOTIVOS_RECHAZO } from '../services/autenticacionService.js';
+import {
+  leerPreferenciasLogin,
+  guardarPreferenciasLogin,
+  borrarPreferenciasLogin
+} from '../utils/preferenciasLogin.js';
 
 const PERFIL_INICIAL = (PERFILES_ACCESO.find((perfil) => perfil.habilitado) ?? PERFILES_ACCESO[0]).valor;
 
+// La casilla "Recordar mi sesión" arranca desmarcada por defecto; solo
+// aparece marcada cuando hay preferencias guardadas (`calcularValoresIniciales`).
 const VALORES_INICIALES = Object.freeze({
   perfil: PERFIL_INICIAL,
   identificador: '',
   contrasena: '',
   recordar: false
 });
+
+/**
+ * Valores iniciales del formulario: si hay preferencias guardadas de
+ * "Recordar mi sesión" (identificador y perfil, nunca la contraseña), se
+ * precargan y la casilla aparece marcada (docs/planes/login.md D19, opción B,
+ * decisión del usuario 2026-10-20). Un perfil guardado que ya no esté
+ * habilitado se ignora y se usa el perfil inicial.
+ */
+function calcularValoresIniciales() {
+  const preferencias = leerPreferenciasLogin();
+
+  if (!preferencias) {
+    return VALORES_INICIALES;
+  }
+
+  const perfilGuardadoHabilitado = PERFILES_ACCESO.find(
+    (perfil) => perfil.valor === preferencias.perfil && perfil.habilitado
+  );
+
+  return {
+    perfil: perfilGuardadoHabilitado ? preferencias.perfil : PERFIL_INICIAL,
+    identificador: preferencias.identificador,
+    contrasena: '',
+    recordar: true
+  };
+}
 
 /**
  * Devuelve el validador de formato de un campo (sin la regla de obligatoriedad,
@@ -43,7 +76,7 @@ function obtenerValidadorFormato(nombre) {
 export default function useLogin() {
   const { establecerSesion } = useAuth();
 
-  const [valores, establecerValores] = useState(VALORES_INICIALES);
+  const [valores, establecerValores] = useState(calcularValoresIniciales);
   const [errores, establecerErrores] = useState({});
   const [errorGeneral, establecerErrorGeneral] = useState(null);
   const [enviando, establecerEnviando] = useState(false);
@@ -59,6 +92,13 @@ export default function useLogin() {
       if (!perfil || !perfil.habilitado) {
         return;
       }
+    }
+
+    // Si el usuario desmarca la casilla, se borra lo guardado en ese mismo
+    // momento (no se espera a un nuevo envío). Decisión del usuario
+    // 2026-10-20, docs/planes/login.md D19, opción B.
+    if (nombre === 'recordar' && valor === false) {
+      borrarPreferenciasLogin();
     }
 
     establecerValores((anteriores) => ({ ...anteriores, [nombre]: valor }));
@@ -135,6 +175,12 @@ export default function useLogin() {
     });
 
     if (resultado.exitoso) {
+      // "Recordar mi sesión" marcada: guarda identificador y perfil (nunca la
+      // contraseña ni el token) tras un login correcto (D19, opción B).
+      if (valores.recordar) {
+        guardarPreferenciasLogin({ identificador: valores.identificador.trim(), perfil: valores.perfil });
+      }
+
       // El componente se desmonta con la redirección de `RutaPublica`: no se
       // actualiza más estado local.
       establecerSesion(resultado.datos);

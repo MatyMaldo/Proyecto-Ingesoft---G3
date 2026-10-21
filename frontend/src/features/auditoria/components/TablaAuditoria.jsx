@@ -5,13 +5,14 @@ import estilos from './TablaAuditoria.module.css';
 const TITULO_LISTA = 'Registros de auditoría, del más reciente al más antiguo';
 
 /**
- * Construye el nombre accesible del control que abre el detalle de un registro.
+ * Construye el nombre accesible del botón "Ver historial" de un registro
+ * (LAB05, D12: opción visible, no solo una etiqueta accesible del botón de acción).
  *
  * @param {Object} registro RegistroVista.
  * @returns {string}
  */
-function construirEtiquetaAccion(registro) {
-  return `Ver detalle: ${registro.tipoTransaccion}, ${registro.usuario.nombre}, ${registro.fecha} ${registro.hora}`;
+function construirEtiquetaHistorial(registro) {
+  return `Ver historial: ${registro.tipoTransaccion}, ${registro.usuario.nombre}, ${registro.fecha} ${registro.hora}`;
 }
 
 /**
@@ -24,11 +25,12 @@ function construirEtiquetaAccion(registro) {
  * @param {boolean} props.actualizando `true` mientras llega un refiltrado: las filas
  *   anteriores siguen visibles, atenuadas.
  * @param {(registro: Object, elementoOrigen: HTMLElement) => void} props.alSeleccionarRegistro
- *   Abre el detalle. Recibe el elemento que lo disparó, para devolverle el foco al cerrar.
+ *   Abre el detalle (con el historial del elemento). Recibe el elemento que lo disparó,
+ *   para devolverle el foco al cerrar.
  */
 export default function TablaAuditoria({ registros, actualizando, alSeleccionarRegistro }) {
   const manejarClicFila = (registro, evento) => {
-    const boton = evento.currentTarget.querySelector(`.${estilos.botonAccion}`);
+    const boton = evento.currentTarget.querySelector(`.${estilos.botonHistorial}`);
     alSeleccionarRegistro(registro, boton ?? evento.currentTarget);
   };
 
@@ -54,6 +56,7 @@ export default function TablaAuditoria({ registros, actualizando, alSeleccionarR
               <th scope="col">Rol</th>
               <th scope="col">Módulo</th>
               <th scope="col">Acción</th>
+              <th scope="col" className={estilosUtil.ocultoVisualmente}>Historial</th>
             </tr>
           </thead>
           <tbody className={actualizando ? estilos.filasAtenuadas : undefined}>
@@ -82,13 +85,16 @@ export default function TablaAuditoria({ registros, actualizando, alSeleccionarR
                   <Insignia tono={registro.modulo.tono}>{registro.modulo.etiqueta}</Insignia>
                 </td>
                 <td>
+                  <span className={estilos.accionTexto}>{registro.tipoTransaccion}</span>
+                </td>
+                <td>
                   <button
                     type="button"
-                    className={estilos.botonAccion}
+                    className={estilos.botonHistorial}
                     onClick={(evento) => manejarClicBoton(registro, evento)}
-                    aria-label={construirEtiquetaAccion(registro)}
+                    aria-label={construirEtiquetaHistorial(registro)}
                   >
-                    {registro.tipoTransaccion}
+                    Ver historial
                   </button>
                 </td>
               </tr>
@@ -108,7 +114,7 @@ export default function TablaAuditoria({ registros, actualizando, alSeleccionarR
               type="button"
               className={estilos.tarjeta}
               onClick={(evento) => manejarActivarTarjeta(registro, evento)}
-              aria-label={construirEtiquetaAccion(registro)}
+              aria-label={construirEtiquetaHistorial(registro)}
             >
               <span className={estilos.filaSuperiorTarjeta}>
                 <time dateTime={registro.fechaHoraIso} className={estilos.fechaTarjeta}>
@@ -126,7 +132,10 @@ export default function TablaAuditoria({ registros, actualizando, alSeleccionarR
                   <span className={estilos.celdaRol}>{registro.usuario.rol}</span>
                 </span>
               </span>
-              <span className={estilos.accionTarjeta}>{registro.tipoTransaccion}</span>
+              <span className={estilos.filaInferiorTarjeta}>
+                <span className={estilos.accionTarjeta}>{registro.tipoTransaccion}</span>
+                <span className={estilos.pistaHistorial}>Ver historial</span>
+              </span>
             </button>
           </li>
         ))}

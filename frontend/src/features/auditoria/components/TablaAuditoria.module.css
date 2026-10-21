@@ -35,6 +35,13 @@
   vertical-align: middle;
 }
 
+/* Columna "Ver historial": se ajusta a su contenido, no se estira (docs/planes/auditorias.md §10). */
+.tabla thead th:last-child,
+.tabla tbody td:last-child {
+  width: 1%;
+  white-space: nowrap;
+}
+
 .fila {
   cursor: pointer;
   transition: background var(--transicion);
@@ -112,26 +119,33 @@
   color: var(--color-texto-secundario);
 }
 
-.botonAccion {
-  display: inline-flex;
-  align-items: center;
-  min-height: var(--tactil-min);
-  padding: 0;
+.accionTexto {
   font-size: var(--texto-md);
   font-weight: var(--peso-normal);
   color: var(--color-texto);
+}
+
+.botonHistorial {
+  display: inline-flex;
+  align-items: center;
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-2);
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-primario);
   text-align: left;
+  white-space: nowrap;
   background: none;
   border: 0;
   border-radius: var(--radio-sm);
   cursor: pointer;
 }
 
-.botonAccion:hover {
+.botonHistorial:hover {
   text-decoration: underline;
 }
 
-.botonAccion:focus-visible {
+.botonHistorial:focus-visible {
   outline: 2px solid var(--color-foco);
   outline-offset: 2px;
 }
@@ -195,6 +209,20 @@
   font-size: var(--texto-md);
   font-weight: var(--peso-seminegrita);
   color: var(--color-texto);
+}
+
+.filaInferiorTarjeta {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-2);
+}
+
+.pistaHistorial {
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-primario);
+  white-space: nowrap;
 }
 
 @media (max-width: 767px) {

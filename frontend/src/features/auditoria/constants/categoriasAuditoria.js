@@ -3,17 +3,21 @@ import { obtenerTonoModulo } from '../../../shared/constants/tonosModulo.js';
 /**
  * Catálogo de categorías (módulos) de auditoría, en el orden del prototipo.
  * Fuente: docs/planes/auditorias.md §4.1 (opciones de `FiltroChips`) y §6.2 (etiquetas de categoría).
- * "Sistema" y "Evaluaciones" no están en las categorías de la HU-SAT-04; se incluyen por decisión
- * del usuario y porque aparecen en el prototipo (docs/planes/auditorias.md §14).
+ * "Sistema" y "Evaluaciones" no están en las categorías de la HU-SAT-04; por decisión del dueño
+ * del producto (2026-10-20) se mantienen (D9 de docs/planes/auditorias.md).
+ * "Matrícula" (D18, 2026-10-20): la etiqueta va en singular, como la escribe la HU; el código
+ * `MATRICULAS` no cambia. "Configuración" (LAB05, HU-GEMAP-11): solo cubre el registro de
+ * secciones; los grados son datos precargados y no se gestionan desde aquí (D19, 2026-10-20).
  */
 export const CATEGORIAS_AUDITORIA = Object.freeze([
   Object.freeze({ valor: 'TODOS', etiqueta: 'Todos' }),
   Object.freeze({ valor: 'NOTAS', etiqueta: 'Notas' }),
   Object.freeze({ valor: 'USUARIOS', etiqueta: 'Usuarios' }),
   Object.freeze({ valor: 'ASISTENCIA', etiqueta: 'Asistencia' }),
-  Object.freeze({ valor: 'MATRICULAS', etiqueta: 'Matrículas' }),
+  Object.freeze({ valor: 'MATRICULAS', etiqueta: 'Matrícula' }),
   Object.freeze({ valor: 'PAGOS', etiqueta: 'Pagos' }),
   Object.freeze({ valor: 'HORARIOS', etiqueta: 'Horarios' }),
+  Object.freeze({ valor: 'CONFIGURACION', etiqueta: 'Configuración' }),
   Object.freeze({ valor: 'SISTEMA', etiqueta: 'Sistema' }),
   Object.freeze({ valor: 'EVALUACIONES', etiqueta: 'Evaluaciones' })
 ]);

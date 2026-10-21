@@ -38,7 +38,7 @@ export default function PaginaLogin() {
       <main className={estilos.main}>
         <div className={estilos.tarjeta}>
           <h1 id="login-titulo" className={estilos.titulo}>
-            Iniciar Sesión
+            Iniciar sesión
           </h1>
           <p className={estilos.subtitulo}>
             Selecciona tu perfil e ingresa tus credenciales institucionales

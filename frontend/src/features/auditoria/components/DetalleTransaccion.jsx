@@ -21,8 +21,10 @@ function BloqueValores({ titulo, valores, mensajeVacio }) {
       <h3 className={estilos.subtitulo}>{titulo}</h3>
       {valores && valores.length > 0 ? (
         <dl className={estilos.listaValores}>
-          {valores.map((par) => (
-            <div key={par.campo} className={estilos.parValor}>
+          {valores.map((par, indice) => (
+            // Clave por posición: un registro con varios elementos (LAB05) puede repetir
+            // el mismo `campo` (docs/planes/auditorias.md §4.3). No se agrupa por elemento (D7).
+            <div key={`${indice}-${par.campo}`} className={estilos.parValor}>
               <dt className={estilos.campoValor}>{par.campo}</dt>
               <dd className={estilos.valorValor}>{par.valor}</dd>
             </div>

@@ -12,7 +12,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--espacio-1);
-  width: 160px;
+  width: calc(var(--espacio-10) * 4);
 }
 
 .etiqueta {
