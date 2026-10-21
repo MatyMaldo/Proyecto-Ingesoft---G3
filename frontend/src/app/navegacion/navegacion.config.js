@@ -10,7 +10,13 @@ export const SECCIONES_NAVEGACION = Object.freeze([
     titulo: 'Gestión',
     items: Object.freeze([
       // TODO(pregunta): roles por ítem de Gestión (Usuarios, Matrículas, Cursos, Pagos, Horarios).
-      Object.freeze({ id: 'usuarios', etiqueta: 'Usuarios', ruta: '/usuarios', icono: 'usuario' }),
+      Object.freeze({
+        id: 'usuarios',
+        etiqueta: 'Usuarios',
+        ruta: '/usuarios',
+        icono: 'usuario',
+        roles: Object.freeze([ROLES.ADMIN])
+      }),
       Object.freeze({ id: 'matriculas', etiqueta: 'Matrículas', ruta: '/matriculas', icono: 'usuarios' }),
       Object.freeze({ id: 'cursos', etiqueta: 'Cursos', ruta: '/cursos', icono: 'libro' }),
       Object.freeze({ id: 'pagos', etiqueta: 'Pagos', ruta: '/pagos', icono: 'tarjeta' }),
