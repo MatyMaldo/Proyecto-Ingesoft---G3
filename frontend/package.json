@@ -6,23 +6,16 @@
   "scripts": {
     "desarrollo": "vite",
     "construir": "vite build",
-    "previsualizar": "vite preview",
-    "test": "vitest run",
-    "test:watch": "vitest"
+    "previsualizar": "vite preview"
   },
   "dependencies": {
     "react": "18.3.1",
     "react-dom": "18.3.1",
-    "react-router-dom": "6.30.6"
+    "react-router-dom": "^7.18.4"
   },
   "devDependencies": {
-    "@vitejs/plugin-react": "4.3.3",
-    "vite": "5.4.10",
-    "vitest": "2.1.8",
-    "@testing-library/react": "16.0.1",
-    "@testing-library/jest-dom": "6.6.3",
-    "@testing-library/user-event": "14.5.2",
-    "@testing-library/dom": "10.4.0",
-    "jsdom": "25.0.1"
+    "@vitejs/plugin-react": "6.1.2",
+    "vite": "^8.3.4",
+    "vitest": "5.0.5"
   }
 }
