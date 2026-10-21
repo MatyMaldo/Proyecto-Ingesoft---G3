@@ -1,0 +1,189 @@
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-6);
+}
+
+.cabecera {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+}
+
+.sobretitulo {
+  margin: 0 0 var(--espacio-1);
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--texto-titulo);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+}
+
+.descripcion {
+  margin: var(--espacio-2) 0 0;
+  font-size: var(--texto-md);
+  color: var(--color-texto-suave);
+}
+
+.panelGrado {
+  display: flex;
+  flex-direction: column;
+  padding: var(--espacio-4) var(--espacio-5);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-sm);
+}
+
+.etiquetaCampo {
+  margin: 0 0 var(--espacio-2);
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+.selectorGrado {
+  width: 100%;
+  max-width: calc(var(--espacio-10) * 6);
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-3);
+  font-family: inherit;
+  font-size: var(--texto-base);
+  font-weight: var(--peso-medio);
+  color: var(--color-texto);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.selectorGrado:hover {
+  border-color: var(--color-borde-fuerte);
+}
+
+.selectorGrado:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+  border-color: var(--color-foco);
+}
+
+.seccionLista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+
+.encabezadoLista {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+}
+
+.tituloLista {
+  margin: 0;
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+.lineaEncabezado {
+  flex: 1 1 auto;
+  height: 1px;
+  background: var(--color-borde);
+}
+
+.contador {
+  flex-shrink: 0;
+  padding: var(--espacio-1) var(--espacio-3);
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  white-space: nowrap;
+  color: var(--color-marca);
+  background: var(--tono-azul-fondo);
+  border: 1px solid var(--tono-azul-borde);
+  border-radius: var(--radio-pildora);
+}
+
+.aviso {
+  margin: 0;
+  padding: var(--espacio-3) var(--espacio-4);
+  font-size: var(--texto-md);
+  font-weight: var(--peso-medio);
+  color: var(--color-exito-texto);
+  background: var(--color-exito-fondo);
+  border: 1px solid var(--color-exito-borde);
+  border-radius: var(--radio-md);
+}
+
+.contenedorEstado {
+  overflow: hidden;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-sm);
+}
+
+.rejilla {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(min(21rem, 100%), 1fr));
+  gap: var(--espacio-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.acciones {
+  display: flex;
+}
+
+.botonCrear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-6);
+  font-size: var(--texto-base);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-marca-texto);
+  background: var(--color-marca);
+  border: 0;
+  border-radius: var(--radio-md);
+  box-shadow: var(--sombra-sm);
+  cursor: pointer;
+  transition: background var(--transicion);
+}
+
+.botonCrear:hover {
+  background: var(--color-primario-intenso);
+}
+
+.botonCrear:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  .botonCrear {
+    width: 100%;
+  }
+}
+
+/* Tarjetas de una misma fila con la misma altura */
+.rejilla > li {
+  display: flex;
+}
+
+.rejilla > li > * {
+  flex: 1 1 auto;
+}
