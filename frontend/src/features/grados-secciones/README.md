@@ -42,16 +42,18 @@ con Matías. `PanelGradosSecciones` mantiene aislada la funcionalidad de David.
 Antes de integrar el selector global de año, acordar su interfaz y elevar la
 selección al contenedor compartido; no duplicar la gestión de años.
 
-`gradosSeccionesService.js` es el límite de integración. No se han inventado
-endpoints. Con mocks deshabilitados devuelve un aviso de contrato no disponible.
-Los nombres camelCase del mock son provisionales y no representan DTO confirmados.
+`gradosSeccionesService.js` integra `GET /anios-academicos`, `GET/POST /grados`,
+`GET/POST /secciones` y `GET /usuarios?tipoUsuario=DOCENTE&activo=true&page=0&size=100`.
+En el desarrollo local, las llamadas usan el proxy Vite configurado para `/api/v1`.
+Las respuestas aceptan el wrapper `{ data, mensaje }` del backend y `{ datos, error }`
+usado por otros servicios del proyecto.
 
-Reglas provisionales: finalizado significa fecha local posterior a `fechaFin`;
-se permite crear en años iniciados; capacidad 1–65535 por SMALLINT UNSIGNED.
-Confirmar esas reglas con el equipo y aplicar también las validaciones en backend.
-Los ejemplos con capacidad 25/30 no constituyen un máximo escolar acordado.
-La normalización de duplicados ignora mayúsculas y tildes como aproximación a
-la colación SQL; la unicidad definitiva depende del backend y la base de datos.
+Un año con `fechaFin` nula se considera abierto; si `fechaFin` es hoy o una fecha
+futura, permite crear secciones. Si es anterior a hoy, solo permite consultar.
+La capacidad permitida por el frontend es un entero entre 1 y 65535. La API valida
+también los duplicados de nombre sin distinguir mayúsculas y el uso duplicado de
+tutor en el mismo año; esos errores se muestran al enviar el formulario.
 
-El backend deberá autorizar ADMIN y generar exactamente una auditoría por
-creación; el frontend no crea registros de auditoría adicionales.
+El contrato compartido indica que estos endpoints todavía son públicos (sin
+autenticación). La ruta de interfaz sí está limitada al rol ADMIN; esa protección
+visual no sustituye la autorización del backend cuando se implemente.

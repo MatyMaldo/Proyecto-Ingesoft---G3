@@ -68,8 +68,8 @@ export default function PanelGradosSecciones() {
         {anio && grado ? (
           secciones.length ? <div className={estilos.tablaContenedor}><table>
             <caption>Secciones de {grado.nombre} · {anio.anio}</caption>
-            <thead><tr><th scope="col">Sección</th><th scope="col">Grado</th><th scope="col">Año académico</th><th scope="col">Capacidad máxima</th></tr></thead>
-            <tbody>{secciones.map((item) => <tr key={item.id}><td><strong>{item.nombre}</strong></td><td>{grado.nombre}</td><td>{anio.anio}</td><td>{item.capacidadMaxima} estudiantes</td></tr>)}</tbody>
+            <thead><tr><th scope="col">Sección</th><th scope="col">Grado</th><th scope="col">Año académico</th><th scope="col">Capacidad máxima</th><th scope="col">Tutor</th></tr></thead>
+            <tbody>{secciones.map((item) => <tr key={item.id}><td><strong>{item.nombre}</strong></td><td>{item.gradoNombre ?? grado.nombre}</td><td>{item.anioAcademico ?? anio.anio}</td><td>{item.capacidadMaxima} estudiantes</td><td>{item.tutorNombreCompleto ?? 'Sin asignar'}</td></tr>)}</tbody>
           </table></div> : <EstadoConsulta tipo="vacio" mensaje="No hay secciones registradas para el grado y año seleccionados." />
         ) : <EstadoConsulta tipo="vacio" mensaje="Selecciona un año académico y un grado para consultar sus secciones." />}
         <p className={estilos.pie}>{secciones.length} secciones · {secciones.reduce((total, item) => total + item.capacidadMaxima, 0)} cupos de capacidad total</p>
@@ -83,6 +83,14 @@ export default function PanelGradosSecciones() {
             {campo('nombre', formulario.tipo === 'grado' ? 'Nombre del grado' : 'Nombre de la sección', 'text', formulario.tipo === 'grado' ? 60 : 40)}
             {formulario.tipo === 'seccion' && campo('capacidadMaxima', 'Capacidad máxima', 'text')}
           </div>
+          {formulario.tipo === 'seccion' && <label className={estilos.campo} htmlFor="registro-tutorId">
+            Tutor (opcional)
+            <select id="registro-tutorId" name="tutorId" value={formulario.tutorId} disabled={guardando}
+              onChange={(evento) => modelo.establecerFormulario({ ...formulario, tutorId: evento.target.value })}>
+              <option value="">Sin tutor asignado</option>
+              {datos.docentes.map((docente) => <option key={docente.id} value={docente.id}>{docente.nombreCompleto}</option>)}
+            </select>
+          </label>}
           {formulario.tipo === 'seccion' && <p className={estilos.pie}>Capacidad: número entero entre 1 y 65535. La designación de tutor se realiza por separado.</p>}
           {modelo.errorGuardado && <p className={estilos.error} role="alert">{modelo.errorGuardado}</p>}
           <div className={estilos.acciones}>

@@ -143,15 +143,15 @@ export async function solicitar(ruta, opciones = {}) {
       return {
         exitoso: false,
         datos: null,
-        mensaje: json?.error ?? 'No se pudo completar la operación.',
+        mensaje: json?.error ?? json?.mensaje ?? 'No se pudo completar la operación.',
         estado: respuesta.status
       };
     }
 
     return {
       exitoso: true,
-      datos: json?.datos ?? null,
-      mensaje: ''
+      datos: json?.datos ?? json?.data ?? null,
+      mensaje: json?.mensaje ?? ''
     };
   } catch (error) {
     if (canceladaPorExterno) {
