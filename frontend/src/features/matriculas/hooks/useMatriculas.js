@@ -1,8 +1,9 @@
 import { useEffect, useRef, useState } from 'react';
-
-// Ajustar la ruta si la carpeta de la feature de grados y secciones tiene otro nombre.
-import { consultarEstructura } from '../../grados-secciones/services/gradosSeccionesService.js';
-import { obtenerAlumnos } from '../services/matriculasService.js';
+import {
+  obtenerAlumnos,
+  obtenerEstructuraMatricula,
+  obtenerSeccionesMatricula
+} from '../services/matriculasService.js';
 
 const DEBOUNCE_BUSQUEDA_MS = 300;
 const MIN_CARACTERES_BUSQUEDA = 2;
@@ -18,32 +19,12 @@ function obtenerAnioVigente(anios) {
   const hoy = new Date().toLocaleDateString('en-CA');
   const ordenados = [...(anios ?? [])].sort((a, b) => b.anio - a.anio);
 
-  return ordenados.find((anio) => anio.fechaFin >= hoy) ?? ordenados[0] ?? null;
-}
-
-/**
- * Secciones del grado indicado que pertenecen al año académico vigente, ordenadas por nombre.
- *
- * @param {Object|null} estructura - respuesta de `consultarEstructura`.
- * @param {number|null} gradoId
- * @returns {Array}
- */
-function obtenerSeccionesDisponibles(estructura, gradoId) {
-  const anio = obtenerAnioVigente(estructura?.anios);
-
-  if (!anio || gradoId === null) {
-    return [];
-  }
-
-  return estructura.secciones
-    .filter((seccion) => seccion.gradoId === gradoId && seccion.anioAcademicoId === anio.id)
-    .sort((a, b) => a.nombre.localeCompare(b.nombre));
+  return ordenados.find((anio) => !anio.fechaFin || anio.fechaFin >= hoy) ?? ordenados[0] ?? null;
 }
 
 /**
  * Datos y comportamiento del modal "Asignar alumno a sección".
- * La búsqueda de alumnos se filtra en el servicio (hoy, en el mock) con debounce;
- * grados y secciones se obtienen del servicio de grados y secciones.
+ * La búsqueda y los selectores consumen los endpoints del backend.
  *
  * @returns {{
  *   busqueda: string, establecerBusqueda: (valor: string) => void,
@@ -68,6 +49,7 @@ export default function useMatriculas() {
   const [estructura, establecerEstructura] = useState(null);
   const [estadoEstructura, establecerEstadoEstructura] = useState('cargando');
   const [errorEstructura, establecerErrorEstructura] = useState('');
+  const [secciones, establecerSecciones] = useState([]);
   const [gradoId, establecerGradoId] = useState(null);
   const [seccionId, establecerSeccionId] = useState(null);
   const [intentoClave, establecerIntentoClave] = useState(0);
@@ -107,12 +89,12 @@ export default function useMatriculas() {
     });
   }, [busquedaDebounced, hayBusqueda]);
 
-  // Carga la estructura escolar (grados, secciones y años) al abrir y en cada reintento.
+  // Carga años y grados sin depender del listado de docentes.
   useEffect(() => {
     let cancelado = false;
     establecerEstadoEstructura('cargando');
 
-    consultarEstructura().then((respuesta) => {
+    obtenerEstructuraMatricula().then((respuesta) => {
       if (cancelado) {
         return;
       }
@@ -133,6 +115,29 @@ export default function useMatriculas() {
     };
   }, [intentoClave]);
 
+  const anio = obtenerAnioVigente(estructura?.anios);
+
+  useEffect(() => {
+    let cancelado = false;
+    establecerSecciones([]);
+    establecerErrorEstructura('');
+    if (!estructura || gradoId === null || !anio) return undefined;
+
+    obtenerSeccionesMatricula(gradoId, anio.id).then((respuesta) => {
+      if (cancelado) return;
+      if (!respuesta.exitoso) {
+        establecerErrorEstructura(respuesta.mensaje);
+        establecerEstadoEstructura('error');
+        return;
+      }
+      establecerSecciones(respuesta.datos.sort((a, b) => a.nombre.localeCompare(b.nombre)));
+    });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [estructura, gradoId, anio?.id]);
+
   const seleccionarAlumno = (alumno) => {
     establecerAlumnoSeleccionado(alumno);
     establecerBusqueda('');
@@ -152,9 +157,8 @@ export default function useMatriculas() {
   const reintentarEstructura = () => establecerIntentoClave((valor) => valor + 1);
 
   const grados = estructura?.grados ?? [];
-  const secciones = obtenerSeccionesDisponibles(estructura, gradoId);
-  const grado = grados.find((item) => item.id === gradoId);
-  const seccion = secciones.find((item) => item.id === seccionId);
+  const grado = grados.find((item) => String(item.id) === String(gradoId));
+  const seccion = secciones.find((item) => String(item.id) === String(seccionId));
 
   // Solo existe cuando alumno, grado y sección están elegidos: habilita "Aceptar".
   const asignacion = alumnoSeleccionado && grado && seccion

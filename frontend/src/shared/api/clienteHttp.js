@@ -77,6 +77,7 @@ export function configurarCliente({
  * @property {Object<string, *>} [parametros] - Parámetros de consulta (query string).
  * @property {*} [cuerpo] - Cuerpo de la solicitud; se envía como JSON si está presente.
  * @property {AbortSignal} [signal] - Señal externa para cancelar la solicitud.
+ * @property {boolean} [sinVersionApi] - Usa `/api` en lugar de `/api/v1`.
  */
 
 /**
@@ -97,9 +98,10 @@ export function configurarCliente({
  * @returns {Promise<RespuestaSolicitud>}
  */
 export async function solicitar(ruta, opciones = {}) {
-  const { metodo = 'GET', parametros, cuerpo, signal: signalExterno } = opciones;
+  const { metodo = 'GET', parametros, cuerpo, signal: signalExterno, sinVersionApi = false } = opciones;
 
-  const url = construirUrl(ruta, parametros);
+  const base = sinVersionApi ? URL_BASE_API.replace(/\/v1$/, '') : URL_BASE_API;
+  const url = construirUrl(ruta, parametros).replace(URL_BASE_API, base);
   const controlador = new AbortController();
   const temporizador = setTimeout(() => controlador.abort(), TIEMPO_ESPERA_MS);
 
@@ -151,7 +153,7 @@ export async function solicitar(ruta, opciones = {}) {
     return {
       exitoso: true,
       datos: json?.datos ?? json?.data ?? null,
-      mensaje: json?.mensaje ?? ''
+      mensaje: json?.error ?? json?.mensaje ?? ''
     };
   } catch (error) {
     if (canceladaPorExterno) {

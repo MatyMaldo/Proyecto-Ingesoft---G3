@@ -12,6 +12,13 @@ export default defineConfig(({ mode }) => {
     server: {
       port: 5173,
       proxy: {
+        '/api': {
+          target: destinoApi.origin,
+          changeOrigin: true,
+          configure(proxy) {
+            proxy.on('proxyReq', (solicitud) => solicitud.removeHeader('origin'));
+          }
+        },
         '/api/v1': {
           target: destinoApi.origin,
           changeOrigin: true,

@@ -14,6 +14,7 @@ import estilosBoton from '../../../shared/components/Boton.module.css'
 import estilos from './PaginaMatriculas.module.css'
 import useMatriculas from '../hooks/useMatriculas.js';
 import estilosModal from '../components/Modal.module.css';
+import { crearMatricula, emitirCompromisoMatricula } from '../services/matriculasService.js';
 
 export default function PaginaMatriculas() {
   
@@ -23,8 +24,12 @@ export default function PaginaMatriculas() {
   const abrirModalAsignarAlumno = () => establecerModalAsignarAlumnoAbierto(true);
   const cerrarModalAsignarAlumno = () => establecerModalAsignarAlumnoAbierto(false);
 
-  const confirmarAsignacion = () => {
-    // TODO(equipo, 2026-10-21): persistir la asignación (alumno, grado, sección) cuando exista el servicio de matrícula.
+  const confirmarAsignacion = async (asignacion) => {
+    const respuesta = await crearMatricula(asignacion);
+    if (!respuesta.exitoso) {
+      window.alert(respuesta.mensaje);
+      return;
+    }
     cerrarModalAsignarAlumno();
   };
 
@@ -34,8 +39,12 @@ export default function PaginaMatriculas() {
   const abrirModalComprobante = () => establecerModalComprobanteAbierto(true);
   const cerrarModalComprobante = () => establecerModalComprobanteAbierto(false);
 
-  const confirmarComprobante = () => {
-    // TODO(equipo, 2026-10-21): persistir la asignación (alumno, grado, sección) cuando exista el servicio de matrícula.
+  const confirmarComprobante = async (alumno) => {
+    const respuesta = await emitirCompromisoMatricula(alumno.id);
+    if (!respuesta.exitoso) {
+      window.alert(respuesta.mensaje);
+      return;
+    }
     cerrarModalComprobante();
   };
 
