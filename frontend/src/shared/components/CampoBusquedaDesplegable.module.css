@@ -1,0 +1,65 @@
+/* Colores fijos tomados del prototipo: reemplazarlos por los tokens de shared/styles/tokens.css. */
+
+.contenedor {
+  position: relative;
+}
+
+/* Lista de resultados: flota sobre el contenido que sigue al campo. */
+.desplegable {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  right: 0;
+  z-index: 10;
+  max-height: 240px;
+  margin-top: 4px;
+  overflow-y: auto;
+  border: 1px solid #e3e7f2;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 8px 24px rgba(15, 23, 42, 0.12);
+}
+
+.lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  width: 100%;
+  padding: 10px 14px;
+  border: 0;
+  border-bottom: 1px solid #eef0f7;
+  background: transparent;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.item:hover,
+.item:focus-visible {
+  background: #f6f7fc;
+  outline: none;
+}
+
+.titulo {
+  font-size: 14px;
+  font-weight: 600;
+  color: #1a2238;
+}
+
+.detalle {
+  font-size: 12px;
+  color: #8a94ad;
+}
+
+.mensaje {
+  margin: 0;
+  padding: 12px 14px;
+  font-size: 13px;
+  color: #8a94ad;
+}
