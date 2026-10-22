@@ -1,9 +1,83 @@
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
-import { consultarEstructuraMock, crearGradoMock, crearSeccionMock } from './mocks/estructuraEscolarMock.js';
+import { solicitar } from '../../../shared/api/clienteHttp.js';
+import {
+  consultarEstructuraMock,
+  crearGradoMock,
+  crearSeccionMock
+} from './mocks/estructuraEscolarMock.js';
 
-// No se inventan endpoints: reemplazar este adaptador cuando exista contrato API.
-const sinContrato = () => Promise.resolve({ exitoso: false, datos: null, mensaje: 'La conexión de grados y secciones con el backend aún no está disponible.' });
+function falloFormato(recurso) {
+  return {
+    exitoso: false,
+    datos: null,
+    mensaje: `El backend devolvió un formato de ${recurso} no válido.`
+  };
+}
 
-export const consultarEstructura = () => USAR_MOCK ? consultarEstructuraMock() : sinContrato();
-export const crearGrado = (datos) => USAR_MOCK ? crearGradoMock(datos) : sinContrato();
-export const crearSeccion = (datos) => USAR_MOCK ? crearSeccionMock(datos) : sinContrato();
+export async function consultarEstructura() {
+  if (USAR_MOCK) {
+    return consultarEstructuraMock();
+  }
+
+  const [respuestaAnios, respuestaGrados, respuestaSecciones, respuestaDocentes] = await Promise.all([
+    solicitar('/anios-academicos'),
+    solicitar('/grados'),
+    solicitar('/secciones'),
+    solicitar('/usuarios', {
+      parametros: { tipoUsuario: 'DOCENTE', activo: true, page: 0, size: 100 }
+    })
+  ]);
+
+  const error = [respuestaAnios, respuestaGrados, respuestaSecciones, respuestaDocentes]
+    .find((respuesta) => !respuesta.exitoso);
+  if (error) return error;
+
+  const docentes = respuestaDocentes.datos?.content;
+  if (
+    !Array.isArray(respuestaAnios.datos) ||
+    !Array.isArray(respuestaGrados.datos) ||
+    !Array.isArray(respuestaSecciones.datos) ||
+    !Array.isArray(docentes)
+  ) {
+    return falloFormato('la estructura escolar');
+  }
+
+  return {
+    exitoso: true,
+    mensaje: '',
+    datos: {
+      anios: respuestaAnios.datos,
+      grados: respuestaGrados.datos,
+      secciones: respuestaSecciones.datos,
+      docentes: docentes.map(({ id, nombreCompleto }) => ({ id, nombreCompleto }))
+    }
+  };
+}
+
+export async function crearGrado(datos) {
+  if (USAR_MOCK) {
+    return crearGradoMock(datos);
+  }
+
+  return solicitar('/grados', {
+    metodo: 'POST',
+    cuerpo: { nombre: datos.nombre.trim() }
+  });
+}
+
+export async function crearSeccion(datos) {
+  if (USAR_MOCK) {
+    return crearSeccionMock(datos);
+  }
+
+  return solicitar('/secciones', {
+    metodo: 'POST',
+    cuerpo: {
+      nombre: datos.nombre.trim(),
+      capacidadMaxima: Number(datos.capacidadMaxima),
+      gradoId: Number(datos.gradoId),
+      anioAcademicoId: Number(datos.anioAcademicoId),
+      tutorId: datos.tutorId ? Number(datos.tutorId) : null
+    }
+  });
+}

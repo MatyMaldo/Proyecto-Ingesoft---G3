@@ -3,7 +3,7 @@ import { consultarEstructura, crearGrado, crearSeccion } from '../services/grado
 import { validarGrado, validarSeccion } from '../utils/validacionesGradosSecciones.js';
 
 export default function useGradosSecciones() {
-  const [datos, establecerDatos] = useState({ anios: [], grados: [], secciones: [] });
+  const [datos, establecerDatos] = useState({ anios: [], grados: [], secciones: [], docentes: [] });
   const [estado, establecerEstado] = useState('cargando');
   const [errorCarga, establecerErrorCarga] = useState('');
   const [intento, establecerIntento] = useState(0);
@@ -38,7 +38,7 @@ export default function useGradosSecciones() {
     establecerErrores({});
     establecerErrorGuardado('');
     establecerConfirmacion('');
-    establecerFormulario({ tipo, nombre: '', capacidadMaxima: '', anioAcademicoId: anioId, gradoId });
+    establecerFormulario({ tipo, nombre: '', capacidadMaxima: '', anioAcademicoId: anioId, gradoId, tutorId: '' });
   }
 
   async function guardar(evento) {

@@ -6,6 +6,7 @@ const estructura = {
     { id: 1, anio: 2026, fechaInicio: '2026-03-09', fechaFin: '2026-12-18' },
     { id: 2, anio: 2025, fechaInicio: '2025-03-10', fechaFin: '2025-12-19' }
   ],
+  docentes: [],
   grados: [1, 2, 3, 4, 5].map((id) => ({ id, nombre: `${id}.° de secundaria` })),
   secciones: [
     { id: 1, nombre: 'A', capacidadMaxima: 30, gradoId: 1, anioAcademicoId: 1 },
