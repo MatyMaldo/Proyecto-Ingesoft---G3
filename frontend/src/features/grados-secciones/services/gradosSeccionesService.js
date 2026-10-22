@@ -3,7 +3,8 @@ import { solicitar } from '../../../shared/api/clienteHttp.js';
 import {
   consultarEstructuraMock,
   crearGradoMock,
-  crearSeccionMock
+  crearSeccionMock,
+  actualizarSeccionMock
 } from './mocks/estructuraEscolarMock.js';
 
 function falloFormato(recurso) {
@@ -73,10 +74,25 @@ export async function crearSeccion(datos) {
   return solicitar('/secciones', {
     metodo: 'POST',
     cuerpo: {
-      nombre: datos.nombre.trim(),
+      nombre: datos.nombre.trim().toUpperCase(),
       capacidadMaxima: Number(datos.capacidadMaxima),
       gradoId: Number(datos.gradoId),
       anioAcademicoId: Number(datos.anioAcademicoId),
+      tutorId: datos.tutorId ? Number(datos.tutorId) : null
+    }
+  });
+}
+
+export async function actualizarSeccion(id, datos) {
+  if (USAR_MOCK) {
+    return actualizarSeccionMock(id, datos);
+  }
+
+  return solicitar(`/secciones/${encodeURIComponent(id)}`, {
+    metodo: 'PATCH',
+    cuerpo: {
+      nombre: datos.nombre.trim().toUpperCase(),
+      capacidadMaxima: Number(datos.capacidadMaxima),
       tutorId: datos.tutorId ? Number(datos.tutorId) : null
     }
   });

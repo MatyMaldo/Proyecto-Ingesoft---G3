@@ -6,7 +6,7 @@ const estructura = {
     { id: 1, anio: 2026, fechaInicio: '2026-03-09', fechaFin: '2026-12-18' },
     { id: 2, anio: 2025, fechaInicio: '2025-03-10', fechaFin: '2025-12-19' }
   ],
-  docentes: [],
+  docentes: [{ id: 1, nombreCompleto: 'Docente de demostración' }],
   grados: [1, 2, 3, 4, 5].map((id) => ({ id, nombre: `${id}.° de secundaria` })),
   secciones: [
     { id: 1, nombre: 'A', capacidadMaxima: 30, gradoId: 1, anioAcademicoId: 1 },
@@ -46,8 +46,57 @@ export function crearSeccionMock(datos) {
     if (estructura.secciones.some((item) => item.gradoId === grado.id && item.anioAcademicoId === anio.id && normalizarNombre(item.nombre) === normalizarNombre(datos.nombre))) {
       return fallo('La sección ya existe para este grado y año.', { nombre: 'La sección ya existe para este grado y año.' });
     }
-    const seccion = { id: Math.max(0, ...estructura.secciones.map((item) => item.id)) + 1, nombre: datos.nombre.trim(), capacidadMaxima: Number(datos.capacidadMaxima), gradoId: grado.id, anioAcademicoId: anio.id };
+    if (estructura.secciones.some((item) => item.anioAcademicoId === anio.id && String(item.tutorId) === String(datos.tutorId))) {
+      return fallo('El tutor ya está asignado a una sección en este año.', { tutorId: 'El tutor ya está asignado a una sección en este año.' });
+    }
+    const docente = estructura.docentes.find((item) => String(item.id) === String(datos.tutorId));
+    const seccion = {
+      id: Math.max(0, ...estructura.secciones.map((item) => item.id)) + 1,
+      nombre: datos.nombre.trim().toUpperCase(),
+      capacidadMaxima: Number(datos.capacidadMaxima),
+      gradoId: grado.id,
+      gradoNombre: grado.nombre,
+      anioAcademicoId: anio.id,
+      anioAcademico: anio.anio,
+      tutorId: Number(datos.tutorId),
+      tutorNombreCompleto: docente?.nombreCompleto
+    };
     estructura.secciones.push(seccion);
+    return exito(seccion);
+  });
+}
+
+export function actualizarSeccionMock(id, datos) {
+  return esperar(() => {
+    const seccion = estructura.secciones.find((item) => String(item.id) === String(id));
+    if (!seccion) return fallo('No se encontró la sección.');
+
+    const errores = validarSeccion({
+      ...datos,
+      gradoId: seccion.gradoId,
+      anioAcademicoId: seccion.anioAcademicoId
+    }, { exigirTutor: false });
+    if (Object.keys(errores).length) return fallo('Revisa los campos indicados.', errores);
+
+    if (estructura.secciones.some((item) => item.id !== seccion.id
+      && item.gradoId === seccion.gradoId
+      && item.anioAcademicoId === seccion.anioAcademicoId
+      && normalizarNombre(item.nombre) === normalizarNombre(datos.nombre))) {
+      return fallo('La sección ya existe para este grado y año.', { nombre: 'La sección ya existe para este grado y año.' });
+    }
+    if (datos.tutorId && estructura.secciones.some((item) => item.id !== seccion.id
+      && item.anioAcademicoId === seccion.anioAcademicoId
+      && String(item.tutorId) === String(datos.tutorId))) {
+      return fallo('El tutor ya está asignado a una sección en este año.', { tutorId: 'El tutor ya está asignado a una sección en este año.' });
+    }
+
+    const docente = estructura.docentes.find((item) => String(item.id) === String(datos.tutorId));
+    Object.assign(seccion, {
+      nombre: datos.nombre.trim().toUpperCase(),
+      capacidadMaxima: Number(datos.capacidadMaxima),
+      tutorId: datos.tutorId ? Number(datos.tutorId) : null,
+      tutorNombreCompleto: docente?.nombreCompleto ?? null
+    });
     return exito(seccion);
   });
 }

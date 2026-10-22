@@ -8,7 +8,8 @@ vi.mock('../../../shared/api/clienteHttp.js', () => ({ solicitar }));
 import {
   consultarEstructura,
   crearGrado,
-  crearSeccion
+  crearSeccion,
+  actualizarSeccion
 } from './gradosSeccionesService.js';
 
 describe('gradosSeccionesService', () => {
@@ -48,15 +49,15 @@ describe('gradosSeccionesService', () => {
     });
   });
 
-  it('convierte IDs y capacidad y envía tutorId nulo cuando no se selecciona tutor', async () => {
+  it('convierte IDs y capacidad y envía el tutor seleccionado', async () => {
     solicitar.mockResolvedValue({ exitoso: true, datos: { id: 12, nombre: 'B' } });
 
     await crearSeccion({
-      nombre: ' B ',
+      nombre: ' b ',
       capacidadMaxima: '30',
       gradoId: '2',
       anioAcademicoId: '1',
-      tutorId: ''
+      tutorId: '5'
     });
 
     expect(solicitar).toHaveBeenCalledWith('/secciones', {
@@ -66,6 +67,25 @@ describe('gradosSeccionesService', () => {
         capacidadMaxima: 30,
         gradoId: 2,
         anioAcademicoId: 1,
+        tutorId: 5
+      }
+    });
+  });
+
+  it('actualiza sección con PATCH sin enviar grado ni año', async () => {
+    solicitar.mockResolvedValue({ exitoso: true, datos: { id: 12, nombre: 'B' } });
+
+    await actualizarSeccion('12', {
+      nombre: ' b ',
+      capacidadMaxima: '35',
+      tutorId: ''
+    });
+
+    expect(solicitar).toHaveBeenCalledWith('/secciones/12', {
+      metodo: 'PATCH',
+      cuerpo: {
+        nombre: 'B',
+        capacidadMaxima: 35,
         tutorId: null
       }
     });

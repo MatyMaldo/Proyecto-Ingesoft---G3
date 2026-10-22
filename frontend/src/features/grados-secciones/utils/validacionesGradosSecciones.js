@@ -7,12 +7,13 @@ export function validarGrado({ nombre = '' }) {
   return errores;
 }
 
-export function validarSeccion(datos) {
+export function validarSeccion(datos, { exigirTutor = true } = {}) {
   const errores = {};
   if (!datos.anioAcademicoId) errores.anioAcademicoId = 'Selecciona un año académico.';
   if (!datos.gradoId) errores.gradoId = 'Selecciona un grado.';
   if (!datos.nombre?.trim()) errores.nombre = 'Ingresa el nombre de la sección.';
-  else if (datos.nombre.trim().length > 40) errores.nombre = 'El nombre admite hasta 40 caracteres.';
+  else if (!/^[A-Za-z]$/.test(datos.nombre.trim())) errores.nombre = 'La sección debe ser una sola letra de la A a la Z.';
+  if (exigirTutor && !datos.tutorId) errores.tutorId = 'Selecciona un tutor.';
   if (!/^\d+$/.test(String(datos.capacidadMaxima)) || Number(datos.capacidadMaxima) < 1 || Number(datos.capacidadMaxima) > CAPACIDAD_MAXIMA_TECNICA) {
     errores.capacidadMaxima = 'Ingresa un entero entre 1 y 65535.';
   }

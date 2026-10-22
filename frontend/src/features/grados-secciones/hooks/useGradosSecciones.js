@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from 'react';
-import { consultarEstructura, crearGrado, crearSeccion } from '../services/gradosSeccionesService.js';
+import { consultarEstructura, crearGrado, crearSeccion, actualizarSeccion } from '../services/gradosSeccionesService.js';
 import { validarGrado, validarSeccion } from '../utils/validacionesGradosSecciones.js';
 
 export default function useGradosSecciones() {
@@ -38,29 +38,61 @@ export default function useGradosSecciones() {
     establecerErrores({});
     establecerErrorGuardado('');
     establecerConfirmacion('');
-    establecerFormulario({ tipo, nombre: '', capacidadMaxima: '', anioAcademicoId: anioId, gradoId, tutorId: '' });
+    establecerFormulario({ tipo, accion: 'crear', nombre: '', capacidadMaxima: '', anioAcademicoId: anioId, gradoId, tutorId: '' });
+  }
+
+  function abrirEdicion(seccion) {
+    establecerErrores({});
+    establecerErrorGuardado('');
+    establecerConfirmacion('');
+    establecerFormulario({
+      tipo: 'seccion',
+      accion: 'editar',
+      id: seccion.id,
+      nombre: seccion.nombre,
+      capacidadMaxima: String(seccion.capacidadMaxima),
+      anioAcademicoId: String(seccion.anioAcademicoId),
+      gradoId: String(seccion.gradoId),
+      tutorId: seccion.tutorId ? String(seccion.tutorId) : ''
+    });
   }
 
   async function guardar(evento) {
     evento.preventDefault();
     if (bloqueo.current) return;
-    const validacion = formulario.tipo === 'grado' ? validarGrado(formulario) : validarSeccion(formulario);
+    const validacion = formulario.tipo === 'grado'
+      ? validarGrado(formulario)
+      : validarSeccion(formulario, { exigirTutor: formulario.accion !== 'editar' });
     establecerErrores(validacion);
     establecerErrorGuardado('');
     if (Object.keys(validacion).length) return;
     bloqueo.current = true;
     establecerGuardando(true);
     try {
-      const resultado = await (formulario.tipo === 'grado' ? crearGrado(formulario) : crearSeccion(formulario));
+      const resultado = formulario.tipo === 'grado'
+        ? await crearGrado(formulario)
+        : formulario.accion === 'editar'
+          ? await actualizarSeccion(formulario.id, formulario)
+          : await crearSeccion(formulario);
       if (!resultado.exitoso) {
         establecerErrores(resultado.errores ?? {});
         establecerErrorGuardado(resultado.mensaje);
         return;
       }
-      const clave = formulario.tipo === 'grado' ? 'grados' : 'secciones';
-      establecerDatos((actual) => ({ ...actual, [clave]: [...actual[clave], resultado.datos] }));
-      if (clave === 'grados') establecerGradoId(String(resultado.datos.id));
-      establecerConfirmacion(`${formulario.tipo === 'grado' ? 'Grado' : 'Sección'} «${resultado.datos.nombre}» registrado correctamente.`);
+      if (formulario.tipo === 'grado') {
+        establecerDatos((actual) => ({ ...actual, grados: [...actual.grados, resultado.datos] }));
+        establecerGradoId(String(resultado.datos.id));
+      } else if (formulario.accion === 'editar') {
+        establecerDatos((actual) => ({
+          ...actual,
+          secciones: actual.secciones.map((item) => String(item.id) === String(resultado.datos.id) ? resultado.datos : item)
+        }));
+      } else {
+        establecerDatos((actual) => ({ ...actual, secciones: [...actual.secciones, resultado.datos] }));
+      }
+      const descripcion = formulario.tipo === 'grado' ? 'Grado' : 'Sección';
+      const accion = formulario.accion === 'editar' ? 'actualizada' : 'registrado';
+      establecerConfirmacion(`${descripcion} «${resultado.datos.nombre}» ${accion} correctamente.`);
       establecerFormulario(null);
     } catch {
       establecerErrorGuardado('No fue posible guardar. Conservamos los datos para que puedas reintentar.');
@@ -71,6 +103,6 @@ export default function useGradosSecciones() {
   }
 
   return { datos, estado, errorCarga, anioId, establecerAnioId, gradoId, establecerGradoId,
-    formulario, establecerFormulario, errores, errorGuardado, confirmacion, guardando, abrir, guardar,
+    formulario, establecerFormulario, errores, errorGuardado, confirmacion, guardando, abrir, abrirEdicion, guardar,
     reintentar: () => establecerIntento((actual) => actual + 1) };
 }
