@@ -1,8 +1,8 @@
 # HU-GEMAP-11 — Grados y secciones
 
-Prototipo funcional de creación y consulta en Administración → Año escolar.
-Solo está autorizado el rol ADMIN. No incluye edición, eliminación, tutores,
-matrículas ni configuración de años.
+Prototipo funcional de creación, modificación y consulta en Administración → Año escolar.
+Solo está autorizado el rol ADMIN. No incluye eliminación, matrículas ni configuración
+de años. Crear una sección requiere seleccionar un tutor.
 
 ## Revisión local
 
@@ -26,7 +26,7 @@ al recargar la página. No se envían solicitudes ni auditorías al backend.
 
 1. Consulta primero de secundaria en 2026: se muestran A y B y 60 cupos totales.
 2. Selecciona tercero: aparece el listado vacío.
-3. Crea una sección C con capacidad 30: aparece en el listado y se confirma el registro.
+3. Crea una sección C con capacidad 30 y selecciona un tutor: aparece en el listado y se confirma el registro.
 4. Intenta crear C de nuevo: aparece el error de duplicado y se conserva el formulario.
 5. Prueba nombre vacío, capacidad 0, decimal y texto; deben mostrar errores.
 6. Cancela: no se registra nada. Crea un grado nuevo: se actualiza el catálogo.
@@ -43,7 +43,8 @@ Antes de integrar el selector global de año, acordar su interfaz y elevar la
 selección al contenedor compartido; no duplicar la gestión de años.
 
 `gradosSeccionesService.js` integra `GET /anios-academicos`, `GET/POST /grados`,
-`GET/POST /secciones` y `GET /usuarios?tipoUsuario=DOCENTE&activo=true&page=0&size=100`.
+`GET/POST /secciones`, `PATCH /secciones/{id}` y
+`GET /usuarios?tipoUsuario=DOCENTE&activo=true&page=0&size=100`.
 En el desarrollo local, las llamadas usan el proxy Vite configurado para `/api/v1`.
 Las respuestas aceptan el wrapper `{ data, mensaje }` del backend y `{ datos, error }`
 usado por otros servicios del proyecto.
@@ -53,6 +54,8 @@ futura, permite crear secciones. Si es anterior a hoy, solo permite consultar.
 La capacidad permitida por el frontend es un entero entre 1 y 65535. La API valida
 también los duplicados de nombre sin distinguir mayúsculas y el uso duplicado de
 tutor en el mismo año; esos errores se muestran al enviar el formulario.
+La modificación solo permite cambiar nombre, capacidad y tutor; grado y año académico
+se mantienen. El tutor puede dejarse sin asignar al modificar.
 
 El contrato compartido indica que estos endpoints todavía son públicos (sin
 autenticación). La ruta de interfaz sí está limitada al rol ADMIN; esa protección
