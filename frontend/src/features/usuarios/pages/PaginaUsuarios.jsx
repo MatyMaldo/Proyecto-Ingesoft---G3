@@ -1,16 +1,27 @@
-import { useState } from 'react';
-import { USUARIOS_INICIAL, CODIGOS_ESTUDIANTE_HISTORICOS } from '../services/usuariosService.js';
+import { useEffect, useState } from 'react';
+import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
+import {
+    USUARIOS_INICIAL,
+    CODIGOS_ESTUDIANTE_HISTORICOS,
+    listarUsuarios,
+    actualizarUsuario,
+    registrarEstudiante,
+    registrarApoderado,
+    registrarDocente,
+    cambiarEstadoUsuario
+} from '../services/usuariosService.js';
 
 const ROL_BADGE = {
     Apoderado: { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
     Estudiante: { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' },
     Docente: { bg: '#fdf4ff', color: '#7e22ce', border: '#e9d5ff' },
+    Administrador: { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
 };
 
-function UsuarioField({ label, value, onChange, placeholder, type = 'text', error, required = false, min, step }) {
+function UsuarioField({ label, value, onChange, placeholder, type = 'text', error, required = false, min, maxLength, step }) {
     return (<div>
       <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 5 }}>{label}{required && <span style={{ color: '#ba1a1a' }}> *</span>}</label>
-      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required={required} min={min} step={step} style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: `1.5px solid ${error ? '#ba1a1a' : '#dde2f0'}`, background: '#f8f9ff', fontSize: 13, color: '#121c2a', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.15s' }} onFocus={e => e.currentTarget.style.borderColor = error ? '#ba1a1a' : '#0058be'} onBlur={e => e.currentTarget.style.borderColor = error ? '#ba1a1a' : '#dde2f0'}/>
+      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required={required} min={min} maxLength={maxLength} step={step} style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: `1.5px solid ${error ? '#ba1a1a' : '#dde2f0'}`, background: '#f8f9ff', fontSize: 13, color: '#121c2a', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.15s' }} onFocus={e => e.currentTarget.style.borderColor = error ? '#ba1a1a' : '#0058be'} onBlur={e => e.currentTarget.style.borderColor = error ? '#ba1a1a' : '#dde2f0'}/>
       {error && <p style={{ fontSize: 11, color: '#ba1a1a', margin: '3px 0 0', display: 'flex', alignItems: 'center', gap: 3 }}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>{error}</p>}
     </div>);
 }
@@ -38,7 +49,10 @@ function UsuarioModalShell({ title, subtitle, onSubmit, submitLabel, submitDisab
     </div>);
 }
 function PaginaUsuarios() {
-    const [usuarios, setUsuarios] = useState(USUARIOS_INICIAL);
+    const [usuarios, setUsuarios] = useState(() => USAR_MOCK ? USUARIOS_INICIAL : []);
+    const [cargando, setCargando] = useState(!USAR_MOCK);
+    const [errorCarga, setErrorCarga] = useState('');
+    const [intentoCarga, setIntentoCarga] = useState(0);
     const [query, setQuery] = useState('');
     const [rolFiltro, setRolFiltro] = useState('Todos');
     const [toast, setToast] = useState(null);
@@ -47,17 +61,36 @@ function PaginaUsuarios() {
     const [toggleTarget, setToggleTarget] = useState(null);
     const [submitting, setSubmitting] = useState(false);
     // Form fields
-    const emptyForm = { nombre: '', apellido: '', edad: '', dni: '', telefono: '', correo: '', password: '', confirm: '', dniApoderado: '', apoderadoSeleccionado: null, apoderadoError: '' };
+    const emptyForm = { nombre: '', apellido: '', apellidoPaterno: '', apellidoMaterno: '', edad: '', dni: '', telefono: '', correo: '', password: '', confirm: '', fechaNacimiento: '', dniApoderado: '', apoderadoSeleccionado: null, apoderadoError: '' };
     const [form, setForm] = useState(emptyForm);
     const [formErrors, setFormErrors] = useState({});
-    const [editForm, setEditForm] = useState({ nombre: '', apellido: '', dni: '', telefono: '', correo: '', dniApoderado: '', apoderadoSeleccionado: null });
+    const [editForm, setEditForm] = useState({ nombre: '', apellidoPaterno: '', apellidoMaterno: '', dni: '', telefono: '', correo: '' });
     const [editErrors, setEditErrors] = useState({});
+    useEffect(() => {
+        if (USAR_MOCK) return undefined;
+        let vigente = true;
+        setCargando(true);
+        setErrorCarga('');
+        listarUsuarios().then(resultado => {
+            if (!vigente) return;
+            if (!resultado.exitoso) {
+                setErrorCarga(resultado.mensaje);
+            } else {
+                setUsuarios(resultado.datos);
+            }
+            setCargando(false);
+        });
+        return () => { vigente = false; };
+    }, [intentoCarga]);
     const busqueda = query.trim().toLowerCase();
     const filtered = usuarios.filter(u =>
         (rolFiltro === 'Todos' || u.rol === rolFiltro) &&
         (!busqueda || `${u.nombre} ${u.apellido}`.toLowerCase().includes(busqueda) || u.dni.includes(query.trim()))
     );
-    const showToast = (msg) => { setToast(msg); setTimeout(() => setToast(null), 4000); };
+    const showToast = (msg, error = false) => {
+        setToast({ mensaje: msg, error });
+        setTimeout(() => setToast(null), 4000);
+    };
     const openRegister = (kind) => {
         setForm(emptyForm);
         setFormErrors({});
@@ -65,8 +98,14 @@ function PaginaUsuarios() {
     };
     const openEdit = (u) => {
         setEditTarget(u);
-        const apoderadoSeleccionado = u.apoderadoId ? usuarios.find(usuario => usuario.id === u.apoderadoId) || null : null;
-        setEditForm({ nombre: u.nombre, apellido: u.apellido, edad: u.edad ?? '', dni: u.dni, telefono: u.telefono || '', correo: u.correo, dniApoderado: apoderadoSeleccionado?.dni || '', apoderadoSeleccionado });
+        setEditForm({
+            nombre: u.nombre ?? '',
+            apellidoPaterno: u.apellidoPaterno ?? u.apellido ?? '',
+            apellidoMaterno: u.apellidoMaterno ?? '',
+            dni: u.dni ?? '',
+            telefono: u.telefono ?? '',
+            correo: u.correo ?? ''
+        });
         setEditErrors({});
         setModal('editar');
     };
@@ -84,60 +123,65 @@ function PaginaUsuarios() {
         else
             setForm(p => ({ ...p, apoderadoSeleccionado: null, apoderadoError: 'No se encontró un apoderado registrado con este DNI.' }));
     };
-    const searchEditApoderado = () => {
-        const found = usuarios.find(u => u.rol === 'Apoderado' && u.activo && u.dni === editForm.dniApoderado.trim());
-        if (found) {
-            setEditForm(p => ({ ...p, apoderadoSeleccionado: found }));
-            setEditErrors(p => ({ ...p, apoderadoId: '' }));
-        } else {
-            setEditForm(p => ({ ...p, apoderadoSeleccionado: null }));
-            setEditErrors(p => ({ ...p, apoderadoId: 'No se encontró un apoderado registrado con este DNI.' }));
-        }
-    };
     const validateRegister = (kind) => {
         const errs = {};
         if (!form.nombre.trim())
             errs.nombre = 'Ingrese el nombre.';
-        if (!form.apellido.trim())
+        const apellidosSeparados = kind === 'estudiante' || !USAR_MOCK;
+        if (apellidosSeparados && !form.apellidoPaterno.trim())
+            errs.apellidoPaterno = 'Ingrese el apellido paterno.';
+        if (!apellidosSeparados && !form.apellido.trim())
             errs.apellido = 'Ingrese el apellido.';
-        if (kind === 'apoderado' || kind === 'docente') {
+        if (kind === 'estudiante' && !form.fechaNacimiento)
+            errs.fechaNacimiento = 'Ingrese la fecha de nacimiento.';
+        if (kind === 'apoderado') {
+            const edad = Number(form.edad);
+            const edadMinima = USAR_MOCK ? 18 : 1;
+            if (!/^\d+$/.test(form.edad.trim()) || !Number.isSafeInteger(edad) || edad < edadMinima)
+                errs.edad = USAR_MOCK ? 'La edad debe ser un número entero de 18 años o más.' : 'Ingrese una edad válida mayor que cero.';
+        } else if (USAR_MOCK && kind === 'docente') {
             const edad = Number(form.edad);
             if (!/^\d+$/.test(form.edad.trim()) || !Number.isSafeInteger(edad) || edad < 18)
-                errs.edad = kind === 'docente' ? 'La edad del docente debe ser un número entero de 18 años o más.' : 'La edad debe ser un número entero de 18 años o más.';
-        } else if (kind === 'estudiante' || kind === 'docente') {
-            const edad = Number(form.edad);
-            if (!/^\d+$/.test(form.edad.trim()) || !Number.isSafeInteger(edad) || edad <= 0)
-                errs.edad = 'La edad debe ser un número entero positivo.';
-        } else if (!form.edad.trim() || isNaN(Number(form.edad)))
-            errs.edad = 'Ingrese una edad válida.';
-        const documentoValido = kind === 'apoderado' ? /^(?:\d{8}|\d{9})$/.test(form.dni.trim()) : /^\d{8}$/.test(form.dni.trim());
+                errs.edad = 'La edad del docente debe ser un número entero de 18 años o más.';
+        }
+        const documentoValido = USAR_MOCK && kind === 'apoderado'
+            ? /^(?:\d{8}|\d{9})$/.test(form.dni.trim())
+            : /^\d{8}$/.test(form.dni.trim());
         if (!documentoValido)
             errs.dni = kind === 'apoderado' ? 'Ingrese un DNI de 8 dígitos o un Carné de Extranjería de 9 dígitos.' : 'El DNI debe tener 8 dígitos.';
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo.trim()))
             errs.correo = 'Ingrese un correo válido.';
         if (usuarios.some(u => u.dni.trim() === form.dni.trim()))
             errs.dni = 'Ya existe un usuario registrado con este documento.';
+        if (form.nombre.trim().length > 80)
+            errs.nombre = 'El nombre no puede superar los 80 caracteres.';
+        if (form.apellidoPaterno.trim().length > 80)
+            errs.apellidoPaterno = 'El apellido paterno no puede superar los 80 caracteres.';
+        if (form.apellidoMaterno.trim().length > 80)
+            errs.apellidoMaterno = 'El apellido materno no puede superar los 80 caracteres.';
+        if (form.correo.trim().length > 160)
+            errs.correo = 'El correo no puede superar los 160 caracteres.';
         if (usuarios.some(u => u.correo.trim().toLowerCase() === form.correo.trim().toLowerCase()))
             errs.correo = 'Ya existe un usuario registrado con este correo.';
         const telefonoCompacto = form.telefono.trim().replace(/[\s()-]/g, '');
         const telefonoValido = telefonoCompacto.startsWith('+')
             ? /^\+[1-9]\d{7,14}$/.test(telefonoCompacto)
             : /^9\d{8}$/.test(telefonoCompacto);
-        if ((kind === 'estudiante' || kind === 'docente') && !telefonoCompacto)
+        if (USAR_MOCK && (kind === 'estudiante' || kind === 'docente') && !telefonoCompacto)
             errs.telefono = kind === 'docente' ? 'Ingrese el teléfono del docente.' : 'Ingrese el teléfono del estudiante.';
-        else if ((kind === 'estudiante' || kind === 'apoderado' || kind === 'docente') && telefonoCompacto && !telefonoValido)
+        else if (telefonoCompacto && (USAR_MOCK ? !telefonoValido : !/^\d{9}$/.test(telefonoCompacto)))
             errs.telefono = 'Ingrese 9 dígitos para un celular peruano o un número internacional con + y código de país.';
-        if (kind === 'apoderado' && !/^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[^A-Za-z0-9]).{8,}$/.test(form.password))
-            errs.password = 'Use al menos 8 caracteres, con mayúscula, minúscula, número y símbolo.';
-        else if (!form.password)
+        if (!form.password)
             errs.password = 'Ingrese la contraseña.';
+        else if (form.password.length < 8 || form.password.length > 40)
+            errs.password = 'La contraseña debe tener entre 8 y 40 caracteres.';
         if (form.password !== form.confirm)
             errs.confirm = 'Las contraseñas no coinciden.';
         if (kind === 'estudiante' && !form.apoderadoSeleccionado)
             errs.dniApoderado = 'Seleccione un apoderado válido.';
         return errs;
     };
-    const handleRegister = (kind) => {
+    const handleRegister = async (kind) => {
         const errs = validateRegister(kind);
         if (Object.keys(errs).length) {
             setFormErrors(errs);
@@ -146,119 +190,203 @@ function PaginaUsuarios() {
         const telefonoCompacto = form.telefono.trim().replace(/[\s()-]/g, '');
         let codigoEstudiante;
         if (kind === 'estudiante') {
+            const normalizarCodigo = codigo => codigo.replace(/-/g, '').toUpperCase();
             const codigosUsados = new Set([
                 ...CODIGOS_ESTUDIANTE_HISTORICOS,
                 ...usuarios.map(usuario => usuario.codigoEstudiante).filter(Boolean)
-            ]);
+            ].map(normalizarCodigo));
             let correlativo = 1;
             do {
-                codigoEstudiante = `EST-${String(correlativo).padStart(3, '0')}`;
+                const prefijo = USAR_MOCK ? 'EST-' : 'EST';
+                codigoEstudiante = `${prefijo}${String(correlativo).padStart(3, '0')}`;
                 correlativo += 1;
-            } while (codigosUsados.has(codigoEstudiante));
+            } while (codigosUsados.has(normalizarCodigo(codigoEstudiante)));
         }
         setSubmitting(true);
-        setTimeout(() => {
+        try {
             const rolMap = { apoderado: 'Apoderado', estudiante: 'Estudiante', docente: 'Docente' };
+            const telefono = form.telefono.trim().replace(/[\s()-]/g, '');
+            if (!USAR_MOCK) {
+                const datosBase = {
+                    nombre: form.nombre.trim(),
+                    apellidoPaterno: form.apellidoPaterno.trim(),
+                    ...(form.apellidoMaterno.trim() ? { apellidoMaterno: form.apellidoMaterno.trim() } : {}),
+                    dni: form.dni.trim(),
+                    email: form.correo.trim(),
+                    ...(telefono ? { telefono } : {}),
+                    password: form.password
+                };
+                const registrar = {
+                    estudiante: () => registrarEstudiante({
+                        ...datosBase,
+                        codigo: codigoEstudiante,
+                        fechaNacimiento: form.fechaNacimiento,
+                        apoderadoId: form.apoderadoSeleccionado.id
+                    }),
+                    apoderado: () => registrarApoderado({ ...datosBase, edad: Number(form.edad) }),
+                    docente: () => registrarDocente(datosBase)
+                }[kind];
+                const resultado = await registrar();
+
+                if (!resultado.exitoso) {
+                    showToast(resultado.mensaje || `No fue posible registrar al ${kind}.`, true);
+                    return;
+                }
+
+                setUsuarios(p => [...p, resultado.datos]);
+                closeModal();
+                showToast(kind === 'estudiante'
+                    ? `El estudiante ha sido registrado correctamente. Código: ${resultado.datos.codigoEstudiante}`
+                    : `El ${kind} ha sido registrado correctamente.`);
+                return;
+            }
+
             const nuevo = {
-                id: 'u' + Date.now(), nombre: form.nombre.trim(), apellido: form.apellido.trim(),
+                id: 'u' + Date.now(), nombre: form.nombre.trim(),
+                apellido: kind === 'estudiante' ? `${form.apellidoPaterno.trim()} ${form.apellidoMaterno.trim()}` : form.apellido.trim(),
                 dni: form.dni.trim(), rol: rolMap[kind], correo: form.correo.trim(), activo: true,
-                edad: Number(form.edad), ...(telefonoCompacto ? { telefono: telefonoCompacto.startsWith('+') ? telefonoCompacto : `+51${telefonoCompacto}` } : {}),
-                ...(kind === 'estudiante' ? { codigoEstudiante, apoderadoId: form.apoderadoSeleccionado.id } : {})
+                ...(kind !== 'estudiante' ? { edad: Number(form.edad) } : {}),
+                ...(telefonoCompacto ? { telefono: telefonoCompacto.startsWith('+') ? telefonoCompacto : `+51${telefonoCompacto}` } : {}),
+                ...(kind === 'estudiante' ? { codigoEstudiante, apoderadoId: form.apoderadoSeleccionado.id, fechaNacimiento: form.fechaNacimiento } : {})
             };
             setUsuarios(p => [...p, nuevo]);
             closeModal();
             const msg = { apoderado: 'El apoderado ha sido registrado correctamente.', estudiante: 'El estudiante ha sido registrado correctamente.', docente: 'El docente ha sido registrado correctamente.' };
             showToast(kind === 'estudiante' ? `${msg[kind]} Código: ${codigoEstudiante}` : msg[kind]);
-        }, 700);
+        } catch {
+            showToast('No fue posible registrar al usuario. Inténtalo de nuevo.', true);
+        } finally {
+            setSubmitting(false);
+        }
     };
-    const handleEdit = () => {
+    const handleEdit = async () => {
+        if (!editTarget) return;
         const errs = {};
         if (!editForm.nombre.trim())
             errs.nombre = 'Ingrese el nombre.';
-        if (!editForm.apellido.trim())
-            errs.apellido = 'Ingrese el apellido.';
-        const edadIngresada = String(editForm.edad).trim();
-        const edad = Number(edadIngresada);
-        const edadMinima = editTarget?.rol === 'Estudiante' ? 1 : 18;
-        if (edadIngresada && (!/^\d+$/.test(edadIngresada) || !Number.isSafeInteger(edad) || edad < edadMinima))
-            errs.edad = edadMinima === 18 ? 'La edad debe ser un número entero de 18 años o más.' : 'La edad debe ser un número entero positivo.';
-        const documentoValido = editTarget?.rol === 'Apoderado'
-            ? /^(?:\d{8}|\d{9})$/.test(editForm.dni.trim())
-            : /^\d{8}$/.test(editForm.dni.trim());
-        if (!documentoValido)
-            errs.dni = editTarget?.rol === 'Apoderado' ? 'Ingrese un DNI de 8 dígitos o un Carné de Extranjería de 9 dígitos.' : 'El DNI debe tener 8 dígitos.';
-        if (usuarios.some(u => u.id !== editTarget?.id && u.dni.trim() === editForm.dni.trim()))
+        if (editForm.nombre.trim().length > 80)
+            errs.nombre = 'El nombre no puede superar los 80 caracteres.';
+        if (editForm.apellidoPaterno.trim().length > 80)
+            errs.apellidoPaterno = 'El apellido paterno no puede superar los 80 caracteres.';
+        if (editForm.apellidoMaterno.trim().length > 80)
+            errs.apellidoMaterno = 'El apellido materno no puede superar los 80 caracteres.';
+        if (!/^\d{8}$/.test(editForm.dni.trim()))
+            errs.dni = 'El DNI debe tener exactamente 8 dígitos.';
+        if (usuarios.some(u => u.id !== editTarget.id && u.dni.trim() === editForm.dni.trim()))
             errs.dni = 'Este DNI ya pertenece a otro usuario.';
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.correo.trim()))
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.correo.trim()) || editForm.correo.trim().length > 160)
             errs.correo = 'Ingrese un correo válido.';
-        if (usuarios.some(u => u.id !== editTarget?.id && u.correo.trim().toLowerCase() === editForm.correo.trim().toLowerCase()))
+        if (usuarios.some(u => u.id !== editTarget.id && u.correo.trim().toLowerCase() === editForm.correo.trim().toLowerCase()))
             errs.correo = 'Este correo ya pertenece a otro usuario.';
         const telefonoCompacto = editForm.telefono.trim().replace(/[\s()-]/g, '');
-        const telefonoValido = telefonoCompacto.startsWith('+')
-            ? /^\+[1-9]\d{7,14}$/.test(telefonoCompacto)
-            : /^9\d{8}$/.test(telefonoCompacto);
-        if (editTarget?.rol === 'Estudiante' && !telefonoCompacto)
-            errs.telefono = 'Ingrese el teléfono del estudiante.';
-        else if (telefonoCompacto && !telefonoValido)
-            errs.telefono = 'Ingrese 9 dígitos para un celular peruano o un número internacional con + y código de país.';
-        if (editTarget?.rol === 'Estudiante' && !editForm.apoderadoSeleccionado)
-            errs.apoderadoId = 'Seleccione un apoderado registrado.';
+        if (telefonoCompacto && !/^\d{9}$/.test(telefonoCompacto))
+            errs.telefono = 'El teléfono debe tener exactamente 9 dígitos.';
         if (Object.keys(errs).length) {
             setEditErrors(errs);
             return;
         }
+
+        const datosActualizados = {};
+        const nombre = editForm.nombre.trim();
+        const apellidoPaterno = editForm.apellidoPaterno.trim();
+        const apellidoMaterno = editForm.apellidoMaterno.trim();
+        const dni = editForm.dni.trim();
+        const correo = editForm.correo.trim();
+        if (nombre !== (editTarget.nombre ?? '')) datosActualizados.nombre = nombre;
+        if (apellidoPaterno !== (editTarget.apellidoPaterno ?? editTarget.apellido ?? '')) {
+            datosActualizados.apellidoPaterno = apellidoPaterno;
+        }
+        if (apellidoMaterno !== (editTarget.apellidoMaterno ?? '')) {
+            datosActualizados.apellidoMaterno = apellidoMaterno || null;
+        }
+        if (dni !== (editTarget.dni ?? '')) datosActualizados.dni = dni;
+        if (correo !== (editTarget.correo ?? '')) datosActualizados.email = correo;
+        if (telefonoCompacto !== (editTarget.telefono ?? '')) {
+            datosActualizados.telefono = telefonoCompacto || null;
+        }
+
+        if (Object.keys(datosActualizados).length === 0) {
+            closeModal();
+            showToast('No hay cambios para guardar.');
+            return;
+        }
+
         setSubmitting(true);
-        setTimeout(() => {
-            const telefono = telefonoCompacto ? (telefonoCompacto.startsWith('+') ? telefonoCompacto : `+51${telefonoCompacto}`) : '';
-            setUsuarios(p => p.map(u => u.id === editTarget?.id ? {
-                ...u,
-                nombre: editForm.nombre.trim(),
-                apellido: editForm.apellido.trim(),
-                ...(edadIngresada ? { edad } : {}),
-                dni: editForm.dni.trim(),
-                correo: editForm.correo.trim(),
-                telefono,
-                ...(u.rol === 'Estudiante' ? { apoderadoId: editForm.apoderadoSeleccionado.id } : {})
-            } : u));
+        try {
+            if (USAR_MOCK) {
+                setUsuarios(actuales => actuales.map(usuario => usuario.id === editTarget.id ? {
+                    ...usuario,
+                    nombre,
+                    apellido: [apellidoPaterno, apellidoMaterno].filter(Boolean).join(' '),
+                    dni,
+                    correo,
+                    telefono: telefonoCompacto
+                } : usuario));
+                closeModal();
+                showToast('Los datos del usuario han sido actualizados correctamente.');
+                return;
+            }
+
+            const resultado = await actualizarUsuario(editTarget.id, datosActualizados);
+            if (!resultado.exitoso) {
+                showToast(resultado.mensaje || 'No fue posible actualizar el usuario.', true);
+                return;
+            }
+
+            setUsuarios(actuales => actuales.map(usuario => usuario.id === editTarget.id ? resultado.datos : usuario));
             closeModal();
             showToast('Los datos del usuario han sido actualizados correctamente.');
-        }, 700);
+        } catch {
+            showToast('No fue posible actualizar el usuario. Revisa la conexión con el backend.', true);
+        } finally {
+            setSubmitting(false);
+        }
     };
-    const handleToggle = () => {
+    const handleToggle = async () => {
+        if (!toggleTarget) return;
         setSubmitting(true);
-        setTimeout(() => {
-            setUsuarios(p => p.map(u => u.id === toggleTarget?.id ? { ...u, activo: !u.activo } : u));
-            const msg = toggleTarget?.activo ? 'El usuario ha sido desactivado correctamente.' : 'El usuario ha sido activado correctamente.';
-            closeModal();
-            showToast(msg);
-        }, 700);
+        const resultado = await cambiarEstadoUsuario(toggleTarget.id, toggleTarget.activo);
+        setSubmitting(false);
+        if (!resultado.exitoso) {
+            showToast(resultado.mensaje || 'No fue posible actualizar el estado del usuario.', true);
+            return;
+        }
+        setUsuarios(p => p.map(u => u.id === toggleTarget.id ? { ...u, activo: !u.activo } : u));
+        const msg = toggleTarget.activo ? 'El usuario ha sido desactivado correctamente.' : 'El usuario ha sido activado correctamente.';
+        closeModal();
+        showToast(msg);
     };
     // Register form body shared by apoderado+docente (same fields)
     const RegisterFields = ({ kind }) => (<div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <UsuarioField label="Nombre" value={form.nombre} onChange={v => f('nombre', v)} placeholder="Ingrese el nombre" error={formErrors.nombre} required/>
-        <UsuarioField label="Apellido" value={form.apellido} onChange={v => f('apellido', v)} placeholder="Ingrese el apellido" error={formErrors.apellido} required/>
+        <UsuarioField label="Nombre" value={form.nombre} onChange={v => f('nombre', v)} placeholder="Ingrese el nombre" error={formErrors.nombre} maxLength={80} required/>
+        {kind === 'estudiante'
+          ? <UsuarioField label="Apellido paterno" value={form.apellidoPaterno} onChange={v => f('apellidoPaterno', v)} placeholder="Ingrese el apellido paterno" error={formErrors.apellidoPaterno} maxLength={80} required/>
+          : !USAR_MOCK
+            ? <UsuarioField label="Apellido paterno" value={form.apellidoPaterno} onChange={v => f('apellidoPaterno', v)} placeholder="Ingrese el apellido paterno" error={formErrors.apellidoPaterno} maxLength={80} required/>
+            : <UsuarioField label="Apellido" value={form.apellido} onChange={v => f('apellido', v)} placeholder="Ingrese el apellido" error={formErrors.apellido} required/>}
       </div>
+      {(kind === 'estudiante' || !USAR_MOCK) && <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
+        <UsuarioField label="Apellido materno" value={form.apellidoMaterno} onChange={v => f('apellidoMaterno', v)} placeholder="Opcional" error={formErrors.apellidoMaterno} maxLength={80}/>
+        {kind === 'estudiante' && <UsuarioField label="Fecha de nacimiento" type="date" value={form.fechaNacimiento} onChange={v => f('fechaNacimiento', v)} error={formErrors.fechaNacimiento} required/>}
+      </div>}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <div>
-          <UsuarioField label="Edad" type="number" min={kind === 'estudiante' ? 1 : 18} step={1} value={form.edad} onChange={v => f('edad', v)} placeholder="Ingrese la edad" error={formErrors.edad} required/>
+        {(kind === 'apoderado' || (USAR_MOCK && kind === 'docente')) && <div>
+          <UsuarioField label="Edad" type="number" min={USAR_MOCK ? 18 : 1} step={1} value={form.edad} onChange={v => f('edad', v)} placeholder="Ingrese la edad" error={formErrors.edad} required/>
           {kind === 'docente' && <p style={{ fontSize: 11, color: '#64748b', margin: '4px 0 0' }}>El docente debe tener 18 años o más.</p>}
-        </div>
-        <div>
-          <UsuarioField label={kind === 'apoderado' ? 'Documento de identidad' : 'DNI'} value={form.dni} onChange={v => f('dni', v)} placeholder={kind === 'apoderado' ? 'DNI o Carné de Extranjería' : 'Ingrese el DNI'} error={formErrors.dni} required/>
-          {kind === 'apoderado' && <p style={{ fontSize: 11, color: '#64748b', margin: '4px 0 0' }}>DNI: 8 dígitos · Carné de Extranjería (C.E.): 9 dígitos.</p>}
-        </div>
+        </div>}
+        <UsuarioField label={kind === 'apoderado' && USAR_MOCK ? 'Documento de identidad' : 'DNI'} value={form.dni} onChange={v => f('dni', v)} placeholder="Ingrese el DNI" error={formErrors.dni} maxLength={9} required/>
       </div>
       {(kind === 'apoderado' || kind === 'docente' || kind === 'estudiante') && (<>
-          <UsuarioField label="Teléfono" type="tel" value={form.telefono} onChange={v => f('telefono', v)} placeholder="Ingrese el teléfono" error={formErrors.telefono} required={kind === 'estudiante' || kind === 'docente'}/>
-          <p style={{ fontSize: 11, color: '#64748b', margin: '-10px 0 0' }}>Perú: ingrese 9 dígitos. Otro país: incluya + y el prefijo internacional.</p>
+          <UsuarioField label="Teléfono" type="tel" value={form.telefono} onChange={v => f('telefono', v)} placeholder={USAR_MOCK ? 'Ingrese el teléfono' : '9 dígitos (opcional)'} error={formErrors.telefono} maxLength={9} required={USAR_MOCK ? (kind === 'estudiante' || kind === 'docente') : kind === 'estudiante'}/>
+          <p style={{ fontSize: 11, color: '#64748b', margin: '-10px 0 0' }}>Ingresa 9 dígitos; es opcional para apoderados y docentes.</p>
         </>)}
-      <UsuarioField label="Correo" type="email" value={form.correo} onChange={v => f('correo', v)} placeholder="Ingrese el correo electrónico" error={formErrors.correo} required/>
+      <UsuarioField label="Correo" type="email" value={form.correo} onChange={v => f('correo', v)} placeholder="Ingrese el correo electrónico" error={formErrors.correo} maxLength={160} required/>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <UsuarioField label={kind === 'estudiante' || kind === 'docente' ? 'Contraseña inicial' : 'Contraseña'} type="password" value={form.password} onChange={v => f('password', v)} placeholder="Ingrese la contraseña" error={formErrors.password} required/>
-        <UsuarioField label="Confirmar contraseña" type="password" value={form.confirm} onChange={v => f('confirm', v)} placeholder="Confirme la contraseña" error={formErrors.confirm}/>
+        <UsuarioField label={kind === 'estudiante' || kind === 'docente' ? 'Contraseña inicial' : 'Contraseña'} type="password" value={form.password} onChange={v => f('password', v)} placeholder="Ingrese la contraseña" error={formErrors.password} maxLength={40} required/>
+        <UsuarioField label="Confirmar contraseña" type="password" value={form.confirm} onChange={v => f('confirm', v)} placeholder="Confirme la contraseña" error={formErrors.confirm} maxLength={40}/>
       </div>
-      {kind === 'apoderado' && <p style={{ fontSize: 11, color: '#64748b', margin: '-8px 0 0' }}>La contraseña debe tener al menos 8 caracteres e incluir una mayúscula, una minúscula, un número y un símbolo.</p>}
+      <p style={{ fontSize: 11, color: '#64748b', margin: '-8px 0 0' }}>La contraseña debe tener entre 8 y 40 caracteres.</p>
       {kind === 'estudiante' && (<div>
           <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 5 }}>DNI del apoderado <span style={{ color: '#ba1a1a' }}>*</span></label>
           <div style={{ display: 'flex', gap: 8 }}>
@@ -279,9 +407,11 @@ function PaginaUsuarios() {
     </div>);
     return (<div>
       {/* Toast */}
-      {toast && (<div style={{ position: 'fixed', top: 20, right: 24, zIndex: 99999, background: '#121c2a', color: '#fff', padding: '12px 18px', borderRadius: 10, fontSize: 13, fontWeight: 500, boxShadow: '0 8px 28px rgba(0,0,0,0.18)', display: 'flex', alignItems: 'center', gap: 10, maxWidth: 420 }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke="#4ade80" strokeWidth="2.5" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>
-          {toast}
+      {toast && (<div role={toast.error ? 'alert' : 'status'} style={{ position: 'fixed', top: 20, right: 24, zIndex: 99999, background: '#121c2a', color: '#fff', padding: '12px 18px', borderRadius: 10, fontSize: 13, fontWeight: 500, boxShadow: '0 8px 28px rgba(0,0,0,0.18)', display: 'flex', alignItems: 'center', gap: 10, maxWidth: 420 }}>
+          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={toast.error ? '#f87171' : '#4ade80'} strokeWidth="2.5" strokeLinecap="round">
+            {toast.error ? <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></> : <polyline points="20 6 9 17 4 12"/>}
+          </svg>
+          {toast.mensaje}
         </div>)}
 
       {/* Breadcrumb */}
@@ -314,10 +444,12 @@ function PaginaUsuarios() {
           <option value="Estudiante">Solo estudiantes</option>
         </select>
         <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {[['apoderado', 'Registrar apoderado'], ['estudiante', 'Registrar estudiante'], ['docente', 'Registrar docente']].map(([kind, label]) => (<button key={kind} onClick={() => openRegister(kind)} style={{ padding: '9px 16px', borderRadius: 8, border: 'none', background: '#00236f', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 6px rgba(0,35,111,0.18)', transition: 'background 0.12s', whiteSpace: 'nowrap' }} onMouseEnter={e => e.currentTarget.style.background = '#001d5a'} onMouseLeave={e => e.currentTarget.style.background = '#00236f'}>
+          {[['apoderado', 'Registrar apoderado'], ['estudiante', 'Registrar estudiante'], ['docente', 'Registrar docente']].map(([kind, label]) => {
+            return (<button key={kind} onClick={() => openRegister(kind)} style={{ padding: '9px 16px', borderRadius: 8, border: 'none', background: '#00236f', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 6px rgba(0,35,111,0.18)', transition: 'background 0.12s', whiteSpace: 'nowrap' }} onMouseEnter={e => { e.currentTarget.style.background = '#001d5a'; }} onMouseLeave={e => { e.currentTarget.style.background = '#00236f'; }}>
               <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
               {label}
-            </button>))}
+            </button>);
+          })}
         </div>
       </div>
 
@@ -328,7 +460,14 @@ function PaginaUsuarios() {
           {['NOMBRE COMPLETO', 'DNI', 'ROL', 'CORREO', 'ESTADO', 'ACCIONES'].map(col => (<div key={col} style={{ padding: '11px 0', fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: '0.07em', textTransform: 'uppercase' }}>{col}</div>))}
         </div>
 
-        {filtered.length === 0 ? (<div style={{ padding: '40px 20px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>No se encontraron usuarios.</div>) : (filtered.map((u, idx) => {
+        {cargando ? (
+          <div role="status" style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b', fontSize: 13 }}>Cargando usuarios...</div>
+        ) : errorCarga ? (
+          <div role="alert" style={{ padding: '24px 20px', textAlign: 'center', color: '#ba1a1a', fontSize: 13 }}>
+            <p>{errorCarga}</p>
+            <button type="button" onClick={() => setIntentoCarga(actual => actual + 1)}>Reintentar</button>
+          </div>
+        ) : filtered.length === 0 ? (<div style={{ padding: '40px 20px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>No se encontraron usuarios.</div>) : (filtered.map((u, idx) => {
             const rb = ROL_BADGE[u.rol];
             return (<div key={u.id} style={{ display: 'grid', gridTemplateColumns: '2fr 100px 90px 1.6fr 100px 160px', padding: '0 20px', borderBottom: idx < filtered.length - 1 ? '1px solid #f1f4f9' : 'none', alignItems: 'center', minHeight: 56, transition: 'background 0.1s' }} onMouseEnter={e => e.currentTarget.style.background = '#fafbff'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                 <div style={{ minWidth: 0 }}>
@@ -352,38 +491,24 @@ function PaginaUsuarios() {
       </div>
 
       {/* ── Modals: Register ── */}
-      {(modal === 'apoderado' || modal === 'estudiante' || modal === 'docente') && (<UsuarioModalShell title={`Registrar ${modal}`} subtitle="Gestión de usuarios" onSubmit={() => handleRegister(modal)} submitLabel="Registrar" submitDisabled={modal === 'estudiante' && !form.apoderadoSeleccionado && false} submitting={submitting} onClose={closeModal}>
+      {(modal === 'apoderado' || modal === 'estudiante' || modal === 'docente') && (<UsuarioModalShell title={`Registrar ${modal}`} subtitle="Gestión de usuarios" onSubmit={() => handleRegister(modal)} submitLabel="Registrar" submitDisabled={submitting} submitting={submitting} onClose={closeModal}>
           {RegisterFields({ kind: modal })}
         </UsuarioModalShell>)}
 
       {/* ── Modal: Edit ── */}
-      {modal === 'editar' && editTarget && (<UsuarioModalShell title="Editar usuario" subtitle="Gestión de usuarios" onSubmit={handleEdit} submitLabel="Guardar cambios" submitDisabled={editTarget.rol === 'Estudiante' && !editForm.apoderadoSeleccionado} submitting={submitting} onClose={closeModal}>
+      {modal === 'editar' && editTarget && (<UsuarioModalShell title="Editar usuario" subtitle="Gestión de usuarios" onSubmit={handleEdit} submitLabel="Guardar cambios" submitting={submitting} onClose={closeModal}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <UsuarioField label="Nombre" value={editForm.nombre} onChange={v => { setEditForm(p => ({ ...p, nombre: v })); setEditErrors(p => ({ ...p, nombre: '' })); }} placeholder="Nombre" error={editErrors.nombre}/>
-              <UsuarioField label="Apellido" value={editForm.apellido} onChange={v => { setEditForm(p => ({ ...p, apellido: v })); setEditErrors(p => ({ ...p, apellido: '' })); }} placeholder="Apellido" error={editErrors.apellido}/>
+              <UsuarioField label="Nombre" value={editForm.nombre} onChange={v => { setEditForm(p => ({ ...p, nombre: v })); setEditErrors(p => ({ ...p, nombre: '' })); }} placeholder="Nombre" error={editErrors.nombre} maxLength={80} required/>
+              <UsuarioField label="Apellido paterno" value={editForm.apellidoPaterno} onChange={v => { setEditForm(p => ({ ...p, apellidoPaterno: v })); setEditErrors(p => ({ ...p, apellidoPaterno: '' })); }} placeholder="Apellido paterno" error={editErrors.apellidoPaterno} maxLength={80}/>
             </div>
-            <UsuarioField label="Edad" type="number" min={1} step={1} value={editForm.edad} onChange={v => { setEditForm(p => ({ ...p, edad: v })); setEditErrors(p => ({ ...p, edad: '' })); }} placeholder="Ingrese la edad" error={editErrors.edad}/>
-            <UsuarioField label={editTarget.rol === 'Apoderado' ? 'DNI / Carné de Extranjería (C.E.)' : 'DNI'} value={editForm.dni} onChange={v => { setEditForm(p => ({ ...p, dni: v })); setEditErrors(p => ({ ...p, dni: '' })); }} placeholder={editTarget.rol === 'Apoderado' ? 'DNI o Carné de Extranjería' : 'Ingrese el DNI'} error={editErrors.dni}/>
+            <UsuarioField label="Apellido materno" value={editForm.apellidoMaterno} onChange={v => { setEditForm(p => ({ ...p, apellidoMaterno: v })); setEditErrors(p => ({ ...p, apellidoMaterno: '' })); }} placeholder="Apellido materno (opcional)" error={editErrors.apellidoMaterno} maxLength={80}/>
+            <UsuarioField label="DNI" value={editForm.dni} onChange={v => { setEditForm(p => ({ ...p, dni: v })); setEditErrors(p => ({ ...p, dni: '' })); }} placeholder="8 dígitos" error={editErrors.dni} maxLength={8} required/>
             <div>
-              <UsuarioField label="Teléfono" type="tel" value={editForm.telefono} onChange={v => { setEditForm(p => ({ ...p, telefono: v })); setEditErrors(p => ({ ...p, telefono: '' })); }} placeholder="Ingrese 9 dígitos o prefijo internacional +código" error={editErrors.telefono} required={editTarget.rol === 'Estudiante'}/>
-              <p style={{ fontSize: 11, color: '#64748b', margin: '4px 0 0' }}>Perú: 9 dígitos. Otro país: incluya + y el prefijo internacional.</p>
+              <UsuarioField label="Teléfono" type="tel" value={editForm.telefono} onChange={v => { setEditForm(p => ({ ...p, telefono: v })); setEditErrors(p => ({ ...p, telefono: '' })); }} placeholder="9 dígitos (opcional)" error={editErrors.telefono} maxLength={9}/>
+              <p style={{ fontSize: 11, color: '#64748b', margin: '4px 0 0' }}>Opcional; si se ingresa, debe contener 9 dígitos.</p>
             </div>
-            {editTarget.rol === 'Estudiante' && <div>
-              <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 5 }}>Apoderado asociado <span style={{ color: '#ba1a1a' }}>*</span></label>
-              <div style={{ display: 'flex', gap: 8 }}>
-                <input value={editForm.dniApoderado} onChange={e => { setEditForm(p => ({ ...p, dniApoderado: e.target.value, apoderadoSeleccionado: null })); setEditErrors(p => ({ ...p, apoderadoId: '' })); }} placeholder="Buscar apoderado por DNI..." style={{ flex: 1, minWidth: 0, padding: '9px 12px', borderRadius: 8, border: `1.5px solid ${editErrors.apoderadoId ? '#ba1a1a' : '#dde2f0'}`, background: '#f8f9ff', fontSize: 13, color: '#121c2a', fontFamily: 'inherit', outline: 'none' }} onKeyDown={e => e.key === 'Enter' && searchEditApoderado()}/>
-                <button onClick={searchEditApoderado} style={{ padding: '9px 16px', borderRadius: 8, border: 'none', background: '#0058be', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>Buscar</button>
-              </div>
-              {editErrors.apoderadoId && <p style={{ fontSize: 11, color: '#ba1a1a', margin: '3px 0 0' }}>{editErrors.apoderadoId}</p>}
-              {editForm.apoderadoSeleccionado && <div style={{ marginTop: 8, padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8 }}>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Apoderado que quedará asociado</div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#121c2a' }}>{editForm.apoderadoSeleccionado.nombre} {editForm.apoderadoSeleccionado.apellido}</div>
-                <div style={{ fontSize: 12, color: '#64748b' }}>DNI: {editForm.apoderadoSeleccionado.dni}</div>
-              </div>}
-              {!editForm.apoderadoSeleccionado && <p style={{ fontSize: 11, color: '#64748b', margin: '6px 0 0' }}>Busca y selecciona un apoderado para habilitar «Guardar cambios».</p>}
-            </div>}
-            <UsuarioField label="Correo" value={editForm.correo} onChange={v => { setEditForm(p => ({ ...p, correo: v })); setEditErrors(p => ({ ...p, correo: '' })); }} placeholder="Correo" type="email" error={editErrors.correo}/>
+            <UsuarioField label="Correo" value={editForm.correo} onChange={v => { setEditForm(p => ({ ...p, correo: v })); setEditErrors(p => ({ ...p, correo: '' })); }} placeholder="Correo" type="email" error={editErrors.correo} maxLength={160} required/>
           </div>
         </UsuarioModalShell>)}
 

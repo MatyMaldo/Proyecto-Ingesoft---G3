@@ -10,9 +10,19 @@
  *
  * @type {string}
  */
-export const URL_BASE_API = (
+const URL_BASE_API_CONFIGURADA = (
   import.meta.env.VITE_URL_BASE_API ?? 'http://localhost:8080/api/v1'
 ).replace(/\/+$/, '');
+
+/**
+ * In development, send API calls through Vite's same-origin proxy to avoid
+ * browser CORS preflight failures. Production keeps the configured API URL.
+ *
+ * @type {string}
+ */
+export const URL_BASE_API = import.meta.env.DEV
+  ? '/api/v1'
+  : URL_BASE_API_CONFIGURADA;
 
 /**
  * Indica si los servicios deben usar datos simulados (mocks) en lugar de
