@@ -4,7 +4,7 @@ import { render, screen } from '@testing-library/react';
 import FormularioLogin from './FormularioLogin.jsx';
 import { PERFILES_ACCESO } from '../constants/perfilesAcceso.js';
 
-const VALORES_BASE = { perfil: 'ADMIN', identificador: '', contrasena: '', recordar: false };
+const VALORES_BASE = { perfil: 'ADMINISTRADOR', identificador: '', contrasena: '', recordar: false };
 
 function renderizar(props = {}) {
   return render(

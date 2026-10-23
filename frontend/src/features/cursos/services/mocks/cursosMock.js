@@ -1,5 +1,4 @@
-// TODO(backend): datos ficticios. Eliminar al integrar los endpoints de cursos y competencias
-// (GET /cursos, POST /cursos, PUT /cursos/{id}/competencias; ver services/cursosService.js).
+// TODO(backend): datos ficticios. Eliminar al integrar GET /cursos.
 //
 // Origen de los datos: prototipo de Figma Make (EduCoders Prototipo), vista "Cursos".
 // `competenciasDisponibles` es el catálogo de competencias del CNEB que se puede elegir para
@@ -813,19 +812,23 @@ let almacen = clonar(CURSOS_INICIALES);
 let contadorId = almacen.length;
 
 /**
- * Cursos de un grado, con sus competencias disponibles y asignadas.
+ * Todos los cursos registrados.
  *
- * @param {string} grado '1' a '5'.
  * @returns {Promise<{exitoso: boolean, datos: Array|null, mensaje: string, estado?: number}>}
  */
-export async function listarCursosPorGradoMock(grado) {
+export async function listarCursosMock() {
   await esperar();
 
-  if (!GRADOS_VALIDOS.includes(grado)) {
-    return { exitoso: false, datos: null, mensaje: 'El grado indicado no existe.', estado: 400 };
-  }
+  const datos = almacen.map((curso) => ({
+    id: curso.id,
+    nombre: curso.nombre,
+    descripcion: curso.descripcion,
+    competencias: curso.competenciasDisponibles
+      .filter((competencia) => curso.competenciasAsignadas.includes(competencia.id))
+      .map((competencia) => ({ ...competencia, descripcion: '' }))
+  }));
 
-  return { exitoso: true, datos: clonar(almacen.filter((curso) => curso.grado === grado)), mensaje: '' };
+  return { exitoso: true, datos: clonar(datos), mensaje: '' };
 }
 
 /**
