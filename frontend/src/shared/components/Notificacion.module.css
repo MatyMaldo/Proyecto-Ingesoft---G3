@@ -1,0 +1,30 @@
+/* Colores fijos tomados del toast de PaginaUsuarios: reemplazarlos por los tokens de shared/styles/tokens.css. */
+
+.notificacion {
+  position: fixed;
+  top: 20px;
+  right: 24px;
+  /* Por encima de los modales (z-index 1000) para verse también cuando el modal sigue abierto. */
+  z-index: 99999;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 420px;
+  padding: 12px 18px;
+  border-radius: 10px;
+  background: #121c2a;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
+  font-size: 13px;
+  font-weight: 500;
+  color: #ffffff;
+}
+
+.iconoExito {
+  flex-shrink: 0;
+  color: #4ade80;
+}
+
+.iconoError {
+  flex-shrink: 0;
+  color: #f87171;
+}
