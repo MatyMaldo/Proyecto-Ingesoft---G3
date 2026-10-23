@@ -1,7 +1,11 @@
 import useGradosSecciones from '../hooks/useGradosSecciones.js';
 import { esAnioFinalizado } from '../utils/validacionesGradosSecciones.js';
+import { ordenarAnios } from '../utils/validacionesAnioAcademico.js';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import estilos from '../pages/PaginaAnioEscolar.module.css';
+
+// Un año puede tener varios períodos (uno por bimestre), así que se muestra junto a su bimestre para distinguirlos.
+const describirAnio = (anio) => (anio?.bimestre ? `${anio.anio} · ${anio.bimestre}` : String(anio?.anio ?? ''));
 
 /** Bloque independiente que se integrará en la pantalla de Año escolar compartida. */
 export default function PanelGradosSecciones() {
@@ -53,7 +57,7 @@ export default function PanelGradosSecciones() {
           <label className={estilos.campo}>Año académico
             <select value={modelo.anioId} disabled={Boolean(formulario)} onChange={(evento) => modelo.establecerAnioId(evento.target.value)}>
               <option value="">Selecciona un año</option>
-              {datos.anios.map((item) => <option key={item.id} value={item.id}>{item.anio}{esAnioFinalizado(item) ? ' · Finalizado' : ''}</option>)}
+              {ordenarAnios(datos.anios).map((item) => <option key={item.id} value={item.id}>{describirAnio(item)}{esAnioFinalizado(item) ? ' · Finalizado' : ''}</option>)}
             </select>
           </label>
           <label className={estilos.campo}>Grado
@@ -67,9 +71,9 @@ export default function PanelGradosSecciones() {
         {finalizado && <p className={estilos.aviso}>Este año académico finalizó. Puedes consultar sus secciones, pero no crear nuevas.</p>}
         {anio && grado ? (
           secciones.length ? <div className={estilos.tablaContenedor}><table>
-            <caption>Secciones de {grado.nombre} · {anio.anio}</caption>
+            <caption>Secciones de {grado.nombre} · {describirAnio(anio)}</caption>
             <thead><tr><th scope="col">Sección</th><th scope="col">Grado</th><th scope="col">Año académico</th><th scope="col">Capacidad máxima</th><th scope="col">Tutor</th><th scope="col">Acciones</th></tr></thead>
-            <tbody>{secciones.map((item) => <tr key={item.id}><td><strong>{item.nombre}</strong></td><td>{item.gradoNombre ?? grado.nombre}</td><td>{item.anioAcademico ?? anio.anio}</td><td>{item.capacidadMaxima} estudiantes</td><td>{item.tutorNombreCompleto ?? 'Sin asignar'}</td><td><button type="button" className={estilos.secundario} disabled={Boolean(formulario)} onClick={() => modelo.abrirEdicion(item)}>Modificar</button></td></tr>)}</tbody>
+            <tbody>{secciones.map((item) => <tr key={item.id}><td><strong>{item.nombre}</strong></td><td>{item.gradoNombre ?? grado.nombre}</td><td>{describirAnio(anio)}</td><td>{item.capacidadMaxima} estudiantes</td><td>{item.tutorNombreCompleto ?? 'Sin asignar'}</td><td><button type="button" className={estilos.secundario} disabled={Boolean(formulario)} onClick={() => modelo.abrirEdicion(item)}>Modificar</button></td></tr>)}</tbody>
           </table></div> : <EstadoConsulta tipo="vacio" mensaje="No hay secciones registradas para el grado y año seleccionados." />
         ) : <EstadoConsulta tipo="vacio" mensaje="Selecciona un año académico y un grado para consultar sus secciones." />}
         <p className={estilos.pie}>{secciones.length} secciones · {secciones.reduce((total, item) => total + item.capacidadMaxima, 0)} cupos de capacidad total</p>
@@ -78,7 +82,7 @@ export default function PanelGradosSecciones() {
       {formulario && <section className={estilos.tarjeta} aria-labelledby="titulo-formulario">
         <h2 id="titulo-formulario">{formulario.accion === 'editar' ? 'Modificar' : 'Crear'} {formulario.tipo === 'grado' ? 'grado' : 'sección'}</h2>
         <form onSubmit={modelo.guardar} noValidate aria-busy={guardando}>
-          {formulario.tipo === 'seccion' && <p className={estilos.contexto}>Año académico: <strong>{anio?.anio}</strong> · Grado: <strong>{grado?.nombre}</strong>{formulario.accion === 'editar' && ' · El grado y el año no se pueden modificar'}</p>}
+          {formulario.tipo === 'seccion' && <p className={estilos.contexto}>Año académico: <strong>{describirAnio(anio)}</strong> · Grado: <strong>{grado?.nombre}</strong>{formulario.accion === 'editar' && ' · El grado y el año no se pueden modificar'}</p>}
           <div className={estilos.filtros}>
             {campo('nombre', formulario.tipo === 'grado' ? 'Nombre del grado' : 'Nombre de la sección', 'text', formulario.tipo === 'grado' ? 60 : 1)}
             {formulario.tipo === 'seccion' && campo('capacidadMaxima', 'Capacidad máxima', 'text')}

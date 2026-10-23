@@ -1,7 +1,10 @@
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import { solicitar } from '../../../shared/api/clienteHttp.js';
+import { BIMESTRES } from '../utils/validacionesAnioAcademico.js';
 import {
   consultarEstructuraMock,
+  consultarAniosMock,
+  crearAnioAcademicoMock,
   crearGradoMock,
   crearSeccionMock,
   actualizarSeccionMock
@@ -94,6 +97,39 @@ export async function actualizarSeccion(id, datos) {
       nombre: datos.nombre.trim().toUpperCase(),
       capacidadMaxima: Number(datos.capacidadMaxima),
       tutorId: datos.tutorId ? Number(datos.tutorId) : null
+    }
+  });
+}
+
+/**
+ * Consulta solo los años académicos y los bimestres disponibles (sin grados, secciones ni docentes).
+ */
+export async function consultarAniosAcademicos() {
+  if (USAR_MOCK) {
+    return consultarAniosMock();
+  }
+
+  const respuesta = await solicitar('/anios-academicos');
+  if (!respuesta.exitoso) return respuesta;
+  if (!Array.isArray(respuesta.datos)) return falloFormato('los años académicos');
+
+  // El backend no expone un catálogo de bimestres: se usa la lista fija de la aplicación.
+  return { exitoso: true, mensaje: '', datos: { anios: respuesta.datos, bimestres: BIMESTRES } };
+}
+
+export async function crearAnioAcademico(datos) {
+  if (USAR_MOCK) {
+    return crearAnioAcademicoMock(datos);
+  }
+
+  // TODO(equipo, 2026-10-22): confirmar con el contrato API los nombres de los campos del cuerpo.
+  return solicitar('/anios-academicos', {
+    metodo: 'POST',
+    cuerpo: {
+      anio: Number(datos.anio),
+      bimestre: datos.bimestre,
+      inicioMatricula: datos.inicioMatricula,
+      finMatricula: datos.finMatricula
     }
   });
 }

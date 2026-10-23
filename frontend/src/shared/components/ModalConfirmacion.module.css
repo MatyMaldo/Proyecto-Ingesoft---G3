@@ -1,0 +1,103 @@
+/* Usa los tokens de shared/styles/tokens.css y el mismo estilo de botones de PaginaAnioEscolar.module.css. */
+
+.fondo {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  place-items: center;
+  padding: var(--espacio-4);
+  overflow-y: auto;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.caja {
+  width: 100%;
+  max-width: 440px;
+  padding: var(--espacio-6);
+  border-radius: var(--radio-lg);
+  background: var(--color-superficie);
+  box-shadow: 0 20px 50px rgba(15, 23, 42, 0.25);
+}
+
+.titulo {
+  margin: 0 0 var(--espacio-2);
+  font-size: var(--texto-lg);
+  color: var(--color-texto);
+}
+
+.mensaje {
+  margin: 0 0 var(--espacio-4);
+  font-size: var(--texto-md);
+  line-height: 1.5;
+  color: var(--color-texto-suave);
+}
+
+.detalles {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  margin: 0 0 var(--espacio-6);
+  padding: var(--espacio-4);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-sm);
+  background: var(--color-superficie-suave);
+}
+
+.detalle {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+  font-size: var(--texto-md);
+}
+
+.detalle dt {
+  color: var(--color-texto-suave);
+}
+
+.detalle dd {
+  margin: 0;
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+  text-align: right;
+}
+
+.pie {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--espacio-3);
+}
+
+.botonSecundario,
+.botonPrimario {
+  min-height: var(--tactil-min);
+  padding: 10px 18px;
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio-sm);
+  font: inherit;
+  cursor: pointer;
+}
+
+.botonSecundario {
+  background: var(--color-superficie);
+  color: var(--color-texto-secundario);
+}
+
+.botonPrimario {
+  border-color: var(--color-primario);
+  background: var(--color-primario);
+  color: white;
+  white-space: nowrap;
+}
+
+.botonSecundario:focus-visible,
+.botonPrimario:focus-visible {
+  outline: 3px solid var(--color-foco);
+  outline-offset: 3px;
+}
+
+.botonSecundario:disabled,
+.botonPrimario:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}

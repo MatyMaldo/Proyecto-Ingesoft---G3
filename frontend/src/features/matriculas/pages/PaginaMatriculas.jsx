@@ -14,7 +14,7 @@ import Boton from '../../../shared/components/Boton.jsx'
 import estilosBoton from '../../../shared/components/Boton.module.css'
 import estilos from './PaginaMatriculas.module.css'
 import useMatriculas from '../hooks/useMatriculas.js';
-import useNotificacion from '../hooks/useNotificacion.js';
+import useNotificacion from '../../../shared/hooks/useNotificacion.js';
 import estilosModal from '../components/Modal.module.css';
 import { crearMatricula, emitirCompromisoMatricula } from '../services/matriculasService.js';
 
@@ -72,7 +72,6 @@ export default function PaginaMatriculas() {
       </header>  
 
       <div className={estilos.botones}>
-        <Boton icono="agregar" span="Asignar año escolar" estilo={estilosBoton.btn_primario} onClick={() => {} } ></Boton>
         <Boton icono="agregar" span="Asignar alumno a sección" estilo={estilosBoton.btn_primario} onClick={abrirModalAsignarAlumno} ></Boton>
         <Boton icono="archivo" span="Emitir comprobante de pago de matrícula" estilo={estilosBoton.btn_secundario} onClick={abrirModalComprobante } ></Boton>
       </div>

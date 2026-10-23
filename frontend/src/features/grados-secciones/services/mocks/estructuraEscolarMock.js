@@ -1,4 +1,5 @@
 import { validarGrado, validarSeccion, esAnioFinalizado, normalizarNombre } from '../../utils/validacionesGradosSecciones.js';
+import { BIMESTRES, validarAnioAcademico } from '../../utils/validacionesAnioAcademico.js';
 
 // Datos de demostración en memoria; recargar la página restablece el prototipo.
 const estructura = {
@@ -6,6 +7,7 @@ const estructura = {
     { id: 1, anio: 2026, fechaInicio: '2026-03-09', fechaFin: '2026-12-18' },
     { id: 2, anio: 2025, fechaInicio: '2025-03-10', fechaFin: '2025-12-19' }
   ],
+  bimestres: BIMESTRES,
   docentes: [{ id: 1, nombreCompleto: 'Docente de demostración' }],
   grados: [1, 2, 3, 4, 5].map((id) => ({ id, nombre: `${id}.° de secundaria` })),
   secciones: [
@@ -21,6 +23,26 @@ const exito = (datos) => ({ exitoso: true, datos: structuredClone(datos), mensaj
 const esperar = (operacion) => new Promise((resolve) => setTimeout(() => resolve(operacion()), 350));
 
 export const consultarEstructuraMock = () => esperar(() => exito(estructura));
+
+// Solo años y bimestres: lo que necesita la pantalla de años académicos.
+export const consultarAniosMock = () => esperar(() => exito({ anios: estructura.anios, bimestres: estructura.bimestres }));
+
+export function crearAnioAcademicoMock(datos) {
+  return esperar(() => {
+    const errores = validarAnioAcademico(datos, { anios: estructura.anios, bimestres: estructura.bimestres });
+    if (Object.keys(errores).length) return fallo('Revisa los campos indicados.', errores);
+    // No lleva fechaInicio/fechaFin: el formulario de creación aún no las pide.
+    const anio = {
+      id: Math.max(0, ...estructura.anios.map((item) => item.id)) + 1,
+      anio: Number(datos.anio),
+      bimestre: datos.bimestre,
+      inicioMatricula: datos.inicioMatricula,
+      finMatricula: datos.finMatricula
+    };
+    estructura.anios.push(anio);
+    return exito(anio);
+  });
+}
 
 export function crearGradoMock(datos) {
   return esperar(() => {
