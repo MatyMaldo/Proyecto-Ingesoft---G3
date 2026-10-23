@@ -18,6 +18,18 @@ const ROL_BADGE = {
     Administrador: { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
 };
 
+const ROL_POR_TIPO_REGISTRO = {
+    apoderado: 'Apoderado',
+    estudiante: 'Estudiante',
+    docente: 'Docente'
+};
+
+function esAdministrador(usuario) {
+    return usuario?.rol === 'Administrador'
+        || usuario?.rol === 'ADMINISTRADOR'
+        || usuario?.rol === 'ADMIN';
+}
+
 function UsuarioField({ label, value, onChange, placeholder, type = 'text', error, required = false, min, maxLength, step }) {
     return (<div>
       <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 5 }}>{label}{required && <span style={{ color: '#ba1a1a' }}> *</span>}</label>
@@ -97,6 +109,7 @@ function PaginaUsuarios() {
         setModal(kind);
     };
     const openEdit = (u) => {
+        if (esAdministrador(u)) return;
         setEditTarget(u);
         setEditForm({
             nombre: u.nombre ?? '',
@@ -109,7 +122,11 @@ function PaginaUsuarios() {
         setEditErrors({});
         setModal('editar');
     };
-    const openToggle = (u) => { setToggleTarget(u); setModal('toggle'); };
+    const openToggle = (u) => {
+        if (esAdministrador(u)) return;
+        setToggleTarget(u);
+        setModal('toggle');
+    };
     const closeModal = () => { setModal(null); setSubmitting(false); };
     const f = (key, val) => {
         setForm(p => ({ ...p, [key]: val }));
@@ -151,8 +168,8 @@ function PaginaUsuarios() {
             errs.dni = kind === 'apoderado' ? 'Ingrese un DNI de 8 dígitos o un Carné de Extranjería de 9 dígitos.' : 'El DNI debe tener 8 dígitos.';
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo.trim()))
             errs.correo = 'Ingrese un correo válido.';
-        if (usuarios.some(u => u.dni.trim() === form.dni.trim()))
-            errs.dni = 'Ya existe un usuario registrado con este documento.';
+        if (usuarios.some(u => u.dni.trim() === form.dni.trim() && u.rol === ROL_POR_TIPO_REGISTRO[kind]))
+            errs.dni = 'Ya existe una cuenta con este DNI y rol.';
         if (form.nombre.trim().length > 80)
             errs.nombre = 'El nombre no puede superar los 80 caracteres.';
         if (form.apellidoPaterno.trim().length > 80)
@@ -204,7 +221,6 @@ function PaginaUsuarios() {
         }
         setSubmitting(true);
         try {
-            const rolMap = { apoderado: 'Apoderado', estudiante: 'Estudiante', docente: 'Docente' };
             const telefono = form.telefono.trim().replace(/[\s()-]/g, '');
             if (!USAR_MOCK) {
                 const datosBase = {
@@ -244,7 +260,7 @@ function PaginaUsuarios() {
             const nuevo = {
                 id: 'u' + Date.now(), nombre: form.nombre.trim(),
                 apellido: kind === 'estudiante' ? `${form.apellidoPaterno.trim()} ${form.apellidoMaterno.trim()}` : form.apellido.trim(),
-                dni: form.dni.trim(), rol: rolMap[kind], correo: form.correo.trim(), activo: true,
+                dni: form.dni.trim(), rol: ROL_POR_TIPO_REGISTRO[kind], correo: form.correo.trim(), activo: true,
                 ...(kind !== 'estudiante' ? { edad: Number(form.edad) } : {}),
                 ...(telefonoCompacto ? { telefono: telefonoCompacto.startsWith('+') ? telefonoCompacto : `+51${telefonoCompacto}` } : {}),
                 ...(kind === 'estudiante' ? { codigoEstudiante, apoderadoId: form.apoderadoSeleccionado.id, fechaNacimiento: form.fechaNacimiento } : {})
@@ -260,7 +276,7 @@ function PaginaUsuarios() {
         }
     };
     const handleEdit = async () => {
-        if (!editTarget) return;
+        if (!editTarget || esAdministrador(editTarget)) return;
         const errs = {};
         if (!editForm.nombre.trim())
             errs.nombre = 'Ingrese el nombre.';
@@ -272,8 +288,8 @@ function PaginaUsuarios() {
             errs.apellidoMaterno = 'El apellido materno no puede superar los 80 caracteres.';
         if (!/^\d{8}$/.test(editForm.dni.trim()))
             errs.dni = 'El DNI debe tener exactamente 8 dígitos.';
-        if (usuarios.some(u => u.id !== editTarget.id && u.dni.trim() === editForm.dni.trim()))
-            errs.dni = 'Este DNI ya pertenece a otro usuario.';
+        if (usuarios.some(u => u.id !== editTarget.id && u.dni.trim() === editForm.dni.trim() && u.rol === editTarget.rol))
+            errs.dni = 'Este DNI ya pertenece a otra cuenta del mismo rol.';
         if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.correo.trim()) || editForm.correo.trim().length > 160)
             errs.correo = 'Ingrese un correo válido.';
         if (usuarios.some(u => u.id !== editTarget.id && u.correo.trim().toLowerCase() === editForm.correo.trim().toLowerCase()))
@@ -343,7 +359,7 @@ function PaginaUsuarios() {
         }
     };
     const handleToggle = async () => {
-        if (!toggleTarget) return;
+        if (!toggleTarget || esAdministrador(toggleTarget)) return;
         setSubmitting(true);
         const resultado = await cambiarEstadoUsuario(toggleTarget.id, toggleTarget.activo);
         setSubmitting(false);
@@ -456,7 +472,7 @@ function PaginaUsuarios() {
       {/* Users table */}
       <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,35,111,0.04)' }}>
         {/* Header */}
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 100px 90px 1.6fr 100px 160px', padding: '0 20px', background: '#f8f9ff', borderBottom: '2px solid #e8eaf0' }}>
+        <div style={{ display: 'grid', gridTemplateColumns: '2fr 100px 120px 1.6fr 100px 160px', padding: '0 20px', background: '#f8f9ff', borderBottom: '2px solid #e8eaf0' }}>
           {['NOMBRE COMPLETO', 'DNI', 'ROL', 'CORREO', 'ESTADO', 'ACCIONES'].map(col => (<div key={col} style={{ padding: '11px 0', fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: '0.07em', textTransform: 'uppercase' }}>{col}</div>))}
         </div>
 
@@ -469,13 +485,13 @@ function PaginaUsuarios() {
           </div>
         ) : filtered.length === 0 ? (<div style={{ padding: '40px 20px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>No se encontraron usuarios.</div>) : (filtered.map((u, idx) => {
             const rb = ROL_BADGE[u.rol];
-            return (<div key={u.id} style={{ display: 'grid', gridTemplateColumns: '2fr 100px 90px 1.6fr 100px 160px', padding: '0 20px', borderBottom: idx < filtered.length - 1 ? '1px solid #f1f4f9' : 'none', alignItems: 'center', minHeight: 56, transition: 'background 0.1s' }} onMouseEnter={e => e.currentTarget.style.background = '#fafbff'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
+            return (<div key={u.id} style={{ display: 'grid', gridTemplateColumns: '2fr 100px 120px 1.6fr 100px 160px', padding: '0 20px', borderBottom: idx < filtered.length - 1 ? '1px solid #f1f4f9' : 'none', alignItems: 'center', minHeight: 56, transition: 'background 0.1s' }} onMouseEnter={e => e.currentTarget.style.background = '#fafbff'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{u.nombre} {u.apellido}</div>
                   {u.rol === 'Estudiante' && u.codigoEstudiante && <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>Código: {u.codigoEstudiante}</div>}
                 </div>
                 <span style={{ fontSize: 12, color: '#64748b', fontFamily: 'monospace' }}>{u.dni}</span>
-                <span style={{ display: 'inline-flex', alignItems: 'center', padding: '3px 9px', borderRadius: 999, fontSize: 11, fontWeight: 700, background: rb.bg, color: rb.color, border: `1px solid ${rb.border}` }}>{u.rol}</span>
+                <span style={{ display: 'inline-flex', justifySelf: 'start', width: 'fit-content', alignItems: 'center', padding: '3px 9px', borderRadius: 999, fontSize: 11, fontWeight: 700, background: rb.bg, color: rb.color, border: `1px solid ${rb.border}` }}>{u.rol}</span>
                 <span style={{ fontSize: 12, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 8 }}>{u.correo}</span>
                 <span>
                   {u.activo
@@ -483,8 +499,16 @@ function PaginaUsuarios() {
                     : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 999, fontSize: 11, fontWeight: 700, background: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0' }}>Desactivado</span>}
                 </span>
                 <div style={{ display: 'flex', gap: 6 }}>
-                  <button onClick={() => openEdit(u)} style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', color: '#374151', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.12s' }} onMouseEnter={e => e.currentTarget.style.background = '#f8f9ff'} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>Editar</button>
-                  <button onClick={() => openToggle(u)} style={{ padding: '5px 12px', borderRadius: 6, background: u.activo ? '#fff1f1' : '#f0fdf4', color: u.activo ? '#ba1a1a' : '#16a34a', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', border: `1px solid ${u.activo ? '#fecaca' : '#bbf7d0'}`, transition: 'opacity 0.12s' }} onMouseEnter={e => e.currentTarget.style.opacity = '0.8'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>{u.activo ? 'Desactivar' : 'Activar'}</button>
+                  {esAdministrador(u) ? (
+                    <span title="Las cuentas de administrador no se pueden modificar desde esta pantalla." style={{ fontSize: 11, color: '#64748b' }}>
+                      Cuenta protegida
+                    </span>
+                  ) : (
+                    <>
+                      <button onClick={() => openEdit(u)} style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', color: '#374151', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.12s' }} onMouseEnter={e => e.currentTarget.style.background = '#f8f9ff'} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>Editar</button>
+                      <button onClick={() => openToggle(u)} style={{ padding: '5px 12px', borderRadius: 6, background: u.activo ? '#fff1f1' : '#f0fdf4', color: u.activo ? '#ba1a1a' : '#16a34a', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', border: `1px solid ${u.activo ? '#fecaca' : '#bbf7d0'}`, transition: 'opacity 0.12s' }} onMouseEnter={e => e.currentTarget.style.opacity = '0.8'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>{u.activo ? 'Desactivar' : 'Activar'}</button>
+                    </>
+                  )}
                 </div>
               </div>);
         }))}

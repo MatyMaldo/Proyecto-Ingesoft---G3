@@ -101,7 +101,7 @@ describe('HU-SAT-07 · Escenario 1: inicio de sesión exitoso', () => {
   it('llama a establecerSesion con el token y el usuario recibidos', async () => {
     iniciarSesion.mockResolvedValue({
       exitoso: true,
-      datos: { token: 'token-123', usuario: { id: 1, nombre: 'Admin', rol: 'ADMIN' } },
+      datos: { token: 'token-123', usuario: { id: 1, nombre: 'Admin', rol: 'ADMINISTRADOR' } },
       mensaje: '',
       motivo: null
     });
@@ -119,7 +119,7 @@ describe('HU-SAT-07 · Escenario 1: inicio de sesión exitoso', () => {
 
     expect(establecerSesionMock).toHaveBeenCalledWith({
       token: 'token-123',
-      usuario: { id: 1, nombre: 'Admin', rol: 'ADMIN' }
+      usuario: { id: 1, nombre: 'Admin', rol: 'ADMINISTRADOR' }
     });
   });
 });
@@ -134,7 +134,7 @@ describe('HU-SAT-07 · "Recordar mi sesión": persistencia de identificador y pe
   it('guarda identificador y perfil en localStorage tras un login correcto con la casilla marcada', async () => {
     iniciarSesion.mockResolvedValue({
       exitoso: true,
-      datos: { token: 'token-123', usuario: { id: 1, nombre: 'Admin', rol: 'ADMIN' } },
+      datos: { token: 'token-123', usuario: { id: 1, nombre: 'Admin', rol: 'ADMINISTRADOR' } },
       mensaje: '',
       motivo: null
     });
@@ -152,14 +152,14 @@ describe('HU-SAT-07 · "Recordar mi sesión": persistencia de identificador y pe
     });
 
     const guardado = JSON.parse(window.localStorage.getItem(CLAVE_PREFERENCIAS_LOGIN));
-    expect(guardado).toEqual({ identificador: 'admin@sanmarcos.edu.pe', perfil: 'ADMIN' });
+    expect(guardado).toEqual({ identificador: 'admin@sanmarcos.edu.pe', perfil: 'ADMINISTRADOR' });
     expect(guardado).not.toHaveProperty('contrasena');
   });
 
   it('no guarda nada tras un login correcto con la casilla desmarcada', async () => {
     iniciarSesion.mockResolvedValue({
       exitoso: true,
-      datos: { token: 'token-123', usuario: { id: 1, nombre: 'Admin', rol: 'ADMIN' } },
+      datos: { token: 'token-123', usuario: { id: 1, nombre: 'Admin', rol: 'ADMINISTRADOR' } },
       mensaje: '',
       motivo: null
     });
@@ -181,7 +181,7 @@ describe('HU-SAT-07 · "Recordar mi sesión": persistencia de identificador y pe
   it('borra lo guardado en el momento en que se desmarca la casilla', async () => {
     window.localStorage.setItem(
       CLAVE_PREFERENCIAS_LOGIN,
-      JSON.stringify({ identificador: 'admin@sanmarcos.edu.pe', perfil: 'ADMIN' })
+      JSON.stringify({ identificador: 'admin@sanmarcos.edu.pe', perfil: 'ADMINISTRADOR' })
     );
 
     const { result } = renderHook(() => useLogin());

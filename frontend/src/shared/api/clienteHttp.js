@@ -91,7 +91,9 @@ export function configurarCliente({
 
 /**
  * Cliente HTTP único, basado en `fetch`, que nunca lanza excepciones: toda
- * solicitud se resuelve en un objeto `{ exitoso, datos, mensaje }`.
+ * solicitud se resuelve en un objeto `{ exitoso, datos, mensaje }`. Las
+ * respuestas exitosas pueden envolver el contenido en `datos`/`data` o
+ * devolver directamente el objeto raíz.
  *
  * @param {string} ruta - Ruta relativa a `URL_BASE_API` (por ejemplo, `/auditorias`).
  * @param {OpcionesSolicitud} [opciones]
@@ -152,7 +154,7 @@ export async function solicitar(ruta, opciones = {}) {
 
     return {
       exitoso: true,
-      datos: json?.datos ?? json?.data ?? null,
+      datos: json?.datos ?? json?.data ?? json ?? null,
       mensaje: json?.error ?? json?.mensaje ?? ''
     };
   } catch (error) {

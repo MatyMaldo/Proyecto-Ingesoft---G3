@@ -2,15 +2,14 @@ import Insignia from '../../../shared/components/Insignia.jsx';
 import estilos from './TarjetaCurso.module.css';
 
 /**
- * Tarjeta de un curso: nombre, descripción y, si la persona puede gestionar, el botón
- * "Añadir competencias". Solo pinta: no formatea ni llama servicios.
+ * Tarjeta de consulta de curso: nombre, descripción y cantidad de competencias.
  *
  * @param {Object} props
  * @param {Object} props.curso CursoVista.
- * @param {boolean} props.puedeGestionar
- * @param {(idCurso: string, elementoOrigen: HTMLElement) => void} props.alAnadirCompetencias
+ * @param {(idCurso: string) => void} props.alAgregarCompetencia
+ * @param {(idCurso: string) => void} props.alVerCompetencias
  */
-export default function TarjetaCurso({ curso, puedeGestionar, alAnadirCompetencias }) {
+export default function TarjetaCurso({ curso, alAgregarCompetencia, alVerCompetencias }) {
   return (
     <article className={estilos.tarjeta}>
       <div className={estilos.cabecera}>
@@ -20,24 +19,29 @@ export default function TarjetaCurso({ curso, puedeGestionar, alAnadirCompetenci
         <div className={estilos.contenido}>
           <div className={estilos.filaNombre}>
             <h3 className={estilos.nombre}>{curso.nombre}</h3>
-            {curso.textoAsignadas && <Insignia tono="verde">{curso.textoAsignadas}</Insignia>}
+            {curso.textoCompetencias && <Insignia tono="verde">{curso.textoCompetencias}</Insignia>}
           </div>
           <p className={estilos.descripcion}>{curso.descripcion}</p>
         </div>
       </div>
-
-      {puedeGestionar && (
-        <div className={estilos.pie}>
-          <button
-            type="button"
-            className={estilos.botonCompetencias}
-            aria-label={`Añadir competencias a ${curso.nombre}`}
-            onClick={(evento) => alAnadirCompetencias(curso.id, evento.currentTarget)}
-          >
-            Añadir competencias
-          </button>
-        </div>
-      )}
+      <div className={estilos.pie}>
+        <button
+          type="button"
+          className={estilos.botonCompetencias}
+          aria-label={`Ver competencias de ${curso.nombre}`}
+          onClick={() => alVerCompetencias(curso.id)}
+        >
+          Ver competencias
+        </button>
+        <button
+          type="button"
+          className={estilos.botonCompetencias}
+          aria-label={`Agregar competencia a ${curso.nombre}`}
+          onClick={() => alAgregarCompetencia(curso.id)}
+        >
+          Agregar competencia
+        </button>
+      </div>
     </article>
   );
 }

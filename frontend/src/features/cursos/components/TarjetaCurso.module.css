@@ -58,7 +58,9 @@
 
 .pie {
   display: flex;
+  flex-wrap: wrap;
   justify-content: flex-end;
+  gap: var(--espacio-2);
   margin-top: auto;
   padding-top: var(--espacio-3);
   border-top: 1px solid var(--color-borde);
@@ -89,6 +91,6 @@
 
 @media (max-width: 767px) {
   .botonCompetencias {
-    width: 100%;
+    flex: 1 1 auto;
   }
 }

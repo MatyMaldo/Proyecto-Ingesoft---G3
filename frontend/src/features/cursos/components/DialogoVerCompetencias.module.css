@@ -1,0 +1,113 @@
+.estado {
+  margin: 0;
+  color: var(--color-texto-suave);
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.item {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  padding: var(--espacio-3);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+}
+
+.detalle {
+  min-width: 0;
+}
+
+.nombre {
+  margin: 0;
+  font-size: var(--texto-base);
+  color: var(--color-texto);
+}
+
+.descripcion {
+  margin: var(--espacio-1) 0 0;
+  font-size: var(--texto-md);
+  line-height: 1.5;
+  color: var(--color-texto-suave);
+  overflow-wrap: anywhere;
+}
+
+.botonEditar {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--espacio-1);
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-3);
+  font: inherit;
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-primario-intenso);
+  background: transparent;
+  border: 1px solid var(--color-primario-intenso);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.botonEditar:hover {
+  color: var(--color-marca-texto);
+  background: var(--color-primario-intenso);
+}
+
+.botonEliminar {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-3);
+  font: inherit;
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-peligro-texto);
+  background: transparent;
+  border: 1px solid var(--color-peligro-borde);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.botonEliminar:hover {
+  color: var(--color-marca-texto);
+  background: var(--color-peligro-texto);
+  border-color: var(--color-peligro-texto);
+}
+
+.botonEditar:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.botonEliminar:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.confirmacion {
+  margin: 0;
+  color: var(--color-texto);
+  line-height: 1.5;
+}
+
+@media (max-width: 480px) {
+  .item {
+    flex-direction: column;
+  }
+
+  .botonEditar,
+  .botonEliminar {
+    width: 100%;
+  }
+}
