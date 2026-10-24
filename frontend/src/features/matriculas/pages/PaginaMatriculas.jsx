@@ -8,16 +8,21 @@ import ModalComprobante from '../components/ModalComprobante.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import FiltroChips from '../../../shared/components/FiltroChips.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
+import Notificacion from '../../../shared/components/Notificacion.jsx';
 import estilosUtil from '../../../shared/styles/utilidades.module.css';
 import Boton from '../../../shared/components/Boton.jsx'
 import estilosBoton from '../../../shared/components/Boton.module.css'
 import estilos from './PaginaMatriculas.module.css'
 import useMatriculas from '../hooks/useMatriculas.js';
+import useNotificacion from '../../../shared/hooks/useNotificacion.js'
 import estilosModal from '../components/Modal.module.css';
 import { crearMatricula, emitirCompromisoMatricula } from '../services/matriculasService.js';
 
 export default function PaginaMatriculas() {
-  
+
+  // Notificación de éxito o error (se llama aquí para que sobreviva al cierre de los modales)
+  const { notificacion, mostrarNotificacion } = useNotificacion();
+
   // Variables relacionadas con el modal de asignar alumno
   const [modalAsignarAlumnoAbierto, establecerModalAsignarAlumnoAbierto] = useState(false);
 
@@ -27,10 +32,13 @@ export default function PaginaMatriculas() {
   const confirmarAsignacion = async (asignacion) => {
     const respuesta = await crearMatricula(asignacion);
     if (!respuesta.exitoso) {
-      window.alert(respuesta.mensaje);
+      mostrarNotificacion(respuesta.mensaje || 'No fue posible asignar al alumno a la sección.', true);
       return;
     }
     cerrarModalAsignarAlumno();
+    mostrarNotificacion(
+      `El alumno ${asignacion.alumno.nombre} ha sido asignado correctamente a ${asignacion.grado.nombre}, sección ${asignacion.seccion.nombre}.`
+    );
   };
 
   // Variabes relacionadas con el modal de comprobante
@@ -50,6 +58,8 @@ export default function PaginaMatriculas() {
 
   return (
     <div className={estilos.pagina}>
+      {notificacion && <Notificacion mensaje={notificacion.mensaje} error={notificacion.error} />}
+
       <header className={estilos.cabecera}>
         <div>
           <p className={estilos.sobretitulo}>Módulo de gestión</p>
@@ -59,9 +69,8 @@ export default function PaginaMatriculas() {
       </header>  
 
       <div className={estilos.botones}>
-        <Boton icono="agregar" span="Asignar año escolar" estilo={estilosBoton.btn_primario} onClick={() => {} } ></Boton>
         <Boton icono="agregar" span="Asignar alumno a sección" estilo={estilosBoton.btn_primario} onClick={abrirModalAsignarAlumno} ></Boton>
-        <Boton icono="archivo" span="Emitir comprobante de pago de matrícula" estilo={estilosBoton.btn_secundario} onClick={abrirModalComprobante } ></Boton>
+        <Boton icono="archivo" span="Emitir compromiso de pago de matrícula" estilo={estilosBoton.btn_secundario} onClick={abrirModalComprobante } ></Boton>
       </div>
 
       {modalAsignarAlumnoAbierto && (

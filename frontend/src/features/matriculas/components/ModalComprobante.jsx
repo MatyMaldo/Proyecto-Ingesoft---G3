@@ -61,7 +61,7 @@ export default function ModalComprobante({ onCerrar, onAceptar }) {
         <header className={estilosModal.cabecera}>
           <div>
             <p className={estilosModal.sobretitulo}>Pagos y Matrícua</p>
-            <h2 id={idTitulo} className={estilosModal.titulo}>Emitir comprobantes de pago de matrícula</h2>
+            <h2 id={idTitulo} className={estilosModal.titulo}>Emitir compromisos de pago de matrícula</h2>
           </div>
           <button type="button" className={estilosModal.cerrar} onClick={onCerrar} aria-label="Cerrar">
             <Icono nombre="cerrar" tamano={16} />
