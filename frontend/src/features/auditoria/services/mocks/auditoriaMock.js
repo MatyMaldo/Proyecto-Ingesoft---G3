@@ -56,7 +56,7 @@ const REGISTROS = congelarProfundo([
     id: 'AUD-0001',
     idElemento: 'USUARIO-0045',
     fechaHora: '2026-09-15T08:10:00-05:00',
-    usuario: { nombre: 'Administrador', rol: 'ADMIN' },
+    usuario: { nombre: 'Administrador', rol: 'ADMINISTRADOR' },
     categoria: 'USUARIOS',
     tipoTransaccion: 'Creó usuario',
     valoresAntes: null,
@@ -71,7 +71,7 @@ const REGISTROS = congelarProfundo([
     id: 'AUD-0015',
     idElemento: 'SECCION-2026-3B',
     fechaHora: '2026-09-15T08:40:00-05:00',
-    usuario: { nombre: 'Administrador', rol: 'ADMIN' },
+    usuario: { nombre: 'Administrador', rol: 'ADMINISTRADOR' },
     categoria: 'CONFIGURACION',
     tipoTransaccion: 'Registró sección',
     valoresAntes: null,
@@ -85,7 +85,7 @@ const REGISTROS = congelarProfundo([
     id: 'AUD-0002',
     idElemento: 'MATRICULA-0102',
     fechaHora: '2026-09-15T09:30:00-05:00',
-    usuario: { nombre: 'Administrador', rol: 'ADMIN' },
+    usuario: { nombre: 'Administrador', rol: 'ADMINISTRADOR' },
     categoria: 'MATRICULAS',
     tipoTransaccion: 'Confirmó matrícula',
     valoresAntes: [
@@ -187,7 +187,7 @@ const REGISTROS = congelarProfundo([
     id: 'AUD-0013',
     idElemento: 'PAGO-0006',
     fechaHora: '2026-09-16T18:20:00-05:00',
-    usuario: { nombre: 'Administrador', rol: 'ADMIN' },
+    usuario: { nombre: 'Administrador', rol: 'ADMINISTRADOR' },
     categoria: 'PAGOS',
     tipoTransaccion: 'Observó pago',
     valoresAntes: [
@@ -223,7 +223,7 @@ const REGISTROS = congelarProfundo([
     id: 'AUD-0007',
     idElemento: 'PAGO-0006',
     fechaHora: '2026-09-17T09:15:00-05:00',
-    usuario: { nombre: 'Administrador', rol: 'ADMIN' },
+    usuario: { nombre: 'Administrador', rol: 'ADMINISTRADOR' },
     categoria: 'PAGOS',
     tipoTransaccion: 'Validó pago',
     valoresAntes: [
@@ -239,7 +239,7 @@ const REGISTROS = congelarProfundo([
     id: 'AUD-0008',
     idElemento: 'BLOQUE-0058',
     fechaHora: '2026-09-17T10:30:00-05:00',
-    usuario: { nombre: 'Administrador', rol: 'ADMIN' },
+    usuario: { nombre: 'Administrador', rol: 'ADMINISTRADOR' },
     categoria: 'HORARIOS',
     tipoTransaccion: 'Modificó bloque de horario',
     valoresAntes: [

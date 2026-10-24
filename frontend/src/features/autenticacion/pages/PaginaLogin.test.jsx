@@ -6,7 +6,7 @@ import { PERFILES_ACCESO } from '../constants/perfilesAcceso.js';
 
 vi.mock('../hooks/useLogin.js', () => ({
   default: () => ({
-    valores: { perfil: 'ADMIN', identificador: '', contrasena: '', recordar: false },
+    valores: { perfil: 'ADMINISTRADOR', identificador: '', contrasena: '', recordar: false },
     errores: {},
     errorGeneral: null,
     enviando: false,

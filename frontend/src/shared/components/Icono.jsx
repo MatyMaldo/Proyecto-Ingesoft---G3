@@ -143,7 +143,7 @@ const CATALOGO_ICONOS = {
   ],
   verificar: [
     { tag: 'polyline', props: { points: '20 6 9 17 4 12' } }
-  ],
+  ]
 };
 
 /**

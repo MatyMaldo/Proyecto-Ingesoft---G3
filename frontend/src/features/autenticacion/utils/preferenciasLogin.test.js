@@ -13,24 +13,24 @@ describe('HU-SAT-07 · Escenario "Recordar mi sesión": persistencia de identifi
   });
 
   it('guarda únicamente el identificador y el perfil al marcar la casilla tras un login correcto', () => {
-    guardarPreferenciasLogin({ identificador: 'admin@sanmarcos.edu.pe', perfil: 'ADMIN' });
+    guardarPreferenciasLogin({ identificador: 'admin@sanmarcos.edu.pe', perfil: 'ADMINISTRADOR' });
 
     const crudo = window.localStorage.getItem(CLAVE_PREFERENCIAS_LOGIN);
     const guardado = JSON.parse(crudo);
 
-    expect(guardado).toEqual({ identificador: 'admin@sanmarcos.edu.pe', perfil: 'ADMIN' });
+    expect(guardado).toEqual({ identificador: 'admin@sanmarcos.edu.pe', perfil: 'ADMINISTRADOR' });
     expect(guardado).not.toHaveProperty('contrasena');
     expect(guardado).not.toHaveProperty('password');
     expect(guardado).not.toHaveProperty('token');
   });
 
   it('lee las preferencias guardadas', () => {
-    guardarPreferenciasLogin({ identificador: '00000001', perfil: 'ADMIN' });
-    expect(leerPreferenciasLogin()).toEqual({ identificador: '00000001', perfil: 'ADMIN' });
+    guardarPreferenciasLogin({ identificador: '00000001', perfil: 'ADMINISTRADOR' });
+    expect(leerPreferenciasLogin()).toEqual({ identificador: '00000001', perfil: 'ADMINISTRADOR' });
   });
 
   it('borra las preferencias guardadas al desmarcar la casilla', () => {
-    guardarPreferenciasLogin({ identificador: '00000001', perfil: 'ADMIN' });
+    guardarPreferenciasLogin({ identificador: '00000001', perfil: 'ADMINISTRADOR' });
     borrarPreferenciasLogin();
     expect(leerPreferenciasLogin()).toBeNull();
     expect(window.localStorage.getItem(CLAVE_PREFERENCIAS_LOGIN)).toBeNull();

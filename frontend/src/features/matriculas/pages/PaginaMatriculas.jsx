@@ -54,6 +54,9 @@ export default function PaginaMatriculas() {
       return;
     }
     cerrarModalComprobante();
+    mostrarNotificacion(
+      `Se emitió exitosamente el comprobante del alumno(a).`
+    );
   };
 
   return (
