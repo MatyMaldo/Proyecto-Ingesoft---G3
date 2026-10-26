@@ -12,6 +12,34 @@
   list-style: none;
 }
 
+.botonAgregar {
+  align-self: flex-start;
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-4);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-marca-texto);
+  background: var(--color-marca);
+  border: 0;
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.botonAgregar:hover:not(:disabled) {
+  background: var(--color-primario-intenso);
+}
+
+.botonAgregar:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.botonAgregar:disabled {
+  opacity: var(--opacidad-deshabilitado);
+  cursor: not-allowed;
+}
+
 .item {
   display: flex;
   align-items: flex-start;

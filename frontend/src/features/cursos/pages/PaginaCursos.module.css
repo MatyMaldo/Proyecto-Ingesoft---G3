@@ -44,6 +44,38 @@
   gap: var(--espacio-3);
 }
 
+.botonAgregarCurso {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-4);
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-marca-texto);
+  background: var(--color-marca);
+  border: 0;
+  border-radius: var(--radio-md);
+  box-shadow: var(--sombra-sm);
+  cursor: pointer;
+  transition: background var(--transicion);
+}
+
+.botonAgregarCurso:hover {
+  background: var(--color-primario-intenso);
+}
+
+.botonAgregarCurso:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.botonAgregarCurso:disabled {
+  opacity: var(--opacidad-deshabilitado);
+  cursor: not-allowed;
+}
+
 .tituloLista {
   margin: 0;
   font-size: var(--texto-xs);
@@ -91,9 +123,23 @@
 
 /* Tarjetas de una misma fila con la misma altura */
 .rejilla > li {
-  display: flex;
+ display: flex;
 }
 
 .rejilla > li > * {
   flex: 1 1 auto;
+}
+
+@media (max-width: 767px) {
+  .encabezadoLista {
+    flex-wrap: wrap;
+  }
+
+  .lineaEncabezado {
+    display: none;
+  }
+
+  .botonAgregarCurso {
+    flex-basis: 100%;
+  }
 }

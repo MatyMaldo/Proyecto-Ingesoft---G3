@@ -6,10 +6,18 @@ import estilos from './TarjetaCurso.module.css';
  *
  * @param {Object} props
  * @param {Object} props.curso CursoVista.
- * @param {(idCurso: string) => void} props.alAgregarCompetencia
  * @param {(idCurso: string) => void} props.alVerCompetencias
+ * @param {boolean} props.puedeGestionar
+ * @param {(idCurso: string) => void} props.alEditar
+ * @param {(idCurso: string) => void} props.alEliminar
  */
-export default function TarjetaCurso({ curso, alAgregarCompetencia, alVerCompetencias }) {
+export default function TarjetaCurso({
+  curso,
+  alVerCompetencias,
+  puedeGestionar,
+  alEditar,
+  alEliminar
+}) {
   return (
     <article className={estilos.tarjeta}>
       <div className={estilos.cabecera}>
@@ -28,19 +36,31 @@ export default function TarjetaCurso({ curso, alAgregarCompetencia, alVerCompete
         <button
           type="button"
           className={estilos.botonCompetencias}
-          aria-label={`Ver competencias de ${curso.nombre}`}
+          aria-label={`Gestionar competencias de ${curso.nombre}`}
           onClick={() => alVerCompetencias(curso.id)}
         >
-          Ver competencias
+          Gestionar Competencias
         </button>
-        <button
-          type="button"
-          className={estilos.botonCompetencias}
-          aria-label={`Agregar competencia a ${curso.nombre}`}
-          onClick={() => alAgregarCompetencia(curso.id)}
-        >
-          Agregar competencia
-        </button>
+        {puedeGestionar && (
+          <>
+            <button
+              type="button"
+              className={estilos.botonCompetencias}
+              aria-label={`Modificar ${curso.nombre}`}
+              onClick={() => alEditar(curso.id)}
+            >
+              Modificar
+            </button>
+            <button
+              type="button"
+              className={`${estilos.botonCompetencias} ${estilos.botonEliminar}`}
+              aria-label={`Eliminar ${curso.nombre}`}
+              onClick={() => alEliminar(curso.id)}
+            >
+              Eliminar
+            </button>
+          </>
+        )}
       </div>
     </article>
   );

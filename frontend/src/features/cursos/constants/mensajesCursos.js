@@ -12,17 +12,6 @@ export const NOMBRE_OBLIGATORIO = 'Escribe el nombre del curso.';
 /** Campo "Descripción" vacío. */
 export const DESCRIPCION_OBLIGATORIA = 'Escribe una descripción breve del curso.';
 
-/**
- * Nombre repetido dentro del mismo grado.
- *
- * @param {string} nombre
- * @param {string} etiquetaGrado
- * @returns {string}
- */
-export function mensajeNombreDuplicado(nombre, etiquetaGrado) {
-  return `Ya existe un curso llamado «${nombre}» en ${etiquetaGrado}. Usa otro nombre.`;
-}
-
 export const MENSAJE_VACIO_CON_PERMISO = 'Este grado aún no tiene cursos. Usa «Crear curso» para añadir el primero.';
 export const MENSAJE_VACIO_SIN_PERMISO = 'Este grado aún no tiene cursos registrados.';
 export const MENSAJE_SIN_COMPETENCIAS_DISPONIBLES = 'Este curso aún no tiene competencias disponibles para asignar.';

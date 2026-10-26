@@ -5,26 +5,38 @@ import { validarCurso, LONGITUD_MAXIMA_NOMBRE, LONGITUD_MAXIMA_DESCRIPCION } fro
 import DialogoBase from './DialogoBase.jsx';
 import estilos from './DialogoCrearCurso.module.css';
 
-const ID_TITULO = 'dialogo-crear-curso-titulo';
 const ID_NOMBRE = 'crear-curso-nombre';
 const ID_NOMBRE_ERROR = `${ID_NOMBRE}-error`;
 const ID_DESCRIPCION = 'crear-curso-descripcion';
 const ID_DESCRIPCION_ERROR = `${ID_DESCRIPCION}-error`;
 
 /**
- * Diálogo "Crear curso". El curso se crea en el grado seleccionado en la pantalla. Valida en el cliente
- * (campos obligatorios y nombre repetido en el grado); el backend repite las validaciones.
+ * Diálogo para crear o editar un curso.
  *
  * @param {Object} props
- * @param {string[]} props.nombresExistentes Nombres de los cursos del grado seleccionado.
- * @param {string} props.etiquetaGrado
+ * @param {Object|null} [props.cursoInicial]
+ * @param {string} [props.titulo]
+ * @param {string} [props.textoConfirmar]
+ * @param {string} [props.textoEnviando]
  * @param {boolean} props.enviando
  * @param {string|null} props.error Error devuelto por el servicio (por ejemplo, nombre duplicado en el backend).
  * @param {() => void} props.alCancelar
- * @param {(datos: { nombre: string, descripcion: string }) => void} props.alCrear
+ * @param {(datos: { nombre: string, descripcion: string }) => void} props.alGuardar
  */
-export default function DialogoCrearCurso({ nombresExistentes, etiquetaGrado, enviando, error, alCancelar, alCrear }) {
-  const [valores, establecerValores] = useState({ nombre: '', descripcion: '' });
+export default function DialogoCrearCurso({
+  cursoInicial = null,
+  titulo = 'Crear curso',
+  textoConfirmar = 'Crear curso',
+  textoEnviando = 'Creando…',
+  enviando,
+  error,
+  alCancelar,
+  alGuardar
+}) {
+  const [valores, establecerValores] = useState({
+    nombre: cursoInicial?.nombre ?? '',
+    descripcion: cursoInicial?.descripcion ?? ''
+  });
   const [errores, establecerErrores] = useState({});
 
   function manejarCambio(campo, valor) {
@@ -42,23 +54,26 @@ export default function DialogoCrearCurso({ nombresExistentes, etiquetaGrado, en
   function manejarEnvio(evento) {
     evento.preventDefault();
 
-    const erroresEncontrados = validarCurso(valores, nombresExistentes, etiquetaGrado);
+    const erroresEncontrados = validarCurso(valores);
     establecerErrores(erroresEncontrados);
 
     if (Object.keys(erroresEncontrados).length > 0) {
       return;
     }
 
-    alCrear({ nombre: valores.nombre.trim(), descripcion: valores.descripcion.trim() });
+    alGuardar({
+      nombre: valores.nombre.trim(),
+      descripcion: valores.descripcion.trim()
+    });
   }
 
   return (
     <DialogoBase
-      idTitulo={ID_TITULO}
-      titulo="Crear curso"
-      subtitulo={`Se creará en ${etiquetaGrado}.`}
-      textoConfirmar="Crear curso"
-      textoEnviando="Creando…"
+      idTitulo="dialogo-curso-titulo"
+      titulo={titulo}
+      subtitulo={cursoInicial ? 'Actualiza los datos del curso.' : 'Completa los datos del nuevo curso.'}
+      textoConfirmar={textoConfirmar}
+      textoEnviando={textoEnviando}
       enviando={enviando}
       error={error}
       alCancelar={alCancelar}

@@ -89,6 +89,16 @@
   outline-offset: 2px;
 }
 
+.botonEliminar {
+  color: var(--color-peligro-texto);
+  border-color: var(--color-peligro-texto);
+}
+
+.botonEliminar:hover {
+  color: var(--color-marca-texto);
+  background: var(--color-peligro-texto);
+}
+
 @media (max-width: 767px) {
   .botonCompetencias {
     flex: 1 1 auto;

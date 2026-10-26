@@ -16,6 +16,42 @@ export async function listarCursos(opciones = {}) {
 }
 
 /**
+ * Crea un curso.
+ *
+ * @param {{ nombre: string, descripcion: string }} curso
+ */
+export async function crearCurso(curso) {
+  return solicitar('/cursos', {
+    metodo: 'POST',
+    cuerpo: curso
+  });
+}
+
+/**
+ * Actualiza los datos de un curso.
+ *
+ * @param {string} idCurso
+ * @param {{ nombre: string, descripcion: string }} curso
+ */
+export async function actualizarCurso(idCurso, curso) {
+  return solicitar(`/cursos/${encodeURIComponent(idCurso)}`, {
+    metodo: 'PUT',
+    cuerpo: curso
+  });
+}
+
+/**
+ * Elimina un curso. El backend rechaza la operación si todavía tiene competencias asociadas.
+ *
+ * @param {string} idCurso
+ */
+export async function eliminarCurso(idCurso) {
+  return solicitar(`/cursos/${encodeURIComponent(idCurso)}`, {
+    metodo: 'DELETE'
+  });
+}
+
+/**
  * Crea una competencia propia de un curso.
  *
  * @param {string} idCurso
@@ -45,16 +81,20 @@ export async function listarCompetenciasCurso(idCurso, opciones = {}) {
 /**
  * Actualiza nombre y descripción de una competencia.
  *
+ * @param {string} idCurso
  * @param {string} idCompetencia
  * @param {{ nombre: string, descripcion: string }} competencia
  * @param {{ signal?: AbortSignal }} [opciones]
  */
-export async function actualizarCompetencia(idCompetencia, competencia, opciones = {}) {
-  return solicitar(`/competencias/${encodeURIComponent(idCompetencia)}`, {
+export async function actualizarCompetencia(idCurso, idCompetencia, competencia, opciones = {}) {
+  return solicitar(
+    `/cursos/${encodeURIComponent(idCurso)}/competencias/${encodeURIComponent(idCompetencia)}`,
+    {
     metodo: 'PUT',
     cuerpo: competencia,
     signal: opciones.signal
-  });
+    }
+  );
 }
 
 /**

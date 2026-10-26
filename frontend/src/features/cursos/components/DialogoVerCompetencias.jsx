@@ -17,6 +17,7 @@ const ID_TITULO_CONFIRMAR = 'dialogo-confirmar-eliminar-competencia-titulo';
  * @param {string|null} props.errorEliminar
  * @param {string|null} props.idEliminando
  * @param {() => void} props.alCerrar
+ * @param {() => void} props.alAgregar
  * @param {(competencia: Object) => void} props.alEditar
  * @param {(competencia: Object) => Promise<boolean>} props.alEliminar
  */
@@ -28,6 +29,7 @@ export default function DialogoVerCompetencias({
   errorEliminar,
   idEliminando,
   alCerrar,
+  alAgregar,
   alEditar,
   alEliminar
 }) {
@@ -50,7 +52,7 @@ export default function DialogoVerCompetencias({
     <>
     <DialogoBase
       idTitulo={ID_TITULO}
-      titulo="Competencias"
+      titulo="Gestionar competencias"
       subtitulo={`Curso: ${nombreCurso}`}
       textoConfirmar="Listo"
       textoEnviando="Cargando…"
@@ -94,6 +96,14 @@ export default function DialogoVerCompetencias({
           ))}
         </ul>
       )}
+      <button
+        type="button"
+        className={estilos.botonAgregar}
+        disabled={cargando}
+        onClick={alAgregar}
+      >
+        Agregar
+      </button>
     </DialogoBase>
     {competenciaEliminar && (
       <DialogoBase
