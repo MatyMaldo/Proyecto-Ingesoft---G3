@@ -127,6 +127,46 @@ export async function actualizarUsuario(id, datos) {
   };
 }
 
+export async function listarSeccionesTutor(id) {
+  if (USAR_MOCK) {
+    return { exitoso: true, datos: [], mensaje: '' };
+  }
+
+  const [respuestaSecciones, respuestaGrados] = await Promise.all([
+    solicitar('/secciones'),
+    solicitar('/grados')
+  ]);
+  const error = [respuestaSecciones, respuestaGrados].find((respuesta) => !respuesta.exitoso);
+  if (error) return error;
+
+  if (!Array.isArray(respuestaSecciones.datos) || !Array.isArray(respuestaGrados.datos)) {
+    return {
+      exitoso: false,
+      datos: null,
+      mensaje: 'El backend devolvió un formato de secciones o grados no válido.'
+    };
+  }
+
+  const gradosPorId = new Map(respuestaGrados.datos.map((grado) => [String(grado.id), grado.nombre]));
+  const secciones = respuestaSecciones.datos
+    .filter((seccion) => String(seccion.tutorId) === String(id))
+    .map((seccion) => ({
+      seccionNombre: seccion.nombre ?? seccion.seccionNombre ?? '',
+      gradoNombre: seccion.gradoNombre ?? gradosPorId.get(String(seccion.gradoId)) ?? '',
+      anioAcademico: seccion.anioAcademico ?? null
+    }));
+
+  if (secciones.some((seccion) => !seccion.seccionNombre || !seccion.gradoNombre)) {
+    return {
+      exitoso: false,
+      datos: null,
+      mensaje: 'No fue posible identificar la sección y el grado asignados al docente.'
+    };
+  }
+
+  return { exitoso: true, datos: secciones, mensaje: '' };
+}
+
 async function registrarUsuario(ruta, datos, tipoUsuario, etiqueta) {
   const respuesta = await solicitar(ruta, {
     metodo: 'POST',
