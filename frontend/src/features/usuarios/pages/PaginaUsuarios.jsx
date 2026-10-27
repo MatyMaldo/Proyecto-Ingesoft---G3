@@ -8,7 +8,8 @@ import {
     registrarEstudiante,
     registrarApoderado,
     registrarDocente,
-    cambiarEstadoUsuario
+    cambiarEstadoUsuario,
+    listarSeccionesTutor
 } from '../services/usuariosService.js';
 
 const ROL_BADGE = {
@@ -72,6 +73,10 @@ function PaginaUsuarios() {
     const [editTarget, setEditTarget] = useState(null);
     const [toggleTarget, setToggleTarget] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+    const [seccionesTutor, setSeccionesTutor] = useState([]);
+    const [cargandoSeccionesTutor, setCargandoSeccionesTutor] = useState(false);
+    const [errorSeccionesTutor, setErrorSeccionesTutor] = useState('');
+    const [intentoSeccionesTutor, setIntentoSeccionesTutor] = useState(0);
     // Form fields
     const emptyForm = { nombre: '', apellido: '', apellidoPaterno: '', apellidoMaterno: '', edad: '', dni: '', telefono: '', correo: '', password: '', confirm: '', fechaNacimiento: '', dniApoderado: '', apoderadoSeleccionado: null, apoderadoError: '' };
     const [form, setForm] = useState(emptyForm);
@@ -94,6 +99,29 @@ function PaginaUsuarios() {
         });
         return () => { vigente = false; };
     }, [intentoCarga]);
+    useEffect(() => {
+        if (modal !== 'toggle' || !toggleTarget?.activo || toggleTarget.rol !== 'Docente') {
+            setSeccionesTutor([]);
+            setErrorSeccionesTutor('');
+            setCargandoSeccionesTutor(false);
+            return undefined;
+        }
+
+        let vigente = true;
+        setCargandoSeccionesTutor(true);
+        setSeccionesTutor([]);
+        setErrorSeccionesTutor('');
+        listarSeccionesTutor(toggleTarget.id).then((resultado) => {
+            if (!vigente) return;
+            if (!resultado.exitoso) {
+                setErrorSeccionesTutor(resultado.mensaje);
+            } else {
+                setSeccionesTutor(resultado.datos);
+            }
+            setCargandoSeccionesTutor(false);
+        });
+        return () => { vigente = false; };
+    }, [modal, toggleTarget, intentoSeccionesTutor]);
     const busqueda = query.trim().toLowerCase();
     const filtered = usuarios.filter(u =>
         (rolFiltro === 'Todos' || u.rol === rolFiltro) &&
@@ -360,6 +388,8 @@ function PaginaUsuarios() {
     };
     const handleToggle = async () => {
         if (!toggleTarget || esAdministrador(toggleTarget)) return;
+        const debeVerificarTutor = toggleTarget.activo && toggleTarget.rol === 'Docente';
+        if (debeVerificarTutor && (cargandoSeccionesTutor || errorSeccionesTutor)) return;
         setSubmitting(true);
         const resultado = await cambiarEstadoUsuario(toggleTarget.id, toggleTarget.activo);
         setSubmitting(false);
@@ -539,7 +569,7 @@ function PaginaUsuarios() {
       {/* ── Modal: Toggle active ── */}
       {modal === 'toggle' && toggleTarget && (<div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 24 }} onClick={e => { if (e.target === e.currentTarget)
             closeModal(); }}>
-          <div style={{ background: '#fff', borderRadius: 14, width: '100%', maxWidth: 420, boxShadow: '0 20px 60px rgba(0,35,111,0.18)', padding: '28px 28px 24px' }}>
+          <div style={{ background: '#fff', borderRadius: 14, width: '100%', maxWidth: 500, boxShadow: '0 20px 60px rgba(0,35,111,0.18)', padding: '28px 28px 24px' }}>
             <div style={{ width: 44, height: 44, borderRadius: 11, background: toggleTarget.activo ? '#fff1f1' : '#f0fdf4', border: `1px solid ${toggleTarget.activo ? '#fecaca' : '#bbf7d0'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
               {toggleTarget.activo
                 ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ba1a1a" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
@@ -556,9 +586,32 @@ function PaginaUsuarios() {
                 ? 'El usuario no podrá acceder al sistema mientras se encuentre desactivado.'
                 : 'El usuario recuperará el acceso al sistema.'}
             </p>
+            {toggleTarget.activo && toggleTarget.rol === 'Docente' && <div style={{ margin: '-10px 0 24px', padding: '12px 14px', borderRadius: 8, background: '#fff7ed', border: '1px solid #fed7aa' }}>
+              <p style={{ fontSize: 12, fontWeight: 700, color: '#9a3412', margin: '0 0 8px' }}>
+                {cargandoSeccionesTutor
+                  ? 'Consultando las secciones asignadas como tutor…'
+                  : errorSeccionesTutor
+                    ? 'No se pudieron consultar las asignaciones del docente.'
+                    : seccionesTutor.length
+                      ? 'Al desactivar este docente, se removerá su asignación como tutor de:'
+                      : 'Este docente no tiene asignaciones como tutor en secciones.'}
+              </p>
+              {seccionesTutor.length > 0 && <ul style={{ margin: 0, paddingLeft: 20, color: '#7c2d12', fontSize: 12, lineHeight: 1.6 }}>
+                {seccionesTutor.map((seccion, indice) => <li key={`${seccion.seccionNombre}-${seccion.gradoNombre}-${indice}`}>
+                  Sección {seccion.seccionNombre} — {seccion.gradoNombre}
+                  {seccion.anioAcademico != null && ` — Año académico ${seccion.anioAcademico}`}
+                </li>)}
+              </ul>}
+              {errorSeccionesTutor && <>
+                <p role="alert" style={{ fontSize: 12, color: '#ba1a1a', margin: '0 0 8px' }}>{errorSeccionesTutor}</p>
+                <button type="button" onClick={() => setIntentoSeccionesTutor((actual) => actual + 1)} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #fed7aa', background: '#fff', color: '#9a3412', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+                  Reintentar consulta
+                </button>
+              </>}
+            </div>}
             <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
               <button onClick={closeModal} style={{ padding: '9px 20px', borderRadius: 7, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onMouseEnter={e => e.currentTarget.style.background = '#f8f9ff'} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>Cancelar</button>
-              <button onClick={handleToggle} disabled={submitting} style={{ padding: '9px 24px', borderRadius: 7, border: 'none', background: toggleTarget.activo ? '#ba1a1a' : '#16a34a', color: '#fff', fontSize: 13, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit', boxShadow: `0 2px 8px ${toggleTarget.activo ? 'rgba(186,26,26,0.25)' : 'rgba(22,163,74,0.25)'}`, transition: 'background 0.12s' }} onMouseEnter={e => e.currentTarget.style.opacity = '0.88'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>{submitting ? 'Guardando...' : (toggleTarget.activo ? 'Desactivar' : 'Activar')}</button>
+              <button onClick={handleToggle} disabled={submitting || cargandoSeccionesTutor || Boolean(errorSeccionesTutor)} style={{ padding: '9px 24px', borderRadius: 7, border: 'none', background: submitting || cargandoSeccionesTutor || errorSeccionesTutor ? '#94a3b8' : toggleTarget.activo ? '#ba1a1a' : '#16a34a', color: '#fff', fontSize: 13, fontWeight: 700, cursor: submitting || cargandoSeccionesTutor || errorSeccionesTutor ? 'not-allowed' : 'pointer', fontFamily: 'inherit', boxShadow: `0 2px 8px ${toggleTarget.activo ? 'rgba(186,26,26,0.25)' : 'rgba(22,163,74,0.25)'}`, transition: 'background 0.12s' }} onMouseEnter={e => { if (!submitting && !cargandoSeccionesTutor && !errorSeccionesTutor) e.currentTarget.style.opacity = '0.88'; }} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>{submitting ? 'Guardando...' : (cargandoSeccionesTutor ? 'Consultando…' : toggleTarget.activo ? 'Desactivar' : 'Activar')}</button>
             </div>
           </div>
         </div>)}

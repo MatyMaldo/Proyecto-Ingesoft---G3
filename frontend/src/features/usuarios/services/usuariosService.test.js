@@ -8,6 +8,7 @@ vi.mock('../../../shared/api/clienteHttp.js', () => ({ solicitar }));
 import {
   cambiarEstadoUsuario,
   listarUsuarios,
+  listarSeccionesTutor,
   actualizarUsuario,
   registrarApoderado,
   registrarDocente,
@@ -226,5 +227,50 @@ describe('usuariosService', () => {
     await cambiarEstadoUsuario(12, activo);
 
     expect(solicitar).toHaveBeenCalledWith(ruta, { metodo: 'PATCH' });
+  });
+
+  it('lista sección y grado asignados al tutor seleccionado', async () => {
+    solicitar
+      .mockResolvedValueOnce({
+        exitoso: true,
+        datos: [
+          { id: 8, nombre: 'A', gradoId: 2, tutorId: 12, anioAcademico: 2027 },
+          { id: 9, nombre: 'B', gradoId: 2, tutorId: 15 }
+        ],
+        mensaje: ''
+      })
+      .mockResolvedValueOnce({
+        exitoso: true,
+        datos: [{ id: 2, nombre: 'Primero de secundaria' }],
+        mensaje: ''
+      });
+
+    const resultado = await listarSeccionesTutor(12);
+
+    expect(solicitar).toHaveBeenNthCalledWith(1, '/secciones');
+    expect(solicitar).toHaveBeenNthCalledWith(2, '/grados');
+    expect(resultado.datos).toEqual([{
+      seccionNombre: 'A',
+      gradoNombre: 'Primero de secundaria',
+      anioAcademico: 2027
+    }]);
+  });
+
+  it('informa si no puede identificar el grado de una sección asignada', async () => {
+    solicitar
+      .mockResolvedValueOnce({
+        exitoso: true,
+        datos: [{ id: 8, nombre: 'A', gradoId: 2, tutorId: 12 }],
+        mensaje: ''
+      })
+      .mockResolvedValueOnce({ exitoso: true, datos: [], mensaje: '' });
+
+    const resultado = await listarSeccionesTutor(12);
+
+    expect(resultado).toMatchObject({
+      exitoso: false,
+      datos: null,
+      mensaje: 'No fue posible identificar la sección y el grado asignados al docente.'
+    });
   });
 });
