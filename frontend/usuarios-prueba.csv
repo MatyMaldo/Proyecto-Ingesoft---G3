@@ -1,0 +1,4 @@
+tipoUsuario,nombre,apellidoPaterno,apellidoMaterno,dni,telefono,correo,password,edad,fechaNacimiento,dniApoderado
+APODERADO,Lucia,Ejemplo,Ramirez,10000001,900000001,apoderado.prueba@example.com,PruebaApod2026!,35,,
+DOCENTE,Marco,Docente,Demo,10000002,900000002,docente.prueba@example.com,PruebaDoc2026!,30,,
+ESTUDIANTE,Sofia,Estudiante,Demo,10000003,900000003,estudiante.prueba@example.com,PruebaEst2026!,,2014-04-20,10000001

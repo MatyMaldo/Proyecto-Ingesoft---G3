@@ -67,6 +67,153 @@ function TelefonoField({ value, onChange, required = false, error = '', hint = '
     </div>;
 }
 
+const CSV_USUARIOS_COLUMNAS = [
+    'tipoUsuario', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'dni',
+    'telefono', 'correo', 'password', 'edad', 'fechaNacimiento', 'dniApoderado'
+];
+
+function normalizarCsv(valor) {
+    return String(valor ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLocaleLowerCase('es');
+}
+
+function leerCsv(texto) {
+    const filas = [];
+    let fila = [];
+    let campo = '';
+    let entreComillas = false;
+    const contenido = String(texto ?? '').replace(/^\uFEFF/, '');
+    let comillasEncabezado = false;
+    let comas = 0;
+    let puntoYComa = 0;
+    for (const caracter of contenido) {
+        if (caracter === '"') comillasEncabezado = !comillasEncabezado;
+        else if (!comillasEncabezado && caracter === ',') comas += 1;
+        else if (!comillasEncabezado && caracter === ';') puntoYComa += 1;
+        else if (!comillasEncabezado && (caracter === '\n' || caracter === '\r')) break;
+    }
+    const separador = puntoYComa > comas ? ';' : ',';
+
+    for (let indice = 0; indice < contenido.length; indice += 1) {
+        const caracter = contenido[indice];
+        if (entreComillas) {
+            if (caracter === '"' && contenido[indice + 1] === '"') {
+                campo += '"';
+                indice += 1;
+            } else if (caracter === '"') {
+                entreComillas = false;
+            } else {
+                campo += caracter;
+            }
+        } else if (caracter === '"' && campo === '') {
+            entreComillas = true;
+        } else if (caracter === separador) {
+            fila.push(campo);
+            campo = '';
+        } else if (caracter === '\n' || caracter === '\r') {
+            fila.push(campo);
+            if (fila.some(valor => valor.trim() !== '')) filas.push(fila);
+            fila = [];
+            campo = '';
+            if (caracter === '\r' && contenido[indice + 1] === '\n') indice += 1;
+        } else {
+            campo += caracter;
+        }
+    }
+    if (entreComillas) throw new Error('Hay una comilla sin cerrar en el archivo CSV.');
+    fila.push(campo);
+    if (fila.some(valor => valor.trim() !== '')) filas.push(fila);
+    if (filas.length < 2) throw new Error('El CSV debe incluir los encabezados y al menos una fila de usuarios.');
+
+    const encabezados = filas[0].map(normalizarCsv);
+    const faltantes = CSV_USUARIOS_COLUMNAS.filter(columna => !encabezados.includes(normalizarCsv(columna)));
+    if (faltantes.length) throw new Error(`Faltan columnas requeridas en el encabezado: ${faltantes.join(', ')}.`);
+
+    return filas.slice(1).map((valores, indice) => {
+        const datos = Object.fromEntries(encabezados.map((encabezado, posicion) => [encabezado, (valores[posicion] ?? '').trim()]));
+        if (valores.slice(encabezados.length).some(valor => valor.trim())) {
+            return { linea: indice + 2, error: 'La fila tiene más valores que columnas en el encabezado.' };
+        }
+        const tipo = normalizarCsv(datos.tipousuario);
+        const tipoUsuario = ({ apoderado: 'apoderado', docente: 'docente', estudiante: 'estudiante' })[tipo];
+        if (!tipoUsuario) return { linea: indice + 2, error: 'tipoUsuario debe ser APODERADO, DOCENTE o ESTUDIANTE.' };
+        return {
+            linea: indice + 2,
+            tipoUsuario,
+            nombre: datos.nombre ?? '',
+            apellidoPaterno: datos.apellidopaterno ?? '',
+            apellidoMaterno: datos.apellidomaterno ?? '',
+            dni: datos.dni ?? '',
+            telefonoTexto: datos.telefono ?? '',
+            telefono: (() => {
+                const digitos = String(datos.telefono ?? '').replace(/\D/g, '');
+                return digitos.length === 11 && digitos.startsWith('51') ? digitos.slice(2) : digitos;
+            })(),
+            correo: datos.correo ?? '',
+            password: datos.password ?? '',
+            edad: datos.edad ?? '',
+            fechaNacimiento: datos.fechanacimiento ?? '',
+            dniApoderado: datos.dniapoderado ?? ''
+        };
+    });
+}
+
+function validarFilasCsv(filas, usuarios, usarMock) {
+    const errores = filas.filter(fila => fila.error).map(fila => `Fila ${fila.linea}: ${fila.error}`);
+    const correos = new Set(usuarios.map(usuario => normalizarCsv(usuario.correo)).filter(Boolean));
+    const dniPorRol = new Set(usuarios.map(usuario => `${normalizarCsv(usuario.rol)}:${usuario.dni}`));
+    const dniApoderados = new Set(usuarios.filter(usuario => usuario.rol === 'Apoderado' && usuario.activo).map(usuario => usuario.dni));
+    const dniApoderadosCsv = new Set(filas.filter(fila => fila.tipoUsuario === 'apoderado' && !fila.error).map(fila => fila.dni));
+    const prioridad = { apoderado: 0, docente: 1, estudiante: 2 };
+    const filasOrdenadas = filas.filter(fila => !fila.error).slice().sort((a, b) => prioridad[a.tipoUsuario] - prioridad[b.tipoUsuario] || a.linea - b.linea);
+
+    for (const fila of filasOrdenadas) {
+        const erroresFila = [];
+        const rol = ROL_POR_TIPO_REGISTRO[fila.tipoUsuario];
+        const etiqueta = `Fila ${fila.linea}`;
+        if (!fila.nombre || fila.nombre.length > 80) erroresFila.push('nombre es obligatorio y admite hasta 80 caracteres');
+        if (!fila.apellidoPaterno || fila.apellidoPaterno.length > 80) erroresFila.push('apellidoPaterno es obligatorio y admite hasta 80 caracteres');
+        if (fila.apellidoMaterno.length > 80) erroresFila.push('apellidoMaterno admite hasta 80 caracteres');
+        const dniValido = usarMock && fila.tipoUsuario === 'apoderado' ? /^(?:\d{8}|\d{9})$/.test(fila.dni) : /^\d{8}$/.test(fila.dni);
+        if (!dniValido) erroresFila.push('DNI debe tener 8 dígitos (el apoderado admite 9 en el modo de demostración)');
+        const dniClave = `${normalizarCsv(rol)}:${fila.dni}`;
+        if (dniPorRol.has(dniClave)) erroresFila.push('ya existe un usuario con ese DNI y rol');
+        dniPorRol.add(dniClave);
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fila.correo) || fila.correo.length > 160) erroresFila.push('correo debe tener un formato válido');
+        const correoClave = normalizarCsv(fila.correo);
+        if (correoClave && correos.has(correoClave)) erroresFila.push('el correo ya está registrado');
+        if (correoClave) correos.add(correoClave);
+        const telefonoIngresado = fila.telefonoTexto.trim() !== '';
+        if (telefonoIngresado && (!/^[+\d\s().-]+$/.test(fila.telefonoTexto) || !/^\d{9}$/.test(fila.telefono))) erroresFila.push('telefono debe tener exactamente 9 dígitos peruanos');
+        if ((fila.tipoUsuario === 'estudiante' || (usarMock && fila.tipoUsuario === 'docente')) && !telefonoIngresado) erroresFila.push('telefono es obligatorio');
+        if (!fila.password || fila.password.length < 8 || fila.password.length > 40) erroresFila.push('password es obligatorio y debe tener entre 8 y 40 caracteres');
+        if (fila.tipoUsuario === 'apoderado' || (usarMock && fila.tipoUsuario === 'docente')) {
+            const edad = Number(fila.edad);
+            const edadMinima = usarMock ? 18 : 1;
+            if (!/^\d+$/.test(fila.edad) || !Number.isSafeInteger(edad) || edad < edadMinima) erroresFila.push(`edad debe ser un entero de ${edadMinima} o más`);
+        }
+        if (fila.tipoUsuario === 'estudiante') {
+            const fecha = new Date(`${fila.fechaNacimiento}T00:00:00`);
+            const hoy = new Date();
+            hoy.setHours(23, 59, 59, 999);
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(fila.fechaNacimiento) || Number.isNaN(fecha.getTime()) || fecha.toISOString().slice(0, 10) !== fila.fechaNacimiento || fecha > hoy) erroresFila.push('fechaNacimiento debe ser válida y no posterior a hoy');
+            if (!fila.dniApoderado || (!dniApoderados.has(fila.dniApoderado) && !dniApoderadosCsv.has(fila.dniApoderado))) erroresFila.push('dniApoderado debe identificar a un apoderado activo existente o incluido en este CSV');
+        }
+        if (erroresFila.length) errores.push(`${etiqueta}: ${erroresFila.join('; ')}.`);
+    }
+    return { errores, filasOrdenadas };
+}
+
+function descargarPlantillaCsv() {
+    const contenido = `\uFEFF${CSV_USUARIOS_COLUMNAS.join(',')}\r\n`;
+    const archivo = new Blob([contenido], { type: 'text/csv;charset=utf-8' });
+    const url = URL.createObjectURL(archivo);
+    const enlace = document.createElement('a');
+    enlace.href = url;
+    enlace.download = 'plantilla-carga-usuarios.csv';
+    enlace.click();
+    setTimeout(() => URL.revokeObjectURL(url), 1000);
+}
+
 function esAdministrador(usuario) {
     return usuario?.rol === 'Administrador'
         || usuario?.rol === 'ADMINISTRADOR'
@@ -112,9 +259,14 @@ function PaginaUsuarios() {
     const [rolFiltro, setRolFiltro] = useState('Todos');
     const [toast, setToast] = useState(null);
     const [modal, setModal] = useState(null);
+    const [csvFileName, setCsvFileName] = useState('');
+    const [csvRows, setCsvRows] = useState([]);
+    const [csvErrors, setCsvErrors] = useState([]);
+    const [csvSummary, setCsvSummary] = useState(null);
     const [editTarget, setEditTarget] = useState(null);
     const [toggleTarget, setToggleTarget] = useState(null);
     const [submitting, setSubmitting] = useState(false);
+    const [csvBusy, setCsvBusy] = useState(false);
     const [seccionesTutor, setSeccionesTutor] = useState([]);
     const [cargandoSeccionesTutor, setCargandoSeccionesTutor] = useState(false);
     const [errorSeccionesTutor, setErrorSeccionesTutor] = useState('');
@@ -370,6 +522,145 @@ function PaginaUsuarios() {
             setSubmitting(false);
         }
     };
+    const handleCsvFile = async (evento) => {
+        const archivo = evento.target.files?.[0];
+        evento.target.value = '';
+        setCsvFileName(archivo?.name ?? '');
+        setCsvRows([]);
+        setCsvErrors([]);
+        setCsvSummary(null);
+        if (!archivo) return;
+        if (!archivo.name.toLowerCase().endsWith('.csv')) {
+            setCsvErrors(['Selecciona un archivo con extensión .csv.']);
+            return;
+        }
+        if (archivo.size > 5 * 1024 * 1024) {
+            setCsvErrors(['El archivo no debe superar los 5 MB.']);
+            return;
+        }
+        try {
+            const filas = leerCsv(await archivo.text());
+            const { errores, filasOrdenadas } = validarFilasCsv(filas, usuarios, USAR_MOCK);
+            setCsvRows(filasOrdenadas);
+            setCsvErrors(errores);
+        } catch (error) {
+            setCsvErrors([error.message || 'No se pudo leer el archivo CSV.']);
+        }
+    };
+    const handleImportarCsv = async () => {
+        const { errores, filasOrdenadas } = validarFilasCsv(csvRows, usuarios, USAR_MOCK);
+        if (errores.length || !filasOrdenadas.length) {
+            setCsvErrors(errores.length ? errores : ['El archivo no contiene filas para importar.']);
+            return;
+        }
+
+        setCsvBusy(true);
+        const usuariosActuales = [...usuarios];
+        const apoderadosPorDni = new Map(usuariosActuales
+            .filter(usuario => usuario.rol === 'Apoderado' && usuario.activo)
+            .map(usuario => [usuario.dni, usuario]));
+        const codigosUsados = new Set([
+            ...CODIGOS_ESTUDIANTE_HISTORICOS,
+            ...usuariosActuales.map(usuario => usuario.codigoEstudiante).filter(Boolean)
+        ].map(codigo => codigo.replace(/-/g, '').toUpperCase()));
+        const erroresImportacion = [];
+        let importados = 0;
+
+        try {
+            for (const [indice, fila] of filasOrdenadas.entries()) {
+                let nuevoUsuario;
+                const telefono = telefonoPeru(fila.telefono);
+                const datosBase = {
+                    nombre: fila.nombre,
+                    apellidoPaterno: fila.apellidoPaterno,
+                    ...(fila.apellidoMaterno ? { apellidoMaterno: fila.apellidoMaterno } : {}),
+                    dni: fila.dni,
+                    email: fila.correo,
+                    ...(telefono ? { telefono } : {}),
+                    password: fila.password
+                };
+                const prefijoCodigo = USAR_MOCK ? 'EST-' : 'EST';
+                let codigoEstudiante;
+
+                if (fila.tipoUsuario === 'estudiante') {
+                    let correlativo = 1;
+                    do {
+                        codigoEstudiante = `${prefijoCodigo}${String(correlativo).padStart(3, '0')}`;
+                        correlativo += 1;
+                    } while (codigosUsados.has(codigoEstudiante.replace(/-/g, '').toUpperCase()));
+                    codigosUsados.add(codigoEstudiante.replace(/-/g, '').toUpperCase());
+                }
+
+                try {
+                    if (USAR_MOCK) {
+                        const apoderado = fila.tipoUsuario === 'estudiante' ? apoderadosPorDni.get(fila.dniApoderado) : null;
+                        if (fila.tipoUsuario === 'estudiante' && !apoderado) {
+                            erroresImportacion.push(`Fila ${fila.linea}: no se pudo asociar el apoderado ${fila.dniApoderado}.`);
+                            continue;
+                        }
+                        nuevoUsuario = {
+                            id: `csv-${Date.now()}-${indice}`,
+                            nombre: fila.nombre,
+                            apellido: [fila.apellidoPaterno, fila.apellidoMaterno].filter(Boolean).join(' '),
+                            apellidoPaterno: fila.apellidoPaterno,
+                            apellidoMaterno: fila.apellidoMaterno,
+                            dni: fila.dni,
+                            rol: ROL_POR_TIPO_REGISTRO[fila.tipoUsuario],
+                            correo: fila.correo,
+                            activo: true,
+                            ...(fila.edad ? { edad: Number(fila.edad) } : {}),
+                            ...(telefono ? { telefono } : {}),
+                            ...(fila.tipoUsuario === 'estudiante' ? {
+                                codigoEstudiante,
+                                fechaNacimiento: fila.fechaNacimiento,
+                                apoderadoId: apoderado.id
+                            } : {})
+                        };
+                    } else {
+                        let resultado;
+                        if (fila.tipoUsuario === 'apoderado') {
+                            resultado = await registrarApoderado({ ...datosBase, edad: Number(fila.edad) });
+                        } else if (fila.tipoUsuario === 'docente') {
+                            resultado = await registrarDocente(datosBase);
+                        } else {
+                            const apoderado = apoderadosPorDni.get(fila.dniApoderado);
+                            if (!apoderado) {
+                                erroresImportacion.push(`Fila ${fila.linea}: no se pudo asociar el apoderado ${fila.dniApoderado}; verifica que se haya creado correctamente.`);
+                                continue;
+                            }
+                            resultado = await registrarEstudiante({
+                                ...datosBase,
+                                codigo: codigoEstudiante,
+                                fechaNacimiento: fila.fechaNacimiento,
+                                apoderadoId: apoderado.id
+                            });
+                        }
+                        if (!resultado.exitoso || !resultado.datos) {
+                            erroresImportacion.push(`Fila ${fila.linea}: ${resultado.mensaje || 'el servidor rechazó el registro.'}`);
+                            continue;
+                        }
+                        nuevoUsuario = resultado.datos;
+                    }
+
+                    usuariosActuales.push(nuevoUsuario);
+                    if (fila.tipoUsuario === 'apoderado') apoderadosPorDni.set(fila.dni, nuevoUsuario);
+                    importados += 1;
+                } catch (error) {
+                    erroresImportacion.push(`Fila ${fila.linea}: ${error.message || 'no fue posible registrar el usuario.'}`);
+                }
+            }
+            setUsuarios(usuariosActuales);
+            setCsvSummary({ importados, errores: erroresImportacion });
+            if (importados && erroresImportacion.length === 0) {
+                setModal(null);
+                showToast(`Se importaron correctamente ${importados} usuarios.`);
+            } else if (importados) {
+                showToast(`Se importaron ${importados} usuarios; ${erroresImportacion.length} filas requieren revisión.`, true);
+            }
+        } finally {
+            setCsvBusy(false);
+        }
+    };
     const handleEdit = async () => {
         if (!editTarget || esAdministrador(editTarget)) return;
         const errs = {};
@@ -583,6 +874,15 @@ function PaginaUsuarios() {
               {label}
             </button>);
           })}
+          <button type="button" disabled={cargando || csvBusy} onClick={() => {
+            setCsvFileName('');
+            setCsvRows([]);
+            setCsvErrors([]);
+            setCsvSummary(null);
+            setModal('cargaCsv');
+          }} style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid #0058be', background: '#fff', color: '#0058be', fontSize: 13, fontWeight: 600, cursor: cargando || csvBusy ? 'not-allowed' : 'pointer', opacity: cargando || csvBusy ? 0.6 : 1, fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
+            Carga masiva CSV
+          </button>
         </div>
       </div>
 
@@ -634,6 +934,63 @@ function PaginaUsuarios() {
       {/* ── Modals: Register ── */}
       {(modal === 'apoderado' || modal === 'estudiante' || modal === 'docente') && (<UsuarioModalShell title={`Registrar ${modal}`} subtitle="Gestión de usuarios" onSubmit={() => handleRegister(modal)} submitLabel="Registrar" submitDisabled={submitting} submitting={submitting} onClose={closeModal}>
           {RegisterFields({ kind: modal })}
+        </UsuarioModalShell>)}
+
+      {modal === 'cargaCsv' && (<UsuarioModalShell title="Carga masiva de usuarios" subtitle="Archivo CSV" onSubmit={handleImportarCsv} submitLabel={`Importar ${csvRows.length} usuarios`} submitDisabled={!csvRows.length || csvErrors.length > 0 || csvBusy} submitting={csvBusy} onClose={closeModal}>
+          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
+            <p style={{ margin: 0, color: '#475569', fontSize: 13, lineHeight: 1.6 }}>
+              Descarga la plantilla y completa una fila por usuario. La carga procesa primero los apoderados, luego los docentes y finalmente los estudiantes, para que estos puedan quedar asociados a su apoderado aunque sus filas aparezcan antes en el archivo.
+            </p>
+            <div role="alert" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '11px 12px', borderRadius: 8, background: '#fff7ed', border: '1px solid #fdba74', color: '#9a3412', fontSize: 12, lineHeight: 1.5 }}>
+              <span aria-hidden="true" style={{ fontSize: 16, lineHeight: 1 }}>⚠️</span>
+              <div><strong>Importante:</strong> coloca primero todas las filas de tipo APODERADO. Después agrega docentes y estudiantes; cada estudiante debe tener el DNI de un apoderado incluido o ya registrado.</div>
+            </div>
+            <button type="button" onClick={descargarPlantillaCsv} style={{ alignSelf: 'flex-start', padding: '8px 12px', borderRadius: 7, border: '1px solid #cbd5e1', background: '#fff', color: '#1e293b', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
+              Descargar plantilla CSV
+            </button>
+            <div style={{ padding: 12, borderRadius: 8, background: '#f8f9ff', border: '1px solid #e2e8f0' }}>
+              <div style={{ fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>Columnas del archivo</div>
+              <code style={{ fontSize: 11, color: '#475569', overflowWrap: 'anywhere' }}>{CSV_USUARIOS_COLUMNAS.join(',')}</code>
+              <ul style={{ paddingLeft: 18, margin: '8px 0 0', color: '#64748b', fontSize: 11, lineHeight: 1.6 }}>
+                <li>tipoUsuario: APODERADO, DOCENTE o ESTUDIANTE. Nombre, apellidoPaterno, DNI, correo y password son obligatorios.</li>
+                <li>apellidoMaterno es opcional. telefono, cuando se incluye, debe tener 9 dígitos peruanos; es obligatorio para estudiantes y docentes en el modo de demostración.</li>
+                <li>edad es obligatoria para apoderados. fechaNacimiento y dniApoderado son obligatorios para estudiantes.</li>
+                <li>Incluye las filas de apoderados antes de estudiantes; el sistema también las procesa primero automáticamente.</li>
+                <li>Usa fechas YYYY-MM-DD y guarda el archivo como CSV UTF-8. Los códigos de estudiante se generan automáticamente.</li>
+              </ul>
+            </div>
+            <label htmlFor="archivo-usuarios-csv" style={{ alignSelf: 'flex-start', padding: '9px 14px', borderRadius: 7, background: '#0058be', color: '#fff', fontSize: 12, fontWeight: 600, cursor: csvBusy ? 'not-allowed' : 'pointer', opacity: csvBusy ? 0.7 : 1 }}>
+              Seleccionar archivo CSV
+            </label>
+            <input id="archivo-usuarios-csv" type="file" accept=".csv,text/csv" onChange={handleCsvFile} disabled={csvBusy} style={{ display: 'none' }}/>
+            {csvFileName && <div style={{ fontSize: 12, color: '#475569' }}>Archivo: <strong>{csvFileName}</strong></div>}
+            {csvRows.length > 0 && <div style={{ fontSize: 12, color: '#334155' }}>Filas listas para revisar: <strong>{csvRows.length}</strong></div>}
+            {csvErrors.length > 0 && <div role="alert" style={{ maxHeight: 150, overflowY: 'auto', padding: 10, borderRadius: 8, background: '#fff1f2', border: '1px solid #fecdd3', color: '#9f1239', fontSize: 11 }}>
+              <strong>Corrige estos problemas antes de importar:</strong>
+              <ul style={{ paddingLeft: 18, margin: '6px 0 0', lineHeight: 1.5 }}>{csvErrors.slice(0, 30).map((error, indice) => <li key={`${indice}-${error}`}>{error}</li>)}</ul>
+              {csvErrors.length > 30 && <div>Y {csvErrors.length - 30} errores más.</div>}
+            </div>}
+            {csvRows.length > 0 && <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: 8 }}>
+              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
+                <thead><tr style={{ background: '#f8f9ff', textAlign: 'left' }}>
+                  {['Fila', 'Tipo', 'Nombre', 'DNI', 'Apoderado DNI'].map(columna => <th key={columna} style={{ padding: '8px 9px', color: '#475569', whiteSpace: 'nowrap' }}>{columna}</th>)}
+                </tr></thead>
+                <tbody>{csvRows.slice(0, 8).map(fila => <tr key={fila.linea} style={{ borderTop: '1px solid #e2e8f0' }}>
+                  <td style={{ padding: '8px 9px' }}>{fila.linea}</td>
+                  <td style={{ padding: '8px 9px' }}>{fila.tipoUsuario}</td>
+                  <td style={{ padding: '8px 9px' }}>{fila.nombre} {fila.apellidoPaterno}</td>
+                  <td style={{ padding: '8px 9px' }}>{fila.dni}</td>
+                  <td style={{ padding: '8px 9px' }}>{fila.dniApoderado || '—'}</td>
+                </tr>)}</tbody>
+              </table>
+              {csvRows.length > 8 && <div style={{ padding: 8, color: '#64748b' }}>Se muestran 8 de {csvRows.length} filas.</div>}
+            </div>}
+            {csvSummary && <div role={csvSummary.errores.length ? 'alert' : 'status'} style={{ padding: 12, borderRadius: 8, background: csvSummary.errores.length ? '#fff7ed' : '#f0fdf4', border: `1px solid ${csvSummary.errores.length ? '#fed7aa' : '#bbf7d0'}`, color: csvSummary.errores.length ? '#9a3412' : '#166534', fontSize: 12 }}>
+              <strong>Importación finalizada: {csvSummary.importados} usuarios creados.</strong>
+              {csvSummary.errores.length > 0 && <ul style={{ paddingLeft: 18, margin: '6px 0 0', maxHeight: 120, overflowY: 'auto' }}>{csvSummary.errores.map((error, indice) => <li key={`${indice}-${error}`}>{error}</li>)}</ul>}
+            </div>}
+            <p style={{ margin: 0, color: '#64748b', fontSize: 11, lineHeight: 1.5 }}>Si una fila falla en el servidor, las demás se intentan registrar y se muestran los resultados. Los usuarios creados correctamente no se revierten automáticamente.</p>
+          </div>
         </UsuarioModalShell>)}
 
       {/* ── Modal: Edit ── */}
