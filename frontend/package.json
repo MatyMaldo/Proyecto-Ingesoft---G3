@@ -14,7 +14,6 @@
     "test:watch": "vitest"
   },
   "dependencies": {
-    "libphonenumber-js": "^1.13.15",
     "react": "18.3.1",
     "react-dom": "18.3.1",
     "react-router-dom": "^7.18.4"
