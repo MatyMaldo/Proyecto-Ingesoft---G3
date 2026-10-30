@@ -1,4 +1,5 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { getCountries, getCountryCallingCode, isPossiblePhoneNumber, parsePhoneNumberFromString } from 'libphonenumber-js';
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import {
     USUARIOS_INICIAL,
@@ -24,6 +25,144 @@ const ROL_POR_TIPO_REGISTRO = {
     estudiante: 'Estudiante',
     docente: 'Docente'
 };
+
+const NOMBRES_REGION = new Intl.DisplayNames(['es'], { type: 'region' });
+const PAISES_TELEFONO = getCountries()
+    .map(codigo => ({
+        codigo,
+        prefijo: getCountryCallingCode(codigo),
+        nombre: NOMBRES_REGION.of(codigo) ?? codigo,
+        bandera: [...codigo].map(letra => String.fromCodePoint(letra.charCodeAt(0) + 127397)).join('')
+    }))
+    .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es', { sensitivity: 'base' }) || a.codigo.localeCompare(b.codigo));
+
+function normalizarBusquedaPais(valor) {
+    return valor.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLocaleLowerCase('es').trim();
+}
+
+function separarTelefono(telefono) {
+    const valor = String(telefono ?? '').trim();
+    if (!valor) return { telefonoPais: 'PE', telefono: '' };
+    const analizado = parsePhoneNumberFromString(valor, 'PE');
+    return analizado
+        ? { telefonoPais: analizado.country ?? 'PE', telefono: analizado.nationalNumber }
+        : { telefonoPais: 'PE', telefono: valor.replace(/\D/g, '') };
+}
+
+function telefonoE164(telefono, pais) {
+    if (!String(telefono ?? '').trim()) return '';
+    return parsePhoneNumberFromString(telefono, pais)?.number ?? '';
+}
+
+function TelefonoField({ value, pais, onChange, required = false, error = '', hint = 'El largo se valida según el país seleccionado.' }) {
+    const [selectorAbierto, setSelectorAbierto] = useState(false);
+    const [busquedaPais, setBusquedaPais] = useState('');
+    const [posicionMenu, setPosicionMenu] = useState(null);
+    const selectorRef = useRef(null);
+    const opcionSeleccionada = PAISES_TELEFONO.find(opcion => opcion.codigo === pais) ?? PAISES_TELEFONO[0];
+    const paisesFiltrados = busquedaPais
+        ? PAISES_TELEFONO.filter(opcion => normalizarBusquedaPais(opcion.nombre).startsWith(normalizarBusquedaPais(busquedaPais)))
+        : PAISES_TELEFONO;
+
+    useEffect(() => {
+        if (!selectorAbierto) return undefined;
+        const cerrarAlHacerClicFuera = evento => {
+            if (!selectorRef.current?.contains(evento.target)) setSelectorAbierto(false);
+        };
+        document.addEventListener('mousedown', cerrarAlHacerClicFuera);
+        return () => document.removeEventListener('mousedown', cerrarAlHacerClicFuera);
+    }, [selectorAbierto]);
+
+    const abrirSelector = evento => {
+        const rect = evento.currentTarget.getBoundingClientRect();
+        const ancho = Math.min(320, window.innerWidth - 24);
+        const espacioAbajo = window.innerHeight - rect.bottom - 12;
+        const espacioArriba = rect.top - 12;
+        const abrirArriba = espacioAbajo < 260 && espacioArriba > espacioAbajo;
+        const altoDisponible = Math.max(180, Math.min(320, abrirArriba ? espacioArriba : espacioAbajo));
+        setPosicionMenu({
+            left: Math.max(12, Math.min(rect.left, window.innerWidth - ancho - 12)),
+            top: abrirArriba ? undefined : rect.bottom + 6,
+            bottom: abrirArriba ? window.innerHeight - rect.top + 6 : undefined,
+            width: ancho,
+            maxHeight: altoDisponible
+        });
+        setBusquedaPais('');
+        setSelectorAbierto(true);
+    };
+
+    return <div>
+      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 5 }}>
+        Teléfono{required && <span style={{ color: '#ba1a1a' }}> *</span>}
+      </label>
+      <div style={{ display: 'flex', gap: 8 }}>
+        <div ref={selectorRef} style={{ flexShrink: 0 }}>
+          <button
+            type="button"
+            aria-label={`País: ${opcionSeleccionada.nombre}, prefijo +${opcionSeleccionada.prefijo}`}
+            aria-haspopup="listbox"
+            aria-expanded={selectorAbierto}
+            title={`${opcionSeleccionada.nombre} (+${opcionSeleccionada.prefijo})`}
+            onClick={abrirSelector}
+            style={{ height: 40, minWidth: 112, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '0 10px', borderRadius: 8, border: `1.5px solid ${error ? '#ba1a1a' : '#dde2f0'}`, background: '#fff', color: '#121c2a', fontSize: 14, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }}
+          >
+            <span aria-hidden="true" style={{ fontSize: 20, lineHeight: 1 }}>{opcionSeleccionada.bandera}</span>
+            <span>+{opcionSeleccionada.prefijo}</span>
+            <svg aria-hidden="true" width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round"><polyline points="6 9 12 15 18 9"/></svg>
+          </button>
+          {selectorAbierto && posicionMenu && <div
+            style={{ position: 'fixed', zIndex: 10020, left: posicionMenu.left, top: posicionMenu.top, bottom: posicionMenu.bottom, width: posicionMenu.width, maxHeight: posicionMenu.maxHeight, display: 'flex', flexDirection: 'column', padding: 8, background: '#fff', border: '1px solid #dbe2ea', borderRadius: 10, boxShadow: '0 12px 32px rgba(15,23,42,0.2)', boxSizing: 'border-box' }}
+          >
+            <input
+              autoFocus
+              type="search"
+              value={busquedaPais}
+              onChange={evento => setBusquedaPais(evento.target.value)}
+              onKeyDown={evento => { if (evento.key === 'Escape') setSelectorAbierto(false); }}
+              placeholder="Buscar país..."
+              aria-label="Buscar país por nombre"
+              style={{ flexShrink: 0, width: '100%', padding: '9px 10px', border: '1px solid #cbd5e1', borderRadius: 7, fontSize: 13, outlineColor: '#0058be', boxSizing: 'border-box', marginBottom: 6 }}
+            />
+            <div role="listbox" aria-label="Países disponibles" style={{ overflowY: 'auto', minHeight: 0 }}>
+              {paisesFiltrados.map(opcion => <button
+                key={opcion.codigo}
+                type="button"
+                role="option"
+                aria-selected={opcion.codigo === pais}
+                onClick={() => {
+                  onChange(value, opcion.codigo);
+                  setSelectorAbierto(false);
+                }}
+                style={{ width: '100%', display: 'flex', alignItems: 'center', gap: 10, padding: '9px 10px', border: 0, borderRadius: 6, background: opcion.codigo === pais ? '#eff6ff' : '#fff', color: '#1e293b', textAlign: 'left', fontSize: 13, cursor: 'pointer' }}
+                onMouseEnter={evento => { if (opcion.codigo !== pais) evento.currentTarget.style.background = '#f8fafc'; }}
+                onMouseLeave={evento => { if (opcion.codigo !== pais) evento.currentTarget.style.background = '#fff'; }}
+              >
+                <span aria-hidden="true" style={{ fontSize: 19, width: 24 }}>{opcion.bandera}</span>
+                <span style={{ flex: 1 }}>{opcion.nombre}</span>
+                <span style={{ color: '#64748b', fontVariantNumeric: 'tabular-nums' }}>+{opcion.prefijo}</span>
+              </button>)}
+              {paisesFiltrados.length === 0 && <p style={{ margin: 0, padding: '12px 10px', color: '#64748b', fontSize: 13 }}>No se encontraron países.</p>}
+            </div>
+          </div>}
+        </div>
+        <input
+          type="tel"
+          inputMode="numeric"
+          autoComplete="tel-national"
+          value={value}
+          onChange={evento => onChange(evento.target.value.replace(/\D/g, ''), pais)}
+          placeholder="Número de teléfono"
+          maxLength={15}
+          required={required}
+          aria-invalid={Boolean(error)}
+          style={{ width: '100%', minWidth: 0, padding: '9px 12px', borderRadius: 8, border: `1.5px solid ${error ? '#ba1a1a' : '#dde2f0'}`, background: '#f8f9ff', fontSize: 13, color: '#121c2a', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+        />
+      </div>
+      {error
+        ? <p role="alert" style={{ fontSize: 11, color: '#ba1a1a', margin: '3px 0 0' }}>{error}</p>
+        : <p style={{ fontSize: 11, color: '#64748b', margin: '4px 0 0' }}>{hint}</p>}
+    </div>;
+}
 
 function esAdministrador(usuario) {
     return usuario?.rol === 'Administrador'
@@ -78,10 +217,10 @@ function PaginaUsuarios() {
     const [errorSeccionesTutor, setErrorSeccionesTutor] = useState('');
     const [intentoSeccionesTutor, setIntentoSeccionesTutor] = useState(0);
     // Form fields
-    const emptyForm = { nombre: '', apellido: '', apellidoPaterno: '', apellidoMaterno: '', edad: '', dni: '', telefono: '', correo: '', password: '', confirm: '', fechaNacimiento: '', dniApoderado: '', apoderadoSeleccionado: null, apoderadoError: '' };
+    const emptyForm = { nombre: '', apellido: '', apellidoPaterno: '', apellidoMaterno: '', edad: '', dni: '', telefono: '', telefonoPais: 'PE', correo: '', password: '', confirm: '', fechaNacimiento: '', dniApoderado: '', apoderadoSeleccionado: null, apoderadoError: '' };
     const [form, setForm] = useState(emptyForm);
     const [formErrors, setFormErrors] = useState({});
-    const [editForm, setEditForm] = useState({ nombre: '', apellidoPaterno: '', apellidoMaterno: '', dni: '', telefono: '', correo: '' });
+    const [editForm, setEditForm] = useState({ nombre: '', apellidoPaterno: '', apellidoMaterno: '', dni: '', telefono: '', telefonoPais: 'PE', correo: '', apoderadoId: '', dniApoderado: '', apoderadoSeleccionado: null, apoderadoError: '' });
     const [editErrors, setEditErrors] = useState({});
     useEffect(() => {
         if (USAR_MOCK) return undefined;
@@ -138,14 +277,25 @@ function PaginaUsuarios() {
     };
     const openEdit = (u) => {
         if (esAdministrador(u)) return;
+        const telefonoInicial = separarTelefono(u.telefono);
+        const apoderadoAsignado = u.rol === 'Estudiante'
+            ? usuarios.find(usuario => String(usuario.id) === String(u.apoderadoId))
+                ?? (u.apoderadoId != null && u.apoderadoNombre
+                    ? { id: u.apoderadoId, nombre: u.apoderadoNombre, apellido: '', dni: u.apoderadoDni ?? '', activo: true }
+                    : null)
+            : null;
         setEditTarget(u);
         setEditForm({
             nombre: u.nombre ?? '',
             apellidoPaterno: u.apellidoPaterno ?? u.apellido ?? '',
             apellidoMaterno: u.apellidoMaterno ?? '',
             dni: u.dni ?? '',
-            telefono: u.telefono ?? '',
-            correo: u.correo ?? ''
+            ...telefonoInicial,
+            correo: u.correo ?? '',
+            apoderadoId: apoderadoAsignado?.id == null ? '' : String(apoderadoAsignado.id),
+            dniApoderado: apoderadoAsignado?.dni ?? '',
+            apoderadoSeleccionado: apoderadoAsignado,
+            apoderadoError: ''
         });
         setEditErrors({});
         setModal('editar');
@@ -167,6 +317,23 @@ function PaginaUsuarios() {
             setForm(p => ({ ...p, apoderadoSeleccionado: found, apoderadoError: '' }));
         else
             setForm(p => ({ ...p, apoderadoSeleccionado: null, apoderadoError: 'No se encontró un apoderado registrado con este DNI.' }));
+    };
+    const searchEditApoderado = () => {
+        const dniBuscado = editForm.dniApoderado.trim();
+        const found = usuarios.find(usuario => usuario.rol === 'Apoderado'
+            && usuario.dni === dniBuscado
+            && (usuario.activo || String(usuario.id) === String(editTarget?.apoderadoId)));
+        if (found) {
+            setEditForm(p => ({
+                ...p,
+                apoderadoId: String(found.id),
+                apoderadoSeleccionado: found,
+                apoderadoError: ''
+            }));
+            setEditErrors(p => ({ ...p, apoderadoId: '' }));
+        } else {
+            setEditForm(p => ({ ...p, apoderadoId: '', apoderadoSeleccionado: null, apoderadoError: 'No se encontró un apoderado activo con este DNI.' }));
+        }
     };
     const validateRegister = (kind) => {
         const errs = {};
@@ -208,14 +375,12 @@ function PaginaUsuarios() {
             errs.correo = 'El correo no puede superar los 160 caracteres.';
         if (usuarios.some(u => u.correo.trim().toLowerCase() === form.correo.trim().toLowerCase()))
             errs.correo = 'Ya existe un usuario registrado con este correo.';
-        const telefonoCompacto = form.telefono.trim().replace(/[\s()-]/g, '');
-        const telefonoValido = telefonoCompacto.startsWith('+')
-            ? /^\+[1-9]\d{7,14}$/.test(telefonoCompacto)
-            : /^9\d{8}$/.test(telefonoCompacto);
-        if (USAR_MOCK && (kind === 'estudiante' || kind === 'docente') && !telefonoCompacto)
+        const telefonoIngresado = form.telefono.trim();
+        const telefonoValido = telefonoIngresado && isPossiblePhoneNumber(telefonoIngresado, form.telefonoPais);
+        if (USAR_MOCK && (kind === 'estudiante' || kind === 'docente') && !telefonoIngresado)
             errs.telefono = kind === 'docente' ? 'Ingrese el teléfono del docente.' : 'Ingrese el teléfono del estudiante.';
-        else if (telefonoCompacto && (USAR_MOCK ? !telefonoValido : !/^\d{9}$/.test(telefonoCompacto)))
-            errs.telefono = 'Ingrese 9 dígitos para un celular peruano o un número internacional con + y código de país.';
+        else if (telefonoIngresado && !telefonoValido)
+            errs.telefono = 'El número no es válido para el país seleccionado.';
         if (!form.password)
             errs.password = 'Ingrese la contraseña.';
         else if (form.password.length < 8 || form.password.length > 40)
@@ -232,7 +397,6 @@ function PaginaUsuarios() {
             setFormErrors(errs);
             return;
         }
-        const telefonoCompacto = form.telefono.trim().replace(/[\s()-]/g, '');
         let codigoEstudiante;
         if (kind === 'estudiante') {
             const normalizarCodigo = codigo => codigo.replace(/-/g, '').toUpperCase();
@@ -249,7 +413,7 @@ function PaginaUsuarios() {
         }
         setSubmitting(true);
         try {
-            const telefono = form.telefono.trim().replace(/[\s()-]/g, '');
+            const telefono = telefonoE164(form.telefono, form.telefonoPais);
             if (!USAR_MOCK) {
                 const datosBase = {
                     nombre: form.nombre.trim(),
@@ -290,7 +454,7 @@ function PaginaUsuarios() {
                 apellido: kind === 'estudiante' ? `${form.apellidoPaterno.trim()} ${form.apellidoMaterno.trim()}` : form.apellido.trim(),
                 dni: form.dni.trim(), rol: ROL_POR_TIPO_REGISTRO[kind], correo: form.correo.trim(), activo: true,
                 ...(kind !== 'estudiante' ? { edad: Number(form.edad) } : {}),
-                ...(telefonoCompacto ? { telefono: telefonoCompacto.startsWith('+') ? telefonoCompacto : `+51${telefonoCompacto}` } : {}),
+                ...(telefono ? { telefono } : {}),
                 ...(kind === 'estudiante' ? { codigoEstudiante, apoderadoId: form.apoderadoSeleccionado.id, fechaNacimiento: form.fechaNacimiento } : {})
             };
             setUsuarios(p => [...p, nuevo]);
@@ -322,9 +486,12 @@ function PaginaUsuarios() {
             errs.correo = 'Ingrese un correo válido.';
         if (usuarios.some(u => u.id !== editTarget.id && u.correo.trim().toLowerCase() === editForm.correo.trim().toLowerCase()))
             errs.correo = 'Este correo ya pertenece a otro usuario.';
-        const telefonoCompacto = editForm.telefono.trim().replace(/[\s()-]/g, '');
-        if (telefonoCompacto && !/^\d{9}$/.test(telefonoCompacto))
-            errs.telefono = 'El teléfono debe tener exactamente 9 dígitos.';
+        const telefonoIngresado = editForm.telefono.trim();
+        const telefonoCompacto = telefonoE164(telefonoIngresado, editForm.telefonoPais);
+        if (telefonoIngresado && !isPossiblePhoneNumber(telefonoIngresado, editForm.telefonoPais))
+            errs.telefono = 'El número no es válido para el país seleccionado.';
+        if (editTarget.rol === 'Estudiante' && (!editForm.apoderadoId || !editForm.apoderadoSeleccionado))
+            errs.apoderadoId = 'Seleccione un apoderado para el estudiante.';
         if (Object.keys(errs).length) {
             setEditErrors(errs);
             return;
@@ -345,8 +512,12 @@ function PaginaUsuarios() {
         }
         if (dni !== (editTarget.dni ?? '')) datosActualizados.dni = dni;
         if (correo !== (editTarget.correo ?? '')) datosActualizados.email = correo;
-        if (telefonoCompacto !== (editTarget.telefono ?? '')) {
+        if (telefonoCompacto !== telefonoE164(editTarget.telefono, editForm.telefonoPais)) {
             datosActualizados.telefono = telefonoCompacto || null;
+        }
+        if (editTarget.rol === 'Estudiante'
+            && String(editForm.apoderadoId) !== String(editTarget.apoderadoId ?? '')) {
+            datosActualizados.apoderadoId = editForm.apoderadoSeleccionado.id;
         }
 
         if (Object.keys(datosActualizados).length === 0) {
@@ -364,7 +535,8 @@ function PaginaUsuarios() {
                     apellido: [apellidoPaterno, apellidoMaterno].filter(Boolean).join(' '),
                     dni,
                     correo,
-                    telefono: telefonoCompacto
+                    telefono: telefonoCompacto,
+                    ...(editTarget.rol === 'Estudiante' ? { apoderadoId: datosActualizados.apoderadoId ?? editTarget.apoderadoId } : {})
                 } : usuario));
                 closeModal();
                 showToast('Los datos del usuario han sido actualizados correctamente.');
@@ -377,7 +549,11 @@ function PaginaUsuarios() {
                 return;
             }
 
-            setUsuarios(actuales => actuales.map(usuario => usuario.id === editTarget.id ? resultado.datos : usuario));
+            setUsuarios(actuales => actuales.map(usuario => usuario.id === editTarget.id ? {
+                ...editTarget,
+                ...resultado.datos,
+                ...(editTarget.rol === 'Estudiante' ? { apoderadoId: datosActualizados.apoderadoId ?? editTarget.apoderadoId } : {})
+            } : usuario));
             closeModal();
             showToast('Los datos del usuario han sido actualizados correctamente.');
         } catch {
@@ -424,8 +600,17 @@ function PaginaUsuarios() {
         <UsuarioField label={kind === 'apoderado' && USAR_MOCK ? 'Documento de identidad' : 'DNI'} value={form.dni} onChange={v => f('dni', v)} placeholder="Ingrese el DNI" error={formErrors.dni} maxLength={9} required/>
       </div>
       {(kind === 'apoderado' || kind === 'docente' || kind === 'estudiante') && (<>
-          <UsuarioField label="Teléfono" type="tel" value={form.telefono} onChange={v => f('telefono', v)} placeholder={USAR_MOCK ? 'Ingrese el teléfono' : '9 dígitos (opcional)'} error={formErrors.telefono} maxLength={9} required={USAR_MOCK ? (kind === 'estudiante' || kind === 'docente') : kind === 'estudiante'}/>
-          <p style={{ fontSize: 11, color: '#64748b', margin: '-10px 0 0' }}>Ingresa 9 dígitos; es opcional para apoderados y docentes.</p>
+          <TelefonoField
+            value={form.telefono}
+            pais={form.telefonoPais}
+            onChange={(telefono, telefonoPais) => {
+              setForm(p => ({ ...p, telefono, telefonoPais }));
+              setFormErrors(p => ({ ...p, telefono: '' }));
+            }}
+            error={formErrors.telefono}
+            required={USAR_MOCK ? (kind === 'estudiante' || kind === 'docente') : kind === 'estudiante'}
+            hint="Ingresa solo el número nacional; el prefijo se agrega según el país."
+          />
         </>)}
       <UsuarioField label="Correo" type="email" value={form.correo} onChange={v => f('correo', v)} placeholder="Ingrese el correo electrónico" error={formErrors.correo} maxLength={160} required/>
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
@@ -550,7 +735,7 @@ function PaginaUsuarios() {
         </UsuarioModalShell>)}
 
       {/* ── Modal: Edit ── */}
-      {modal === 'editar' && editTarget && (<UsuarioModalShell title="Editar usuario" subtitle="Gestión de usuarios" onSubmit={handleEdit} submitLabel="Guardar cambios" submitting={submitting} onClose={closeModal}>
+      {modal === 'editar' && editTarget && (<UsuarioModalShell title="Editar usuario" subtitle="Gestión de usuarios" onSubmit={handleEdit} submitLabel="Guardar cambios" submitDisabled={editTarget.rol === 'Estudiante' && (!editForm.apoderadoId || !editForm.apoderadoSeleccionado)} submitting={submitting} onClose={closeModal}>
           <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
             <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
               <UsuarioField label="Nombre" value={editForm.nombre} onChange={v => { setEditForm(p => ({ ...p, nombre: v })); setEditErrors(p => ({ ...p, nombre: '' })); }} placeholder="Nombre" error={editErrors.nombre} maxLength={80} required/>
@@ -558,11 +743,44 @@ function PaginaUsuarios() {
             </div>
             <UsuarioField label="Apellido materno" value={editForm.apellidoMaterno} onChange={v => { setEditForm(p => ({ ...p, apellidoMaterno: v })); setEditErrors(p => ({ ...p, apellidoMaterno: '' })); }} placeholder="Apellido materno (opcional)" error={editErrors.apellidoMaterno} maxLength={80}/>
             <UsuarioField label="DNI" value={editForm.dni} onChange={v => { setEditForm(p => ({ ...p, dni: v })); setEditErrors(p => ({ ...p, dni: '' })); }} placeholder="8 dígitos" error={editErrors.dni} maxLength={8} required/>
-            <div>
-              <UsuarioField label="Teléfono" type="tel" value={editForm.telefono} onChange={v => { setEditForm(p => ({ ...p, telefono: v })); setEditErrors(p => ({ ...p, telefono: '' })); }} placeholder="9 dígitos (opcional)" error={editErrors.telefono} maxLength={9}/>
-              <p style={{ fontSize: 11, color: '#64748b', margin: '4px 0 0' }}>Opcional; si se ingresa, debe contener 9 dígitos.</p>
-            </div>
+            <TelefonoField
+              value={editForm.telefono}
+              pais={editForm.telefonoPais}
+              onChange={(telefono, telefonoPais) => {
+                setEditForm(p => ({ ...p, telefono, telefonoPais }));
+                setEditErrors(p => ({ ...p, telefono: '' }));
+              }}
+              error={editErrors.telefono}
+              hint="Opcional; el largo se valida según el país seleccionado."
+            />
             <UsuarioField label="Correo" value={editForm.correo} onChange={v => { setEditForm(p => ({ ...p, correo: v })); setEditErrors(p => ({ ...p, correo: '' })); }} placeholder="Correo" type="email" error={editErrors.correo} maxLength={160} required/>
+            {editTarget.rol === 'Estudiante' && <div>
+              <label htmlFor="editar-dni-apoderado" style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 8 }}>DNI del apoderado <span style={{ color: '#ba1a1a' }}>*</span></label>
+              <div style={{ display: 'flex', gap: 10 }}>
+                <input
+                  id="editar-dni-apoderado"
+                  value={editForm.dniApoderado}
+                  onChange={evento => {
+                    setEditForm(p => ({ ...p, dniApoderado: evento.target.value, apoderadoId: '', apoderadoSeleccionado: null, apoderadoError: '' }));
+                    setEditErrors(p => ({ ...p, apoderadoId: '' }));
+                  }}
+                  placeholder="Ingrese DNI o Carné de Extranjería..."
+                  aria-invalid={Boolean(editErrors.apoderadoId || editForm.apoderadoError)}
+                  onKeyDown={evento => { if (evento.key === 'Enter') { evento.preventDefault(); searchEditApoderado(); } }}
+                  style={{ flex: 1, minWidth: 0, padding: '15px 16px', borderRadius: 11, border: `1.5px solid ${(editErrors.apoderadoId || editForm.apoderadoError) ? '#ba1a1a' : '#dde2f0'}`, background: '#f8f9ff', fontSize: 16, color: '#121c2a', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
+                />
+                <button type="button" onClick={searchEditApoderado} style={{ padding: '0 22px', borderRadius: 11, border: 'none', background: '#0058be', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Buscar</button>
+              </div>
+              {(editForm.apoderadoError || editErrors.apoderadoId) && <p role="alert" style={{ fontSize: 11, color: '#ba1a1a', margin: '4px 0 0' }}>{editForm.apoderadoError || editErrors.apoderadoId}</p>}
+              {editForm.apoderadoSeleccionado && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, padding: '12px 18px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 11 }}>
+                <div>
+                  <div style={{ fontSize: 13, fontWeight: 700, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Apoderado seleccionado</div>
+                  <div style={{ fontSize: 16, fontWeight: 600, color: '#121c2a' }}>{editForm.apoderadoSeleccionado.nombre} {editForm.apoderadoSeleccionado.apellido}</div>
+                  <div style={{ fontSize: 14, color: '#64748b' }}>DNI: {editForm.apoderadoSeleccionado.dni}</div>
+                </div>
+                <button type="button" aria-label="Quitar apoderado seleccionado" onClick={() => setEditForm(p => ({ ...p, apoderadoId: '', dniApoderado: '', apoderadoSeleccionado: null, apoderadoError: '' }))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 4, borderRadius: 6, fontSize: 22, lineHeight: 1 }}>×</button>
+              </div>}
+            </div>}
           </div>
         </UsuarioModalShell>)}
 
