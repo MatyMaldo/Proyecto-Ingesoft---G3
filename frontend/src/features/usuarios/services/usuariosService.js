@@ -13,6 +13,17 @@ const ROLES_API = Object.freeze({
 function transformarUsuario(usuario) {
   const partesApellido = [usuario.apellidoPaterno, usuario.apellidoMaterno].filter(Boolean);
   const nombreCompleto = usuario.nombreCompleto?.trim();
+  const apoderado = usuario.apoderado ?? usuario.apoderadoAsignado ?? null;
+  const partesNombreApoderado = [
+    apoderado?.nombre ?? apoderado?.nombreCompleto?.split(' ')[0],
+    apoderado?.apellidoPaterno ?? apoderado?.apellido,
+    apoderado?.apellidoMaterno
+  ].filter(Boolean);
+  const apoderadoId = usuario.apoderadoId ?? apoderado?.id ?? usuario.estudiante?.apoderadoId;
+  const apoderadoNombre = usuario.apoderadoNombre?.trim()
+    ?? apoderado?.nombreCompleto?.trim()
+    ?? partesNombreApoderado.join(' ');
+  const apoderadoDni = usuario.apoderadoDni ?? usuario.dniApoderado ?? apoderado?.dni;
 
   return {
     id: usuario.id,
@@ -25,7 +36,10 @@ function transformarUsuario(usuario) {
     correo: usuario.email ?? '',
     activo: Boolean(usuario.activo),
     telefono: usuario.telefono ?? '',
-    codigoEstudiante: usuario.codigo
+    codigoEstudiante: usuario.codigo,
+    ...(apoderadoId != null ? { apoderadoId } : {}),
+    ...(apoderadoNombre ? { apoderadoNombre } : {}),
+    ...(apoderadoDni ? { apoderadoDni } : {})
   };
 }
 
