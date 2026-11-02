@@ -53,7 +53,6 @@ export default function TablaAuditoria({ registros, actualizando, alSeleccionarR
             <tr>
               <th scope="col" aria-sort="descending">Fecha y hora</th>
               <th scope="col">Usuario</th>
-              <th scope="col">Rol</th>
               <th scope="col">Módulo</th>
               <th scope="col">Acción</th>
               <th scope="col" className={estilosUtil.ocultoVisualmente}>Historial</th>
@@ -77,10 +76,12 @@ export default function TablaAuditoria({ registros, actualizando, alSeleccionarR
                     <span className={estilos.avatar} aria-hidden="true">
                       {registro.usuario.iniciales}
                     </span>
-                    <span className={estilos.nombreUsuario}>{registro.usuario.nombre}</span>
+                    <span className={estilos.bloqueUsuario}>
+                      <span className={estilos.nombreUsuario}>{registro.usuario.nombre}</span>
+                      <span className={estilos.celdaRol}>{registro.usuario.rol}</span>
+                    </span>
                   </div>
                 </td>
-                <td className={estilos.celdaRol}>{registro.usuario.rol}</td>
                 <td>
                   <Insignia tono={registro.modulo.tono}>{registro.modulo.etiqueta}</Insignia>
                 </td>

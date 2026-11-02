@@ -52,7 +52,7 @@
   font-weight: var(--peso-medio);
   color: var(--color-texto);
   font-variant-numeric: tabular-nums;
-  letter-spacing: var(--espaciado-letra-ancho);
+  white-space: nowrap;
 }
 
 .hora {
@@ -113,7 +113,6 @@
   font-weight: var(--peso-medio);
   color: var(--color-texto);
   font-variant-numeric: tabular-nums;
-  letter-spacing: var(--espaciado-letra-ancho);
 }
 
 .campo {

@@ -1,7 +1,6 @@
 import CampoBusqueda from '../../../shared/components/CampoBusqueda.jsx';
 import FiltroChips from '../../../shared/components/FiltroChips.jsx';
 import FiltroRangoFechas from '../../../shared/components/FiltroRangoFechas.jsx';
-import BarraResumen from '../../../shared/components/BarraResumen.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import estilosUtil from '../../../shared/styles/utilidades.module.css';
 import TablaAuditoria from '../components/TablaAuditoria.jsx';
@@ -30,7 +29,7 @@ function formatearTextoInsignia(resumen) {
 
 /**
  * Página de Auditorías del Sistema (HU-SAT-04). Consulta de solo lectura: listado
- * general con filtros, barra de resumen y panel de detalle con el historial de
+ * general con filtros y panel de detalle con el historial de
  * una transacción. No hay ningún control de edición ni eliminación.
  */
 export default function PaginaAuditorias() {
@@ -54,33 +53,6 @@ export default function PaginaAuditorias() {
     reintentar,
     detalle
   } = useAuditoria();
-
-  const metricas = [
-    {
-      id: 'total',
-      valor: resumen ? resumen.totalAcciones : '—',
-      etiqueta: 'Total acciones',
-      color: 'azul-marino'
-    },
-    {
-      id: 'modulos',
-      valor: resumen ? resumen.modulosActivos : '—',
-      etiqueta: 'Módulos activos',
-      color: 'azul'
-    },
-    {
-      id: 'usuarios',
-      valor: resumen ? resumen.usuariosUnicos : '—',
-      etiqueta: 'Usuarios únicos',
-      color: 'violeta'
-    },
-    {
-      id: 'mostrando',
-      valor: resumen ? mostrandoAhora : '—',
-      etiqueta: 'Mostrando ahora',
-      color: 'verde'
-    }
-  ];
 
   const textoMostrandoAhora = mostrandoAhora === 1 ? '1 registro' : `${mostrandoAhora} registros`;
   const mensajeVacio = resumen && resumen.totalAcciones === 0 ? MENSAJE_VACIO_TOTAL : MENSAJE_VACIO_FILTRADO;
@@ -154,8 +126,6 @@ export default function PaginaAuditorias() {
           alSeleccionar={establecerCategoria}
         />
       </section>
-
-      <BarraResumen etiqueta="Resumen de auditorías" metricas={metricas} />
 
       <section className={estilos.tarjetaResultados} aria-label="Registros de auditoría">
         {estado === 'cargando' && <EstadoConsulta tipo="carga" />}

@@ -1,4 +1,3 @@
-import BarraResumen from '../../../shared/components/BarraResumen.jsx';
 import CampoBusqueda from '../../../shared/components/CampoBusqueda.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import FiltroChips from '../../../shared/components/FiltroChips.jsx';
@@ -19,7 +18,6 @@ const MENSAJE_VACIO = 'No se encontraron errores con los criterios indicados';
 export default function PaginaLogErrores() {
   const {
     errores,
-    resumen,
     textoInsignia,
     estado,
     recargando,
@@ -83,18 +81,6 @@ export default function PaginaLogErrores() {
           alSeleccionar={establecerModulo}
         />
       </section>
-
-      {estado === 'listo' && resumen && (
-        <BarraResumen
-          etiqueta="Resumen del log de errores"
-          metricas={[
-            { id: 'total', valor: resumen.totalErrores, etiqueta: 'Total errores', color: 'roja' },
-            { id: 'modulos', valor: resumen.modulosAfectados, etiqueta: 'Módulos afectados', color: 'naranja' },
-            { id: 'usuarios', valor: resumen.usuariosInvolucrados, etiqueta: 'Usuarios involucrados', color: 'azul' },
-            { id: 'mostrando', valor: errores.length, etiqueta: 'Mostrando ahora', color: 'verde' }
-          ]}
-        />
-      )}
 
       <p className={estilosUtil.ocultoVisualmente} role="status" aria-live="polite">
         {mensajeRegion}

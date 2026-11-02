@@ -86,9 +86,9 @@ describe('HU-SAT-04 · Escenario 5: el autor "Sistema" se muestra igual que cual
     const filas = screen.getAllByRole('row').slice(1); // sin la cabecera
     expect(filas.length).toBe(2);
 
-    // Misma estructura de celdas en ambas filas (fecha, usuario, rol, módulo, acción, historial).
+    // Misma estructura de celdas en ambas filas (fecha, usuario con rol, módulo, acción, historial).
     filas.forEach((fila) => {
-      expect(fila.querySelectorAll('td').length).toBe(6);
+      expect(fila.querySelectorAll('td').length).toBe(5);
     });
   });
 });
