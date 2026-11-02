@@ -81,11 +81,13 @@ export default function LayoutPrincipal({ metadatosRutas }) {
       )}
 
       <div className={estilos.columnaPrincipal}>
-        <BarraSuperior
-          cajonAbierto={cajonAbierto}
-          alAlternarCajon={alAlternarCajon}
-          refBotonMenu={refBotonMenu}
-        />
+        {modoCajon && (
+          <BarraSuperior
+            cajonAbierto={cajonAbierto}
+            alAlternarCajon={alAlternarCajon}
+            refBotonMenu={refBotonMenu}
+          />
+        )}
 
         <main id="contenido-principal" ref={refMain} tabIndex={-1} className={estilos.main}>
           <MigaDePan migas={migas} />
@@ -94,10 +96,6 @@ export default function LayoutPrincipal({ metadatosRutas }) {
           </LimiteErrores>
         </main>
       </div>
-
-      <span id="aviso-no-disponible" className={estilosUtil.ocultoVisualmente}>
-        Función no disponible por ahora.
-      </span>
     </div>
   );
 }
