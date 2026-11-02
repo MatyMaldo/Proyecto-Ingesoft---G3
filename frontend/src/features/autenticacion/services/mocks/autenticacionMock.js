@@ -2,36 +2,24 @@
 // Usuarios y contraseñas ficticios SOLO para desarrollo. Ningún componente debe importarlos.
 
 import { ROLES } from '../../../../shared/auth/roles.js';
+import { MOTIVOS_RECHAZO } from '../autenticacionService.js';
 
 const ESPERA_SIMULADA_MS = 400;
 
-const IDENTIFICADOR_ERROR_INESPERADO = '00000000';
+const CORREO_ERROR_INESPERADO = 'error500@sanmarcos.edu.pe';
 
 /**
- * Usuarios ficticios para desarrollar sin backend (docs/planes/login.md §8.5).
- * Los DNI son obviamente falsos (empiezan en `0000000x`) para que no se
- * confundan con DNI peruanos reales. El usuario 4 (Ana Torres) comparte DNI
- * con el usuario 1 (Admin) mostrando perfiles distintos, para probar la regla
- * "la cuenta se identifica por DNI + perfil" (HU-GEMAP-01) y va primero en el
- * arreglo para que una búsqueda que ignorara el perfil la encontrara antes.
+ * Usuarios ficticios para desarrollar sin backend (docs/planes/login.md §8.5,
+ * actualizado 2026-11-01, §U7): el login es solo con correo electrónico, sin
+ * DNI ni perfil elegido; el rol lo determina la cuenta.
  */
 const USUARIOS = Object.freeze([
-  Object.freeze({
-    id: 4,
-    nombre: 'Ana Torres',
-    rol: ROLES.DOCENTE,
-    activo: true,
-    correo: 'docente.ana@sanmarcos.edu.pe',
-    dni: '00000001',
-    contrasena: 'DocenteAna2026!'
-  }),
   Object.freeze({
     id: 1,
     nombre: 'Admin',
     rol: ROLES.ADMIN,
     activo: true,
     correo: 'admin@sanmarcos.edu.pe',
-    dni: '00000001',
     contrasena: 'Admin2026!'
   }),
   Object.freeze({
@@ -40,7 +28,6 @@ const USUARIOS = Object.freeze([
     rol: ROLES.ADMIN,
     activo: false,
     correo: 'inactivo@sanmarcos.edu.pe',
-    dni: '00000002',
     contrasena: 'Inactivo2026!'
   }),
   Object.freeze({
@@ -49,8 +36,17 @@ const USUARIOS = Object.freeze([
     rol: ROLES.DOCENTE,
     activo: true,
     correo: 'docente@sanmarcos.edu.pe',
-    dni: '00000003',
     contrasena: 'Docente2026!'
+  }),
+  Object.freeze({
+    id: 5,
+    nombre: 'Cuenta Nueva',
+    rol: ROLES.ADMIN,
+    activo: true,
+    correo: 'sincontrasena@sanmarcos.edu.pe',
+    // Cuenta recién registrada que aún no definió su contraseña (HU-SAT-03):
+    // responde el mismo 401 que una contraseña incorrecta, sin revelar el motivo.
+    contrasena: null
   })
 ]);
 
@@ -61,61 +57,61 @@ function simularLatencia(calcularResultado) {
 }
 
 /**
- * Busca la cuenta por identificador **y** perfil (docs/planes/login.md §8.5,
- * corregido 2026-10-20): con DNI, la cuenta se identifica por el par
- * DNI + perfil, porque un mismo DNI puede tener cuentas de roles distintos
- * (HU-GEMAP-01); con correo (único en el sistema), se busca por correo y se
- * exige que el rol de la cuenta coincida con el perfil elegido. Nunca toma el
- * primer usuario que coincida solo por identificador.
+ * Busca la cuenta por correo electrónico, sin distinguir mayúsculas.
  *
- * @param {string} identificador
- * @param {string} perfil
+ * @param {string} correo
  * @returns {Object | undefined}
  */
-function buscarCuentaPorIdentificadorYPerfil(identificador, perfil) {
-  const recortado = identificador.trim();
-
-  if (/^\d{8}$/.test(recortado)) {
-    return USUARIOS.find((usuario) => usuario.dni === recortado && usuario.rol === perfil);
-  }
-
-  const normalizado = recortado.toLowerCase();
-  return USUARIOS.find((usuario) => usuario.correo.toLowerCase() === normalizado && usuario.rol === perfil);
+function buscarCuentaPorCorreo(correo) {
+  const normalizado = correo.trim().toLowerCase();
+  return USUARIOS.find((usuario) => usuario.correo.toLowerCase() === normalizado);
 }
 
 /**
  * Simula `POST /auth/login`. Devuelve la misma forma que `solicitar`: éxito
- * `{ exitoso: true, datos, mensaje: '' }`; fallo `{ exitoso: false, datos: null, mensaje, estado }`.
- * Nunca devuelve la contraseña.
+ * `{ exitoso: true, datos, mensaje: '' }`; fallo
+ * `{ exitoso: false, datos: null, mensaje, estado, codigo? }`. Nunca devuelve la contraseña.
  *
- * Orden de verificación, igual al de la HU: cuenta (identificador + perfil) →
- * contraseña coincide → cuenta activa → éxito. Los tres motivos de rechazo de
- * la cuenta (identificador no registrado para ese perfil, contraseña
- * incorrecta o perfil que no corresponde) devuelven la **misma** respuesta
- * 401, sin distinguirse ni siquiera internamente (Esc. 3).
+ * Orden de verificación (HU-SAT-07 vigente, §U7): cuenta (por correo) →
+ * contraseña coincide → cuenta activa → rol habilitado → éxito. El correo no
+ * registrado, la contraseña incorrecta y una cuenta activa sin contraseña
+ * (HU-SAT-03) devuelven la **misma** respuesta 401, sin distinguirse ni
+ * siquiera internamente (Esc. 3).
  *
- * @param {{ perfil: string, identificador: string, password: string }} credenciales
- * @returns {Promise<{ exitoso: boolean, datos: Object|null, mensaje: string, estado?: number }>}
+ * @param {{ correo: string, password: string }} credenciales
+ * @returns {Promise<{ exitoso: boolean, datos: Object|null, mensaje: string, estado?: number, codigo?: string }>}
  */
-export function iniciarSesionMock({ perfil, identificador, password }) {
+export function iniciarSesionMock({ correo, password }) {
   return simularLatencia(() => {
-    if (identificador.trim() === IDENTIFICADOR_ERROR_INESPERADO) {
+    if (correo.trim().toLowerCase() === CORREO_ERROR_INESPERADO) {
       return { exitoso: false, datos: null, mensaje: 'Error simulado.', estado: 500 };
     }
 
-    const usuario = buscarCuentaPorIdentificadorYPerfil(identificador, perfil);
+    const usuario = buscarCuentaPorCorreo(correo);
 
-    if (!usuario || usuario.contrasena !== password) {
+    if (!usuario || usuario.contrasena === null || usuario.contrasena !== password) {
       return {
         exitoso: false,
         datos: null,
-        mensaje: 'Credenciales o perfil incorrectos.',
+        mensaje: 'Correo o contraseña incorrectos.',
         estado: 401
       };
     }
 
     if (!usuario.activo) {
-      return { exitoso: false, datos: null, mensaje: 'Cuenta inactiva.', estado: 403 };
+      return { exitoso: false, datos: null, mensaje: 'Cuenta inactiva.', estado: 403, codigo: 'CUENTA_INACTIVA' };
+    }
+
+    if (usuario.rol === ROLES.DOCENTE) {
+      // §U3: alcance Sprint 1, solo Administrador habilitado. Ningún caso del
+      // mock corresponde a Estudiante ni Apoderado todavía.
+      return {
+        exitoso: false,
+        datos: null,
+        mensaje: 'El acceso para tu rol aún no está habilitado.',
+        estado: 403,
+        codigo: MOTIVOS_RECHAZO.ROL_NO_HABILITADO
+      };
     }
 
     // No es un JWT: con el mock activo ningún servicio llama al backend real,

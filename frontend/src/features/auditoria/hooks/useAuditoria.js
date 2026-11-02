@@ -149,7 +149,11 @@ export default function useAuditoria() {
       busqueda: busquedaActual,
       fechaDesde: rangoActual.fechaDesde,
       fechaHasta: rangoActual.fechaHasta,
-      tipoTransaccion: tipoTransaccionActual || ''
+      tipoTransaccion: tipoTransaccionActual || '',
+      // HU-SAT-04 Esc. 4 (paginados de 15 en 15, D20): la paginación la resuelve el
+      // backend; el frontend siempre pide la primera página, sin paginador visible
+      // (docs/planes/auditorias.md §A.3).
+      pagina: 0
     };
 
     const [resultadoListado, resultadoResumen] = await Promise.all([
@@ -168,7 +172,7 @@ export default function useAuditoria() {
     }
 
     const registrosVista = ordenarDescendentePorFecha(
-      (resultadoListado.datos ?? []).map(transformarRegistro)
+      (resultadoListado.datos?.registros ?? []).map(transformarRegistro)
     );
     establecerRegistros(registrosVista);
 

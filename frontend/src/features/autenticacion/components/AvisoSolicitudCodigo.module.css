@@ -1,0 +1,16 @@
+.aviso {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  padding: var(--espacio-2) var(--espacio-4);
+  font-size: var(--texto-md);
+  color: var(--color-texto);
+  background: var(--color-accion-suave);
+  border: 1px solid var(--color-accion-suave-activo);
+  border-radius: var(--radio-md);
+}
+
+.icono {
+  flex-shrink: 0;
+  color: var(--color-accion);
+}

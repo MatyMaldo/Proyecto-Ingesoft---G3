@@ -5,32 +5,79 @@ import {
 } from './mocks/auditoriaMock.js';
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import { solicitar } from '../../../shared/api/clienteHttp.js';
+import { TAMANIO_PAGINA_AUDITORIA } from '../constants/paginacionAuditoria.js';
+
+/**
+ * Normaliza la página de Spring (`content`, `number`, `totalPages`, `totalElements`)
+ * al modelo que consume el hook (docs/planes/auditorias.md §A.4). Se aplica tanto a la
+ * respuesta del mock como a la del backend real, para que el hook no distinga entre
+ * las dos ramas.
+ *
+ * @param {Object} datos
+ * @returns {{ registros: Array, pagina: number, totalPaginas: number, totalElementos: number }|null}
+ *   `null` si la forma no es la esperada (mismo criterio que `usuariosService.js` con `content`).
+ */
+function normalizarPagina(datos) {
+  if (
+    !datos ||
+    !Array.isArray(datos.content) ||
+    typeof datos.number !== 'number' ||
+    typeof datos.totalPages !== 'number' ||
+    typeof datos.totalElements !== 'number'
+  ) {
+    return null;
+  }
+
+  return {
+    registros: datos.content,
+    pagina: datos.number,
+    totalPaginas: datos.totalPages,
+    totalElementos: datos.totalElements
+  };
+}
 
 /**
  * Lista los registros de auditoría que cumplen los filtros indicados, en orden
- * descendente por fecha y hora.
+ * descendente por fecha y hora y paginados de 15 en 15 (HU-SAT-04 Esc. 4; D20: la
+ * paginación la resuelve el backend, sin paginador visible en el frontend).
  *
- * @param {{ categoria: string|null, busqueda: string, fechaDesde?: string, fechaHasta?: string, tipoTransaccion?: string }} filtros
+ * @param {{ categoria: string|null, busqueda: string, fechaDesde?: string, fechaHasta?: string, tipoTransaccion?: string, pagina?: number }} filtros
  *   `fechaDesde` y `fechaHasta` en `'AAAA-MM-DD'` (LAB05); vacías, no se envían. `tipoTransaccion`
  *   (D2/D14, decisión del dueño del producto): filtro explícito y separado de la búsqueda libre.
+ *   `pagina` es base 0; por defecto 0 (hoy el hook siempre envía 0).
  * @param {{ signal?: AbortSignal }} [opciones]
- * @returns {Promise<{exitoso: boolean, datos: Array|null, mensaje: string}>}
+ * @returns {Promise<{exitoso: boolean, datos: {registros: Array, pagina: number, totalPaginas: number, totalElementos: number}|null, mensaje: string}>}
  */
 export async function listarRegistrosAuditoria(filtros, opciones = {}) {
-  if (USAR_MOCK) {
-    return listarRegistrosAuditoriaMock(filtros);
+  const respuesta = USAR_MOCK
+    ? await listarRegistrosAuditoriaMock(filtros)
+    : await solicitar('/auditorias', {
+      parametros: {
+        categoria: filtros?.categoria,
+        busqueda: filtros?.busqueda,
+        fechaDesde: filtros?.fechaDesde,
+        fechaHasta: filtros?.fechaHasta,
+        tipoTransaccion: filtros?.tipoTransaccion,
+        page: filtros?.pagina ?? 0,
+        size: TAMANIO_PAGINA_AUDITORIA
+      },
+      signal: opciones.signal
+    });
+
+  if (!respuesta.exitoso) {
+    return respuesta;
   }
 
-  return solicitar('/auditorias', {
-    parametros: {
-      categoria: filtros?.categoria,
-      busqueda: filtros?.busqueda,
-      fechaDesde: filtros?.fechaDesde,
-      fechaHasta: filtros?.fechaHasta,
-      tipoTransaccion: filtros?.tipoTransaccion
-    },
-    signal: opciones.signal
-  });
+  const pagina = normalizarPagina(respuesta.datos);
+  if (!pagina) {
+    return {
+      exitoso: false,
+      datos: null,
+      mensaje: 'El backend devolvió un formato de listado de auditorías no válido.'
+    };
+  }
+
+  return { exitoso: true, datos: pagina, mensaje: '' };
 }
 
 /**

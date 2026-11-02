@@ -1,7 +1,7 @@
 .etiqueta {
   display: block;
   margin: 0 0 var(--espacio-2);
-  font-size: var(--texto-sm);
+  font-size: var(--texto-md);
   font-weight: var(--peso-medio);
   color: var(--color-texto-secundario);
 }
@@ -16,7 +16,7 @@
 .icono {
   position: absolute;
   left: var(--espacio-3);
-  color: var(--color-texto-tenue);
+  color: var(--color-texto-suave);
   pointer-events: none;
 }
 
@@ -32,7 +32,7 @@
 }
 
 .campo::placeholder {
-  color: var(--color-texto-tenue);
+  color: var(--color-texto-suave);
 }
 
 .campo.relleno {

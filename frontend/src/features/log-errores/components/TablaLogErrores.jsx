@@ -15,7 +15,7 @@ import estilos from './TablaLogErrores.module.css';
  * @param {Array<{
  *   id: number, fechaHora: string, fecha: string, hora: string,
  *   moduloEtiqueta: string, moduloTono: string, operacion: string,
- *   tipoError: string, tipoErrorTono: string, mensaje: string, usuario: string|null
+ *   tipoError: string, tipoErrorTono: string, mensaje: string, usuario: string
  * }>} props.errores
  * @param {boolean} [props.ocupado] `true` mientras se recalcula por un cambio de filtro.
  */

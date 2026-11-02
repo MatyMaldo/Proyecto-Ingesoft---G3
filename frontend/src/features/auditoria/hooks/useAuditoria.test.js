@@ -42,7 +42,7 @@ describe('HU-SAT-04 · Escenario 4: búsqueda general con filtros combinados, de
     expect(result.current.registros.every((registro) => registro.modulo.codigo === 'PAGOS')).toBe(true);
 
     act(() => {
-      result.current.establecerTipoTransaccion('Validó pago');
+      result.current.establecerTipoTransaccion('Validación de pago');
     });
     await waitFor(() => expect(result.current.actualizando).toBe(false));
 
@@ -70,7 +70,7 @@ describe('HU-SAT-04 · Escenario 4: búsqueda general con filtros combinados, de
 });
 
 describe('HU-SAT-04 · Escenario 3: historial del mismo elemento, del más antiguo al más reciente', () => {
-  it('muestra el historial de un pago observado y reenviado en orden ascendente', async () => {
+  it('muestra el historial de un pago registrado y rechazado en orden ascendente', async () => {
     const { result } = renderHook(() => useAuditoria());
     await esperarCargaInicial(result);
 
@@ -84,13 +84,31 @@ describe('HU-SAT-04 · Escenario 3: historial del mismo elemento, del más antig
     await waitFor(() => expect(result.current.detalle.historial.estado).toBe('listo'), { timeout: 2000 });
 
     const idsHistorial = result.current.detalle.historial.registros.map((registro) => registro.id);
-    // Registrado -> observado con motivo -> reenviado -> validado (orden cronológico ascendente).
-    expect(idsHistorial).toEqual(['AUD-0006', 'AUD-0013', 'AUD-0014', 'AUD-0007']);
+    // Registrado -> rechazado (orden cronológico ascendente). Tras el rechazo, el apoderado
+    // registra un pago NUEVO (PAGO-0007, docs/planes/auditorias.md §E, 2026-11-01).
+    expect(idsHistorial).toEqual(['AUD-0006', 'AUD-0013']);
 
     const fechas = result.current.detalle.historial.registros.map((registro) =>
       new Date(registro.fechaHoraIso).getTime()
     );
     expect(fechas).toEqual([...fechas].sort((a, b) => a - b));
+  });
+
+  it('muestra el historial del pago nuevo (registrado tras el rechazo) con su validación', async () => {
+    const { result } = renderHook(() => useAuditoria());
+    await esperarCargaInicial(result);
+
+    const registroPago = result.current.registros.find((registro) => registro.idElemento === 'PAGO-0007');
+    expect(registroPago).toBeDefined();
+
+    act(() => {
+      result.current.detalle.abrir(registroPago, null);
+    });
+
+    await waitFor(() => expect(result.current.detalle.historial.estado).toBe('listo'), { timeout: 2000 });
+
+    const idsHistorial = result.current.detalle.historial.registros.map((registro) => registro.id);
+    expect(idsHistorial).toEqual(['AUD-0014', 'AUD-0007']);
   });
 });
 

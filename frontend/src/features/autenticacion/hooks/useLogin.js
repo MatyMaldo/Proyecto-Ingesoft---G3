@@ -1,9 +1,9 @@
-import { useRef, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
+import { useLocation, useNavigate } from 'react-router-dom';
 
 import useAuth from '../../../shared/auth/useAuth.js';
-import { PERFILES_ACCESO } from '../constants/perfilesAcceso.js';
-import { MENSAJES_RECHAZO, MENSAJE_ERROR_INESPERADO } from '../constants/mensajesLogin.js';
-import { validarCredenciales, validarIdentificador, validarContrasena } from '../utils/validacionLogin.js';
+import { MENSAJES_RECHAZO, MENSAJES_CIERRE_SESION, MENSAJE_ERROR_INESPERADO } from '../constants/mensajesLogin.js';
+import { validarCredenciales, validarCorreo, validarContrasena } from '../utils/validacionLogin.js';
 import { iniciarSesion, MOTIVOS_RECHAZO } from '../services/autenticacionService.js';
 import {
   leerPreferenciasLogin,
@@ -11,23 +11,19 @@ import {
   borrarPreferenciasLogin
 } from '../utils/preferenciasLogin.js';
 
-const PERFIL_INICIAL = (PERFILES_ACCESO.find((perfil) => perfil.habilitado) ?? PERFILES_ACCESO[0]).valor;
-
 // La casilla "Recordar mi sesión" arranca desmarcada por defecto; solo
 // aparece marcada cuando hay preferencias guardadas (`calcularValoresIniciales`).
 const VALORES_INICIALES = Object.freeze({
-  perfil: PERFIL_INICIAL,
-  identificador: '',
+  correo: '',
   contrasena: '',
   recordar: false
 });
 
 /**
  * Valores iniciales del formulario: si hay preferencias guardadas de
- * "Recordar mi sesión" (identificador y perfil, nunca la contraseña), se
- * precargan y la casilla aparece marcada (docs/planes/login.md D19, opción B,
- * decisión del usuario 2026-10-20). Un perfil guardado que ya no esté
- * habilitado se ignora y se usa el perfil inicial.
+ * "Recordar mi sesión" (solo el correo electrónico, nunca la contraseña), se
+ * precargan y la casilla aparece marcada (docs/planes/login.md §U7, D26,
+ * decisión del usuario 2026-11-01).
  */
 function calcularValoresIniciales() {
   const preferencias = leerPreferenciasLogin();
@@ -36,13 +32,8 @@ function calcularValoresIniciales() {
     return VALORES_INICIALES;
   }
 
-  const perfilGuardadoHabilitado = PERFILES_ACCESO.find(
-    (perfil) => perfil.valor === preferencias.perfil && perfil.habilitado
-  );
-
   return {
-    perfil: perfilGuardadoHabilitado ? preferencias.perfil : PERFIL_INICIAL,
-    identificador: preferencias.identificador,
+    correo: preferencias.correo,
     contrasena: '',
     recordar: true
   };
@@ -53,50 +44,63 @@ function calcularValoresIniciales() {
  * que solo se aplica al enviar).
  */
 function obtenerValidadorFormato(nombre) {
-  return nombre === 'identificador' ? validarIdentificador : validarContrasena;
+  return nombre === 'correo' ? validarCorreo : validarContrasena;
 }
 
 /**
  * Estado y lógica de la pantalla de inicio de sesión (HU-SAT-07): valores del
- * formulario, validación en cliente y llamada a `autenticacionService`.
+ * formulario, validación en cliente, llamada a `autenticacionService` y aviso
+ * de cierre de sesión por cuenta desactivada, contraseña restablecida o rol
+ * modificado (Esc. 9-11, docs/planes/login.md §U2).
  *
  * @returns {{
- *   valores: { perfil: string, identificador: string, contrasena: string, recordar: boolean },
- *   errores: { identificador?: string, contrasena?: string },
+ *   valores: { correo: string, contrasena: string, recordar: boolean },
+ *   errores: { correo?: string, contrasena?: string },
  *   errorGeneral: string | null,
  *   enviando: boolean,
- *   perfiles: Array,
- *   refIdentificador: import('react').RefObject<HTMLInputElement>,
+ *   refCorreo: import('react').RefObject<HTMLInputElement>,
  *   refContrasena: import('react').RefObject<HTMLInputElement>,
- *   manejarCambioCampo: (nombre: 'perfil'|'identificador'|'contrasena'|'recordar', valor: *) => void,
- *   manejarSalidaCampo: (nombre: 'identificador'|'contrasena') => void,
+ *   manejarCambioCampo: (nombre: 'correo'|'contrasena'|'recordar', valor: *) => void,
+ *   manejarSalidaCampo: (nombre: 'correo'|'contrasena') => void,
  *   manejarEnvio: (evento: SubmitEvent) => void
  * }}
  */
 export default function useLogin() {
   const { establecerSesion } = useAuth();
+  const location = useLocation();
+  const navigate = useNavigate();
 
   const [valores, establecerValores] = useState(calcularValoresIniciales);
   const [errores, establecerErrores] = useState({});
   const [errorGeneral, establecerErrorGeneral] = useState(null);
   const [enviando, establecerEnviando] = useState(false);
 
-  const refIdentificador = useRef(null);
+  const refCorreo = useRef(null);
   const refContrasena = useRef(null);
+
+  // Aviso de cierre de sesión (Esc. 9-11): se muestra en un efecto de montaje
+  // (no en el estado inicial) para que el `role="alert"` siempre montado lo
+  // anuncie, y se limpia el `state` de la ruta para que recargar o volver a
+  // `/iniciar-sesion` no repita el aviso (docs/planes/login.md §U2.5).
+  useEffect(() => {
+    const motivoCierre = location.state?.motivoCierre;
+    const texto = motivoCierre ? MENSAJES_CIERRE_SESION[motivoCierre] : undefined;
+
+    if (texto) {
+      establecerErrorGeneral(texto);
+      navigate(location.pathname, { replace: true, state: null });
+    }
+    // Solo al montar: el efecto limpia el `state`, así que no debe repetirse
+    // ante cambios posteriores de `location`.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   function manejarCambioCampo(nombre, valor) {
     establecerErrorGeneral(null);
 
-    if (nombre === 'perfil') {
-      const perfil = PERFILES_ACCESO.find((candidato) => candidato.valor === valor);
-      if (!perfil || !perfil.habilitado) {
-        return;
-      }
-    }
-
     // Si el usuario desmarca la casilla, se borra lo guardado en ese mismo
     // momento (no se espera a un nuevo envío). Decisión del usuario
-    // 2026-10-20, docs/planes/login.md D19, opción B.
+    // 2026-11-01, docs/planes/login.md D26.
     if (nombre === 'recordar' && valor === false) {
       borrarPreferenciasLogin();
     }
@@ -105,7 +109,7 @@ export default function useLogin() {
 
     // Revalida en cada cambio solo si el campo ya mostró un error, y lo quita
     // en cuanto el valor pasa a ser válido.
-    if ((nombre === 'identificador' || nombre === 'contrasena') && errores[nombre]) {
+    if ((nombre === 'correo' || nombre === 'contrasena') && errores[nombre]) {
       const error = obtenerValidadorFormato(nombre)(valor);
       establecerErrores((anteriores) => {
         const siguientes = { ...anteriores };
@@ -120,7 +124,7 @@ export default function useLogin() {
   }
 
   function manejarSalidaCampo(nombre) {
-    if (nombre !== 'identificador' && nombre !== 'contrasena') {
+    if (nombre !== 'correo' && nombre !== 'contrasena') {
       return;
     }
 
@@ -156,8 +160,8 @@ export default function useLogin() {
     if (Object.keys(erroresEncontrados).length > 0) {
       establecerErrores(erroresEncontrados);
 
-      if (erroresEncontrados.identificador) {
-        refIdentificador.current?.focus();
+      if (erroresEncontrados.correo) {
+        refCorreo.current?.focus();
       } else if (erroresEncontrados.contrasena) {
         refContrasena.current?.focus();
       }
@@ -169,16 +173,15 @@ export default function useLogin() {
     establecerEnviando(true);
 
     const resultado = await iniciarSesion({
-      perfil: valores.perfil,
-      identificador: valores.identificador.trim(),
+      correo: valores.correo.trim(),
       password: valores.contrasena
     });
 
     if (resultado.exitoso) {
-      // "Recordar mi sesión" marcada: guarda identificador y perfil (nunca la
-      // contraseña ni el token) tras un login correcto (D19, opción B).
+      // "Recordar mi sesión" marcada: guarda el correo (nunca la contraseña ni
+      // el token) tras un login correcto (D26).
       if (valores.recordar) {
-        guardarPreferenciasLogin({ identificador: valores.identificador.trim(), perfil: valores.perfil });
+        guardarPreferenciasLogin({ correo: valores.correo.trim() });
       }
 
       // El componente se desmonta con la redirección de `RutaPublica`: no se
@@ -201,8 +204,7 @@ export default function useLogin() {
     errores,
     errorGeneral,
     enviando,
-    perfiles: PERFILES_ACCESO,
-    refIdentificador,
+    refCorreo,
     refContrasena,
     manejarCambioCampo,
     manejarSalidaCampo,

@@ -56,7 +56,7 @@
   align-items: center;
   gap: var(--espacio-1);
   margin: var(--espacio-2) 0 0;
-  font-size: var(--texto-sm);
+  font-size: var(--texto-md);
   color: var(--color-peligro-texto);
 }
 
@@ -66,7 +66,7 @@
 
 .contador {
   margin: var(--espacio-1) 0 0;
-  font-size: var(--texto-sm);
-  color: var(--color-texto-tenue);
+  font-size: var(--texto-md);
+  color: var(--color-texto-suave);
   text-align: right;
 }

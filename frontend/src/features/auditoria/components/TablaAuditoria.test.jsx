@@ -12,7 +12,7 @@ function construirRegistro(sobrescritura = {}) {
     fecha: '2026-09-18',
     hora: '17:55',
     usuario: { nombre: 'Prof. Quispe', rol: 'Docente', iniciales: 'PQ' },
-    modulo: { codigo: 'ASISTENCIA', etiqueta: 'Asistencia', tono: 'verde' },
+    modulo: { codigo: 'ASISTENCIA', etiqueta: 'Asistencia', tono: 'cian' },
     tipoTransaccion: 'Registró asistencia',
     valoresAntes: null,
     valoresDespues: [{ campo: 'Estado', valor: 'Tardanza' }],

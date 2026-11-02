@@ -1,14 +1,15 @@
 import estilos from './Insignia.module.css';
 
 const TONOS_VALIDOS = new Set([
-  'verde', 'azul', 'violeta', 'ambar', 'turquesa', 'indigo', 'gris', 'rosa', 'rojo', 'cian'
+  'verde', 'azul', 'violeta', 'ambar', 'turquesa', 'indigo', 'gris', 'rosa', 'rojo', 'cian',
+  'marino', 'acero', 'ciruela'
 ]);
 
 /**
  * Píldora de solo lectura (insignia de módulo, tipo de error, etc.).
  *
  * @param {Object} props
- * @param {string} props.tono Uno de los 10 tonos de MASTER; desconocido → `gris`.
+ * @param {string} props.tono Uno de los tonos de `tokens.css`; desconocido → `gris`.
  * @param {import('react').ReactNode} props.children
  * @param {string} [props.className]
  */

@@ -1,25 +1,28 @@
+import { Link } from 'react-router-dom';
+
 import Icono from '../../../shared/components/Icono.jsx';
 import estilosUtil from '../../../shared/styles/utilidades.module.css';
-import SelectorPerfil from './SelectorPerfil.jsx';
+import { RUTA_SOLICITAR_CODIGO } from '../../../shared/auth/constantesSesion.js';
+import { esCorreoValido } from '../utils/validacionLogin.js';
 import CampoContrasena from './CampoContrasena.jsx';
 import estilos from './FormularioLogin.module.css';
 
-const ID_IDENTIFICADOR = 'login-identificador';
-const ID_IDENTIFICADOR_ERROR = `${ID_IDENTIFICADOR}-error`;
+const ID_CORREO = 'login-correo';
+const ID_CORREO_ERROR = `${ID_CORREO}-error`;
 const ID_CONTRASENA = 'login-contrasena';
-const ID_AVISO_NO_DISPONIBLE = 'login-aviso-no-disponible';
 
 /**
  * Formulario de inicio de sesión: pinta los campos y delega todo en las
- * props. No valida ni llama servicios (docs/planes/login.md §4.3).
+ * props. No valida ni llama servicios (docs/planes/login.md §4.3, §U7). Sin
+ * selector de perfil: el login es solo con correo electrónico y contraseña,
+ * el rol lo determina el sistema a partir de la cuenta.
  *
  * @param {Object} props
- * @param {{ perfil: string, identificador: string, contrasena: string, recordar: boolean }} props.valores
- * @param {{ identificador?: string, contrasena?: string }} props.errores
+ * @param {{ correo: string, contrasena: string, recordar: boolean }} props.valores
+ * @param {{ correo?: string, contrasena?: string }} props.errores
  * @param {string|null} props.errorGeneral
  * @param {boolean} props.enviando
- * @param {Array} props.perfiles
- * @param {import('react').RefObject<HTMLInputElement>} props.refIdentificador
+ * @param {import('react').RefObject<HTMLInputElement>} props.refCorreo
  * @param {import('react').RefObject<HTMLInputElement>} props.refContrasena
  * @param {(nombre: string, valor: *) => void} props.alCambiarCampo
  * @param {(nombre: string) => void} props.alSalirDeCampo
@@ -30,58 +33,46 @@ export default function FormularioLogin({
   errores,
   errorGeneral,
   enviando,
-  perfiles,
-  refIdentificador,
+  refCorreo,
   refContrasena,
   alCambiarCampo,
   alSalirDeCampo,
   alEnviar
 }) {
-  const perfilSeleccionado = perfiles.find((perfil) => perfil.valor === valores.perfil);
-  const autoCompleteIdentificador = valores.recordar ? 'username' : 'off';
+  const autoCompleteCorreo = valores.recordar ? 'username' : 'off';
   const autoCompleteContrasena = valores.recordar ? 'current-password' : 'off';
 
   return (
     <form noValidate onSubmit={alEnviar} aria-busy={enviando} aria-labelledby="login-titulo" className={estilos.formulario}>
-      <SelectorPerfil
-        perfiles={perfiles}
-        valorSeleccionado={valores.perfil}
-        alSeleccionar={(valor) => alCambiarCampo('perfil', valor)}
-      />
-
-      <div className={estilos.separador} aria-hidden="true">
-        <span className={estilos.lineaSeparador} />
-        <span className={estilos.textoSeparador}>Credenciales</span>
-        <span className={estilos.lineaSeparador} />
-      </div>
-
       <div className={estilos.campo}>
-        <label htmlFor={ID_IDENTIFICADOR} className={estilos.etiquetaCampo}>
-          Correo electrónico o DNI
+        <label htmlFor={ID_CORREO} className={estilos.etiquetaCampo}>
+          Correo electrónico
         </label>
-        <div className={estilos.contenedorIdentificador}>
-          <Icono nombre="usuario" tamano={18} className={estilos.iconoIdentificador} />
+        <div className={estilos.contenedorCorreo}>
+          <Icono nombre="usuario" tamano={18} className={estilos.iconoCorreo} />
           <input
-            ref={refIdentificador}
-            id={ID_IDENTIFICADOR}
-            name="identificador"
-            type="text"
-            className={estilos.campoIdentificador}
-            value={valores.identificador}
-            autoComplete={autoCompleteIdentificador}
+            ref={refCorreo}
+            id={ID_CORREO}
+            name="correo"
+            type="email"
+            inputMode="email"
+            placeholder="Ingresa tu correo electrónico"
+            className={estilos.campoCorreo}
+            value={valores.correo}
+            autoComplete={autoCompleteCorreo}
             autoCapitalize="none"
             autoCorrect="off"
             spellCheck={false}
-            aria-invalid={errores.identificador ? 'true' : undefined}
-            aria-describedby={errores.identificador ? ID_IDENTIFICADOR_ERROR : undefined}
-            onChange={(evento) => alCambiarCampo('identificador', evento.target.value)}
-            onBlur={() => alSalirDeCampo('identificador')}
+            aria-invalid={errores.correo ? 'true' : undefined}
+            aria-describedby={errores.correo ? ID_CORREO_ERROR : undefined}
+            onChange={(evento) => alCambiarCampo('correo', evento.target.value)}
+            onBlur={() => alSalirDeCampo('correo')}
           />
         </div>
-        {errores.identificador && (
-          <p id={ID_IDENTIFICADOR_ERROR} className={estilos.mensajeError}>
+        {errores.correo && (
+          <p id={ID_CORREO_ERROR} className={estilos.mensajeError}>
             <Icono nombre="alerta" tamano={14} className={estilos.iconoError} />
-            {errores.identificador}
+            {errores.correo}
           </p>
         )}
       </div>
@@ -108,21 +99,14 @@ export default function FormularioLogin({
           />
           Recordar mi sesión
         </label>
-        <button
-          type="button"
-          className={estilos.enlaceNoDisponible}
-          aria-disabled="true"
-          aria-describedby={ID_AVISO_NO_DISPONIBLE}
-          title="Función no disponible por ahora"
-          // TODO(pregunta): enlazar a la pantalla de HU-SAT-03 cuando exista.
-          onClick={(evento) => evento.preventDefault()}
+        <Link
+          to={RUTA_SOLICITAR_CODIGO}
+          state={esCorreoValido(valores.correo.trim()) ? { correo: valores.correo.trim() } : undefined}
+          className={estilos.enlace}
         >
           ¿Olvidaste tu contraseña?
-        </button>
+        </Link>
       </div>
-      <span id={ID_AVISO_NO_DISPONIBLE} className={estilosUtil.ocultoVisualmente}>
-        Función no disponible por ahora.
-      </span>
 
       <div role="alert" className={errorGeneral ? estilos.alertaGeneral : undefined}>
         {errorGeneral && (
@@ -131,18 +115,6 @@ export default function FormularioLogin({
             <span>{errorGeneral}</span>
           </>
         )}
-      </div>
-
-      <div className={estilos.recuadroIngresandoComo}>
-        <span className={estilos.iconoIngresandoComo}>
-          <Icono nombre="escudo" tamano={18} />
-        </span>
-        <div>
-          <p className={estilos.rotuloIngresandoComo}>Ingresando como</p>
-          <p className={estilos.valorIngresandoComo}>
-            {perfilSeleccionado?.etiqueta ?? ''} — Colegio San Marcos
-          </p>
-        </div>
       </div>
 
       <button type="submit" className={estilos.botonEnviar} aria-disabled={enviando ? 'true' : undefined}>

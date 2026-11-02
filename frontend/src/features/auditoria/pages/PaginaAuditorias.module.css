@@ -38,7 +38,7 @@
   align-items: center;
   gap: var(--espacio-2);
   padding: var(--espacio-1) var(--espacio-3);
-  font-size: var(--texto-sm);
+  font-size: var(--texto-md);
   font-weight: var(--peso-seminegrita);
   white-space: nowrap;
   color: var(--color-exito-texto);
@@ -79,13 +79,14 @@
 }
 
 .etiquetaTipoTransaccion {
-  font-size: var(--texto-sm);
+  font-size: var(--texto-md);
   font-weight: var(--peso-medio);
   color: var(--color-texto-secundario);
 }
 
 .selectorTipoTransaccion {
   min-height: var(--tactil-min);
+  max-width: 100%;
   padding: 10px var(--espacio-3);
   font-size: var(--texto-base);
   color: var(--color-texto);
@@ -116,8 +117,8 @@
 
 .notaPie {
   margin: 0;
-  font-size: var(--texto-sm);
-  color: var(--color-texto-tenue);
+  font-size: var(--texto-md);
+  color: var(--color-texto-suave);
   text-align: left;
 }
 

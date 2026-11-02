@@ -9,7 +9,7 @@ import TablaLogErrores from '../components/TablaLogErrores.jsx';
 import useLogErrores, { OPCIONES_MODULO } from '../hooks/useLogErrores.js';
 import estilos from './PaginaLogErrores.module.css';
 
-const MENSAJE_VACIO = 'No se ha registrado ningún error que corresponda con los criterios indicados';
+const MENSAJE_VACIO = 'No se encontraron errores con los criterios indicados';
 
 /**
  * Página "Log de Errores del Sistema" (HU-SAT-05, HU-SAT-06 en lo que toca a

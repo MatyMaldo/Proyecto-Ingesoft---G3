@@ -1,4 +1,5 @@
 import { obtenerTonoModulo } from '../../../shared/constants/tonosModulo.js';
+import { ROLES } from '../../../shared/auth/roles.js';
 
 /**
  * Catálogo de categorías (módulos) de auditoría, en el orden del prototipo.
@@ -56,7 +57,7 @@ export function obtenerOpcionesFiltroCategoria() {
  * Observaciones §14 del plan); se mapea aquí porque el backend sí lo envía en los registros.
  */
 const MAPA_ETIQUETAS_ROL = Object.freeze({
-  ADMIN: 'Administrador',
+  [ROLES.ADMIN]: 'Administrador',
   DOCENTE: 'Docente',
   TUTOR: 'Tutor',
   ESTUDIANTE: 'Estudiante',

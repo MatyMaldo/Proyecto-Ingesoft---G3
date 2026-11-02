@@ -20,7 +20,7 @@
   min-width: 0;
   min-height: 0;
   overflow-y: auto;
-  padding: var(--espacio-10);
+  padding: var(--espacio-6);
 }
 
 .main:focus-visible {

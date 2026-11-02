@@ -34,3 +34,18 @@
   outline: 2px solid var(--color-foco);
   outline-offset: 2px;
 }
+
+/* Rejilla de 12 columnas del área principal (docs/gui/GUI-estandar.md §3; shell.md §20.7b,
+   2026-11-01). Cada página la adopta a su propio ritmo declarando `grid-column: span N`
+   en sus bloques; en < 768 px se apila (la tarjeta pasa a bloque normal). */
+.rejilla12 {
+  display: block;
+}
+
+@media (min-width: 768px) {
+  .rejilla12 {
+    display: grid;
+    grid-template-columns: repeat(12, minmax(0, 1fr));
+    gap: var(--espacio-6);
+  }
+}

@@ -2,7 +2,7 @@
   display: inline-flex;
   align-items: center;
   padding: var(--espacio-1) var(--espacio-3);
-  font-size: var(--texto-sm);
+  font-size: var(--texto-md);
   font-weight: var(--peso-seminegrita);
   line-height: 1.4;
   white-space: nowrap;

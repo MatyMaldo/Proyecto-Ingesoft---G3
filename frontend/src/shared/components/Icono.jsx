@@ -143,6 +143,11 @@ const CATALOGO_ICONOS = {
   ],
   verificar: [
     { tag: 'polyline', props: { points: '20 6 9 17 4 12' } }
+  ],
+  informacion: [
+    { tag: 'circle', props: { cx: 12, cy: 12, r: 10 } },
+    { tag: 'path', props: { d: 'M12 16v-4' } },
+    { tag: 'path', props: { d: 'M12 8h.01' } }
   ]
 };
 

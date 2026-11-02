@@ -76,7 +76,7 @@
   min-height: var(--tactil-min);
   padding: 0 var(--espacio-3);
   font: inherit;
-  font-size: var(--texto-sm);
+  font-size: var(--texto-md);
   font-weight: var(--peso-seminegrita);
   color: var(--color-primario-intenso);
   background: transparent;
@@ -98,7 +98,7 @@
   min-height: var(--tactil-min);
   padding: 0 var(--espacio-3);
   font: inherit;
-  font-size: var(--texto-sm);
+  font-size: var(--texto-md);
   font-weight: var(--peso-seminegrita);
   color: var(--color-peligro-texto);
   background: transparent;

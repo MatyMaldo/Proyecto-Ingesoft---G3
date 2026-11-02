@@ -1,0 +1,62 @@
+.pagina {
+  display: grid;
+  grid-template-columns: 1fr;
+  min-height: 100vh;
+  min-height: 100dvh;
+  background: var(--color-fondo);
+}
+
+@media (min-width: 1024px) {
+  .pagina {
+    grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+  }
+}
+
+.main {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: var(--espacio-4);
+}
+
+@media (min-width: 768px) {
+  .main {
+    padding: var(--espacio-6);
+  }
+}
+
+.tarjeta {
+  width: min(100%, var(--ancho-tarjeta-login));
+  padding: var(--espacio-4);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-sm);
+}
+
+@media (min-width: 768px) {
+  .tarjeta {
+    padding: var(--espacio-6);
+  }
+}
+
+@media (min-width: 1024px) {
+  .tarjeta {
+    padding: var(--espacio-8);
+  }
+}
+
+.titulo {
+  margin: 0 0 var(--espacio-2);
+  font-size: var(--texto-titulo);
+  line-height: var(--interlineado-titulo);
+  font-weight: var(--peso-negrita);
+  color: var(--color-texto);
+}
+
+.subtitulo {
+  margin: 0 0 var(--espacio-6);
+  font-size: var(--texto-base);
+  line-height: var(--interlineado-base);
+  color: var(--color-texto-suave);
+}

@@ -7,14 +7,15 @@ import estilosUtil from '../../../shared/styles/utilidades.module.css';
 import TablaAuditoria from '../components/TablaAuditoria.jsx';
 import DetalleTransaccion from '../components/DetalleTransaccion.jsx';
 import useAuditoria from '../hooks/useAuditoria.js';
-import { obtenerOpcionesFiltroCategoria } from '../constants/categoriasAuditoria.js';
-import { TIPOS_TRANSACCION_AUDITORIA } from '../constants/tiposTransaccionAuditoria.js';
+import { obtenerOpcionesFiltroCategoria, obtenerEtiquetaCategoria } from '../constants/categoriasAuditoria.js';
+import { GRUPOS_TIPOS_TRANSACCION_AUDITORIA } from '../constants/tiposTransaccionAuditoria.js';
 import estilos from './PaginaAuditorias.module.css';
 
 const OPCIONES_CATEGORIA = obtenerOpcionesFiltroCategoria();
 
 const MENSAJE_VACIO_TOTAL = 'Aún no hay registros de auditoría.';
-const MENSAJE_VACIO_FILTRADO = 'No hay registros de auditoría que coincidan con los filtros aplicados.';
+// Esc. 6 (HU-SAT-04, 2026-11-01): texto exacto, sin punto final (docs/planes/auditorias.md §B).
+const MENSAJE_VACIO_FILTRADO = 'No se encontraron registros de auditoría con los criterios indicados';
 
 /**
  * Texto de la insignia de cabecera: "{N} registros" (LAB05, D13: sin referencia a días,
@@ -107,6 +108,7 @@ export default function PaginaAuditorias() {
             <CampoBusqueda
               id="busqueda-auditorias"
               etiqueta="Buscar usuario, acción o módulo"
+              etiquetaVisible
               placeholder="Buscar usuario, acción o módulo..."
               valor={busqueda}
               alCambiar={establecerBusqueda}
@@ -124,10 +126,14 @@ export default function PaginaAuditorias() {
               onChange={(evento) => establecerTipoTransaccion(evento.target.value)}
             >
               <option value="">Todos los tipos</option>
-              {TIPOS_TRANSACCION_AUDITORIA.map((tipo) => (
-                <option key={tipo} value={tipo}>
-                  {tipo}
-                </option>
+              {GRUPOS_TIPOS_TRANSACCION_AUDITORIA.map((grupo) => (
+                <optgroup key={grupo.categoria} label={obtenerEtiquetaCategoria(grupo.categoria)}>
+                  {grupo.tipos.map((tipo) => (
+                    <option key={tipo} value={tipo}>
+                      {tipo}
+                    </option>
+                  ))}
+                </optgroup>
               ))}
             </select>
           </div>

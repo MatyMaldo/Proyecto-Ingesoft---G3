@@ -16,8 +16,8 @@
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: var(--espacio-3);
-  padding: var(--espacio-5);
+  gap: var(--espacio-2);
+  padding: var(--espacio-4);
   border-bottom: 1px solid var(--color-marca-borde);
   flex-shrink: 0;
 }
@@ -25,7 +25,7 @@
 .marca {
   display: flex;
   align-items: center;
-  gap: var(--espacio-3);
+  gap: var(--espacio-2);
 }
 
 .logo {
@@ -51,7 +51,7 @@
 
 .sistemaGestion {
   margin: 0;
-  font-size: var(--texto-sm);
+  font-size: var(--texto-md);
   color: var(--color-marca-texto-suave);
 }
 
@@ -84,7 +84,7 @@
 .navegacion {
   flex: 1 1 auto;
   overflow-y: auto;
-  padding: var(--espacio-5) var(--espacio-3);
+  padding: var(--espacio-4) var(--espacio-2);
 }
 
 .seccion {
@@ -97,9 +97,9 @@
 
 .rotuloSeccion {
   margin: 0 0 var(--espacio-2);
-  padding: 0 var(--espacio-3);
+  padding: 0 var(--espacio-2);
   font-size: var(--texto-xs);
-  font-weight: var(--peso-seminegrita);
+  font-weight: var(--peso-medio);
   letter-spacing: var(--espaciado-letra-ancho);
   text-transform: uppercase;
   color: var(--color-marca-seccion);
@@ -117,9 +117,9 @@
 .enlace {
   display: flex;
   align-items: center;
-  gap: var(--espacio-3);
+  gap: var(--espacio-2);
   min-height: var(--tactil-min);
-  padding: var(--espacio-2) var(--espacio-3);
+  padding: var(--espacio-2);
   font-size: var(--texto-base);
   color: var(--color-marca-texto-suave);
   text-decoration: none;
@@ -157,8 +157,8 @@
   flex-shrink: 0;
   display: flex;
   align-items: center;
-  gap: var(--espacio-3);
-  padding: var(--espacio-4) var(--espacio-5);
+  gap: var(--espacio-2);
+  padding: var(--espacio-4);
   border-top: 1px solid var(--color-marca-borde);
 }
 
@@ -186,11 +186,14 @@
   font-size: var(--texto-base);
   font-weight: var(--peso-medio);
   color: var(--color-marca-texto);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .detalleUsuario {
   margin: 0;
-  font-size: var(--texto-sm);
+  font-size: var(--texto-md);
   color: var(--color-marca-texto-suave);
   white-space: nowrap;
   overflow: hidden;

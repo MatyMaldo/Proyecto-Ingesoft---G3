@@ -1,7 +1,8 @@
 import estilos from './FiltroChips.module.css';
 
 const TONOS_VALIDOS = new Set([
-  'verde', 'azul', 'violeta', 'ambar', 'turquesa', 'indigo', 'gris', 'rosa', 'rojo', 'cian'
+  'verde', 'azul', 'violeta', 'ambar', 'turquesa', 'indigo', 'gris', 'rosa', 'rojo', 'cian',
+  'marino', 'acero', 'ciruela'
 ]);
 
 /**

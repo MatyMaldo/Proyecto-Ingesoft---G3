@@ -4,8 +4,8 @@ import userEvent from '@testing-library/user-event';
 
 import PaginaLogErrores from './PaginaLogErrores.jsx';
 
-describe('HU-SAT-06 · Mensaje exacto cuando ningún error cumple los filtros', () => {
-  it('muestra el texto exacto "No se ha registrado ningún error que corresponda con los criterios indicados"', async () => {
+describe('HU-SAT-05 · Mensaje exacto cuando ningún error cumple los filtros', () => {
+  it('muestra el texto exacto "No se encontraron errores con los criterios indicados"', async () => {
     const usuario = userEvent.setup();
     render(<PaginaLogErrores />);
 
@@ -27,9 +27,7 @@ describe('HU-SAT-06 · Mensaje exacto cuando ningún error cumple los filtros', 
     await waitFor(
       () =>
         expect(
-          screen.getByText(
-            'No se ha registrado ningún error que corresponda con los criterios indicados'
-          )
+          screen.getByText('No se encontraron errores con los criterios indicados')
         ).toBeInTheDocument(),
       { timeout: 3000 }
     );

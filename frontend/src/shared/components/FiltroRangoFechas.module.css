@@ -16,7 +16,7 @@
 }
 
 .etiqueta {
-  font-size: var(--texto-sm);
+  font-size: var(--texto-md);
   font-weight: var(--peso-medio);
   color: var(--color-texto-secundario);
 }
@@ -53,7 +53,7 @@
   flex: 1 1 100%;
   width: 100%;
   margin: 0;
-  font-size: var(--texto-sm);
+  font-size: var(--texto-md);
   color: var(--color-peligro-texto);
 }
 

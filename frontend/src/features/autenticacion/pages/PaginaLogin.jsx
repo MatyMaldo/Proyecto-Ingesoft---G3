@@ -19,8 +19,7 @@ export default function PaginaLogin() {
     errores,
     errorGeneral,
     enviando,
-    perfiles,
-    refIdentificador,
+    refCorreo,
     refContrasena,
     manejarCambioCampo,
     manejarSalidaCampo,
@@ -41,7 +40,7 @@ export default function PaginaLogin() {
             Iniciar sesión
           </h1>
           <p className={estilos.subtitulo}>
-            Selecciona tu perfil e ingresa tus credenciales institucionales
+            Ingresa tus credenciales institucionales
           </p>
 
           <FormularioLogin
@@ -49,8 +48,7 @@ export default function PaginaLogin() {
             errores={errores}
             errorGeneral={errorGeneral}
             enviando={enviando}
-            perfiles={perfiles}
-            refIdentificador={refIdentificador}
+            refCorreo={refCorreo}
             refContrasena={refContrasena}
             alCambiarCampo={manejarCambioCampo}
             alSalirDeCampo={manejarSalidaCampo}

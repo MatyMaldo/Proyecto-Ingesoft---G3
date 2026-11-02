@@ -1,25 +1,10 @@
-import {
-  IDENTIFICADOR_OBLIGATORIO,
-  IDENTIFICADOR_FORMATO,
-  CONTRASENA_OBLIGATORIA
-} from '../constants/mensajesLogin.js';
+import { CORREO_OBLIGATORIO, CORREO_FORMATO, CONTRASENA_OBLIGATORIA } from '../constants/mensajesLogin.js';
 
-const PATRON_DNI = /^\d{8}$/;
 const PATRON_CORREO = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
 /**
- * Valida que el texto sea un DNI peruano (exactamente 8 dígitos).
- *
- * @param {string} texto
- * @returns {boolean}
- */
-export function esDniValido(texto) {
-  return PATRON_DNI.test(texto);
-}
-
-/**
  * Valida que el texto sea un correo electrónico con formato válido, sin
- * restringir el dominio.
+ * restringir el dominio (docs/planes/login.md D31: formato genérico).
  *
  * @param {string} texto
  * @returns {boolean}
@@ -29,20 +14,20 @@ export function esCorreoValido(texto) {
 }
 
 /**
- * Valida el campo "Correo electrónico o DNI".
+ * Valida el campo "Correo electrónico".
  *
  * @param {string} valor
  * @returns {string | null} Mensaje de error, o `null` si es válido.
  */
-export function validarIdentificador(valor) {
+export function validarCorreo(valor) {
   const recortado = valor.trim();
 
   if (recortado.length === 0) {
-    return IDENTIFICADOR_OBLIGATORIO;
+    return CORREO_OBLIGATORIO;
   }
 
-  if (!esCorreoValido(recortado) && !esDniValido(recortado)) {
-    return IDENTIFICADOR_FORMATO;
+  if (!esCorreoValido(recortado)) {
+    return CORREO_FORMATO;
   }
 
   return null;
@@ -66,15 +51,15 @@ export function validarContrasena(valor) {
 /**
  * Valida los campos de credenciales antes de llamar al servicio.
  *
- * @param {{ identificador: string, contrasena: string }} valores
- * @returns {{ identificador?: string, contrasena?: string }} Objeto vacío si todo es válido.
+ * @param {{ correo: string, contrasena: string }} valores
+ * @returns {{ correo?: string, contrasena?: string }} Objeto vacío si todo es válido.
  */
-export function validarCredenciales({ identificador, contrasena }) {
+export function validarCredenciales({ correo, contrasena }) {
   const errores = {};
 
-  const errorIdentificador = validarIdentificador(identificador);
-  if (errorIdentificador) {
-    errores.identificador = errorIdentificador;
+  const errorCorreo = validarCorreo(correo);
+  if (errorCorreo) {
+    errores.correo = errorCorreo;
   }
 
   const errorContrasena = validarContrasena(contrasena);

@@ -16,7 +16,7 @@
 .tabla thead th {
   padding: var(--espacio-3) var(--espacio-4);
   text-align: left;
-  font-size: var(--texto-sm);
+  font-size: var(--texto-xs);
   font-weight: var(--peso-seminegrita);
   letter-spacing: var(--espaciado-letra-ancho);
   text-transform: uppercase;
@@ -130,7 +130,7 @@
   align-items: center;
   min-height: var(--tactil-min);
   padding: 0 var(--espacio-2);
-  font-size: var(--texto-sm);
+  font-size: var(--texto-md);
   font-weight: var(--peso-seminegrita);
   color: var(--color-primario);
   text-align: left;
@@ -143,6 +143,10 @@
 
 .botonHistorial:hover {
   text-decoration: underline;
+}
+
+.botonHistorial:active {
+  background: var(--color-accion-suave-activo);
 }
 
 .botonHistorial:focus-visible {
@@ -219,7 +223,7 @@
 }
 
 .pistaHistorial {
-  font-size: var(--texto-sm);
+  font-size: var(--texto-md);
   font-weight: var(--peso-seminegrita);
   color: var(--color-primario);
   white-space: nowrap;

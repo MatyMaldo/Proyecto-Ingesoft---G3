@@ -1,9 +1,10 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { solicitar } from './clienteHttp.js';
+import { solicitar, configurarCliente } from './clienteHttp.js';
 
 afterEach(() => {
   vi.unstubAllGlobals();
+  configurarCliente();
 });
 
 describe('cliente HTTP · formatos de respuesta exitosa del backend', () => {
@@ -39,5 +40,39 @@ describe('cliente HTTP · formatos de respuesta exitosa del backend', () => {
     });
 
     expect(respuesta).toEqual({ exitoso: true, datos: login, mensaje: '' });
+  });
+});
+
+describe('cliente HTTP · 401 con código de invalidación de sesión (docs/planes/login.md §U2)', () => {
+  it('expone el código de negocio en la respuesta y lo pasa a alSesionExpirada', async () => {
+    const alSesionExpirada = vi.fn();
+    configurarCliente({ obtenerToken: () => 'token-vigente', alSesionExpirada });
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({ error: 'Tu rol fue modificado.', codigo: 'SESION_ROL_MODIFICADO' }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } }
+    )));
+
+    const respuesta = await solicitar('/administracion/auditorias');
+
+    expect(respuesta.exitoso).toBe(false);
+    expect(respuesta.estado).toBe(401);
+    expect(respuesta.codigo).toBe('SESION_ROL_MODIFICADO');
+    expect(alSesionExpirada).toHaveBeenCalledWith({ estado: 401, codigo: 'SESION_ROL_MODIFICADO' });
+  });
+
+  it('pasa codigo: null cuando el backend no envía código de negocio', async () => {
+    const alSesionExpirada = vi.fn();
+    configurarCliente({ obtenerToken: () => 'token-vigente', alSesionExpirada });
+
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({ error: 'Sesión inválida.' }),
+      { status: 401, headers: { 'Content-Type': 'application/json' } }
+    )));
+
+    const respuesta = await solicitar('/administracion/auditorias');
+
+    expect(respuesta.codigo).toBeNull();
+    expect(alSesionExpirada).toHaveBeenCalledWith({ estado: 401, codigo: null });
   });
 });

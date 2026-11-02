@@ -10,29 +10,29 @@ const ERRORES = [
     fechaHora: '2026-09-19T08:33:00-05:00',
     modulo: 'NOTAS',
     operacion: 'Guardar calificación',
-    tipoError: 'ValidationError',
+    tipoError: 'Excepción no controlada',
     mensaje: 'Valor fuera de rango: se esperaba AD/A/B/C',
     usuario: 'Prof. García'
   },
-  // Decisión (2026-10-20): se mantienen "Autenticación" y "Reportes" tal cual en
-  // este registro y en el id 1, porque pertenecen a esos módulos; no se reasignan
-  // al catálogo de chips de Duda U4. Se muestran sin chip y con tono gris (código
-  // fuera del catálogo de filtro).
+  // Fallo de correo del restablecimiento de contraseña (HU-SAT-03/HU-SAT-06 LV8,
+  // actualización 2026-11-01, Duda U10 resuelta por `docs/frontend-contexto.md`):
+  // el módulo pasa de "AUTENTICACION" a "USUARIOS" y el usuario, al no haber sesión
+  // iniciada, se muestra como "No determinado" (regla única de usuario involucrado).
   {
     id: 8,
     fechaHora: '2026-09-18T19:47:00-05:00',
-    modulo: 'AUTENTICACION',
+    modulo: 'USUARIOS',
     operacion: 'Restablecer contraseña',
-    tipoError: 'MailSendException',
+    tipoError: 'Notificación por correo',
     mensaje: 'No se pudo enviar el correo de restablecimiento',
-    usuario: null
+    usuario: 'No determinado'
   },
   {
     id: 7,
     fechaHora: '2026-09-18T11:20:00-05:00',
     modulo: 'PAGOS',
     operacion: 'Registrar comprobante',
-    tipoError: 'FileStorageException',
+    tipoError: 'Excepción no controlada',
     mensaje: 'No se pudo almacenar el comprobante en el servidor',
     usuario: 'Sra. Ramírez'
   },
@@ -41,7 +41,7 @@ const ERRORES = [
     fechaHora: '2026-09-17T17:14:00-05:00',
     modulo: 'NOTAS',
     operacion: 'Exportar PDF',
-    tipoError: 'TimeoutException',
+    tipoError: 'Excepción no controlada',
     mensaje: 'Tiempo de espera agotado al generar el documento',
     usuario: 'Prof. Delgado'
   },
@@ -50,7 +50,7 @@ const ERRORES = [
     fechaHora: '2026-09-17T09:05:00-05:00',
     modulo: 'MATRICULAS',
     operacion: 'Confirmar matrícula',
-    tipoError: 'DataIntegrityViolationException',
+    tipoError: 'Excepción no controlada',
     mensaje: 'Ya existe una matrícula del estudiante en el periodo indicado',
     usuario: 'Administrador'
   },
@@ -59,7 +59,7 @@ const ERRORES = [
     fechaHora: '2026-09-16T15:38:00-05:00',
     modulo: 'HORARIOS',
     operacion: 'Asignar bloque horario',
-    tipoError: 'NullPointerException',
+    tipoError: 'Excepción no controlada',
     mensaje: 'Referencia nula al obtener el aula del bloque horario',
     usuario: 'Administrador'
   },
@@ -68,7 +68,7 @@ const ERRORES = [
     fechaHora: '2026-09-16T10:12:00-05:00',
     modulo: 'USUARIOS',
     operacion: 'Registrar usuario',
-    tipoError: 'TimeoutException',
+    tipoError: 'Excepción no controlada',
     mensaje: 'Tiempo de espera agotado al consultar la base de datos',
     usuario: 'Administrador'
   },
@@ -77,16 +77,20 @@ const ERRORES = [
     fechaHora: '2026-09-15T14:26:00-05:00',
     modulo: 'ASISTENCIA',
     operacion: 'Registrar asistencia',
-    tipoError: 'ValidationError',
+    tipoError: 'Excepción no controlada',
     mensaje: 'Estado de asistencia no reconocido: se esperaba Asistió, Tardanza o Falta',
     usuario: 'Prof. Quispe'
   },
+  // Reporte de inasistencias (HU-SAT-06 LV8, actualización 2026-11-01, Duda U10
+  // resuelta por `docs/frontend-contexto.md`): el módulo pasa de "REPORTES" a
+  // "ASISTENCIA" ("los errores de los reportes de inasistencias y tardanzas se
+  // registran en Asistencia").
   {
     id: 1,
     fechaHora: '2026-09-15T08:02:00-05:00',
-    modulo: 'REPORTES',
+    modulo: 'ASISTENCIA',
     operacion: 'Consultar reporte de asistencia',
-    tipoError: 'NullPointerException',
+    tipoError: 'Excepción no controlada',
     mensaje: 'Referencia nula al obtener el periodo académico',
     usuario: 'Est. Huamán'
   },
@@ -97,20 +101,92 @@ const ERRORES = [
     fechaHora: '2026-09-16T00:05:00-05:00',
     modulo: 'MATRICULAS',
     operacion: 'Cierre del periodo de matrícula',
-    tipoError: 'NullPointerException',
+    tipoError: 'Proceso automático',
     mensaje: 'Referencia nula al obtener el periodo de matrícula vigente',
     usuario: 'Sistema'
   },
-  // TODO(pregunta): usuario del fallo de correo (Duda U8). HU-SAT-06 E4 no lo menciona
-  // entre los campos registrados; se deja `null` (sin línea de usuario) hasta aclarar.
+  // Fallo del correo de notificación de un comprobante registrado (HU-SAT-06 E4,
+  // actualización 2026-11-01, Duda U8 resuelta por la regla única de usuario
+  // involucrado de HU-SAT-06 LV): el usuario es quien ejecutaba la operación
+  // original (id 7, "Sra. Ramírez"), no el destinatario del correo.
   {
     id: 11,
     fechaHora: '2026-09-18T11:21:00-05:00',
     modulo: 'PAGOS',
     operacion: 'Envío de notificación por correo',
-    tipoError: 'MailSendException',
+    tipoError: 'Notificación por correo',
     mensaje: 'No se pudo enviar el correo de notificación del comprobante registrado',
-    usuario: null
+    usuario: 'Sra. Ramírez'
+  },
+  // Registros agregados en la actualización 2026-11-01 (§A11.4 del plan): cubren
+  // Autenticación, Configuración, Otros, "No determinado" y un proceso automático
+  // fuera de Matrícula. Fechas anteriores al 15/09 para no alterar los casos de
+  // verificación existentes por rango de fechas.
+  {
+    id: 12,
+    fechaHora: '2026-09-14T18:40:00-05:00',
+    modulo: 'AUTENTICACION',
+    operacion: 'Iniciar sesión',
+    tipoError: 'Excepción no controlada',
+    mensaje: 'Tiempo de espera agotado al validar las credenciales',
+    usuario: 'No determinado'
+  },
+  {
+    id: 13,
+    fechaHora: '2026-09-14T10:15:00-05:00',
+    modulo: 'CONFIGURACION',
+    operacion: 'Registrar sección',
+    tipoError: 'Excepción no controlada',
+    mensaje: 'Referencia nula al obtener el grado de la sección',
+    usuario: 'Administrador'
+  },
+  {
+    id: 14,
+    fechaHora: '2026-09-13T23:00:00-05:00',
+    modulo: 'ASISTENCIA',
+    operacion: 'Asignación automática de Falta',
+    tipoError: 'Proceso automático',
+    mensaje: 'No se pudo procesar el cierre de la sesión de clase',
+    usuario: 'Sistema'
+  },
+  // Id 15 = correo del alta de una cuenta (usuario: el administrador que la
+  // registró). Id 16 = correo de "¿Olvidaste tu contraseña?" (sin sesión). Ambos
+  // en USUARIOS (HU-SAT-03 LV y HU-SAT-06 LV8).
+  {
+    id: 15,
+    fechaHora: '2026-09-12T16:20:00-05:00',
+    modulo: 'USUARIOS',
+    operacion: 'Envío de código de verificación',
+    tipoError: 'Notificación por correo',
+    mensaje: 'No se pudo enviar el correo con el código de verificación',
+    usuario: 'Administrador'
+  },
+  {
+    id: 16,
+    fechaHora: '2026-09-12T07:55:00-05:00',
+    modulo: 'USUARIOS',
+    operacion: 'Envío de código de verificación',
+    tipoError: 'Notificación por correo',
+    mensaje: 'No se pudo enviar el correo con el código de verificación',
+    usuario: 'No determinado'
+  },
+  {
+    id: 17,
+    fechaHora: '2026-09-11T12:30:00-05:00',
+    modulo: 'OTROS',
+    operacion: 'Cargar pantalla principal',
+    tipoError: 'Excepción no controlada',
+    mensaje: 'Referencia nula al cargar las opciones del rol',
+    usuario: 'Prof. Quispe'
+  },
+  {
+    id: 18,
+    fechaHora: '2026-09-10T09:00:00-05:00',
+    modulo: 'AUTENTICACION',
+    operacion: 'Cerrar sesión',
+    tipoError: 'Excepción no controlada',
+    mensaje: 'Error al invalidar la sesión',
+    usuario: 'Prof. García'
   }
 ];
 
@@ -201,11 +277,14 @@ export async function obtenerResumenErroresMock() {
     };
   }
 
+const USUARIOS_NO_CONTABLES = new Set(['Sistema', 'No determinado']);
+
   const modulos = new Set(ERRORES.map((registro) => registro.modulo));
   // "Sistema" no cuenta como usuario involucrado (decisión del dueño del producto,
-  // 2026-10-20, Duda U5): es un proceso automático, no una persona.
+  // 2026-10-20, Duda U5). "No determinado" tampoco (extensión de esa decisión,
+  // actualización 2026-11-01, §A11.4): ninguno de los dos es una persona.
   const usuarios = new Set(
-    ERRORES.map((registro) => registro.usuario).filter((usuario) => usuario && usuario !== 'Sistema')
+    ERRORES.map((registro) => registro.usuario).filter((usuario) => usuario && !USUARIOS_NO_CONTABLES.has(usuario))
   );
   const ordenadasPorFecha = [...ERRORES].sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora));
 

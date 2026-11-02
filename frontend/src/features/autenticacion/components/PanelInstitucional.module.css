@@ -25,7 +25,7 @@
 
 .sobretitulo {
   margin: 0 0 var(--espacio-2);
-  font-size: var(--texto-sm);
+  font-size: var(--texto-xs);
   font-weight: var(--peso-seminegrita);
   letter-spacing: var(--espaciado-letra-ancho);
   text-transform: uppercase;
@@ -56,7 +56,7 @@
 
 .rotuloPerfiles {
   margin: 0 0 var(--espacio-3);
-  font-size: var(--texto-sm);
+  font-size: var(--texto-xs);
   font-weight: var(--peso-medio);
   letter-spacing: var(--espaciado-letra-ancho);
   text-transform: uppercase;
@@ -74,7 +74,7 @@
 
 .pildora {
   padding: var(--espacio-1) var(--espacio-4);
-  font-size: var(--texto-sm);
+  font-size: var(--texto-md);
   color: var(--color-marca-texto);
   background: var(--color-marca-icono-fondo);
   border: 1px solid var(--color-marca-borde);

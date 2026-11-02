@@ -2,9 +2,11 @@ import { Routes, Route, Link, Navigate } from 'react-router-dom';
 
 import PaginaAsistencia from '../../pages/Asistencia/PaginaAsistencia.jsx';
 import PaginaLogin from '../../features/autenticacion/pages/PaginaLogin.jsx';
+import PaginaSolicitarCodigo from '../../features/autenticacion/pages/PaginaSolicitarCodigo.jsx';
+import PaginaRestablecerContrasena from '../../features/autenticacion/pages/PaginaRestablecerContrasena.jsx';
 import RutaProtegida from '../../shared/auth/RutaProtegida.jsx';
 import RutaPublica from '../../shared/auth/RutaPublica.jsx';
-import { RUTA_LOGIN } from '../../shared/auth/constantesSesion.js';
+import { RUTA_LOGIN, RUTA_SOLICITAR_CODIGO, RUTA_RESTABLECER_CONTRASENA } from '../../shared/auth/constantesSesion.js';
 import useAuth from '../../shared/auth/useAuth.js';
 import LimiteErrores from '../../shared/components/LimiteErrores.jsx';
 import ModuloEnConstruccion from '../../shared/components/ModuloEnConstruccion.jsx';
@@ -14,7 +16,13 @@ import LayoutPrincipal from '../layout/LayoutPrincipal.jsx';
 import { obtenerItemsNavegacion, RUTA_INICIO_POR_ROL } from '../navegacion/navegacion.config.js';
 
 const RUTA_ASISTENCIA = '/asistencia';
-const RUTAS_RESERVADAS = new Set(['/', RUTA_ASISTENCIA, RUTA_LOGIN]);
+const RUTAS_RESERVADAS = new Set([
+  '/',
+  RUTA_ASISTENCIA,
+  RUTA_LOGIN,
+  RUTA_SOLICITAR_CODIGO,
+  RUTA_RESTABLECER_CONTRASENA
+]);
 
 /**
  * Quita la barra final (`'/usuarios/'` ≡ `'/usuarios'`) y normaliza la raíz (`''` → `'/'`).
@@ -188,6 +196,28 @@ export default function RutasAplicacion() {
           <RutaPublica>
             <LimiteErrores clave={RUTA_LOGIN}>
               <PaginaLogin />
+            </LimiteErrores>
+          </RutaPublica>
+        }
+      />
+
+      <Route
+        path={RUTA_SOLICITAR_CODIGO}
+        element={
+          <RutaPublica>
+            <LimiteErrores clave={RUTA_SOLICITAR_CODIGO}>
+              <PaginaSolicitarCodigo />
+            </LimiteErrores>
+          </RutaPublica>
+        }
+      />
+
+      <Route
+        path={RUTA_RESTABLECER_CONTRASENA}
+        element={
+          <RutaPublica>
+            <LimiteErrores clave={RUTA_RESTABLECER_CONTRASENA}>
+              <PaginaRestablecerContrasena />
             </LimiteErrores>
           </RutaPublica>
         }

@@ -14,7 +14,7 @@
 
 .sobretitulo {
   margin: 0 0 var(--espacio-2);
-  font-size: var(--texto-sm);
+  font-size: var(--texto-xs);
   font-weight: var(--peso-seminegrita);
   color: var(--color-texto-suave);
   text-transform: uppercase;
@@ -33,7 +33,7 @@
   align-items: center;
   gap: var(--espacio-2);
   padding: var(--espacio-2) var(--espacio-4);
-  font-size: var(--texto-sm);
+  font-size: var(--texto-md);
   font-weight: var(--peso-seminegrita);
   white-space: nowrap;
   color: var(--color-peligro-texto);
@@ -71,14 +71,14 @@
 .actualizando {
   margin: 0;
   padding: var(--espacio-3) var(--espacio-4) 0;
-  font-size: var(--texto-sm);
+  font-size: var(--texto-md);
   color: var(--color-texto-suave);
 }
 
 .notaPie {
   margin: 0;
-  font-size: var(--texto-sm);
-  color: var(--color-texto-tenue);
+  font-size: var(--texto-md);
+  color: var(--color-texto-suave);
   text-align: right;
 }
 

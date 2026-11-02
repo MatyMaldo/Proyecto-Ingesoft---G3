@@ -838,16 +838,6 @@ function PaginaUsuarios() {
           {toast.mensaje}
         </div>)}
 
-      {/* Breadcrumb */}
-      <nav style={{ display: 'flex', alignItems: 'center', gap: 6, marginBottom: 24 }}>
-        {['Inicio', 'Usuarios'].map((crumb, i, arr) => (<span key={crumb} style={{ display: 'flex', alignItems: 'center', gap: 6 }}>
-            <span onClick={() => i === 0 && onNavigate('inicio')} style={{ fontSize: 12, color: i === arr.length - 1 ? '#00236f' : '#94a3b8', fontWeight: i === arr.length - 1 ? 600 : 400, cursor: i < arr.length - 1 ? 'pointer' : 'default' }} onMouseEnter={e => { if (i < arr.length - 1)
-            e.currentTarget.style.color = '#475569'; }} onMouseLeave={e => { if (i < arr.length - 1)
-            e.currentTarget.style.color = '#94a3b8'; }}>{crumb}</span>
-            {i < arr.length - 1 && <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="#cbd5e1" strokeWidth="2" strokeLinecap="round"><polyline points="9 18 15 12 9 6"/></svg>}
-          </span>))}
-      </nav>
-
       {/* Page header */}
       <div style={{ marginBottom: 24 }}>
         <h1 style={{ fontSize: 24, fontWeight: 700, color: '#121c2a', letterSpacing: '-0.02em', margin: '0 0 6px' }}>Usuarios</h1>

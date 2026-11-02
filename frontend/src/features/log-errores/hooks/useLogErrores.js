@@ -6,41 +6,59 @@ import { obtenerMensajeRangoFechas } from '../../../shared/utils/rangoFechas.js'
 import { obtenerErrores, obtenerResumenErrores } from '../services/logErroresService.js';
 
 /**
- * Opciones del filtro de módulo (`FiltroChips`). Catálogo corregido (decisión del
- * dueño del producto, 2026-10-20, Duda U4 de `docs/planes/log-errores.md`): sigue
- * HU-SAT-05 LV3 ("Usuarios, Matrícula, Pagos, Asistencia, Notas, Horarios,
- * Configuración u Otros"), sin "Autenticación" ni "Reportes".
+ * Opciones del filtro de módulo (`FiltroChips`). Catálogo cerrado de 9 módulos
+ * (HU-SAT-05 LV y HU-SAT-06 LV vigentes, `docs/frontend-contexto.md` "Log de
+ * errores"): Usuarios, Matrícula, Pagos, Asistencia, Notas, Horarios,
+ * Configuración, Autenticación u Otros (Duda U9 de `docs/planes/log-errores.md`
+ * resuelta: se agrega "Autenticación" entre Configuración y Otros, orden de la HU).
  * El valor `'TODOS'` identifica el chip "Todos" (ajuste aprobado en `shell.md` §19).
- * "Configuración" y "Otros" usan tono `gris` provisional: MASTER.md no les asigna
- * tono todavía (mismo criterio que `CONFIGURACION` en `auditorias.md` D8).
+ * El tono de cada módulo se obtiene de `TONOS_MODULO` (shell.md §20.4, 2026-11-01)
+ * para no duplicar el mapa módulo → tono; "Otros" no está en `TONOS_MODULO` y cae
+ * al tono por defecto (`gris`), igual que "Autenticación" (decisión G-3 de
+ * `shell.md` §20.9: se mantiene en gris, no en el `rojo` que proponía este plan).
  */
 export const OPCIONES_MODULO = [
   { valor: 'TODOS', etiqueta: 'Todos' },
-  { valor: 'USUARIOS', etiqueta: 'Usuarios', tono: 'violeta' },
-  { valor: 'MATRICULAS', etiqueta: 'Matrícula', tono: 'ambar' },
-  { valor: 'PAGOS', etiqueta: 'Pagos', tono: 'turquesa' },
-  { valor: 'ASISTENCIA', etiqueta: 'Asistencia', tono: 'verde' },
-  { valor: 'NOTAS', etiqueta: 'Notas', tono: 'azul' },
-  { valor: 'HORARIOS', etiqueta: 'Horarios', tono: 'indigo' },
-  { valor: 'CONFIGURACION', etiqueta: 'Configuración', tono: 'gris' },
-  { valor: 'OTROS', etiqueta: 'Otros', tono: 'gris' }
+  { valor: 'USUARIOS', etiqueta: 'Usuarios', tono: obtenerTonoModulo('USUARIOS') },
+  { valor: 'MATRICULAS', etiqueta: 'Matrícula', tono: obtenerTonoModulo('MATRICULAS') },
+  { valor: 'PAGOS', etiqueta: 'Pagos', tono: obtenerTonoModulo('PAGOS') },
+  { valor: 'ASISTENCIA', etiqueta: 'Asistencia', tono: obtenerTonoModulo('ASISTENCIA') },
+  { valor: 'NOTAS', etiqueta: 'Notas', tono: obtenerTonoModulo('NOTAS') },
+  { valor: 'HORARIOS', etiqueta: 'Horarios', tono: obtenerTonoModulo('HORARIOS') },
+  { valor: 'CONFIGURACION', etiqueta: 'Configuración', tono: obtenerTonoModulo('CONFIGURACION') },
+  { valor: 'AUTENTICACION', etiqueta: 'Autenticación', tono: obtenerTonoModulo('AUTENTICACION') },
+  { valor: 'OTROS', etiqueta: 'Otros', tono: obtenerTonoModulo('OTROS') }
 ];
 
-const ETIQUETAS_MODULO = Object.fromEntries(
-  OPCIONES_MODULO.filter((opcion) => opcion.valor !== 'TODOS').map((opcion) => [opcion.valor, opcion.etiqueta])
-);
+/**
+ * Etiqueta de cada módulo del catálogo cerrado de 9 de HU-SAT-06 LV (actualización
+ * 2026-11-01, §A11.2 de `docs/planes/log-errores.md`). Es una constante explícita
+ * y no se deriva de `OPCIONES_MODULO` para mantener el orden propio de la HU. Un
+ * código fuera de esta lista se muestra tal cual, con tono `gris`
+ * (`obtenerTonoModulo`).
+ */
+const ETIQUETAS_MODULO = {
+  USUARIOS: 'Usuarios',
+  MATRICULAS: 'Matrícula',
+  PAGOS: 'Pagos',
+  ASISTENCIA: 'Asistencia',
+  NOTAS: 'Notas',
+  HORARIOS: 'Horarios',
+  CONFIGURACION: 'Configuración',
+  AUTENTICACION: 'Autenticación',
+  OTROS: 'Otros'
+};
 
 /**
- * Tono de cada tipo de error reconocido. Cualquier otro usa `'gris'` (tono por
- * defecto de MASTER).
+ * Tono de cada tipo de error. Clasificación cerrada de tres valores (HU-SAT-05 LV y
+ * HU-SAT-06 LV, actualización 2026-11-01, §A11.1): el texto es el que envía la API
+ * en `tipoError` (contrato propuesto, Duda U15). Cualquier otro valor usa `'gris'`
+ * (tono por defecto).
  */
 export const TONOS_TIPO_ERROR = {
-  ValidationError: 'ambar',
-  TimeoutException: 'cian',
-  NullPointerException: 'rojo',
-  DataIntegrityViolationException: 'violeta',
-  MailSendException: 'rosa',
-  FileStorageException: 'indigo'
+  'Excepción no controlada': 'rosa',
+  'Proceso automático': 'gris',
+  'Notificación por correo': 'cian'
 };
 
 const DEBOUNCE_BUSQUEDA_MS = 300;
@@ -53,6 +71,11 @@ function obtenerTonoTipoError(tipoError) {
  * Adapta un registro crudo de la API/mock a la forma que consume `TablaLogErrores`.
  * Copia solo los campos de la lista cerrada: cualquier campo extra del backend
  * (por ejemplo `traza`, `stackTrace`, `payload`) se descarta aquí.
+ *
+ * `usuario` siempre resulta en un texto (nunca `null`): la regla única de
+ * HU-SAT-06 LV (actualización 2026-11-01, §A11.1) exige mostrar "No determinado"
+ * cuando no había sesión iniciada. Si por algún motivo la API no envía el campo,
+ * se usa el mismo texto de forma defensiva (Duda U17).
  */
 function adaptarFilaError(registro) {
   const { fecha, hora } = formatearFechaHora(registro.fechaHora);
@@ -68,7 +91,7 @@ function adaptarFilaError(registro) {
     tipoError: registro.tipoError,
     tipoErrorTono: obtenerTonoTipoError(registro.tipoError),
     mensaje: registro.mensaje,
-    usuario: registro.usuario ?? null
+    usuario: registro.usuario ?? 'No determinado'
   };
 }
 

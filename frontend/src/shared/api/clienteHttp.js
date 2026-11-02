@@ -61,7 +61,8 @@ async function analizarJson(respuesta) {
  *
  * @param {Object} [config]
  * @param {() => (string|null)} [config.obtenerToken] - Devuelve el JWT vigente, o `null` si no hay sesión.
- * @param {() => void} [config.alSesionExpirada] - Se invoca ante una respuesta 401.
+ * @param {(info: { estado: number, codigo: string|null }) => void} [config.alSesionExpirada] - Se invoca ante una
+ *   respuesta 401, con el código de invalidación si el backend lo envió (docs/planes/login.md §U2).
  */
 export function configurarCliente({
   obtenerToken: fnObtenerToken = () => null,
@@ -86,6 +87,7 @@ export function configurarCliente({
  * @property {*} datos
  * @property {string} mensaje
  * @property {number} [estado] - Código HTTP de la respuesta, solo presente si `exitoso` es `false` por un error del servidor.
+ * @property {string|null} [codigo] - Código de negocio del error (`json.codigo`), cuando `exitoso` es `false` (docs/planes/login.md §U2).
  * @property {boolean} [cancelada] - `true` si la solicitud se canceló por la señal externa.
  */
 
@@ -141,14 +143,16 @@ export async function solicitar(ruta, opciones = {}) {
     const json = await analizarJson(respuesta);
 
     if (!respuesta.ok) {
+      const codigo = json?.codigo ?? null;
       if (respuesta.status === 401) {
-        alSesionExpirada();
+        alSesionExpirada({ estado: respuesta.status, codigo });
       }
       return {
         exitoso: false,
         datos: null,
         mensaje: json?.error ?? json?.mensaje ?? 'No se pudo completar la operación.',
-        estado: respuesta.status
+        estado: respuesta.status,
+        codigo
       };
     }
 

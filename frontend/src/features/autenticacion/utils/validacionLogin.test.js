@@ -1,43 +1,27 @@
 import { describe, it, expect } from 'vitest';
 
-import {
-  esDniValido,
-  esCorreoValido,
-  validarIdentificador,
-  validarContrasena,
-  validarCredenciales
-} from './validacionLogin.js';
-import {
-  IDENTIFICADOR_OBLIGATORIO,
-  IDENTIFICADOR_FORMATO,
-  CONTRASENA_OBLIGATORIA
-} from '../constants/mensajesLogin.js';
+import { esCorreoValido, validarCorreo, validarContrasena, validarCredenciales } from './validacionLogin.js';
+import { CORREO_OBLIGATORIO, CORREO_FORMATO, CONTRASENA_OBLIGATORIA } from '../constants/mensajesLogin.js';
 
-describe('HU-SAT-07 · Escenario 4: campos vacíos o identificador con formato inválido', () => {
-  it('reconoce un DNI válido de 8 dígitos', () => {
-    expect(esDniValido('00000001')).toBe(true);
-    expect(esDniValido('123')).toBe(false);
-    expect(esDniValido('123456789')).toBe(false);
-  });
-
+describe('HU-SAT-07 · Escenario 4: campos vacíos o correo con formato inválido', () => {
   it('reconoce un correo electrónico válido', () => {
     expect(esCorreoValido('admin@sanmarcos.edu.pe')).toBe(true);
     expect(esCorreoValido('no-es-correo')).toBe(false);
   });
 
-  it('indica el campo a corregir cuando el identificador está vacío', () => {
-    expect(validarIdentificador('')).toBe(IDENTIFICADOR_OBLIGATORIO);
-    expect(validarIdentificador('   ')).toBe(IDENTIFICADOR_OBLIGATORIO);
+  it('indica el campo a corregir cuando el correo está vacío', () => {
+    expect(validarCorreo('')).toBe(CORREO_OBLIGATORIO);
+    expect(validarCorreo('   ')).toBe(CORREO_OBLIGATORIO);
   });
 
-  it('indica el campo a corregir cuando el identificador no es un correo válido ni un DNI de 8 dígitos', () => {
-    expect(validarIdentificador('123')).toBe(IDENTIFICADOR_FORMATO);
-    expect(validarIdentificador('correo-invalido')).toBe(IDENTIFICADOR_FORMATO);
+  it('indica el campo a corregir cuando el correo no tiene formato válido', () => {
+    expect(validarCorreo('123')).toBe(CORREO_FORMATO);
+    expect(validarCorreo('correo-invalido')).toBe(CORREO_FORMATO);
+    expect(validarCorreo('admin@')).toBe(CORREO_FORMATO);
   });
 
-  it('no marca error cuando el identificador es un correo o un DNI válidos', () => {
-    expect(validarIdentificador('admin@sanmarcos.edu.pe')).toBeNull();
-    expect(validarIdentificador('00000001')).toBeNull();
+  it('no marca error cuando el correo es válido', () => {
+    expect(validarCorreo('admin@sanmarcos.edu.pe')).toBeNull();
   });
 
   it('indica el campo a corregir cuando la contraseña está vacía', () => {
@@ -49,14 +33,14 @@ describe('HU-SAT-07 · Escenario 4: campos vacíos o identificador con formato i
   });
 
   it('no intenta autenticar (no hay error) cuando ambos campos son válidos', () => {
-    const errores = validarCredenciales({ identificador: 'admin@sanmarcos.edu.pe', contrasena: 'Admin2026!' });
+    const errores = validarCredenciales({ correo: 'admin@sanmarcos.edu.pe', contrasena: 'Admin2026!' });
     expect(errores).toEqual({});
   });
 
   it('reporta los dos campos cuando ambos están vacíos', () => {
-    const errores = validarCredenciales({ identificador: '', contrasena: '' });
+    const errores = validarCredenciales({ correo: '', contrasena: '' });
     expect(errores).toEqual({
-      identificador: IDENTIFICADOR_OBLIGATORIO,
+      correo: CORREO_OBLIGATORIO,
       contrasena: CONTRASENA_OBLIGATORIA
     });
   });

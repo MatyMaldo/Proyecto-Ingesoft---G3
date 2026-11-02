@@ -64,7 +64,7 @@
   align-items: center;
   gap: var(--espacio-1);
   margin: 0;
-  font-size: var(--texto-sm);
+  font-size: var(--texto-md);
   color: var(--color-texto-suave);
 }
 
@@ -85,6 +85,10 @@
 
 .botonCerrar:hover {
   background: var(--color-superficie-suave);
+}
+
+.botonCerrar:active {
+  background: var(--color-accion-suave-activo);
 }
 
 .botonCerrar:focus-visible {
@@ -150,13 +154,13 @@
 
 .mensajeVacio {
   margin: 0;
-  font-size: var(--texto-sm);
+  font-size: var(--texto-md);
   color: var(--color-texto-suave);
 }
 
 .subtituloHistorial {
   margin: 0 0 var(--espacio-3);
-  font-size: var(--texto-sm);
+  font-size: var(--texto-md);
   color: var(--color-texto-suave);
 }
 
@@ -208,6 +212,6 @@
 
 .usuarioHistorial {
   margin: 0;
-  font-size: var(--texto-sm);
+  font-size: var(--texto-md);
   color: var(--color-texto-secundario);
 }

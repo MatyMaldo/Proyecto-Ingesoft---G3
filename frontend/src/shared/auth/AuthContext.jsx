@@ -2,7 +2,7 @@ import { createContext, useLayoutEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 
 import { ETIQUETAS_ROL } from './roles.js';
-import { RUTA_LOGIN } from './constantesSesion.js';
+import { RUTA_LOGIN, MOTIVOS_CIERRE_SESION } from './constantesSesion.js';
 import {
   leerSesionAlmacenada,
   guardarSesionAlmacenada,
@@ -35,14 +35,20 @@ export function AuthProvider({ children }) {
   // de layout del padre corren antes que los efectos normales de los hijos.
   // Ninguna página debe pedir datos en `useLayoutEffect`.
   useLayoutEffect(() => {
-    const manejarSesionExpirada = () => {
+    const manejarSesionExpirada = (info) => {
       // Si no hay token, el 401 viene del propio login: no hay sesión que cerrar.
       if (!obtenerTokenAlmacenado()) {
         return;
       }
       borrarSesionAlmacenada();
       establecerSesionEstado(null);
-      navigate(RUTA_LOGIN, { replace: true });
+      // Esc. 9-11 (docs/planes/login.md §U2): si el backend envió un código de
+      // invalidación conocido, se pasa como `state` para que el login muestre
+      // el mensaje correspondiente. Un código ausente o desconocido se
+      // comporta como hoy: cierre silencioso, sin mensaje.
+      const motivoCierre =
+        info?.codigo && MOTIVOS_CIERRE_SESION.includes(info.codigo) ? info.codigo : undefined;
+      navigate(RUTA_LOGIN, { replace: true, state: motivoCierre ? { motivoCierre } : undefined });
     };
 
     configurarCliente({

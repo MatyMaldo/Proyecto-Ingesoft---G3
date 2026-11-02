@@ -20,7 +20,7 @@
   justify-content: center;
   height: calc(var(--tactil-min) - var(--espacio-2));
   padding: 0 var(--espacio-4);
-  font-size: var(--texto-sm);
+  font-size: var(--texto-md);
   font-weight: var(--peso-medio);
   white-space: nowrap;
   color: var(--color-texto-secundario);
@@ -53,6 +53,11 @@
 
 .chip:hover {
   border-color: var(--color-borde-fuerte);
+  background: var(--color-accion-suave);
+}
+
+.chip:active {
+  background: var(--color-accion-suave-activo);
 }
 
 .chip:focus-visible {
