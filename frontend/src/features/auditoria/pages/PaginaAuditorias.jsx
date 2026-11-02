@@ -1,5 +1,4 @@
 import CampoBusqueda from '../../../shared/components/CampoBusqueda.jsx';
-import FiltroChips from '../../../shared/components/FiltroChips.jsx';
 import FiltroRangoFechas from '../../../shared/components/FiltroRangoFechas.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
@@ -7,8 +6,8 @@ import estilosUtil from '../../../shared/styles/utilidades.module.css';
 import TablaAuditoria from '../components/TablaAuditoria.jsx';
 import DetalleTransaccion from '../components/DetalleTransaccion.jsx';
 import useAuditoria from '../hooks/useAuditoria.js';
-import { obtenerOpcionesFiltroCategoria, obtenerEtiquetaCategoria } from '../constants/categoriasAuditoria.js';
-import { GRUPOS_TIPOS_TRANSACCION_AUDITORIA } from '../constants/tiposTransaccionAuditoria.js';
+import { obtenerOpcionesFiltroCategoria } from '../constants/categoriasAuditoria.js';
+import { obtenerTiposDeCategoria } from '../constants/tiposTransaccionAuditoria.js';
 import estilos from './PaginaAuditorias.module.css';
 
 const OPCIONES_CATEGORIA = obtenerOpcionesFiltroCategoria();
@@ -55,6 +54,7 @@ export default function PaginaAuditorias() {
     detalle
   } = useAuditoria();
 
+  const tiposDelModulo = obtenerTiposDeCategoria(categoria);
   const textoMostrandoAhora = mostrandoAhora === 1 ? '1 registro' : `${mostrandoAhora} registros`;
   const mensajeVacio = resumen && resumen.totalAcciones === 0 ? MENSAJE_VACIO_TOTAL : MENSAJE_VACIO_FILTRADO;
 
@@ -89,6 +89,24 @@ export default function PaginaAuditorias() {
           </div>
 
           <div className={estilos.campoTipoTransaccion}>
+            <label htmlFor="modulo-auditorias" className={estilos.etiquetaTipoTransaccion}>
+              Módulo
+            </label>
+            <select
+              id="modulo-auditorias"
+              className={estilos.selectorTipoTransaccion}
+              value={categoria}
+              onChange={(evento) => establecerCategoria(evento.target.value)}
+            >
+              {OPCIONES_CATEGORIA.map((opcion) => (
+                <option key={opcion.valor} value={opcion.valor}>
+                  {opcion.valor === 'TODOS' ? 'Todos los módulos' : opcion.etiqueta}
+                </option>
+              ))}
+            </select>
+          </div>
+
+          <div className={estilos.campoTipoTransaccion}>
             <label htmlFor="tipo-transaccion-auditorias" className={estilos.etiquetaTipoTransaccion}>
               Tipo de transacción
             </label>
@@ -96,17 +114,16 @@ export default function PaginaAuditorias() {
               id="tipo-transaccion-auditorias"
               className={estilos.selectorTipoTransaccion}
               value={tipoTransaccion}
+              disabled={tiposDelModulo.length === 0}
               onChange={(evento) => establecerTipoTransaccion(evento.target.value)}
             >
-              <option value="">Todos los tipos</option>
-              {GRUPOS_TIPOS_TRANSACCION_AUDITORIA.map((grupo) => (
-                <optgroup key={grupo.categoria} label={obtenerEtiquetaCategoria(grupo.categoria)}>
-                  {grupo.tipos.map((tipo) => (
-                    <option key={tipo} value={tipo}>
-                      {tipo}
-                    </option>
-                  ))}
-                </optgroup>
+              <option value="">
+                {tiposDelModulo.length === 0 ? 'Elige un módulo primero' : 'Todos los tipos'}
+              </option>
+              {tiposDelModulo.map((tipo) => (
+                <option key={tipo} value={tipo}>
+                  {tipo}
+                </option>
               ))}
             </select>
           </div>
@@ -120,12 +137,6 @@ export default function PaginaAuditorias() {
           />
         </div>
 
-        <FiltroChips
-          etiquetaGrupo="Filtrar por módulo"
-          opciones={OPCIONES_CATEGORIA}
-          valorSeleccionado={categoria}
-          alSeleccionar={establecerCategoria}
-        />
       </section>
 
       <p className={estilos.notaPie}>

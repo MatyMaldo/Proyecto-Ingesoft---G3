@@ -96,7 +96,13 @@
   cursor: pointer;
 }
 
-.selectorTipoTransaccion:hover {
+.selectorTipoTransaccion:disabled {
+  color: var(--color-texto-suave);
+  background: var(--color-superficie-suave);
+  cursor: not-allowed;
+}
+
+.selectorTipoTransaccion:hover:not(:disabled) {
   border-color: var(--color-borde-fuerte);
 }
 

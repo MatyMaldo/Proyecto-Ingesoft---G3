@@ -207,13 +207,17 @@ export default function useAuditoria() {
   }, []);
 
   /**
-   * Cambia la categoría activa y refiltra de inmediato (sin debounce).
+   * Cambia la categoría activa y refiltra de inmediato (sin debounce). Como el tipo
+   * de transacción depende de la categoría (selector en cascada), al cambiarla el tipo
+   * vuelve a "Todos los tipos" para no dejar combinaciones que no existen.
    *
    * @param {string} valor
    */
   function establecerCategoria(valor) {
     establecerCategoriaEstado(valor);
-    cargarListado(valor, busqueda.trim(), rangoAplicadoRef.current, tipoTransaccionRef.current);
+    establecerTipoTransaccionEstado('');
+    tipoTransaccionRef.current = '';
+    cargarListado(valor, busqueda.trim(), rangoAplicadoRef.current, '');
   }
 
   /**

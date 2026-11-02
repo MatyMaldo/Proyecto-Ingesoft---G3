@@ -126,3 +126,30 @@ describe('HU-SAT-04 · Escenario 5: registro de una operación automática del s
     expect(registroSistema).toHaveProperty('valoresDespues');
   });
 });
+
+describe('HU-SAT-04 · Selector en cascada: el tipo de transacción depende del módulo', () => {
+  it('al cambiar de módulo, el tipo de transacción vuelve a "Todos los tipos"', async () => {
+    const { result } = renderHook(() => useAuditoria());
+    await esperarCargaInicial(result);
+
+    act(() => {
+      result.current.establecerCategoria('PAGOS');
+    });
+    await waitFor(() => expect(result.current.actualizando).toBe(false));
+
+    act(() => {
+      result.current.establecerTipoTransaccion('Validación de pago');
+    });
+    await waitFor(() => expect(result.current.actualizando).toBe(false));
+    expect(result.current.tipoTransaccion).toBe('Validación de pago');
+
+    act(() => {
+      result.current.establecerCategoria('NOTAS');
+    });
+    await waitFor(() => expect(result.current.actualizando).toBe(false));
+
+    expect(result.current.tipoTransaccion).toBe('');
+    expect(result.current.registros.every((registro) => registro.modulo.codigo === 'NOTAS')).toBe(true);
+    expect(result.current.registros.length).toBeGreaterThan(0);
+  });
+});

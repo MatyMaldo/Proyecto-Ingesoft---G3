@@ -89,3 +89,14 @@ export const GRUPOS_TIPOS_TRANSACCION_AUDITORIA = Object.freeze([
   // D9: no está en el catálogo de la HU-SAT-04.
   Object.freeze({ categoria: 'EVALUACIONES', tipos: Object.freeze(['Generó libreta']) })
 ]);
+
+/**
+ * Tipos de transacción de una categoría (módulo), en el orden de la HU. Alimenta el
+ * selector en cascada "Tipo de transacción", que depende del módulo elegido.
+ *
+ * @param {string} categoria Código de categoría (por ejemplo `'PAGOS'`).
+ * @returns {readonly string[]} Vacío si la categoría no tiene tipos (por ejemplo `'TODOS'`).
+ */
+export function obtenerTiposDeCategoria(categoria) {
+  return GRUPOS_TIPOS_TRANSACCION_AUDITORIA.find((grupo) => grupo.categoria === categoria)?.tipos ?? [];
+}
