@@ -114,10 +114,7 @@ export const ORDEN_REQUISITOS_POLITICA = Object.freeze(['LONGITUD', 'CARACTERES'
 export const TEXTO_CONTINUAR = 'Continuar';
 
 /** Botón del paso 2 para regresar al paso 1. */
-export const TEXTO_VOLVER_PASO_1 = 'Atrás';
-
-/** Texto corto del enlace superior del paso 1 (su nombre accesible sigue siendo `TEXTO_VOLVER_LOGIN`). */
-export const TEXTO_IR_A_LOGIN = 'Iniciar sesión';
+export const TEXTO_VOLVER_PASO_1 = 'Volver al paso anterior';
 
 /** Indicador de paso de la pantalla (b). */
 export const TEXTO_PASO_1 = 'Paso 1 de 2: verifica tu correo';

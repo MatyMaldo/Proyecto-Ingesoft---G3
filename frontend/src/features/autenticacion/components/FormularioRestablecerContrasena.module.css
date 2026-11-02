@@ -14,20 +14,22 @@
 .botonAtras {
   display: inline-flex;
   align-items: center;
-  gap: var(--espacio-1);
-  min-height: var(--tactil-min);
+  justify-content: center;
+  width: var(--tactil-min);
+  height: var(--tactil-min);
+  /* La flecha se alinea visualmente con el borde izquierdo de los campos. */
+  margin-inline-start: calc(-1 * var(--espacio-3));
   padding: 0;
-  font-size: var(--texto-md);
-  font-weight: var(--peso-seminegrita);
   color: var(--color-accion);
-  text-decoration: none;
   background: none;
   border: 0;
+  border-radius: var(--radio-pildora);
   cursor: pointer;
+  transition: background var(--transicion);
 }
 
 .botonAtras:hover {
-  text-decoration: underline;
+  background: var(--color-accion-suave);
 }
 
 .botonAtras:focus-visible {

@@ -9,7 +9,6 @@ import {
   TEXTO_SOLICITAR_NUEVO_CODIGO,
   TEXTO_CONTINUAR,
   TEXTO_VOLVER_PASO_1,
-  TEXTO_IR_A_LOGIN,
   TEXTO_PASO_1,
   TEXTO_PASO_2,
   TEXTO_ENVIANDO,
@@ -78,14 +77,18 @@ export default function FormularioRestablecerContrasena({
     <form noValidate onSubmit={alEnviar} aria-busy={enviando} aria-labelledby={idTitulo} className={estilos.formulario}>
       <div className={estilos.filaPaso}>
         {paso === 1 ? (
-          <Link to={RUTA_LOGIN} className={estilos.botonAtras} aria-label={TEXTO_VOLVER_LOGIN}>
-            <Icono nombre="flecha-izquierda" tamano={16} />
-            {TEXTO_IR_A_LOGIN}
+          <Link to={RUTA_LOGIN} className={estilos.botonAtras} aria-label={TEXTO_VOLVER_LOGIN} title={TEXTO_VOLVER_LOGIN}>
+            <Icono nombre="flecha-izquierda" tamano={20} />
           </Link>
         ) : (
-          <button type="button" className={estilos.botonAtras} onClick={alVolverAlPaso1}>
-            <Icono nombre="flecha-izquierda" tamano={16} />
-            {TEXTO_VOLVER_PASO_1}
+          <button
+            type="button"
+            className={estilos.botonAtras}
+            aria-label={TEXTO_VOLVER_PASO_1}
+            title={TEXTO_VOLVER_PASO_1}
+            onClick={alVolverAlPaso1}
+          >
+            <Icono nombre="flecha-izquierda" tamano={20} />
           </button>
         )}
         <p className={estilos.indicadorPaso}>{paso === 1 ? TEXTO_PASO_1 : TEXTO_PASO_2}</p>
