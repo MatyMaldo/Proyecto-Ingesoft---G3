@@ -90,15 +90,21 @@
   padding: 10px var(--espacio-3);
   font-size: var(--texto-base);
   color: var(--color-texto);
-  background: var(--color-superficie);
+  background-color: var(--color-superficie);
   border: 1px solid var(--color-borde);
   border-radius: var(--radio-md);
   cursor: pointer;
+  appearance: none;
+  padding-right: var(--espacio-10);
+  background-image: var(--flecha-select);
+  background-repeat: no-repeat;
+  background-position: right var(--espacio-4) center;
+  background-size: 16px 16px;
 }
 
 .selectorTipoTransaccion:disabled {
   color: var(--color-texto-suave);
-  background: var(--color-superficie-suave);
+  background-color: var(--color-superficie-suave);
   cursor: not-allowed;
 }
 
