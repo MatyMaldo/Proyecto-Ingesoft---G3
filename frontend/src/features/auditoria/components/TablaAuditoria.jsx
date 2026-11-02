@@ -57,7 +57,7 @@ export default function TablaAuditoria({ registros, actualizando, alSeleccionarR
               <th scope="col">Usuario</th>
               <th scope="col">Módulo</th>
               <th scope="col">Acción</th>
-              <th scope="col"><span className={estilosUtil.ocultoVisualmente}>Historial</span></th>
+              <th scope="col">Detalle</th>
             </tr>
           </thead>
           <tbody className={actualizando ? estilos.filasAtenuadas : undefined}>

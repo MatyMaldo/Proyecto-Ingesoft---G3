@@ -36,10 +36,12 @@
   vertical-align: middle;
 }
 
-/* Columna "Ver historial": se ajusta a su contenido, no se estira (docs/planes/auditorias.md §10). */
+/* Columna "Detalle": ancho fijo y contenido centrado, para que el ícono no quede pegado al borde
+   (docs/planes/auditorias.md §10). La acción se recorta con "…" y cede el espacio a esta columna. */
 .tabla thead th:last-child,
 .tabla tbody td:last-child {
-  width: 1%;
+  width: calc(var(--espacio-10) * 2);
+  text-align: center;
   white-space: nowrap;
 }
 
