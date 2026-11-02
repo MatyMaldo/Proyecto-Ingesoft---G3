@@ -93,10 +93,7 @@ export default function PaginaLogErrores() {
 
       <p className={estilos.notaPie}>
         <Icono nombre="informacion" tamano={16} />
-        <span>
-          Los errores registrados se conservan de forma permanente y no se pueden modificar ni eliminar. Contacta al área de
-          sistemas para investigar errores críticos.
-        </span>
+        <span>Los errores registrados son de solo lectura y se conservan de forma permanente.</span>
       </p>
 
       <p className={estilosUtil.ocultoVisualmente} role="status" aria-live="polite">
