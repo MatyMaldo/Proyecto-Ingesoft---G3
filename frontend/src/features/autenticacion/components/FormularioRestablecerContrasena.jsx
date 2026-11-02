@@ -9,6 +9,7 @@ import {
   TEXTO_SOLICITAR_NUEVO_CODIGO,
   TEXTO_CONTINUAR,
   TEXTO_VOLVER_PASO_1,
+  TEXTO_IR_A_LOGIN,
   TEXTO_PASO_1,
   TEXTO_PASO_2,
   TEXTO_ENVIANDO,
@@ -75,7 +76,20 @@ export default function FormularioRestablecerContrasena({
 }) {
   return (
     <form noValidate onSubmit={alEnviar} aria-busy={enviando} aria-labelledby={idTitulo} className={estilos.formulario}>
-      <p className={estilos.indicadorPaso}>{paso === 1 ? TEXTO_PASO_1 : TEXTO_PASO_2}</p>
+      <div className={estilos.filaPaso}>
+        {paso === 1 ? (
+          <Link to={RUTA_LOGIN} className={estilos.botonAtras} aria-label={TEXTO_VOLVER_LOGIN}>
+            <Icono nombre="flecha-izquierda" tamano={16} />
+            {TEXTO_IR_A_LOGIN}
+          </Link>
+        ) : (
+          <button type="button" className={estilos.botonAtras} onClick={alVolverAlPaso1}>
+            <Icono nombre="flecha-izquierda" tamano={16} />
+            {TEXTO_VOLVER_PASO_1}
+          </button>
+        )}
+        <p className={estilos.indicadorPaso}>{paso === 1 ? TEXTO_PASO_1 : TEXTO_PASO_2}</p>
+      </div>
 
       {paso === 1 && (
         <>
@@ -175,14 +189,10 @@ export default function FormularioRestablecerContrasena({
       </span>
 
       {paso === 2 && (
-        <button type="button" className={estilos.enlace} onClick={alVolverAlPaso1}>
-          {TEXTO_VOLVER_PASO_1}
-        </button>
+        <Link to={RUTA_LOGIN} className={estilos.enlace}>
+          {TEXTO_VOLVER_LOGIN}
+        </Link>
       )}
-
-      <Link to={RUTA_LOGIN} className={estilos.enlace}>
-        {TEXTO_VOLVER_LOGIN}
-      </Link>
     </form>
   );
 }

@@ -83,12 +83,20 @@ describe('HU-SAT-03 · Restablecer contraseña en dos pasos', () => {
     expect(restablecerContrasena).not.toHaveBeenCalled();
   });
 
-  it('"Volver al paso anterior" regresa al paso 1 conservando lo escrito', async () => {
+  it('el paso 1 ofrece volver al inicio de sesión desde la parte superior', () => {
+    renderizar();
+
+    const enlace = screen.getByRole('link', { name: 'Volver a iniciar sesión' });
+    expect(enlace).toHaveAttribute('href', '/iniciar-sesion');
+    expect(enlace).toHaveTextContent('Iniciar sesión');
+  });
+
+  it('"Atrás" regresa al paso 1 conservando lo escrito', async () => {
     const usuario = userEvent.setup();
     renderizar();
 
     await completarPaso1(usuario);
-    await usuario.click(screen.getByRole('button', { name: 'Volver al paso anterior' }));
+    await usuario.click(screen.getByRole('button', { name: 'Atrás' }));
 
     expect(screen.getByText(/Paso 1 de 2/)).toBeInTheDocument();
     expect(screen.getByLabelText('Correo electrónico')).toHaveValue(CORREO);

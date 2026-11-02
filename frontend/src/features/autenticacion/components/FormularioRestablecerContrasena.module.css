@@ -4,6 +4,37 @@
   gap: var(--espacio-4);
 }
 
+.filaPaso {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-1) var(--espacio-4);
+}
+
+.botonAtras {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-1);
+  min-height: var(--tactil-min);
+  padding: 0;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-accion);
+  text-decoration: none;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.botonAtras:hover {
+  text-decoration: underline;
+}
+
+.botonAtras:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
 .indicadorPaso {
   margin: 0;
   font-size: var(--texto-xs);

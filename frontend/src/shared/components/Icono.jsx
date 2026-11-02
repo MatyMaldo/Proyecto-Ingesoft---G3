@@ -133,6 +133,10 @@ const CATALOGO_ICONOS = {
     { tag: 'path', props: { d: 'M5 12h14' } },
     { tag: 'path', props: { d: 'm12 5 7 7-7 7' } }
   ],
+  'flecha-izquierda': [
+    { tag: 'path', props: { d: 'M19 12H5' } },
+    { tag: 'path', props: { d: 'm12 19-7-7 7-7' } }
+  ],
   cargando: [
     { tag: 'path', props: { d: 'M21 12a9 9 0 1 1-6.219-8.56' } }
   ],
