@@ -1,0 +1,61 @@
+.contenedor {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+}
+
+.rotulo {
+  margin: 0;
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-medio);
+  color: var(--color-texto-suave);
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--texto-md);
+}
+
+.lista li {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+}
+
+.marca {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--espacio-4);
+  height: var(--espacio-4);
+  flex-shrink: 0;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-pildora);
+}
+
+.pendiente {
+  color: var(--color-texto-suave);
+}
+
+.cumplido {
+  color: var(--color-exito-texto);
+}
+
+.cumplido .marca {
+  background: var(--color-exito-fondo);
+  border-color: var(--color-exito-borde);
+}
+
+.estado {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}

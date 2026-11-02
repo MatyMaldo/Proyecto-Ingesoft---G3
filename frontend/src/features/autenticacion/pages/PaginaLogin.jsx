@@ -5,8 +5,6 @@ import FormularioLogin from '../components/FormularioLogin.jsx';
 import useLogin from '../hooks/useLogin.js';
 import estilos from './PaginaLogin.module.css';
 
-const TEXTOS_PIE = ['Soporte Técnico', 'Manual de Usuario', 'Política de Privacidad'];
-
 /**
  * Página de inicio de sesión (HU-SAT-07, `/iniciar-sesion`). Compone la
  * pantalla y conecta `useLogin()` con `FormularioLogin`; no llama servicios ni
@@ -56,20 +54,6 @@ export default function PaginaLogin() {
           />
         </div>
 
-        {/* TODO(pregunta): destinos de los enlaces del pie. */}
-        <p className={estilos.pie}>
-          {TEXTOS_PIE.map((texto, indice) => (
-            <span key={texto}>
-              {texto}
-              {indice < TEXTOS_PIE.length - 1 && (
-                <span className={estilos.separadorPie} aria-hidden="true">
-                  {' '}
-                  ·{' '}
-                </span>
-              )}
-            </span>
-          ))}
-        </p>
       </main>
     </div>
   );

@@ -4,6 +4,15 @@
   gap: var(--espacio-4);
 }
 
+.indicadorPaso {
+  margin: 0;
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
 .alertaGeneral {
   display: flex;
   align-items: center;
@@ -69,6 +78,9 @@
 
 .enlace {
   display: inline-flex;
+  background: none;
+  border: 0;
+  cursor: pointer;
   align-items: center;
   justify-content: center;
   min-height: var(--tactil-min);

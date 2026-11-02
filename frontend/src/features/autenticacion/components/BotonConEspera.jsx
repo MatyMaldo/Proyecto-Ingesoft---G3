@@ -15,7 +15,7 @@ const ID_DESCRIPCION_ESPERA = 'boton-espera-descripcion';
  *
  * @param {Object} props
  * @param {'submit'|'button'} props.tipo
- * @param {'primario'|'secundario'} props.variante
+ * @param {'primario'|'secundario'|'enlace'} props.variante
  * @param {string} props.texto
  * @param {string} props.textoEnviando
  * @param {number} props.segundosRestantes `0` = disponible.
@@ -70,7 +70,7 @@ export default function BotonConEspera({ tipo, variante, texto, textoEnviando, s
     <>
       <button
         type={tipo}
-        className={variante === 'primario' ? estilos.primario : estilos.secundario}
+        className={estilos[variante] ?? estilos.secundario}
         aria-disabled={noDisponible ? 'true' : undefined}
         aria-describedby={segundosRestantes > 0 ? ID_DESCRIPCION_ESPERA : undefined}
         onClick={manejarClic}

@@ -1,12 +1,11 @@
 import Icono from '../../../shared/components/Icono.jsx';
 import estilos from './PanelInstitucional.module.css';
 
-const PERFILES = ['Administrador', 'Docente', 'Estudiante', 'Apoderado'];
-
 /**
  * Columna de marca del prototipo de inicio de sesión. Solo presentación, sin
  * controles interactivos. No incluye la lista de funcionalidades del
- * prototipo (error de prototipado, ver docs/planes/login.md §4.2, O1).
+ * prototipo (error de prototipado, ver docs/planes/login.md §4.2, O1) ni los
+ * perfiles de acceso: el rol lo determina la cuenta, no se elige en el login.
  */
 export default function PanelInstitucional() {
   return (
@@ -21,15 +20,6 @@ export default function PanelInstitucional() {
       <span className={estilos.acento} aria-hidden="true" />
 
       <p className={estilos.lema}>Plataforma Integral de Gestión Académica y Administrativa</p>
-
-      <p className={estilos.rotuloPerfiles}>Perfiles de acceso del sistema</p>
-      <ul className={estilos.listaPerfiles}>
-        {PERFILES.map((perfil) => (
-          <li key={perfil} className={estilos.pildora}>
-            {perfil}
-          </li>
-        ))}
-      </ul>
     </aside>
   );
 }

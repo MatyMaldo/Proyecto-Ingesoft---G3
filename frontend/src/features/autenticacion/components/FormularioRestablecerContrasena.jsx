@@ -7,17 +7,21 @@ import {
   TEXTO_ACEPTAR,
   TEXTO_GUARDANDO,
   TEXTO_SOLICITAR_NUEVO_CODIGO,
+  TEXTO_CONTINUAR,
+  TEXTO_VOLVER_PASO_1,
+  TEXTO_PASO_1,
+  TEXTO_PASO_2,
   TEXTO_ENVIANDO,
   TEXTO_VOLVER_LOGIN,
   PLACEHOLDER_NUEVA_CONTRASENA,
-  PLACEHOLDER_CONFIRMACION,
-  AYUDA_POLITICA_CONTRASENA
+  PLACEHOLDER_CONFIRMACION
 } from '../constants/mensajesRestablecimiento.js';
 import AvisoSolicitudCodigo from './AvisoSolicitudCodigo.jsx';
 import CampoCorreo from './CampoCorreo.jsx';
 import CampoCodigoVerificacion from './CampoCodigoVerificacion.jsx';
 import CampoContrasena from './CampoContrasena.jsx';
 import BotonConEspera from './BotonConEspera.jsx';
+import RequisitosContrasena from './RequisitosContrasena.jsx';
 import estilos from './FormularioRestablecerContrasena.module.css';
 
 const ID_CORREO = 'restablecer-correo';
@@ -32,6 +36,7 @@ const ID_CONFIRMACION = 'restablecer-confirmacion';
  *
  * @param {Object} props
  * @param {string} props.idTitulo
+ * @param {1|2} props.paso Paso 1: correo y código. Paso 2: nueva contraseña y confirmación.
  * @param {{ correo: string, codigo: string, nuevaContrasena: string, confirmacionContrasena: string }} props.valores
  * @param {{ correo?: string, codigo?: string, nuevaContrasena?: string|string[], confirmacionContrasena?: string }} props.errores
  * @param {string|null} props.errorGeneral
@@ -49,9 +54,11 @@ const ID_CONFIRMACION = 'restablecer-confirmacion';
  * @param {(nombre: string) => void} props.alSalirDeCampo
  * @param {(evento: SubmitEvent) => void} props.alEnviar
  * @param {() => void} props.alSolicitarNuevoCodigo
+ * @param {() => void} props.alVolverAlPaso1
  */
 export default function FormularioRestablecerContrasena({
   idTitulo,
+  paso,
   valores,
   errores,
   errorGeneral,
@@ -63,58 +70,84 @@ export default function FormularioRestablecerContrasena({
   alCambiarCampo,
   alSalirDeCampo,
   alEnviar,
-  alSolicitarNuevoCodigo
+  alSolicitarNuevoCodigo,
+  alVolverAlPaso1
 }) {
   return (
     <form noValidate onSubmit={alEnviar} aria-busy={enviando} aria-labelledby={idTitulo} className={estilos.formulario}>
-      <AvisoSolicitudCodigo visible={avisoSolicitud} />
+      <p className={estilos.indicadorPaso}>{paso === 1 ? TEXTO_PASO_1 : TEXTO_PASO_2}</p>
 
-      <CampoCorreo
-        id={ID_CORREO}
-        valor={valores.correo}
-        error={errores.correo}
-        refInput={refs.correo}
-        alCambiar={(valor) => alCambiarCampo('correo', valor)}
-        alSalir={() => alSalirDeCampo('correo')}
-      />
+      {paso === 1 && (
+        <>
+          <AvisoSolicitudCodigo visible={avisoSolicitud} />
 
-      <CampoCodigoVerificacion
-        id={ID_CODIGO}
-        valor={valores.codigo}
-        error={errores.codigo}
-        refInput={refs.codigo}
-        alCambiar={(valor) => alCambiarCampo('codigo', valor)}
-        alSalir={() => alSalirDeCampo('codigo')}
-      />
+          <CampoCorreo
+            id={ID_CORREO}
+            valor={valores.correo}
+            error={errores.correo}
+            refInput={refs.correo}
+            alCambiar={(valor) => alCambiarCampo('correo', valor)}
+            alSalir={() => alSalirDeCampo('correo')}
+          />
 
-      <CampoContrasena
-        id={ID_NUEVA}
-        valor={valores.nuevaContrasena}
-        error={errores.nuevaContrasena}
-        autoComplete="new-password"
-        refInput={refs.nuevaContrasena}
-        alCambiar={(valor) => alCambiarCampo('nuevaContrasena', valor)}
-        alSalir={() => alSalirDeCampo('nuevaContrasena')}
-        etiqueta="Nueva contraseña"
-        nombre="nuevaContrasena"
-        conOjo
-        placeholder={PLACEHOLDER_NUEVA_CONTRASENA}
-        ayuda={AYUDA_POLITICA_CONTRASENA}
-      />
+          <CampoCodigoVerificacion
+            id={ID_CODIGO}
+            valor={valores.codigo}
+            error={errores.codigo}
+            refInput={refs.codigo}
+            alCambiar={(valor) => alCambiarCampo('codigo', valor)}
+            alSalir={() => alSalirDeCampo('codigo')}
+          />
 
-      <CampoContrasena
-        id={ID_CONFIRMACION}
-        valor={valores.confirmacionContrasena}
-        error={errores.confirmacionContrasena}
-        autoComplete="new-password"
-        refInput={refs.confirmacionContrasena}
-        alCambiar={(valor) => alCambiarCampo('confirmacionContrasena', valor)}
-        alSalir={() => alSalirDeCampo('confirmacionContrasena')}
-        etiqueta="Confirmar contraseña"
-        nombre="confirmacionContrasena"
-        conOjo={false}
-        placeholder={PLACEHOLDER_CONFIRMACION}
-      />
+
+          <BotonConEspera
+            tipo="button"
+            variante="enlace"
+            texto={TEXTO_SOLICITAR_NUEVO_CODIGO}
+            textoEnviando={TEXTO_ENVIANDO}
+            segundosRestantes={segundosEspera}
+            enviando={solicitandoCodigo}
+            alPulsar={alSolicitarNuevoCodigo}
+          />
+        </>
+      )}
+
+      {paso === 2 && (
+        <>
+          <CampoContrasena
+            id={ID_NUEVA}
+            valor={valores.nuevaContrasena}
+            error={errores.nuevaContrasena}
+            autoComplete="new-password"
+            refInput={refs.nuevaContrasena}
+            alCambiar={(valor) => alCambiarCampo('nuevaContrasena', valor)}
+            alSalir={() => alSalirDeCampo('nuevaContrasena')}
+            etiqueta="Nueva contraseña"
+            nombre="nuevaContrasena"
+            conOjo
+            placeholder={PLACEHOLDER_NUEVA_CONTRASENA}
+          />
+
+          {!Array.isArray(errores.nuevaContrasena) && (
+            <RequisitosContrasena id="restablecer-requisitos" valor={valores.nuevaContrasena} />
+          )}
+
+          <CampoContrasena
+            id={ID_CONFIRMACION}
+            valor={valores.confirmacionContrasena}
+            error={errores.confirmacionContrasena}
+            autoComplete="new-password"
+            refInput={refs.confirmacionContrasena}
+            alCambiar={(valor) => alCambiarCampo('confirmacionContrasena', valor)}
+            alSalir={() => alSalirDeCampo('confirmacionContrasena')}
+            etiqueta="Confirmar contraseña"
+            nombre="confirmacionContrasena"
+            conOjo={false}
+            placeholder={PLACEHOLDER_CONFIRMACION}
+          />
+
+        </>
+      )}
 
       <div role="alert" className={errorGeneral ? estilos.alertaGeneral : undefined}>
         {errorGeneral && (
@@ -131,6 +164,8 @@ export default function FormularioRestablecerContrasena({
             <Icono nombre="cargando" tamano={18} className={estilos.iconoCargando} />
             {TEXTO_GUARDANDO}
           </>
+        ) : paso === 1 ? (
+          TEXTO_CONTINUAR
         ) : (
           TEXTO_ACEPTAR
         )}
@@ -139,15 +174,11 @@ export default function FormularioRestablecerContrasena({
         {enviando ? TEXTO_GUARDANDO : ''}
       </span>
 
-      <BotonConEspera
-        tipo="button"
-        variante="secundario"
-        texto={TEXTO_SOLICITAR_NUEVO_CODIGO}
-        textoEnviando={TEXTO_ENVIANDO}
-        segundosRestantes={segundosEspera}
-        enviando={solicitandoCodigo}
-        alPulsar={alSolicitarNuevoCodigo}
-      />
+      {paso === 2 && (
+        <button type="button" className={estilos.enlace} onClick={alVolverAlPaso1}>
+          {TEXTO_VOLVER_PASO_1}
+        </button>
+      )}
 
       <Link to={RUTA_LOGIN} className={estilos.enlace}>
         {TEXTO_VOLVER_LOGIN}

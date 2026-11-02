@@ -109,3 +109,27 @@ export const MENSAJES_POLITICA_CONTRASENA = Object.freeze({
 
 /** Orden en que se muestran los requisitos incumplidos (orden de la HU). */
 export const ORDEN_REQUISITOS_POLITICA = Object.freeze(['LONGITUD', 'CARACTERES', 'LETRA', 'NUMERO']);
+
+/** Botón del paso 1 de "Restablecer contraseña". */
+export const TEXTO_CONTINUAR = 'Continuar';
+
+/** Botón del paso 2 para regresar al paso 1. */
+export const TEXTO_VOLVER_PASO_1 = 'Volver al paso anterior';
+
+/** Indicador de paso de la pantalla (b). */
+export const TEXTO_PASO_1 = 'Paso 1 de 2: verifica tu correo';
+export const TEXTO_PASO_2 = 'Paso 2 de 2: define tu nueva contraseña';
+
+/** Rótulo de la lista de requisitos de la nueva contraseña. */
+export const TEXTO_REQUISITOS_CONTRASENA = 'Tu contraseña debe cumplir:';
+
+/** Versión corta de la política, solo para la lista que se marca al escribir. */
+export const REQUISITOS_CORTOS_CONTRASENA = Object.freeze({
+  LONGITUD: 'Entre 9 y 15 caracteres',
+  CARACTERES: 'Solo letras y números, sin tildes, ñ, espacios ni símbolos',
+  LETRA: 'Al menos una letra',
+  NUMERO: 'Al menos un número'
+});
+
+export const TEXTO_REQUISITO_CUMPLIDO = 'Cumplido';
+export const TEXTO_REQUISITO_PENDIENTE = 'Pendiente';

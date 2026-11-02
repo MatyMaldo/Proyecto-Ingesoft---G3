@@ -80,6 +80,7 @@ export default function useRestablecerContrasena() {
     ...VALORES_INICIALES,
     correo: typeof location.state?.correo === 'string' ? location.state.correo : ''
   }));
+  const [paso, establecerPaso] = useState(1);
   const [errores, establecerErrores] = useState({});
   const [errorGeneral, establecerErrorGeneral] = useState(null);
   const [codigoRechazado, establecerCodigoRechazado] = useState(false);
@@ -116,6 +117,16 @@ export default function useRestablecerContrasena() {
     // Solo al montar: el efecto limpia el `state`, así que no debe repetirse.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Al cambiar de paso, el foco va al primer campo del paso nuevo (no en el montaje inicial).
+  const pasoAnteriorRef = useRef(1);
+  useEffect(() => {
+    if (pasoAnteriorRef.current === paso) {
+      return;
+    }
+    pasoAnteriorRef.current = paso;
+    (paso === 2 ? refNuevaContrasena : refCodigo).current?.focus();
+  }, [paso]);
 
   function manejarCambioCampo(nombre, valorCrudo) {
     establecerErrorGeneral(null);
@@ -195,6 +206,28 @@ export default function useRestablecerContrasena() {
     establecerCodigoRechazado(false);
     establecerAvisoSolicitud(false);
 
+    if (paso === 1) {
+      const erroresPaso1 = {};
+      const errorCorreo = validarCorreo(valores.correo);
+      const errorCodigo = validarCodigo(valores.codigo);
+      if (errorCorreo) {
+        erroresPaso1.correo = errorCorreo;
+      }
+      if (errorCodigo) {
+        erroresPaso1.codigo = errorCodigo;
+      }
+
+      if (Object.keys(erroresPaso1).length > 0) {
+        establecerErrores(erroresPaso1);
+        enfocarPrimerCampoInvalido(erroresPaso1);
+        return;
+      }
+
+      establecerErrores({});
+      establecerPaso(2);
+      return;
+    }
+
     const erroresEncontrados = validarRestablecimiento(valores);
 
     if (Object.keys(erroresEncontrados).length > 0) {
@@ -225,7 +258,7 @@ export default function useRestablecerContrasena() {
       case MOTIVOS_RECHAZO_RESTABLECIMIENTO.CODIGO_INVALIDO:
         establecerErrorGeneral(MENSAJE_CODIGO_INVALIDO);
         establecerCodigoRechazado(true);
-        refCodigo.current?.focus();
+        establecerPaso(1);
         break;
 
       case MOTIVOS_RECHAZO_RESTABLECIMIENTO.POLITICA_CONTRASENA:
@@ -248,6 +281,12 @@ export default function useRestablecerContrasena() {
       default:
         establecerErrorGeneral(MENSAJE_ERROR_INESPERADO);
     }
+  }
+
+  function manejarVolverAlPaso1() {
+    establecerErrorGeneral(null);
+    establecerErrores({});
+    establecerPaso(1);
   }
 
   async function manejarSolicitudNuevoCodigo() {
@@ -293,6 +332,7 @@ export default function useRestablecerContrasena() {
   }
 
   return {
+    paso,
     valores,
     errores,
     errorGeneral,
@@ -305,6 +345,7 @@ export default function useRestablecerContrasena() {
     manejarCambioCampo,
     manejarSalidaCampo,
     manejarEnvio,
-    manejarSolicitudNuevoCodigo
+    manejarSolicitudNuevoCodigo,
+    manejarVolverAlPaso1
   };
 }

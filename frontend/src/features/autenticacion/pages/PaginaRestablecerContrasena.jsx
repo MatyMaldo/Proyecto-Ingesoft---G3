@@ -20,6 +20,7 @@ const ID_TITULO = 'restablecer-titulo';
  */
 export default function PaginaRestablecerContrasena() {
   const {
+    paso,
     valores,
     errores,
     errorGeneral,
@@ -32,7 +33,8 @@ export default function PaginaRestablecerContrasena() {
     manejarCambioCampo,
     manejarSalidaCampo,
     manejarEnvio,
-    manejarSolicitudNuevoCodigo
+    manejarSolicitudNuevoCodigo,
+    manejarVolverAlPaso1
   } = useRestablecerContrasena();
 
   useEffect(() => {
@@ -43,6 +45,7 @@ export default function PaginaRestablecerContrasena() {
     <MarcoAccesoPublico idTitulo={ID_TITULO} titulo={TITULO_RESTABLECER} subtitulo={SUBTITULO_RESTABLECER}>
       <FormularioRestablecerContrasena
         idTitulo={ID_TITULO}
+        paso={paso}
         valores={valores}
         errores={errores}
         errorGeneral={errorGeneral}
@@ -56,6 +59,7 @@ export default function PaginaRestablecerContrasena() {
         alSalirDeCampo={manejarSalidaCampo}
         alEnviar={manejarEnvio}
         alSolicitarNuevoCodigo={manejarSolicitudNuevoCodigo}
+        alVolverAlPaso1={manejarVolverAlPaso1}
       />
     </MarcoAccesoPublico>
   );
