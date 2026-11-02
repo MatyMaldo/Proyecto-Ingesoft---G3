@@ -1,4 +1,5 @@
 import Icono from '../../../shared/components/Icono.jsx';
+import { formatearFechaVisible } from '../../../shared/utils/formatoFecha.js';
 import Insignia from '../../../shared/components/Insignia.jsx';
 import estilosUtil from '../../../shared/styles/utilidades.module.css';
 import estilos from './TablaLogErrores.module.css';
@@ -41,7 +42,7 @@ export default function TablaLogErrores({ errores, ocupado = false }) {
               <tr key={error.id} className={estilos.fila}>
                 <td className={estilos.celdaFecha}>
                   <time dateTime={error.fechaHora} className={estilos.tiempo}>
-                    <span className={estilos.fecha}>{error.fecha}</span>
+                    <span className={estilos.fecha}>{formatearFechaVisible(error.fecha)}</span>
                     <span className={estilos.hora}>{error.hora}</span>
                   </time>
                 </td>
@@ -72,7 +73,7 @@ export default function TablaLogErrores({ errores, ocupado = false }) {
           <li key={error.id} className={estilos.tarjeta}>
             <div className={estilos.filaSuperior}>
               <time dateTime={error.fechaHora} className={estilos.fechaHoraTarjeta}>
-                {error.fecha} · {error.hora}
+                {formatearFechaVisible(error.fecha)} · {error.hora}
               </time>
               <Insignia tono={error.moduloTono}>{error.moduloEtiqueta}</Insignia>
             </div>

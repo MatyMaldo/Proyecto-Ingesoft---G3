@@ -116,10 +116,18 @@
 }
 
 .notaPie {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espacio-2);
   margin: 0;
   font-size: var(--texto-md);
   color: var(--color-texto-suave);
   text-align: left;
+}
+
+.notaPie svg {
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 @media (min-width: 1024px) {
@@ -140,9 +148,6 @@
     min-width: calc(var(--espacio-10) * 5);
   }
 
-  .notaPie {
-    text-align: right;
-  }
 }
 
 @media (max-width: 767px) {

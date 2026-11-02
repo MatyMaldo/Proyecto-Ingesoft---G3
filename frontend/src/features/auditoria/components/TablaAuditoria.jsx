@@ -1,3 +1,5 @@
+import { formatearFechaVisible } from '../../../shared/utils/formatoFecha.js';
+import Icono from '../../../shared/components/Icono.jsx';
 import Insignia from '../../../shared/components/Insignia.jsx';
 import estilosUtil from '../../../shared/styles/utilidades.module.css';
 import estilos from './TablaAuditoria.module.css';
@@ -67,7 +69,7 @@ export default function TablaAuditoria({ registros, actualizando, alSeleccionarR
               >
                 <td>
                   <time dateTime={registro.fechaHoraIso} className={estilos.celdaFecha}>
-                    <span className={estilos.fecha}>{registro.fecha}</span>
+                    <span className={estilos.fecha}>{formatearFechaVisible(registro.fecha)}</span>
                     <span className={estilos.hora}>{registro.hora}</span>
                   </time>
                 </td>
@@ -94,8 +96,9 @@ export default function TablaAuditoria({ registros, actualizando, alSeleccionarR
                     className={estilos.botonHistorial}
                     onClick={(evento) => manejarClicBoton(registro, evento)}
                     aria-label={construirEtiquetaHistorial(registro)}
+                    title="Ver historial"
                   >
-                    Ver historial
+                    <Icono nombre="ojo" tamano={18} />
                   </button>
                 </td>
               </tr>
@@ -119,7 +122,7 @@ export default function TablaAuditoria({ registros, actualizando, alSeleccionarR
             >
               <span className={estilos.filaSuperiorTarjeta}>
                 <time dateTime={registro.fechaHoraIso} className={estilos.fechaTarjeta}>
-                  <span className={estilos.fecha}>{registro.fecha}</span>
+                  <span className={estilos.fecha}>{formatearFechaVisible(registro.fecha)}</span>
                   <span className={estilos.hora}>{registro.hora}</span>
                 </time>
                 <Insignia tono={registro.modulo.tono}>{registro.modulo.etiqueta}</Insignia>

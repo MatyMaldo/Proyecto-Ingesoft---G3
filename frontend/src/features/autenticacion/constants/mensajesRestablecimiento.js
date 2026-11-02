@@ -14,7 +14,7 @@ import { ESPERA_REENVIO_SEGUNDOS } from './reglasRestablecimiento.js';
  */
 
 /** Título de la pantalla (a). Confirmado (R2). */
-export const TITULO_SOLICITUD = 'Solicitar código de verificación';
+export const TITULO_SOLICITUD = 'Recuperar contraseña';
 
 /** Subtítulo de la pantalla (a). Confirmado (R2). */
 export const SUBTITULO_SOLICITUD =

@@ -70,14 +70,14 @@
   height: var(--tactil-min);
   padding: 0;
   background: transparent;
-  color: var(--color-texto-suave);
+  color: var(--color-texto-secundario);
   border: 0;
   border-radius: var(--radio-md);
   cursor: pointer;
 }
 
 .botonOjo:hover {
-  color: var(--color-texto-secundario);
+  color: var(--color-texto);
 }
 
 .botonOjo:active {

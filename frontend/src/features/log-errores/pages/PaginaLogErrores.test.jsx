@@ -16,7 +16,7 @@ describe('HU-SAT-05 · Mensaje exacto cuando ningún error cumple los filtros', 
       timeout: 3000
     });
 
-    await usuario.click(screen.getByRole('button', { name: 'Usuarios' }));
+    await usuario.selectOptions(screen.getByLabelText('Módulo'), 'USUARIOS');
 
     // Los campos de fecha son type="date": se cambian directamente, como hace un navegador real.
     const campoDesde = screen.getByLabelText('Desde');

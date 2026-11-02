@@ -1,6 +1,7 @@
 import CampoBusqueda from '../../../shared/components/CampoBusqueda.jsx';
 import FiltroChips from '../../../shared/components/FiltroChips.jsx';
 import FiltroRangoFechas from '../../../shared/components/FiltroRangoFechas.jsx';
+import Icono from '../../../shared/components/Icono.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import estilosUtil from '../../../shared/styles/utilidades.module.css';
 import TablaAuditoria from '../components/TablaAuditoria.jsx';
@@ -127,8 +128,13 @@ export default function PaginaAuditorias() {
         />
       </section>
 
+      <p className={estilos.notaPie}>
+        <Icono nombre="informacion" tamano={16} />
+        <span>Los registros de auditoría son de solo lectura y se conservan de forma permanente.</span>
+      </p>
+
       <section className={estilos.tarjetaResultados} aria-label="Registros de auditoría">
-        {estado === 'cargando' && <EstadoConsulta tipo="carga" />}
+        {estado === 'cargando' && <EstadoConsulta tipo="carga" filasEsqueleto={5} />}
         {estado === 'error' && <EstadoConsulta tipo="error" alReintentar={reintentar} />}
         {estado === 'listo' && registros.length === 0 && (
           <EstadoConsulta tipo="vacio" mensaje={mensajeVacio} />
@@ -141,10 +147,6 @@ export default function PaginaAuditorias() {
           />
         )}
       </section>
-
-      <p className={estilos.notaPie}>
-        Los registros de auditoría son de solo lectura y se conservan de forma permanente.
-      </p>
 
       <p role="status" aria-live="polite" className={estilosUtil.ocultoVisualmente}>
         {estado === 'listo' ? `Mostrando ${textoMostrandoAhora}` : ''}

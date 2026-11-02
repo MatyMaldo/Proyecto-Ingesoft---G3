@@ -133,21 +133,19 @@
 .botonHistorial {
   display: inline-flex;
   align-items: center;
-  min-height: var(--tactil-min);
-  padding: 0 var(--espacio-2);
-  font-size: var(--texto-md);
-  font-weight: var(--peso-seminegrita);
-  color: var(--color-primario);
-  text-align: left;
-  white-space: nowrap;
+  justify-content: center;
+  width: var(--tactil-min);
+  height: var(--tactil-min);
+  padding: 0;
+  color: var(--color-accion);
   background: none;
   border: 0;
-  border-radius: var(--radio-sm);
+  border-radius: var(--radio-md);
   cursor: pointer;
 }
 
 .botonHistorial:hover {
-  text-decoration: underline;
+  background: var(--color-accion-suave);
 }
 
 .botonHistorial:active {

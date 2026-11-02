@@ -1,6 +1,5 @@
 import CampoBusqueda from '../../../shared/components/CampoBusqueda.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
-import FiltroChips from '../../../shared/components/FiltroChips.jsx';
 import FiltroRangoFechas from '../../../shared/components/FiltroRangoFechas.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
 import estilosUtil from '../../../shared/styles/utilidades.module.css';
@@ -65,6 +64,23 @@ export default function PaginaLogErrores() {
             valor={busqueda}
             alCambiar={establecerBusqueda}
           />
+          <div className={estilos.campoModulo}>
+            <label htmlFor="modulo-log-errores" className={estilos.etiquetaModulo}>
+              Módulo
+            </label>
+            <select
+              id="modulo-log-errores"
+              className={estilos.selectorModulo}
+              value={modulo}
+              onChange={(evento) => establecerModulo(evento.target.value)}
+            >
+              {OPCIONES_MODULO.map((opcion) => (
+                <option key={opcion.valor} value={opcion.valor}>
+                  {opcion.valor === 'TODOS' ? 'Todos los módulos' : opcion.etiqueta}
+                </option>
+              ))}
+            </select>
+          </div>
           <FiltroRangoFechas
             fechaDesde={fechaDesde}
             fechaHasta={fechaHasta}
@@ -73,21 +89,22 @@ export default function PaginaLogErrores() {
             mensajeError={mensajeErrorRango}
           />
         </div>
-
-        <FiltroChips
-          etiquetaGrupo="Filtrar por módulo"
-          opciones={OPCIONES_MODULO}
-          valorSeleccionado={modulo}
-          alSeleccionar={establecerModulo}
-        />
       </section>
+
+      <p className={estilos.notaPie}>
+        <Icono nombre="informacion" tamano={16} />
+        <span>
+          Los errores registrados se conservan de forma permanente y no se pueden modificar ni eliminar. Contacta al área de
+          sistemas para investigar errores críticos.
+        </span>
+      </p>
 
       <p className={estilosUtil.ocultoVisualmente} role="status" aria-live="polite">
         {mensajeRegion}
       </p>
 
       <section className={estilos.tarjetaResultados} aria-busy={estado === 'cargando' || undefined}>
-        {estado === 'cargando' && <EstadoConsulta tipo="carga" />}
+        {estado === 'cargando' && <EstadoConsulta tipo="carga" filasEsqueleto={5} />}
 
         {estado === 'error' && <EstadoConsulta tipo="error" alReintentar={reintentar} />}
 
@@ -102,11 +119,6 @@ export default function PaginaLogErrores() {
           </>
         )}
       </section>
-
-      <p className={estilos.notaPie}>
-        Los errores registrados se conservan de forma permanente y no se pueden modificar ni eliminar. Contacta al área de
-        sistemas para investigar errores críticos.
-      </p>
     </div>
   );
 }

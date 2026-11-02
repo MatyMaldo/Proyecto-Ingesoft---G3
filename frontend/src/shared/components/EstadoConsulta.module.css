@@ -43,3 +43,30 @@
   outline: 2px solid var(--color-foco);
   outline-offset: 2px;
 }
+
+.esqueleto {
+  display: flex;
+  flex-direction: column;
+}
+
+.filaEsqueleto {
+  height: calc(var(--espacio-10) + var(--espacio-2));
+  border-bottom: 1px solid var(--color-borde);
+  background: linear-gradient(90deg, var(--color-superficie) 0%, var(--color-superficie-suave) 50%, var(--color-superficie) 100%) 0 0 / 200% 100%;
+  animation: brillo 1.2s ease-in-out infinite;
+}
+
+@keyframes brillo {
+  from {
+    background-position: 100% 0;
+  }
+  to {
+    background-position: -100% 0;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .filaEsqueleto {
+    animation: none;
+  }
+}

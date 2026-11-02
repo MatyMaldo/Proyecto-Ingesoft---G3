@@ -49,3 +49,15 @@ export function calcularDiasAbarcados(fechasIso) {
 
   return Math.floor(diferencia / milisegundosPorDia) + 1;
 }
+
+/**
+ * Convierte una fecha `AAAA-MM-DD` en `DD/MM/AAAA` para mostrarla. Solo
+ * presentación: los filtros y el backend siguen usando `AAAA-MM-DD`.
+ *
+ * @param {string} fecha
+ * @returns {string} La misma cadena si no tiene el formato esperado.
+ */
+export function formatearFechaVisible(fecha) {
+  const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fecha ?? '');
+  return partes ? `${partes[3]}/${partes[2]}/${partes[1]}` : fecha;
+}
