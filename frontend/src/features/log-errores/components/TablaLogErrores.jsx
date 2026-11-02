@@ -35,6 +35,7 @@ export default function TablaLogErrores({ errores, ocupado = false }) {
               <th scope="col">Operación</th>
               <th scope="col">Tipo de error</th>
               <th scope="col">Mensaje</th>
+              <th scope="col">Usuario</th>
             </tr>
           </thead>
           <tbody>
@@ -55,6 +56,8 @@ export default function TablaLogErrores({ errores, ocupado = false }) {
                 </td>
                 <td>
                   <p className={estilos.mensaje}>{error.mensaje}</p>
+                </td>
+                <td>
                   {error.usuario && (
                     <p className={estilos.usuario}>
                       <Icono nombre="usuario" tamano={14} />

@@ -58,7 +58,7 @@ const ETIQUETAS_MODULO = {
 export const TONOS_TIPO_ERROR = {
   'Excepción no controlada': 'rosa',
   'Proceso automático': 'gris',
-  'Notificación por correo': 'cian'
+  'Notificación por correo': 'gris'
 };
 
 const DEBOUNCE_BUSQUEDA_MS = 300;

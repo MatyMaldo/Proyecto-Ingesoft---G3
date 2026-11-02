@@ -26,11 +26,11 @@
 
 .sobretitulo {
   margin: 0 0 var(--espacio-2);
-  font-size: var(--texto-xs);
+  font-size: var(--texto-md);
   font-weight: var(--peso-seminegrita);
   letter-spacing: var(--espaciado-letra-ancho);
   text-transform: uppercase;
-  color: var(--color-marca-seccion);
+  color: var(--color-marca-texto-suave);
 }
 
 .titulo {

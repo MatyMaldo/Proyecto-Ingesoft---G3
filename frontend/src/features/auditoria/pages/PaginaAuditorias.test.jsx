@@ -45,3 +45,21 @@ describe('HU-SAT-04 · Selectores en cascada de Módulo y Tipo de transacción',
     expect(selectTipo).toHaveValue('');
   });
 });
+
+describe('HU-SAT-04 · Botón "Filtros" (vista compacta)', () => {
+  it('alterna el panel de filtros y muestra cuántos filtros hay activos', async () => {
+    const usuario = userEvent.setup();
+    await renderizarYEsperar();
+
+    const boton = screen.getByRole('button', { name: /^Filtros/ });
+    expect(boton).toHaveAttribute('aria-expanded', 'false');
+
+    await usuario.click(boton);
+    expect(boton).toHaveAttribute('aria-expanded', 'true');
+
+    await usuario.selectOptions(screen.getByLabelText('Módulo'), 'PAGOS');
+    await usuario.selectOptions(screen.getByLabelText('Tipo de transacción'), 'Validación de pago');
+
+    expect(screen.getByRole('button', { name: /Filtros 2 filtros activos/ })).toBeInTheDocument();
+  });
+});

@@ -57,7 +57,7 @@ export default function TablaAuditoria({ registros, actualizando, alSeleccionarR
               <th scope="col">Usuario</th>
               <th scope="col">Módulo</th>
               <th scope="col">Acción</th>
-              <th scope="col" className={estilosUtil.ocultoVisualmente}>Historial</th>
+              <th scope="col"><span className={estilosUtil.ocultoVisualmente}>Historial</span></th>
             </tr>
           </thead>
           <tbody className={actualizando ? estilos.filasAtenuadas : undefined}>
@@ -87,8 +87,10 @@ export default function TablaAuditoria({ registros, actualizando, alSeleccionarR
                 <td>
                   <Insignia tono={registro.modulo.tono}>{registro.modulo.etiqueta}</Insignia>
                 </td>
-                <td>
-                  <span className={estilos.accionTexto}>{registro.tipoTransaccion}</span>
+                <td className={estilos.celdaAccion}>
+                  <span className={estilos.accionTexto} title={registro.tipoTransaccion}>
+                    {registro.tipoTransaccion}
+                  </span>
                 </td>
                 <td>
                   <button

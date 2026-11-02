@@ -1,7 +1,7 @@
 .formulario {
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-5);
+  gap: var(--espacio-4);
 }
 
 .campo {

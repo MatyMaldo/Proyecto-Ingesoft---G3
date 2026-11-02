@@ -30,7 +30,6 @@
 .espacioInsignia {
   display: flex;
   align-items: center;
-  min-height: calc(var(--espacio-6) + var(--espacio-1));
 }
 
 .insigniaEstado {
@@ -162,9 +161,66 @@
 
 }
 
+/* En escritorio el contenedor no genera caja: los filtros siguen siendo hijos de la fila. */
+.filtrosAvanzados {
+  display: contents;
+}
+
+.botonFiltros {
+  display: none;
+}
+
 @media (max-width: 767px) {
   .filaUno {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .botonFiltros {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--espacio-2);
+    min-height: var(--tactil-min);
+    padding: 0 var(--espacio-4);
+    font-size: var(--texto-base);
+    font-weight: var(--peso-seminegrita);
+    color: var(--color-accion);
+    background: var(--color-superficie);
+    border: 1px solid var(--color-accion);
+    border-radius: var(--radio-md);
+    cursor: pointer;
+  }
+
+  .botonFiltros:hover {
+    background: var(--color-accion-suave);
+  }
+
+  .botonFiltros:focus-visible {
+    outline: 2px solid var(--color-foco);
+    outline-offset: 2px;
+  }
+
+  .contadorFiltros {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-width: var(--espacio-5);
+    height: var(--espacio-5);
+    padding: 0 var(--espacio-1);
+    font-size: var(--texto-xs);
+    color: var(--color-marca-texto);
+    background: var(--color-primario);
+    border-radius: var(--radio-pildora);
+  }
+
+  .filtrosAvanzados {
+    display: none;
+  }
+
+  .filtrosAbiertos {
+    display: flex;
+    flex-direction: column;
+    gap: var(--espacio-4);
   }
 }

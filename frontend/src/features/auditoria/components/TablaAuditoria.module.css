@@ -27,7 +27,8 @@
 }
 
 .tabla tbody td {
-  padding: var(--espacio-4);
+  height: var(--alto-fila-tabla);
+  padding: var(--espacio-2) var(--espacio-4);
   text-align: left;
   font-size: var(--texto-md);
   color: var(--color-texto);
@@ -124,7 +125,18 @@
   color: var(--color-texto-secundario);
 }
 
+/* La acción se recorta a una línea (el texto completo va en el tooltip y en el detalle)
+   para mantener filas compactas. */
+.celdaAccion {
+  width: 36%;
+  max-width: 0;
+}
+
 .accionTexto {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: var(--texto-md);
   font-weight: var(--peso-normal);
   color: var(--color-texto);

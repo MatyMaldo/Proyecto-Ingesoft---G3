@@ -1,6 +1,7 @@
 .pagina {
   display: grid;
   grid-template-columns: 1fr;
+  grid-template-rows: auto 1fr;
   min-height: 100vh;
   min-height: 100dvh;
   background: var(--color-fondo);
@@ -9,6 +10,7 @@
 @media (min-width: 1024px) {
   .pagina {
     grid-template-columns: minmax(0, 5fr) minmax(0, 7fr);
+    grid-template-rows: auto;
   }
 }
 
@@ -19,6 +21,13 @@
   justify-content: center;
   gap: var(--espacio-6);
   padding: var(--espacio-4);
+}
+
+@media (max-width: 767px) {
+  .main {
+    justify-content: flex-start;
+    padding-top: var(--espacio-6);
+  }
 }
 
 @media (min-width: 768px) {

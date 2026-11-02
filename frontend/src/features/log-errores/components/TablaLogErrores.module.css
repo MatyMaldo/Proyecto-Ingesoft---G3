@@ -30,10 +30,6 @@
   border-bottom: 1px solid var(--color-borde);
 }
 
-.fila td:first-child {
-  border-left: var(--borde-acento) solid var(--color-peligro-acento);
-}
-
 .fila:last-child td {
   border-bottom: 0;
 }
@@ -78,6 +74,12 @@
   margin: var(--espacio-1) 0 0;
   font-size: var(--texto-md);
   color: var(--color-texto-suave);
+}
+
+/* En la tabla el usuario va en su propia columna, en una sola línea. */
+.tabla .usuario {
+  margin: 0;
+  white-space: nowrap;
 }
 
 .listaTarjetas {

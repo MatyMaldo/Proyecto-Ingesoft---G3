@@ -57,6 +57,9 @@ const CATALOGO_ICONOS = {
   'chevron-abajo': [
     { tag: 'path', props: { d: 'm6 9 6 6 6-6' } }
   ],
+  'chevron-arriba': [
+    { tag: 'path', props: { d: 'm18 15-6-6-6 6' } }
+  ],
   'chevron-derecha': [
     { tag: 'path', props: { d: 'm9 18 6-6-6-6' } }
   ],

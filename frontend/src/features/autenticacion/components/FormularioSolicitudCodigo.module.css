@@ -19,7 +19,9 @@
 .filaEnlaces {
   display: flex;
   flex-wrap: wrap;
-  gap: var(--espacio-4);
+  align-items: center;
+  justify-content: center;
+  gap: var(--espacio-2) var(--espacio-6);
 }
 
 .enlace {
@@ -27,7 +29,7 @@
   align-items: center;
   min-height: var(--tactil-min);
   color: var(--color-accion);
-  font-size: var(--texto-md);
+  font-size: var(--texto-base);
   font-weight: var(--peso-seminegrita);
   text-decoration: none;
 }

@@ -85,6 +85,7 @@ export default function FormularioLogin({
         refInput={refContrasena}
         alCambiar={(valor) => alCambiarCampo('contrasena', valor)}
         alSalir={() => alSalirDeCampo('contrasena')}
+        placeholder="Ingresa tu contraseña"
       />
 
       <div className={estilos.filaOpciones}>

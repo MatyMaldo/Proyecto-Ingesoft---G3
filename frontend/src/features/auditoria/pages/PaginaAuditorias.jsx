@@ -1,3 +1,5 @@
+import { useState } from 'react';
+
 import CampoBusqueda from '../../../shared/components/CampoBusqueda.jsx';
 import FiltroRangoFechas from '../../../shared/components/FiltroRangoFechas.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
@@ -54,7 +56,10 @@ export default function PaginaAuditorias() {
     detalle
   } = useAuditoria();
 
+  const [filtrosAbiertos, establecerFiltrosAbiertos] = useState(false);
   const tiposDelModulo = obtenerTiposDeCategoria(categoria);
+  const filtrosActivos =
+    (categoria !== 'TODOS' ? 1 : 0) + (tipoTransaccion ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0);
   const textoMostrandoAhora = mostrandoAhora === 1 ? '1 registro' : `${mostrandoAhora} registros`;
   const mensajeVacio = resumen && resumen.totalAcciones === 0 ? MENSAJE_VACIO_TOTAL : MENSAJE_VACIO_FILTRADO;
 
@@ -65,14 +70,14 @@ export default function PaginaAuditorias() {
           <p className={estilos.sobretitulo}>Módulo de administración</p>
           <h1 className={estilos.titulo}>Auditorías del Sistema</h1>
         </div>
-        <div className={estilos.espacioInsignia}>
-          {resumen && (
+        {resumen && (
+          <div className={estilos.espacioInsignia}>
             <span className={estilos.insigniaEstado}>
               <span className={estilos.puntoEstado} aria-hidden="true" />
               {formatearTextoInsignia(resumen)}
             </span>
-          )}
-        </div>
+          </div>
+        )}
       </header>
 
       <section className={estilos.barraHerramientas} aria-label="Filtros de auditoría">
@@ -88,55 +93,78 @@ export default function PaginaAuditorias() {
             />
           </div>
 
-          <div className={estilos.campoTipoTransaccion}>
-            <label htmlFor="modulo-auditorias" className={estilos.etiquetaTipoTransaccion}>
-              Módulo
-            </label>
-            <select
-              id="modulo-auditorias"
-              className={estilos.selectorTipoTransaccion}
-              value={categoria}
-              onChange={(evento) => establecerCategoria(evento.target.value)}
-            >
-              {OPCIONES_CATEGORIA.map((opcion) => (
-                <option key={opcion.valor} value={opcion.valor}>
-                  {opcion.valor === 'TODOS' ? 'Todos los módulos' : opcion.etiqueta}
-                </option>
-              ))}
-            </select>
-          </div>
+          <button
+            type="button"
+            className={estilos.botonFiltros}
+            aria-expanded={filtrosAbiertos}
+            aria-controls="filtros-avanzados-auditorias"
+            onClick={() => establecerFiltrosAbiertos((anterior) => !anterior)}
+          >
+            Filtros
+            {filtrosActivos > 0 && (
+              <span className={estilos.contadorFiltros}>
+                {filtrosActivos}
+                <span className={estilosUtil.ocultoVisualmente}>
+                  {filtrosActivos === 1 ? ' filtro activo' : ' filtros activos'}
+                </span>
+              </span>
+            )}
+            <Icono nombre={filtrosAbiertos ? 'chevron-arriba' : 'chevron-abajo'} tamano={16} />
+          </button>
 
-          <div className={estilos.campoTipoTransaccion}>
-            <label htmlFor="tipo-transaccion-auditorias" className={estilos.etiquetaTipoTransaccion}>
-              Tipo de transacción
-            </label>
-            <select
-              id="tipo-transaccion-auditorias"
-              className={estilos.selectorTipoTransaccion}
-              value={tipoTransaccion}
-              disabled={tiposDelModulo.length === 0}
-              onChange={(evento) => establecerTipoTransaccion(evento.target.value)}
-            >
-              <option value="">
-                {tiposDelModulo.length === 0 ? 'Elige un módulo primero' : 'Todos los tipos'}
-              </option>
-              {tiposDelModulo.map((tipo) => (
-                <option key={tipo} value={tipo}>
-                  {tipo}
-                </option>
-              ))}
-            </select>
-          </div>
+          <div
+            id="filtros-avanzados-auditorias"
+            className={filtrosAbiertos ? `${estilos.filtrosAvanzados} ${estilos.filtrosAbiertos}` : estilos.filtrosAvanzados}
+          >
+            <div className={estilos.campoTipoTransaccion}>
+              <label htmlFor="modulo-auditorias" className={estilos.etiquetaTipoTransaccion}>
+                Módulo
+              </label>
+              <select
+                id="modulo-auditorias"
+                className={estilos.selectorTipoTransaccion}
+                value={categoria}
+                onChange={(evento) => establecerCategoria(evento.target.value)}
+              >
+                {OPCIONES_CATEGORIA.map((opcion) => (
+                  <option key={opcion.valor} value={opcion.valor}>
+                    {opcion.valor === 'TODOS' ? 'Todos los módulos' : opcion.etiqueta}
+                  </option>
+                ))}
+              </select>
+            </div>
 
-          <FiltroRangoFechas
-            fechaDesde={fechaDesde}
-            fechaHasta={fechaHasta}
-            alCambiarFechaDesde={establecerFechaDesde}
-            alCambiarFechaHasta={establecerFechaHasta}
-            mensajeError={mensajeErrorRango}
-          />
+            <div className={estilos.campoTipoTransaccion}>
+              <label htmlFor="tipo-transaccion-auditorias" className={estilos.etiquetaTipoTransaccion}>
+                Tipo de transacción
+              </label>
+              <select
+                id="tipo-transaccion-auditorias"
+                className={estilos.selectorTipoTransaccion}
+                value={tipoTransaccion}
+                disabled={tiposDelModulo.length === 0}
+                onChange={(evento) => establecerTipoTransaccion(evento.target.value)}
+              >
+                <option value="">
+                  {tiposDelModulo.length === 0 ? 'Elige un módulo primero' : 'Todos los tipos'}
+                </option>
+                {tiposDelModulo.map((tipo) => (
+                  <option key={tipo} value={tipo}>
+                    {tipo}
+                  </option>
+                ))}
+              </select>
+            </div>
+
+            <FiltroRangoFechas
+              fechaDesde={fechaDesde}
+              fechaHasta={fechaHasta}
+              alCambiarFechaDesde={establecerFechaDesde}
+              alCambiarFechaHasta={establecerFechaHasta}
+              mensajeError={mensajeErrorRango}
+            />
+          </div>
         </div>
-
       </section>
 
       <p className={estilos.notaPie}>

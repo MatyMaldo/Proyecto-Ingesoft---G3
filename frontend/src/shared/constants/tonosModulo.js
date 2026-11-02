@@ -1,25 +1,27 @@
 /**
  * Mapa de código de módulo → tono visual (uno de los tonos de `tokens.css`).
  * Lo usan la insignia de módulo de las tablas y el chip de filtro activo.
- * Paleta neutra (shell.md §20.4, 2026-11-01): verde, ámbar y rojo quedan reservados
- * para estados de negocio (Pagado/Pendiente/Vencido, Presente/Tardanza/Falta, etc.).
+ * Todos los módulos comparten un mismo tono neutro (acero): la insignia de módulo solo
+ * identifica, no clasifica. Verde, ámbar y rojo quedan reservados para estados de negocio
+ * (Pagado/Pendiente/Vencido, Presente/Tardanza/Falta, etc.) y los demás tonos de color
+ * no compiten con ellos (shell.md §20.4, 2026-11-01).
  * `AUTENTICACION` y `REPORTES` se conservan en gris (decisión del usuario, G-3,
  * 2026-11-01): no están en los chips de filtro vigentes, pero el log puede seguir
  * recibiendo registros con esos códigos. Los tonos de tipo de error son propios de
  * la feature log-errores (no viven aquí).
  */
 export const TONOS_MODULO = Object.freeze({
-  NOTAS: 'azul',
-  USUARIOS: 'violeta',
-  ASISTENCIA: 'cian',
-  MATRICULAS: 'marino',
+  NOTAS: 'acero',
+  USUARIOS: 'acero',
+  ASISTENCIA: 'acero',
+  MATRICULAS: 'acero',
   CONFIGURACION: 'acero',
-  PAGOS: 'turquesa',
-  HORARIOS: 'indigo',
-  SISTEMA: 'gris',
-  EVALUACIONES: 'ciruela',
-  AUTENTICACION: 'gris',
-  REPORTES: 'gris'
+  PAGOS: 'acero',
+  HORARIOS: 'acero',
+  SISTEMA: 'acero',
+  EVALUACIONES: 'acero',
+  AUTENTICACION: 'acero',
+  REPORTES: 'acero'
 });
 
 /**
