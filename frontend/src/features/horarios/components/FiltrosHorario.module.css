@@ -1,0 +1,67 @@
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espacio-4);
+  padding: var(--espacio-4) var(--espacio-6);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-sm);
+}
+
+.campoGrado {
+  flex: 1 1 14rem;
+  max-width: 18rem;
+}
+
+.campoSeccion {
+  flex: 0 1 8rem;
+}
+
+.boton {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espacio-2);
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-6);
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-marca-texto);
+  background: var(--color-primario-intenso);
+  border: 0;
+  border-radius: var(--radio-md);
+  cursor: pointer;
+  transition: background var(--transicion);
+}
+
+.boton:hover:not(:disabled) {
+  background: var(--color-primario-hover);
+}
+
+.boton:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.boton:disabled {
+  opacity: var(--opacidad-deshabilitado);
+  cursor: not-allowed;
+}
+
+@media (max-width: 767px) {
+  .filtros {
+    padding: var(--espacio-4);
+  }
+
+  .campoGrado,
+  .campoSeccion {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .boton {
+    flex: 1 1 100%;
+  }
+}

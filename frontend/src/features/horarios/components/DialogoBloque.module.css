@@ -1,0 +1,23 @@
+.selector {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+  min-width: 0;
+  margin: 0;
+  padding: 0;
+  border: 0;
+}
+
+.leyenda {
+  margin-bottom: var(--espacio-3);
+  padding: 0;
+  font-size: var(--texto-base);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-primario-intenso);
+}
+
+.aviso {
+  margin: 0;
+  font-size: var(--texto-md);
+  color: var(--color-texto-suave);
+}

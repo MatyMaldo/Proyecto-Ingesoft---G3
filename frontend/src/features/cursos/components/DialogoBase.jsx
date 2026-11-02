@@ -20,6 +20,10 @@ import estilos from './DialogoBase.module.css';
  * @param {boolean} [props.enviando] Bloquea cierre y botones mientras se espera al servidor.
  * @param {boolean} [props.confirmarDeshabilitado]
  * @param {string|null} [props.error] Mensaje de error general (se anuncia con `role="alert"`).
+ * @param {string} [props.anchoMaximo] Ancho máximo del diálogo (por ejemplo `'56rem'`); por defecto 30 rem.
+ * @param {boolean} [props.cerrarAlClicFuera] Si es `false`, pulsar en el velo no cierra el diálogo (por defecto `true`).
+ * @param {boolean} [props.sinConfirmar] Oculta el botón de confirmar (diálogos informativos).
+ * @param {string} [props.textoCancelar]
  * @param {string} [props.notaPie] Texto auxiliar a la izquierda de los botones.
  * @param {() => void} props.alCancelar Se llama al cerrar el diálogo (Esc, clic en el velo, X o Cancelar).
  * @param {(evento: SubmitEvent) => void} props.alConfirmar
@@ -35,6 +39,10 @@ export default function DialogoBase({
   confirmarDeshabilitado = false,
   error = null,
   notaPie,
+  anchoMaximo,
+  cerrarAlClicFuera = true,
+  sinConfirmar = false,
+  textoCancelar = 'Cancelar',
   alCancelar,
   alConfirmar,
   children
@@ -83,7 +91,7 @@ export default function DialogoBase({
   };
 
   const manejarClicDialogo = (evento) => {
-    if (evento.target === refDialogo.current && !enviando) {
+    if (cerrarAlClicFuera && evento.target === refDialogo.current && !enviando) {
       cerrar();
     }
   };
@@ -92,6 +100,7 @@ export default function DialogoBase({
     <dialog
       ref={refDialogo}
       className={estilos.dialogo}
+      style={anchoMaximo ? { maxWidth: anchoMaximo } : undefined}
       aria-modal="true"
       aria-labelledby={idTitulo}
       onClick={manejarClicDialogo}
@@ -131,22 +140,24 @@ export default function DialogoBase({
         <div className={estilos.pie}>
           {notaPie && <span className={estilos.notaPie}>{notaPie}</span>}
           <button type="button" className={estilos.botonSecundario} disabled={enviando} onClick={cerrar}>
-            Cancelar
+            {textoCancelar}
           </button>
-          <button
-            type="submit"
-            className={estilos.botonPrimario}
-            disabled={enviando || confirmarDeshabilitado}
-          >
-            {enviando ? (
-              <>
-                <Icono nombre="cargando" tamano={18} className={estilos.iconoCargando} />
-                {textoEnviando}
-              </>
-            ) : (
-              textoConfirmar
-            )}
-          </button>
+          {!sinConfirmar && (
+            <button
+              type="submit"
+              className={estilos.botonPrimario}
+              disabled={enviando || confirmarDeshabilitado}
+            >
+              {enviando ? (
+                <>
+                  <Icono nombre="cargando" tamano={18} className={estilos.iconoCargando} />
+                  {textoEnviando}
+                </>
+              ) : (
+                textoConfirmar
+              )}
+            </button>
+          )}
         </div>
       </form>
     </dialog>

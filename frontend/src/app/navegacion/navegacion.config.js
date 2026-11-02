@@ -20,7 +20,13 @@ export const SECCIONES_NAVEGACION = Object.freeze([
       Object.freeze({ id: 'matriculas', etiqueta: 'Matrículas', ruta: '/matriculas', icono: 'usuarios' }),
       Object.freeze({ id: 'cursos', etiqueta: 'Cursos', ruta: '/cursos', icono: 'libro' }),
       Object.freeze({ id: 'pagos', etiqueta: 'Pagos', ruta: '/pagos', icono: 'tarjeta' }),
-      Object.freeze({ id: 'horarios', etiqueta: 'Horarios', ruta: '/horarios', icono: 'reloj' })
+      Object.freeze({
+        id: 'horarios',
+        etiqueta: 'Horarios',
+        ruta: '/horarios',
+        icono: 'reloj',
+        roles: Object.freeze([ROLES.ADMIN])
+      })
     ])
   }),
   Object.freeze({
