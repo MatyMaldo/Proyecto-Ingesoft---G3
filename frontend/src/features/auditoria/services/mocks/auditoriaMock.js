@@ -51,13 +51,17 @@ function clonar(lista) {
   return lista.map((registro) => JSON.parse(JSON.stringify(registro)));
 }
 
-// 2026-11-03: 22 registros, 4 días (2026-09-15 a 2026-09-18), 9 módulos, 6 usuarios.
+// 2026-11-03: 26 registros, 4 días (2026-09-15 a 2026-09-18), 9 módulos, 6 usuarios.
 // Cada registro lleva `tipoAccion` (CREAR, ACTUALIZAR, ELIMINAR, LOGIN, CAMBIO_ESTADO), que alimenta
 // el filtro y la columna "Acción"; `tipoTransaccion` es el nombre del catálogo de HU-SAT-04
-// (docs/planes/auditorias.md §C y §E) y se muestra como "Descripción". No hay registros LOGIN:
-// la HU no audita el inicio de sesión.
-// AUD-0004 (SISTEMA) y AUD-0009 (EVALUACIONES) se mantienen sin cambios hasta
-// resolver D9/D22 (decisión pendiente, docs/planes/auditorias.md §15).
+// (docs/planes/auditorias.md §C y §E) y se muestra como "Descripción". El inicio de sesión sí se audita
+// (decisión del usuario, 2026-11-03): AUD-0025 y AUD-0026 son registros LOGIN.
+// TODO(pregunta): el backlog no define en qué categoría de módulo se registra el inicio de sesión;
+// en el mock va en USUARIOS.
+// AUD-0004 (SISTEMA) se mantiene sin cambios (D9/D22). AUD-0009 ("Generó libreta") va en NOTAS
+// por decisión del usuario (2026-11-03): la generación de libreta se audita en Notas.
+// 2026-11-03: en Evaluaciones se audita la "Creación de evaluación" (decisión del usuario; se agrega
+//   al checklist de HU-SAT-04). AUD-0023 y AUD-0024 son datos ficticios con ese tipo de transacción.
 const REGISTROS = congelarProfundo([
   {
     id: 'AUD-0001',
@@ -343,8 +347,8 @@ const REGISTROS = congelarProfundo([
     idElemento: 'LIBRETA-0021',
     fechaHora: '2026-09-17T16:45:00-05:00',
     usuario: { nombre: 'Prof. Huamán', rol: 'TUTOR' },
-    // D9/D22 (sin decisión): esta categoría "EVALUACIONES" no está en la HU; se mantiene tal cual.
-    categoria: 'EVALUACIONES',
+    // 2026-11-03: la generación de libreta se audita en Notas (antes EVALUACIONES).
+    categoria: 'NOTAS',
     tipoAccion: 'CAMBIO_ESTADO',
     tipoTransaccion: 'Generó libreta',
     valoresAntes: [
@@ -443,6 +447,66 @@ const REGISTROS = congelarProfundo([
       { campo: 'Estudiante', valor: 'Ana Torres Ríos' },
       { campo: 'Estado', valor: 'Tardanza' }
     ]
+  },
+  {
+    id: 'AUD-0023',
+    idElemento: 'EVALUACION-0105',
+    fechaHora: '2026-09-15T11:30:00-05:00',
+    usuario: { nombre: 'Prof. Delgado', rol: 'DOCENTE' },
+    categoria: 'EVALUACIONES',
+    tipoAccion: 'CREAR',
+    tipoTransaccion: 'Creación de evaluación',
+    valoresAntes: null,
+    valoresDespues: [
+      { campo: 'Evaluación', valor: 'Práctica 3' },
+      { campo: 'Curso', valor: 'Matemática' },
+      { campo: 'Sección', valor: '3.° A' },
+      { campo: 'Competencia', valor: 'Resuelve problemas de cantidad' },
+      { campo: 'Fecha', valor: '2026-09-23' },
+      { campo: 'Bimestre', valor: 'III' }
+    ]
+  },
+  {
+    id: 'AUD-0024',
+    idElemento: 'EVALUACION-0106',
+    fechaHora: '2026-09-15T12:10:00-05:00',
+    usuario: { nombre: 'Prof. Huamán', rol: 'TUTOR' },
+    categoria: 'EVALUACIONES',
+    tipoAccion: 'CREAR',
+    tipoTransaccion: 'Creación de evaluación',
+    valoresAntes: null,
+    valoresDespues: [
+      { campo: 'Evaluación', valor: 'Examen bimestral' },
+      { campo: 'Curso', valor: 'Comunicación' },
+      { campo: 'Sección', valor: '3.° A' },
+      { campo: 'Competencia', valor: 'Lee diversos tipos de textos escritos' },
+      { campo: 'Fecha', valor: '2026-09-30' },
+      { campo: 'Bimestre', valor: 'III' }
+    ]
+  },
+  // 2026-11-03: el inicio de sesión se audita (tipoAccion LOGIN). Solo se guarda el estado de la
+  // sesión: nunca contraseñas, tokens ni hashes.
+  {
+    id: 'AUD-0025',
+    idElemento: 'ACCESO-0001',
+    fechaHora: '2026-09-15T14:05:00-05:00',
+    usuario: { nombre: 'Prof. Delgado', rol: 'DOCENTE' },
+    categoria: 'USUARIOS',
+    tipoAccion: 'LOGIN',
+    tipoTransaccion: 'Inicio de sesión',
+    valoresAntes: null,
+    valoresDespues: [{ campo: 'Estado de sesión', valor: 'Iniciada' }]
+  },
+  {
+    id: 'AUD-0026',
+    idElemento: 'ACCESO-0002',
+    fechaHora: '2026-09-15T18:30:00-05:00',
+    usuario: { nombre: 'Lucía Paredes', rol: 'APODERADO' },
+    categoria: 'USUARIOS',
+    tipoAccion: 'LOGIN',
+    tipoTransaccion: 'Inicio de sesión',
+    valoresAntes: null,
+    valoresDespues: [{ campo: 'Estado de sesión', valor: 'Iniciada' }]
   }
 ]);
 

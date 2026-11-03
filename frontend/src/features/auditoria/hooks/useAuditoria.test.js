@@ -161,7 +161,7 @@ describe('HU-SAT-04 · Filtro por tipo de acción, independiente del módulo', (
     expect(result.current.registros.every((registro) => registro.accion.codigo === 'CREAR')).toBe(true);
   });
 
-  it('no hay registros de inicio de sesión: la HU no lo audita', async () => {
+  it('el filtro "Login" devuelve los inicios de sesión, que sí se auditan', async () => {
     const { result } = renderHook(() => useAuditoria());
     await esperarCargaInicial(result);
 
@@ -170,7 +170,8 @@ describe('HU-SAT-04 · Filtro por tipo de acción, independiente del módulo', (
     });
     await waitFor(() => expect(result.current.actualizando).toBe(false));
 
-    expect(result.current.registros).toEqual([]);
+    expect(result.current.registros.map((registro) => registro.id)).toEqual(['AUD-0026', 'AUD-0025']);
+    expect(result.current.registros.every((registro) => registro.accion.codigo === 'LOGIN')).toBe(true);
   });
 });
 

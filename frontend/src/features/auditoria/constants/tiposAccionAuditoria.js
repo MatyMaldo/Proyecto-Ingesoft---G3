@@ -1,8 +1,9 @@
 // TODO(backend): confirmar los códigos de `tipoAccion` (CREAR, ACTUALIZAR, ELIMINAR, LOGIN,
 // CAMBIO_ESTADO), que el backend los envíe en cada registro y que el listado acepte el
 // parámetro `tipoAccion` para filtrar.
-// TODO(pregunta): la HU-SAT-04 y docs/frontend-contexto.md dicen que el inicio de sesión no se
-// audita; el filtro ofrece "Login" por decisión del equipo (2026-11-03). Confirmar con la HU.
+// 2026-11-03: "Login" se mantiene en el filtro por decisión del usuario: el inicio de sesión SÍ se
+// audita en Auditorías (lo que no se registra son los errores controlados de login en el log de
+// errores, HU-SAT-05).
 
 /**
  * Catálogo cerrado de tipos de acción de un registro de auditoría, en el orden del filtro.
