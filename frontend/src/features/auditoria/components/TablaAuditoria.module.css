@@ -8,13 +8,25 @@
   }
 }
 
+/* Anchos repartidos en porcentaje (layout fijo): así ninguna columna absorbe todo el espacio
+   sobrante y "Detalle" queda cerca de "Descripción". Por debajo de 720px la tabla se desplaza
+   horizontalmente dentro de `.contenedorTabla`. */
 .tabla {
   width: 100%;
+  min-width: 720px;
+  table-layout: fixed;
   border-collapse: collapse;
 }
 
+.tabla thead th:nth-child(1) { width: 12.5%; }
+.tabla thead th:nth-child(2) { width: 17.5%; }
+.tabla thead th:nth-child(3) { width: 15%; }
+.tabla thead th:nth-child(4) { width: 18.5%; }
+.tabla thead th:nth-child(5) { width: 28.5%; }
+.tabla thead th:nth-child(6) { width: 8%; }
+
 .tabla thead th {
-  padding: var(--espacio-3) var(--espacio-4);
+  padding: var(--espacio-3);
   text-align: left;
   font-size: var(--texto-xs);
   font-weight: var(--peso-seminegrita);
@@ -28,7 +40,7 @@
 
 .tabla tbody td {
   height: var(--alto-fila-tabla);
-  padding: var(--espacio-2) var(--espacio-4);
+  padding: var(--espacio-2) var(--espacio-3);
   text-align: left;
   font-size: var(--texto-md);
   color: var(--color-texto);
@@ -36,11 +48,10 @@
   vertical-align: middle;
 }
 
-/* Columna "Detalle": ancho fijo y contenido centrado, para que el ícono no quede pegado al borde
-   (docs/planes/auditorias.md §10). La acción se recorta con "…" y cede el espacio a esta columna. */
+/* Columna "Detalle": contenido centrado, para que el ícono no quede pegado al borde
+   (docs/planes/auditorias.md §10). */
 .tabla thead th:last-child,
 .tabla tbody td:last-child {
-  width: calc(var(--espacio-10) * 2);
   text-align: center;
   white-space: nowrap;
 }
@@ -127,18 +138,18 @@
   color: var(--color-texto-secundario);
 }
 
-/* La acción se recorta a una línea (el texto completo va en el tooltip y en el detalle)
-   para mantener filas compactas. */
-.celdaAccion {
-  width: 36%;
-  max-width: 0;
+/* La descripción admite hasta dos líneas (el resto va recortado con "…"; el texto completo está en
+   el tooltip y en el detalle), con lo que las filas no crecen más que por la fecha o el rol. */
+.celdaDescripcion {
+  overflow: hidden;
 }
 
-.accionTexto {
-  display: block;
+.descripcionTexto {
+  display: -webkit-box;
   overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
   font-size: var(--texto-md);
   font-weight: var(--peso-normal);
   color: var(--color-texto);
@@ -214,6 +225,13 @@
   gap: var(--espacio-2);
 }
 
+.insigniasTarjeta {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--espacio-2);
+}
+
 .filaUsuarioTarjeta {
   display: flex;
   align-items: center;
@@ -226,7 +244,7 @@
   gap: 2px;
 }
 
-.accionTarjeta {
+.descripcionTarjeta {
   font-size: var(--texto-md);
   font-weight: var(--peso-seminegrita);
   color: var(--color-texto);

@@ -57,6 +57,7 @@ export default function TablaAuditoria({ registros, actualizando, alSeleccionarR
               <th scope="col">Usuario</th>
               <th scope="col">Módulo</th>
               <th scope="col">Acción</th>
+              <th scope="col">Descripción</th>
               <th scope="col">Detalle</th>
             </tr>
           </thead>
@@ -87,8 +88,11 @@ export default function TablaAuditoria({ registros, actualizando, alSeleccionarR
                 <td>
                   <Insignia tono={registro.modulo.tono}>{registro.modulo.etiqueta}</Insignia>
                 </td>
-                <td className={estilos.celdaAccion}>
-                  <span className={estilos.accionTexto} title={registro.tipoTransaccion}>
+                <td>
+                  <Insignia tono={registro.accion.tono}>{registro.accion.etiqueta}</Insignia>
+                </td>
+                <td className={estilos.celdaDescripcion}>
+                  <span className={estilos.descripcionTexto} title={registro.tipoTransaccion}>
                     {registro.tipoTransaccion}
                   </span>
                 </td>
@@ -127,7 +131,10 @@ export default function TablaAuditoria({ registros, actualizando, alSeleccionarR
                   <span className={estilos.fecha}>{formatearFechaVisible(registro.fecha)}</span>
                   <span className={estilos.hora}>{registro.hora}</span>
                 </time>
-                <Insignia tono={registro.modulo.tono}>{registro.modulo.etiqueta}</Insignia>
+                <span className={estilos.insigniasTarjeta}>
+                  <Insignia tono={registro.modulo.tono}>{registro.modulo.etiqueta}</Insignia>
+                  <Insignia tono={registro.accion.tono}>{registro.accion.etiqueta}</Insignia>
+                </span>
               </span>
               <span className={estilos.filaUsuarioTarjeta}>
                 <span className={estilos.avatar} aria-hidden="true">
@@ -139,7 +146,7 @@ export default function TablaAuditoria({ registros, actualizando, alSeleccionarR
                 </span>
               </span>
               <span className={estilos.filaInferiorTarjeta}>
-                <span className={estilos.accionTarjeta}>{registro.tipoTransaccion}</span>
+                <span className={estilos.descripcionTarjeta}>{registro.tipoTransaccion}</span>
                 <span className={estilos.pistaHistorial}>Ver historial</span>
               </span>
             </button>

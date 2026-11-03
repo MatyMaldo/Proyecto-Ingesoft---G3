@@ -41,9 +41,10 @@ function normalizarPagina(datos) {
  * descendente por fecha y hora y paginados de 15 en 15 (HU-SAT-04 Esc. 4; D20: la
  * paginación la resuelve el backend, sin paginador visible en el frontend).
  *
- * @param {{ categoria: string|null, busqueda: string, fechaDesde?: string, fechaHasta?: string, tipoTransaccion?: string, pagina?: number }} filtros
- *   `fechaDesde` y `fechaHasta` en `'AAAA-MM-DD'` (LAB05); vacías, no se envían. `tipoTransaccion`
- *   (D2/D14, decisión del dueño del producto): filtro explícito y separado de la búsqueda libre.
+ * @param {{ categoria: string|null, busqueda: string, fechaDesde?: string, fechaHasta?: string, tipoAccion?: string, pagina?: number }} filtros
+ *   `fechaDesde` y `fechaHasta` en `'AAAA-MM-DD'` (LAB05); vacías, no se envían. `tipoAccion`
+ *   (CREAR, ACTUALIZAR, ELIMINAR, LOGIN o CAMBIO_ESTADO): filtro explícito, independiente del módulo
+ *   y separado de la búsqueda libre.
  *   `pagina` es base 0; por defecto 0 (hoy el hook siempre envía 0).
  * @param {{ signal?: AbortSignal }} [opciones]
  * @returns {Promise<{exitoso: boolean, datos: {registros: Array, pagina: number, totalPaginas: number, totalElementos: number}|null, mensaje: string}>}
@@ -57,7 +58,7 @@ export async function listarRegistrosAuditoria(filtros, opciones = {}) {
         busqueda: filtros?.busqueda,
         fechaDesde: filtros?.fechaDesde,
         fechaHasta: filtros?.fechaHasta,
-        tipoTransaccion: filtros?.tipoTransaccion,
+        tipoAccion: filtros?.tipoAccion,
         page: filtros?.pagina ?? 0,
         size: TAMANIO_PAGINA_AUDITORIA
       },

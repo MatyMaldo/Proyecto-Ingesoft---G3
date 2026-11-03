@@ -18,7 +18,7 @@ describe('HU-SAT-04 · Escenario 4: búsqueda general con filtros combinados, de
     expect(result.current.registros.length).toBeGreaterThan(0);
   });
 
-  it('combina categoría, tipo de transacción y rango de fechas (Y lógico) y mantiene el orden descendente', async () => {
+  it('combina categoría, tipo de acción y rango de fechas (Y lógico) y mantiene el orden descendente', async () => {
     const { result } = renderHook(() => useAuditoria());
     await esperarCargaInicial(result);
 
@@ -42,7 +42,7 @@ describe('HU-SAT-04 · Escenario 4: búsqueda general con filtros combinados, de
     expect(result.current.registros.every((registro) => registro.modulo.codigo === 'PAGOS')).toBe(true);
 
     act(() => {
-      result.current.establecerTipoTransaccion('Validación de pago');
+      result.current.establecerTipoAccion('CAMBIO_ESTADO');
     });
     await waitFor(() => expect(result.current.actualizando).toBe(false));
 
@@ -121,35 +121,93 @@ describe('HU-SAT-04 · Escenario 5: registro de una operación automática del s
     expect(registroSistema).toBeDefined();
     expect(registroSistema.usuario.rol).toBe('Sistema');
     expect(registroSistema).toHaveProperty('tipoTransaccion');
+    expect(registroSistema).toHaveProperty('accion');
     expect(registroSistema).toHaveProperty('fecha');
     expect(registroSistema).toHaveProperty('valoresAntes');
     expect(registroSistema).toHaveProperty('valoresDespues');
   });
 });
 
-describe('HU-SAT-04 · Selector en cascada: el tipo de transacción depende del módulo', () => {
-  it('al cambiar de módulo, el tipo de transacción vuelve a "Todos los tipos"', async () => {
+describe('HU-SAT-04 · Filtro por tipo de acción, independiente del módulo', () => {
+  it('filtra solo por tipo de acción, sin elegir módulo', async () => {
     const { result } = renderHook(() => useAuditoria());
     await esperarCargaInicial(result);
+
+    act(() => {
+      result.current.establecerTipoAccion('ELIMINAR');
+    });
+    await waitFor(() => expect(result.current.actualizando).toBe(false));
+
+    expect(result.current.registros.map((registro) => registro.id)).toEqual(['AUD-0022']);
+    expect(result.current.registros[0].accion).toEqual({ codigo: 'ELIMINAR', etiqueta: 'Eliminar', tono: 'rojo' });
+  });
+
+  it('al cambiar de módulo conserva el tipo de acción y combina ambos filtros', async () => {
+    const { result } = renderHook(() => useAuditoria());
+    await esperarCargaInicial(result);
+
+    act(() => {
+      result.current.establecerTipoAccion('CREAR');
+    });
+    await waitFor(() => expect(result.current.actualizando).toBe(false));
 
     act(() => {
       result.current.establecerCategoria('PAGOS');
     });
     await waitFor(() => expect(result.current.actualizando).toBe(false));
 
-    act(() => {
-      result.current.establecerTipoTransaccion('Validación de pago');
-    });
-    await waitFor(() => expect(result.current.actualizando).toBe(false));
-    expect(result.current.tipoTransaccion).toBe('Validación de pago');
+    expect(result.current.tipoAccion).toBe('CREAR');
+    expect(result.current.registros.map((registro) => registro.id)).toEqual(['AUD-0014', 'AUD-0006']);
+    expect(result.current.registros.every((registro) => registro.accion.codigo === 'CREAR')).toBe(true);
+  });
+
+  it('no hay registros de inicio de sesión: la HU no lo audita', async () => {
+    const { result } = renderHook(() => useAuditoria());
+    await esperarCargaInicial(result);
 
     act(() => {
-      result.current.establecerCategoria('NOTAS');
+      result.current.establecerTipoAccion('LOGIN');
     });
     await waitFor(() => expect(result.current.actualizando).toBe(false));
 
-    expect(result.current.tipoTransaccion).toBe('');
-    expect(result.current.registros.every((registro) => registro.modulo.codigo === 'NOTAS')).toBe(true);
-    expect(result.current.registros.length).toBeGreaterThan(0);
+    expect(result.current.registros).toEqual([]);
+  });
+});
+
+describe('HU-SAT-04 · Búsqueda sobre las columnas sin filtro propio (usuario y descripción)', () => {
+  async function buscar(result, texto) {
+    act(() => {
+      result.current.establecerBusqueda(texto);
+    });
+    // El hook espera 300 ms antes de consultar (debounce).
+    await waitFor(() => expect(result.current.actualizando).toBe(false), { timeout: 3000 });
+  }
+
+  it('encuentra por nombre de usuario', async () => {
+    const { result } = renderHook(() => useAuditoria());
+    await esperarCargaInicial(result);
+
+    await buscar(result, 'quispe');
+    await waitFor(() => expect(result.current.registros.map((registro) => registro.id)).toEqual(['AUD-0012']), {
+      timeout: 3000
+    });
+  });
+
+  it('encuentra por descripción (nombre de la transacción)', async () => {
+    const { result } = renderHook(() => useAuditoria());
+    await esperarCargaInicial(result);
+
+    await buscar(result, 'rechazo de pago');
+    await waitFor(() => expect(result.current.registros.map((registro) => registro.id)).toEqual(['AUD-0013']), {
+      timeout: 3000
+    });
+  });
+
+  it('no busca en el módulo: ese criterio es del selector', async () => {
+    const { result } = renderHook(() => useAuditoria());
+    await esperarCargaInicial(result);
+
+    await buscar(result, 'pagos');
+    await waitFor(() => expect(result.current.registros).toEqual([]), { timeout: 3000 });
   });
 });

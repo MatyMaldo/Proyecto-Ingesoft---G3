@@ -164,8 +164,14 @@ export default function DetalleTransaccion({ registro, historial, alReintentarHi
                 <dd className={estilos.valorValor}>{registro.id}</dd>
               </div>
               <div className={estilos.parValor}>
-                <dt className={estilos.campoValor}>Tipo de transacción</dt>
+                <dt className={estilos.campoValor}>Descripción</dt>
                 <dd className={estilos.valorValor}>{registro.tipoTransaccion}</dd>
+              </div>
+              <div className={estilos.parValor}>
+                <dt className={estilos.campoValor}>Acción</dt>
+                <dd className={estilos.valorValor}>
+                  <Insignia tono={registro.accion.tono}>{registro.accion.etiqueta}</Insignia>
+                </dd>
               </div>
               <div className={estilos.parValor}>
                 <dt className={estilos.campoValor}>Usuario</dt>

@@ -226,7 +226,9 @@ function coincideConFiltros(registro, filtros) {
 
   if (filtros.busqueda) {
     const consulta = normalizar(filtros.busqueda);
-    const texto = normalizar(`${registro.mensaje} ${registro.tipoError} ${registro.modulo}`);
+    // La búsqueda cubre operación, mensaje y usuario. El módulo tiene su selector y el tipo de
+    // error es solo una columna (HU-SAT-06): ninguno de los dos se busca.
+    const texto = normalizar(`${registro.operacion} ${registro.mensaje} ${registro.usuario ?? ''}`);
 
     if (!texto.includes(consulta)) {
       return false;

@@ -11,38 +11,42 @@ async function renderizarYEsperar() {
   });
 }
 
-describe('HU-SAT-04 · Selectores en cascada de Módulo y Tipo de transacción', () => {
-  it('el tipo de transacción está deshabilitado hasta elegir un módulo', async () => {
+describe('HU-SAT-04 · Selectores independientes de Módulo y Tipo de acción', () => {
+  it('el tipo de acción está habilitado desde el inicio y ofrece los cinco tipos', async () => {
     await renderizarYEsperar();
 
-    const selectTipo = screen.getByLabelText('Tipo de transacción');
-    expect(selectTipo).toBeDisabled();
-    expect(within(selectTipo).getByRole('option', { name: 'Elige un módulo primero' })).toBeInTheDocument();
+    const selectAccion = screen.getByLabelText('Tipo de acción');
+    expect(selectAccion).toBeEnabled();
+    const opciones = within(selectAccion).getAllByRole('option').map((opcion) => opcion.textContent);
+    expect(opciones).toEqual([
+      'Todas las acciones',
+      'Crear',
+      'Actualizar',
+      'Eliminar',
+      'Login',
+      'Cambio de estado'
+    ]);
   });
 
-  it('al elegir un módulo habilita el tipo y lista solo los tipos de ese módulo', async () => {
+  it('cambiar el módulo no reinicia el tipo de acción', async () => {
     const usuario = userEvent.setup();
     await renderizarYEsperar();
 
-    await usuario.selectOptions(screen.getByLabelText('Módulo'), 'MATRICULAS');
-
-    const selectTipo = screen.getByLabelText('Tipo de transacción');
-    expect(selectTipo).toBeEnabled();
-    const opciones = within(selectTipo).getAllByRole('option').map((opcion) => opcion.textContent);
-    expect(opciones).toEqual(['Todos los tipos', 'Registro de matrícula', 'Cancelación automática de matrícula']);
-  });
-
-  it('al volver a "Todos los módulos" el tipo se deshabilita y se reinicia', async () => {
-    const usuario = userEvent.setup();
-    await renderizarYEsperar();
-
+    await usuario.selectOptions(screen.getByLabelText('Tipo de acción'), 'CAMBIO_ESTADO');
     await usuario.selectOptions(screen.getByLabelText('Módulo'), 'PAGOS');
-    await usuario.selectOptions(screen.getByLabelText('Tipo de transacción'), 'Validación de pago');
-    await usuario.selectOptions(screen.getByLabelText('Módulo'), 'TODOS');
 
-    const selectTipo = screen.getByLabelText('Tipo de transacción');
-    expect(selectTipo).toBeDisabled();
-    expect(selectTipo).toHaveValue('');
+    expect(screen.getByLabelText('Tipo de acción')).toHaveValue('CAMBIO_ESTADO');
+  });
+
+  it('un tipo de acción sin registros muestra el mensaje de sin resultados', async () => {
+    const usuario = userEvent.setup();
+    await renderizarYEsperar();
+
+    await usuario.selectOptions(screen.getByLabelText('Tipo de acción'), 'LOGIN');
+
+    expect(
+      await screen.findByText('No se encontraron registros de auditoría con los criterios indicados')
+    ).toBeInTheDocument();
   });
 });
 
@@ -58,7 +62,7 @@ describe('HU-SAT-04 · Botón "Filtros" (vista compacta)', () => {
     expect(boton).toHaveAttribute('aria-expanded', 'true');
 
     await usuario.selectOptions(screen.getByLabelText('Módulo'), 'PAGOS');
-    await usuario.selectOptions(screen.getByLabelText('Tipo de transacción'), 'Validación de pago');
+    await usuario.selectOptions(screen.getByLabelText('Tipo de acción'), 'CAMBIO_ESTADO');
 
     expect(screen.getByRole('button', { name: /Filtros 2 filtros activos/ })).toBeInTheDocument();
   });

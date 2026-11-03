@@ -59,8 +59,8 @@ export default function PaginaLogErrores() {
         <div className={estilos.filaUno}>
           <CampoBusqueda
             id="busqueda-log-errores"
-            etiqueta="Buscar en el log de errores"
-            placeholder="Buscar mensaje, tipo o módulo..."
+            etiqueta="Buscar por operación, mensaje o usuario"
+            placeholder="Buscar operación, mensaje o usuario"
             valor={busqueda}
             alCambiar={establecerBusqueda}
           />

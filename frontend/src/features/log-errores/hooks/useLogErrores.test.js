@@ -119,3 +119,51 @@ describe('HU-SAT-06 · Columna "Tipo de error"', () => {
     });
   });
 });
+
+describe('HU-SAT-05 · Búsqueda sobre las columnas sin filtro propio', () => {
+  async function buscar(result, texto) {
+    act(() => {
+      result.current.establecerBusqueda(texto);
+    });
+    // El hook espera 300 ms antes de consultar (debounce).
+    await waitFor(() => expect(result.current.recargando).toBe(false), { timeout: 3000 });
+  }
+
+  it('encuentra por tipo de operación', async () => {
+    const { result } = renderHook(() => useLogErrores());
+    await esperarCargaInicial(result);
+
+    await buscar(result, 'guardar calificacion');
+    await waitFor(() => expect(result.current.errores.map((error) => error.id)).toEqual([9]), { timeout: 3000 });
+  });
+
+  it('encuentra por usuario', async () => {
+    const { result } = renderHook(() => useLogErrores());
+    await esperarCargaInicial(result);
+
+    await buscar(result, 'ramirez');
+    await waitFor(() => expect(result.current.errores.map((error) => error.id)).toEqual([11, 7]), {
+      timeout: 3000
+    });
+  });
+
+  it('no busca en el módulo: ese criterio es del selector', async () => {
+    const { result } = renderHook(() => useLogErrores());
+    await esperarCargaInicial(result);
+
+    await buscar(result, 'notas');
+    await waitFor(() => expect(result.current.errores).toEqual([]), { timeout: 3000 });
+  });
+});
+
+describe('HU-SAT-06 · El tipo de error es solo una columna, no se busca', () => {
+  it('escribir un tipo de error en el buscador no devuelve resultados por ese criterio', async () => {
+    const { result } = renderHook(() => useLogErrores());
+    await esperarCargaInicial(result);
+
+    act(() => {
+      result.current.establecerBusqueda('excepcion no controlada');
+    });
+    await waitFor(() => expect(result.current.errores).toEqual([]), { timeout: 3000 });
+  });
+});

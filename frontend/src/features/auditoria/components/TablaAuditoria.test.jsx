@@ -13,6 +13,7 @@ function construirRegistro(sobrescritura = {}) {
     hora: '17:55',
     usuario: { nombre: 'Prof. Quispe', rol: 'Docente', iniciales: 'PQ' },
     modulo: { codigo: 'ASISTENCIA', etiqueta: 'Asistencia', tono: 'cian' },
+    accion: { codigo: 'CREAR', etiqueta: 'Crear', tono: 'verde' },
     tipoTransaccion: 'Registró asistencia',
     valoresAntes: null,
     valoresDespues: [{ campo: 'Estado', valor: 'Tardanza' }],
@@ -63,6 +64,26 @@ describe('HU-SAT-04 · Escenario 1: intento de modificar o eliminar un registro 
   });
 });
 
+describe('HU-SAT-04 · Columnas Acción y Descripción', () => {
+  it('muestra la acción como insignia y el nombre de la transacción como descripción', () => {
+    render(
+      <TablaAuditoria
+        registros={[construirRegistro({ tipoTransaccion: 'Registro de asistencia de estudiantes' })]}
+        actualizando={false}
+        alSeleccionarRegistro={vi.fn()}
+      />
+    );
+
+    const encabezados = screen.getAllByRole('columnheader').map((th) => th.textContent);
+    expect(encabezados).toEqual(['Fecha y hora', 'Usuario', 'Módulo', 'Acción', 'Descripción', 'Detalle']);
+
+    const fila = screen.getAllByRole('row')[1];
+    const celdas = fila.querySelectorAll('td');
+    expect(celdas[3]).toHaveTextContent('Crear');
+    expect(celdas[4]).toHaveTextContent('Registro de asistencia de estudiantes');
+  });
+});
+
 describe('HU-SAT-04 · Escenario 5: el autor "Sistema" se muestra igual que cualquier otro autor', () => {
   it('no aplica ningún tratamiento visual distinto al registro cuyo autor es "Sistema"', () => {
     const registroPersona = construirRegistro({ id: 'AUD-0001' });
@@ -86,9 +107,9 @@ describe('HU-SAT-04 · Escenario 5: el autor "Sistema" se muestra igual que cual
     const filas = screen.getAllByRole('row').slice(1); // sin la cabecera
     expect(filas.length).toBe(2);
 
-    // Misma estructura de celdas en ambas filas (fecha, usuario con rol, módulo, acción, historial).
+    // Misma estructura de celdas en ambas filas (fecha, usuario con rol, módulo, acción, descripción, historial).
     filas.forEach((fila) => {
-      expect(fila.querySelectorAll('td').length).toBe(5);
+      expect(fila.querySelectorAll('td').length).toBe(6);
     });
   });
 });

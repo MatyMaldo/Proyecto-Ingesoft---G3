@@ -6,7 +6,6 @@
 //   HU-SAT-03, docs/planes/auditorias.md §E): el titular llega como un usuario más, con su
 //   nombre y su rol; el frontend no distingue esta forma de la de un usuario autenticado.
 
-import { obtenerEtiquetaCategoria } from '../../constants/categoriasAuditoria.js';
 import { formatearFechaHora } from '../../../../shared/utils/formatoFecha.js';
 import { TAMANIO_PAGINA_AUDITORIA } from '../../constants/paginacionAuditoria.js';
 
@@ -52,8 +51,11 @@ function clonar(lista) {
   return lista.map((registro) => JSON.parse(JSON.stringify(registro)));
 }
 
-// 2026-11-01: 21 registros, 4 días (2026-09-15 a 2026-09-18), 9 módulos, 6 usuarios.
-// Catálogo cerrado de tipos de transacción de HU-SAT-04 (docs/planes/auditorias.md §C y §E).
+// 2026-11-03: 22 registros, 4 días (2026-09-15 a 2026-09-18), 9 módulos, 6 usuarios.
+// Cada registro lleva `tipoAccion` (CREAR, ACTUALIZAR, ELIMINAR, LOGIN, CAMBIO_ESTADO), que alimenta
+// el filtro y la columna "Acción"; `tipoTransaccion` es el nombre del catálogo de HU-SAT-04
+// (docs/planes/auditorias.md §C y §E) y se muestra como "Descripción". No hay registros LOGIN:
+// la HU no audita el inicio de sesión.
 // AUD-0004 (SISTEMA) y AUD-0009 (EVALUACIONES) se mantienen sin cambios hasta
 // resolver D9/D22 (decisión pendiente, docs/planes/auditorias.md §15).
 const REGISTROS = congelarProfundo([
@@ -63,6 +65,7 @@ const REGISTROS = congelarProfundo([
     fechaHora: '2026-09-15T08:10:00-05:00',
     usuario: { nombre: 'Administrador', rol: 'ADMINISTRADOR' },
     categoria: 'USUARIOS',
+    tipoAccion: 'CREAR',
     tipoTransaccion: 'Registro de usuario',
     valoresAntes: null,
     valoresDespues: [
@@ -78,6 +81,7 @@ const REGISTROS = congelarProfundo([
     fechaHora: '2026-09-15T08:40:00-05:00',
     usuario: { nombre: 'Administrador', rol: 'ADMINISTRADOR' },
     categoria: 'CONFIGURACION',
+    tipoAccion: 'CREAR',
     tipoTransaccion: 'Registro de secciones de un año académico',
     valoresAntes: null,
     valoresDespues: [
@@ -92,6 +96,7 @@ const REGISTROS = congelarProfundo([
     fechaHora: '2026-09-15T09:30:00-05:00',
     usuario: { nombre: 'Administrador', rol: 'ADMINISTRADOR' },
     categoria: 'MATRICULAS',
+    tipoAccion: 'CREAR',
     tipoTransaccion: 'Registro de matrícula',
     valoresAntes: null,
     valoresDespues: [
@@ -101,11 +106,29 @@ const REGISTROS = congelarProfundo([
     ]
   },
   {
+    id: 'AUD-0022',
+    idElemento: 'BLOQUE-0031',
+    fechaHora: '2026-09-15T09:00:00-05:00',
+    usuario: { nombre: 'Administrador', rol: 'ADMINISTRADOR' },
+    categoria: 'HORARIOS',
+    tipoAccion: 'ELIMINAR',
+    tipoTransaccion: 'Eliminación de bloque horario',
+    valoresAntes: [
+      { campo: 'Día', valor: 'Lunes' },
+      { campo: 'Bloque', valor: '10:00 – 11:30' },
+      { campo: 'Curso', valor: 'Comunicación' },
+      { campo: 'Docente', valor: 'Prof. Quispe' },
+      { campo: 'Aula', valor: 'A-102' }
+    ],
+    valoresDespues: null
+  },
+  {
     id: 'AUD-0003',
     idElemento: 'NOTA-0301',
     fechaHora: '2026-09-15T10:05:00-05:00',
     usuario: { nombre: 'Prof. Delgado', rol: 'DOCENTE' },
     categoria: 'NOTAS',
+    tipoAccion: 'CREAR',
     tipoTransaccion: 'Registro de nota de competencia',
     valoresAntes: null,
     valoresDespues: [
@@ -123,6 +146,7 @@ const REGISTROS = congelarProfundo([
     fechaHora: '2026-09-15T19:40:00-05:00',
     usuario: { nombre: 'Lucía Paredes', rol: 'APODERADO' },
     categoria: 'USUARIOS',
+    tipoAccion: 'ACTUALIZAR',
     tipoTransaccion: 'Definición inicial de contraseña',
     valoresAntes: [{ campo: 'Contraseña', valor: 'Sin contraseña' }],
     valoresDespues: [{ campo: 'Contraseña', valor: 'Contraseña definida' }]
@@ -133,6 +157,7 @@ const REGISTROS = congelarProfundo([
     fechaHora: '2026-09-16T00:05:00-05:00',
     usuario: { nombre: 'Sistema', rol: 'SISTEMA' },
     categoria: 'MATRICULAS',
+    tipoAccion: 'CAMBIO_ESTADO',
     tipoTransaccion: 'Cancelación automática de matrícula',
     valoresAntes: [
       { campo: 'Estudiante', valor: 'Carlos Ríos Vega' },
@@ -152,6 +177,7 @@ const REGISTROS = congelarProfundo([
     usuario: { nombre: 'Sistema', rol: 'SISTEMA' },
     // D9/D22 (sin decisión): esta categoría "SISTEMA" no está en la HU; se mantiene tal cual.
     categoria: 'SISTEMA',
+    tipoAccion: 'CAMBIO_ESTADO',
     tipoTransaccion: 'Cambió estado de sesión de clase',
     valoresAntes: [
       { campo: 'Sesión', valor: 'Matemática · 3.° A · 2026-09-15' },
@@ -169,6 +195,7 @@ const REGISTROS = congelarProfundo([
     fechaHora: '2026-09-16T09:00:00-05:00',
     usuario: { nombre: 'Administrador', rol: 'ADMINISTRADOR' },
     categoria: 'USUARIOS',
+    tipoAccion: 'ACTUALIZAR',
     tipoTransaccion: 'Edición de usuario',
     valoresAntes: [
       { campo: 'Nombre', valor: 'Jorge Huamán Ríos' },
@@ -187,6 +214,7 @@ const REGISTROS = congelarProfundo([
     fechaHora: '2026-09-16T11:20:00-05:00',
     usuario: { nombre: 'Prof. Delgado', rol: 'DOCENTE' },
     categoria: 'NOTAS',
+    tipoAccion: 'ACTUALIZAR',
     tipoTransaccion: 'Modificación de nota de competencia',
     valoresAntes: [
       { campo: 'Estudiante', valor: 'Diego Paredes Soto' },
@@ -207,6 +235,7 @@ const REGISTROS = congelarProfundo([
     fechaHora: '2026-09-16T15:40:00-05:00',
     usuario: { nombre: 'Lucía Paredes', rol: 'APODERADO' },
     categoria: 'PAGOS',
+    tipoAccion: 'CREAR',
     tipoTransaccion: 'Registro de pago',
     valoresAntes: null,
     valoresDespues: [
@@ -221,6 +250,7 @@ const REGISTROS = congelarProfundo([
     fechaHora: '2026-09-16T18:20:00-05:00',
     usuario: { nombre: 'Administrador', rol: 'ADMINISTRADOR' },
     categoria: 'PAGOS',
+    tipoAccion: 'CAMBIO_ESTADO',
     tipoTransaccion: 'Rechazo de pago',
     valoresAntes: [
       { campo: 'Concepto', valor: 'Pensión de septiembre' },
@@ -240,6 +270,7 @@ const REGISTROS = congelarProfundo([
     fechaHora: '2026-09-17T08:30:00-05:00',
     usuario: { nombre: 'Lucía Paredes', rol: 'APODERADO' },
     categoria: 'PAGOS',
+    tipoAccion: 'CREAR',
     tipoTransaccion: 'Registro de pago',
     valoresAntes: null,
     valoresDespues: [
@@ -255,6 +286,7 @@ const REGISTROS = congelarProfundo([
     fechaHora: '2026-09-17T11:10:00-05:00',
     usuario: { nombre: 'Administrador', rol: 'ADMINISTRADOR' },
     categoria: 'USUARIOS',
+    tipoAccion: 'ACTUALIZAR',
     tipoTransaccion: 'Cambio de rol de usuario',
     valoresAntes: [
       { campo: 'Nombre', valor: 'Marco Salas Vega' },
@@ -271,6 +303,7 @@ const REGISTROS = congelarProfundo([
     fechaHora: '2026-09-17T10:30:00-05:00',
     usuario: { nombre: 'Administrador', rol: 'ADMINISTRADOR' },
     categoria: 'HORARIOS',
+    tipoAccion: 'ACTUALIZAR',
     tipoTransaccion: 'Edición de bloque horario',
     valoresAntes: [
       { campo: 'Día', valor: 'Martes' },
@@ -294,6 +327,7 @@ const REGISTROS = congelarProfundo([
     fechaHora: '2026-09-17T09:15:00-05:00',
     usuario: { nombre: 'Administrador', rol: 'ADMINISTRADOR' },
     categoria: 'PAGOS',
+    tipoAccion: 'CAMBIO_ESTADO',
     tipoTransaccion: 'Validación de pago',
     valoresAntes: [
       { campo: 'Concepto', valor: 'Pensión de septiembre' },
@@ -311,6 +345,7 @@ const REGISTROS = congelarProfundo([
     usuario: { nombre: 'Prof. Huamán', rol: 'TUTOR' },
     // D9/D22 (sin decisión): esta categoría "EVALUACIONES" no está en la HU; se mantiene tal cual.
     categoria: 'EVALUACIONES',
+    tipoAccion: 'CAMBIO_ESTADO',
     tipoTransaccion: 'Generó libreta',
     valoresAntes: [
       { campo: 'Estudiante', valor: 'Diego Paredes Soto' },
@@ -331,6 +366,7 @@ const REGISTROS = congelarProfundo([
     fechaHora: '2026-09-18T07:30:00-05:00',
     usuario: { nombre: 'Administrador', rol: 'ADMINISTRADOR' },
     categoria: 'USUARIOS',
+    tipoAccion: 'ACTUALIZAR',
     tipoTransaccion: 'Restablecimiento de contraseña',
     valoresAntes: [{ campo: 'Contraseña', valor: 'Contraseña vigente' }],
     valoresDespues: [{ campo: 'Contraseña', valor: 'Contraseña restablecida' }]
@@ -341,6 +377,7 @@ const REGISTROS = congelarProfundo([
     fechaHora: '2026-09-18T08:05:00-05:00',
     usuario: { nombre: 'Prof. Delgado', rol: 'DOCENTE' },
     categoria: 'NOTAS',
+    tipoAccion: 'ACTUALIZAR',
     tipoTransaccion: 'Modificación de nota de competencia',
     valoresAntes: [
       { campo: 'Estudiante', valor: 'Diego Paredes Soto' },
@@ -361,6 +398,7 @@ const REGISTROS = congelarProfundo([
     fechaHora: '2026-09-18T11:50:00-05:00',
     usuario: { nombre: 'Prof. Delgado', rol: 'DOCENTE' },
     categoria: 'ASISTENCIA',
+    tipoAccion: 'CREAR',
     tipoTransaccion: 'Registro de asistencia de estudiantes',
     valoresAntes: null,
     valoresDespues: [
@@ -378,6 +416,7 @@ const REGISTROS = congelarProfundo([
     fechaHora: '2026-09-18T12:30:00-05:00',
     usuario: { nombre: 'Prof. Delgado', rol: 'DOCENTE' },
     categoria: 'NOTAS',
+    tipoAccion: 'CREAR',
     tipoTransaccion: 'Registro de nota de evaluación',
     valoresAntes: null,
     // Registro de varios elementos (LAB05): un mismo nombre de campo se repite a propósito
@@ -396,6 +435,7 @@ const REGISTROS = congelarProfundo([
     fechaHora: '2026-09-18T17:55:00-05:00',
     usuario: { nombre: 'Prof. Quispe', rol: 'DOCENTE' },
     categoria: 'ASISTENCIA',
+    tipoAccion: 'CREAR',
     tipoTransaccion: 'Registro de asistencia de estudiantes',
     valoresAntes: null,
     valoresDespues: [
@@ -428,10 +468,10 @@ function simularLatencia(calcularDatos) {
  * Lista los registros de auditoría que cumplen los filtros indicados y simula la
  * paginación de 15 en 15 del backend (HU-SAT-04 Esc. 4; D20, docs/planes/auditorias.md §A.6).
  * Además de categoría y búsqueda, filtra por rango de fechas (ambos extremos incluidos,
- * en días de calendario de la hora del colegio) y por tipo de transacción (filtro
- * explícito y separado, D2/D14).
+ * en días de calendario de la hora del colegio) y por tipo de acción (filtro
+ * independiente del módulo).
  *
- * @param {{ categoria?: string|null, busqueda?: string, fechaDesde?: string, fechaHasta?: string, tipoTransaccion?: string, pagina?: number }} filtros
+ * @param {{ categoria?: string|null, busqueda?: string, fechaDesde?: string, fechaHasta?: string, tipoAccion?: string, pagina?: number }} filtros
  * @returns {Promise<{exitoso: boolean, datos: Object|null, mensaje: string}>}
  */
 export function listarRegistrosAuditoriaMock(filtros = {}) {
@@ -440,7 +480,7 @@ export function listarRegistrosAuditoriaMock(filtros = {}) {
     const busquedaNormalizada = filtros?.busqueda ? normalizarTexto(filtros.busqueda.trim()) : '';
     const fechaDesde = filtros?.fechaDesde || '';
     const fechaHasta = filtros?.fechaHasta || '';
-    const tipoTransaccion = filtros?.tipoTransaccion || '';
+    const tipoAccion = filtros?.tipoAccion || '';
     const pagina = filtros?.pagina ?? 0;
 
     const filtrados = REGISTROS.filter((registro) => {
@@ -449,7 +489,7 @@ export function listarRegistrosAuditoriaMock(filtros = {}) {
         return false;
       }
 
-      if (tipoTransaccion && registro.tipoTransaccion !== tipoTransaccion) {
+      if (tipoAccion && registro.tipoAccion !== tipoAccion) {
         return false;
       }
 
@@ -465,8 +505,9 @@ export function listarRegistrosAuditoriaMock(filtros = {}) {
         return true;
       }
 
-      const etiquetaCategoria = obtenerEtiquetaCategoria(registro.categoria);
-      const campos = [registro.usuario.nombre, registro.tipoTransaccion, etiquetaCategoria];
+      // La búsqueda cubre las columnas de texto sin filtro propio (usuario y descripción);
+      // módulo, acción y fecha ya tienen su selector.
+      const campos = [registro.usuario.nombre, registro.tipoTransaccion];
       return campos.some((campo) => normalizarTexto(campo).includes(busquedaNormalizada));
     });
 

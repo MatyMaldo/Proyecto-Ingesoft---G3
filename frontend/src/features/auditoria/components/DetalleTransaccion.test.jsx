@@ -29,6 +29,7 @@ function construirRegistro(sobrescritura = {}) {
     fechaHoraCompleta: '2026-09-16 15:40:00',
     usuario: { nombre: 'Lucía Paredes', rol: 'Apoderado', iniciales: 'LP' },
     modulo: { codigo: 'PAGOS', etiqueta: 'Pagos', tono: 'turquesa' },
+    accion: { codigo: 'CREAR', etiqueta: 'Crear', tono: 'verde' },
     tipoTransaccion: 'Registró comprobante de pago',
     valoresAntes: null,
     valoresDespues: [{ campo: 'Estado', valor: 'Pendiente de validación' }],

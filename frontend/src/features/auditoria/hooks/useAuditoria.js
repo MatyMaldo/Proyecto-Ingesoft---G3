@@ -9,6 +9,7 @@ import {
   obtenerHistorialElemento
 } from '../services/auditoriaService.js';
 import { obtenerEtiquetaCategoria, obtenerEtiquetaRol } from '../constants/categoriasAuditoria.js';
+import { obtenerEtiquetaAccion, obtenerTonoAccion } from '../constants/tiposAccionAuditoria.js';
 
 const CATEGORIA_TODOS = 'TODOS';
 const RETRASO_BUSQUEDA_MS = 300;
@@ -71,6 +72,12 @@ function transformarRegistro(registroApi) {
       etiqueta: obtenerEtiquetaCategoria(registroApi.categoria),
       tono: obtenerTonoModulo(registroApi.categoria)
     },
+    accion: {
+      codigo: registroApi.tipoAccion,
+      etiqueta: obtenerEtiquetaAccion(registroApi.tipoAccion),
+      tono: obtenerTonoAccion(registroApi.tipoAccion)
+    },
+    // Nombre de la transacción del catálogo de la HU; la interfaz lo muestra como "Descripción".
     tipoTransaccion: registroApi.tipoTransaccion,
     valoresAntes: registroApi.valoresAntes,
     valoresDespues: registroApi.valoresDespues
@@ -104,7 +111,7 @@ export default function useAuditoria() {
   const [resumen, establecerResumen] = useState(null);
   const [categoria, establecerCategoriaEstado] = useState(CATEGORIA_TODOS);
   const [busqueda, establecerBusquedaEstado] = useState('');
-  const [tipoTransaccion, establecerTipoTransaccionEstado] = useState('');
+  const [tipoAccion, establecerTipoAccionEstado] = useState('');
   const [fechaDesde, establecerFechaDesdeEstado] = useState('');
   const [fechaHasta, establecerFechaHastaEstado] = useState('');
 
@@ -119,8 +126,8 @@ export default function useAuditoria() {
   // (LAB05) Último rango de fechas válido aplicado: chip, búsqueda y `reintentar`
   // siempre consultan con este rango, nunca con uno inválido (docs/planes/auditorias.md §6.3).
   const rangoAplicadoRef = useRef({ fechaDesde: '', fechaHasta: '' });
-  // Filtro explícito por tipo de transacción (D2/D14): se aplica de inmediato, como el chip.
-  const tipoTransaccionRef = useRef('');
+  // Filtro por tipo de acción: se aplica de inmediato, como el de categoría, y es independiente de ella.
+  const tipoAccionRef = useRef('');
 
   const mensajeErrorRango = obtenerMensajeRangoFechas(fechaDesde, fechaHasta);
 
@@ -134,7 +141,7 @@ export default function useAuditoria() {
    * antes de que la carga inicial responda, la siguiente llamada que gane la carrera
    * siga trayendo el resumen y no se quede sin él.
    */
-  async function cargarListado(categoriaActual, busquedaActual, rangoActual, tipoTransaccionActual) {
+  async function cargarListado(categoriaActual, busquedaActual, rangoActual, tipoAccionActual) {
     const idSolicitud = (secuenciaListadoRef.current += 1);
     const necesitaResumen = !cargaInicialCompletaRef.current;
 
@@ -149,7 +156,7 @@ export default function useAuditoria() {
       busqueda: busquedaActual,
       fechaDesde: rangoActual.fechaDesde,
       fechaHasta: rangoActual.fechaHasta,
-      tipoTransaccion: tipoTransaccionActual || '',
+      tipoAccion: tipoAccionActual || '',
       // HU-SAT-04 Esc. 4 (paginados de 15 en 15, D20): la paginación la resuelve el
       // backend; el frontend siempre pide la primera página, sin paginador visible
       // (docs/planes/auditorias.md §A.3).
@@ -195,7 +202,7 @@ export default function useAuditoria() {
   }
 
   useEffect(() => {
-    cargarListado(CATEGORIA_TODOS, '', rangoAplicadoRef.current, tipoTransaccionRef.current);
+    cargarListado(CATEGORIA_TODOS, '', rangoAplicadoRef.current, tipoAccionRef.current);
 
     return () => {
       if (temporizadorBusquedaRef.current) {
@@ -207,28 +214,25 @@ export default function useAuditoria() {
   }, []);
 
   /**
-   * Cambia la categoría activa y refiltra de inmediato (sin debounce). Como el tipo
-   * de transacción depende de la categoría (selector en cascada), al cambiarla el tipo
-   * vuelve a "Todos los tipos" para no dejar combinaciones que no existen.
+   * Cambia la categoría activa y refiltra de inmediato (sin debounce). Se combina con Y
+   * con el tipo de acción y los demás filtros.
    *
    * @param {string} valor
    */
   function establecerCategoria(valor) {
     establecerCategoriaEstado(valor);
-    establecerTipoTransaccionEstado('');
-    tipoTransaccionRef.current = '';
-    cargarListado(valor, busqueda.trim(), rangoAplicadoRef.current, '');
+    cargarListado(valor, busqueda.trim(), rangoAplicadoRef.current, tipoAccionRef.current);
   }
 
   /**
-   * (D2/D14) Cambia el tipo de transacción activo y refiltra de inmediato (sin
-   * debounce), igual que el chip de categoría. Se combina con Y con los demás filtros.
+   * Cambia el tipo de acción activo y refiltra de inmediato (sin debounce), igual que la
+   * categoría. Se combina con Y con los demás filtros.
    *
-   * @param {string} valor Tipo de transacción exacto, o `''` para "Todos los tipos".
+   * @param {string} valor Código del tipo de acción (por ejemplo `'CREAR'`), o `''` para "Todas las acciones".
    */
-  function establecerTipoTransaccion(valor) {
-    establecerTipoTransaccionEstado(valor);
-    tipoTransaccionRef.current = valor;
+  function establecerTipoAccion(valor) {
+    establecerTipoAccionEstado(valor);
+    tipoAccionRef.current = valor;
     cargarListado(categoria, busqueda.trim(), rangoAplicadoRef.current, valor);
   }
 
@@ -246,7 +250,7 @@ export default function useAuditoria() {
     }
 
     temporizadorBusquedaRef.current = setTimeout(() => {
-      cargarListado(categoria, texto.trim(), rangoAplicadoRef.current, tipoTransaccionRef.current);
+      cargarListado(categoria, texto.trim(), rangoAplicadoRef.current, tipoAccionRef.current);
     }, RETRASO_BUSQUEDA_MS);
   }
 
@@ -263,7 +267,7 @@ export default function useAuditoria() {
     if (mensaje === '') {
       const rango = { fechaDesde: valor, fechaHasta };
       rangoAplicadoRef.current = rango;
-      cargarListado(categoria, busqueda.trim(), rango, tipoTransaccionRef.current);
+      cargarListado(categoria, busqueda.trim(), rango, tipoAccionRef.current);
     }
   }
 
@@ -280,7 +284,7 @@ export default function useAuditoria() {
     if (mensaje === '') {
       const rango = { fechaDesde, fechaHasta: valor };
       rangoAplicadoRef.current = rango;
-      cargarListado(categoria, busqueda.trim(), rango, tipoTransaccionRef.current);
+      cargarListado(categoria, busqueda.trim(), rango, tipoAccionRef.current);
     }
   }
 
@@ -290,7 +294,7 @@ export default function useAuditoria() {
    * lo vuelve a pedir también.
    */
   function reintentar() {
-    cargarListado(categoria, busqueda.trim(), rangoAplicadoRef.current, tipoTransaccionRef.current);
+    cargarListado(categoria, busqueda.trim(), rangoAplicadoRef.current, tipoAccionRef.current);
   }
 
   /**
@@ -360,8 +364,8 @@ export default function useAuditoria() {
     establecerCategoria,
     busqueda,
     establecerBusqueda,
-    tipoTransaccion,
-    establecerTipoTransaccion,
+    tipoAccion,
+    establecerTipoAccion,
     fechaDesde,
     establecerFechaDesde,
     fechaHasta,

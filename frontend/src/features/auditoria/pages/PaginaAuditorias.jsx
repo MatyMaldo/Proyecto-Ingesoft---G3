@@ -9,7 +9,7 @@ import TablaAuditoria from '../components/TablaAuditoria.jsx';
 import DetalleTransaccion from '../components/DetalleTransaccion.jsx';
 import useAuditoria from '../hooks/useAuditoria.js';
 import { obtenerOpcionesFiltroCategoria } from '../constants/categoriasAuditoria.js';
-import { obtenerTiposDeCategoria } from '../constants/tiposTransaccionAuditoria.js';
+import { TIPOS_ACCION_AUDITORIA } from '../constants/tiposAccionAuditoria.js';
 import estilos from './PaginaAuditorias.module.css';
 
 const OPCIONES_CATEGORIA = obtenerOpcionesFiltroCategoria();
@@ -45,8 +45,8 @@ export default function PaginaAuditorias() {
     establecerCategoria,
     busqueda,
     establecerBusqueda,
-    tipoTransaccion,
-    establecerTipoTransaccion,
+    tipoAccion,
+    establecerTipoAccion,
     fechaDesde,
     establecerFechaDesde,
     fechaHasta,
@@ -57,9 +57,8 @@ export default function PaginaAuditorias() {
   } = useAuditoria();
 
   const [filtrosAbiertos, establecerFiltrosAbiertos] = useState(false);
-  const tiposDelModulo = obtenerTiposDeCategoria(categoria);
   const filtrosActivos =
-    (categoria !== 'TODOS' ? 1 : 0) + (tipoTransaccion ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0);
+    (categoria !== 'TODOS' ? 1 : 0) + (tipoAccion ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0);
   const textoMostrandoAhora = mostrandoAhora === 1 ? '1 registro' : `${mostrandoAhora} registros`;
   const mensajeVacio = resumen && resumen.totalAcciones === 0 ? MENSAJE_VACIO_TOTAL : MENSAJE_VACIO_FILTRADO;
 
@@ -85,9 +84,9 @@ export default function PaginaAuditorias() {
           <div className={estilos.campoBusquedaContenedor}>
             <CampoBusqueda
               id="busqueda-auditorias"
-              etiqueta="Buscar usuario, acción o módulo"
+              etiqueta="Buscar usuario o descripción"
               etiquetaVisible
-              placeholder="Buscar usuario, acción o módulo..."
+              placeholder="Buscar usuario o descripción..."
               valor={busqueda}
               alCambiar={establecerBusqueda}
             />
@@ -116,13 +115,13 @@ export default function PaginaAuditorias() {
             id="filtros-avanzados-auditorias"
             className={filtrosAbiertos ? `${estilos.filtrosAvanzados} ${estilos.filtrosAbiertos}` : estilos.filtrosAvanzados}
           >
-            <div className={estilos.campoTipoTransaccion}>
-              <label htmlFor="modulo-auditorias" className={estilos.etiquetaTipoTransaccion}>
+            <div className={estilos.campoFiltro}>
+              <label htmlFor="modulo-auditorias" className={estilos.etiquetaFiltro}>
                 Módulo
               </label>
               <select
                 id="modulo-auditorias"
-                className={estilos.selectorTipoTransaccion}
+                className={estilos.selectorFiltro}
                 value={categoria}
                 onChange={(evento) => establecerCategoria(evento.target.value)}
               >
@@ -134,23 +133,20 @@ export default function PaginaAuditorias() {
               </select>
             </div>
 
-            <div className={estilos.campoTipoTransaccion}>
-              <label htmlFor="tipo-transaccion-auditorias" className={estilos.etiquetaTipoTransaccion}>
-                Tipo de transacción
+            <div className={estilos.campoFiltro}>
+              <label htmlFor="tipo-accion-auditorias" className={estilos.etiquetaFiltro}>
+                Tipo de acción
               </label>
               <select
-                id="tipo-transaccion-auditorias"
-                className={estilos.selectorTipoTransaccion}
-                value={tipoTransaccion}
-                disabled={tiposDelModulo.length === 0}
-                onChange={(evento) => establecerTipoTransaccion(evento.target.value)}
+                id="tipo-accion-auditorias"
+                className={estilos.selectorFiltro}
+                value={tipoAccion}
+                onChange={(evento) => establecerTipoAccion(evento.target.value)}
               >
-                <option value="">
-                  {tiposDelModulo.length === 0 ? 'Elige un módulo primero' : 'Todos los tipos'}
-                </option>
-                {tiposDelModulo.map((tipo) => (
-                  <option key={tipo} value={tipo}>
-                    {tipo}
+                <option value="">Todas las acciones</option>
+                {TIPOS_ACCION_AUDITORIA.map((tipo) => (
+                  <option key={tipo.valor} value={tipo.valor}>
+                    {tipo.etiqueta}
                   </option>
                 ))}
               </select>
