@@ -150,7 +150,7 @@ export async function solicitar(ruta, opciones = {}) {
       return {
         exitoso: false,
         datos: null,
-        mensaje: json?.error ?? json?.mensaje ?? 'No se pudo completar la operación.',
+        mensaje: json?.message ?? json?.error ?? json?.mensaje ?? 'No se pudo completar la operación.',
         estado: respuesta.status,
         codigo
       };

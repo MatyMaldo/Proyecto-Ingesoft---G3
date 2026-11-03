@@ -33,7 +33,6 @@ describe('cliente HTTP · formatos de respuesta exitosa del backend', () => {
     const respuesta = await solicitar('/auth/login', {
       metodo: 'POST',
       cuerpo: {
-        perfil: 'ADMINISTRADOR',
         identificador: 'admin@example.com',
         password: 'password'
       }
@@ -74,5 +73,23 @@ describe('cliente HTTP · 401 con código de invalidación de sesión (docs/plan
 
     expect(respuesta.codigo).toBeNull();
     expect(alSesionExpirada).toHaveBeenCalledWith({ estado: 401, codigo: null });
+  });
+
+  it('prioriza el campo message de errores del backend', async () => {
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({
+        status: 400,
+        error: 'Bad Request',
+        message: 'El correo electrónico o DNI es obligatorio.'
+      }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    )));
+
+    const respuesta = await solicitar('/auth/login', {
+      metodo: 'POST',
+      cuerpo: { identificador: '', password: 'password' }
+    });
+
+    expect(respuesta.mensaje).toBe('El correo electrónico o DNI es obligatorio.');
   });
 });

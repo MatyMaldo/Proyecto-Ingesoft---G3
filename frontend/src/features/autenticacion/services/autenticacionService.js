@@ -1,6 +1,6 @@
 // El backend es el único responsable de: comparar la contraseña contra su hash BCrypt; emitir y validar el JWT;
-// determinar el rol de la cuenta a partir del correo (el rol no lo elige el usuario); rechazar cuentas desactivadas
-// y cuentas cuyo rol aún no está habilitado; y autorizar cada solicitud según el rol. El mock de
+// determinar el rol de la cuenta a partir de su identificador (el rol no lo elige el usuario); rechazar cuentas
+// desactivadas y cuentas cuyo rol aún no está habilitado; y autorizar cada solicitud según el rol. El mock de
 // `mocks/autenticacionMock.js` solo **simula** esas reglas para desarrollar sin backend. El guard de rutas del
 // frontend (`RutaProtegida`) mejora la experiencia de uso, pero no reemplaza la autorización del backend.
 
@@ -100,9 +100,9 @@ function interpretarRespuestaLogin(respuesta) {
 }
 
 /**
- * Inicia sesión con el correo electrónico y la contraseña indicados. El rol lo
- * determina el sistema a partir de la cuenta; no se elige en el formulario
- * (docs/planes/login.md §U7). Nunca lanza.
+ * Inicia sesión con el correo electrónico (o DNI) y la contraseña indicados.
+ * El rol lo determina el sistema a partir de la cuenta; no se elige en el
+ * formulario (docs/planes/login.md §U7). Nunca lanza.
  *
  * Prohibido: registrar en consola la contraseña, el token o el cuerpo de la
  * petición o de la respuesta.
@@ -120,7 +120,7 @@ export async function iniciarSesion({ correo, password }) {
     ? await iniciarSesionMock({ correo, password })
     : await solicitar('/auth/login', {
         metodo: 'POST',
-        cuerpo: { correo, password }
+        cuerpo: { identificador: correo, password }
       });
 
   return interpretarRespuestaLogin(respuesta);
