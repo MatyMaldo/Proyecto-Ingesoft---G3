@@ -44,7 +44,8 @@ describe('HU-SAT-04 · Selectores independientes de Módulo y Tipo de acción', 
     const usuario = userEvent.setup();
     await renderizarYEsperar();
 
-    await usuario.selectOptions(screen.getByLabelText('Tipo de acción'), 'LOGIN');
+    await usuario.selectOptions(screen.getByLabelText('Tipo de acción'), 'ELIMINAR');
+    await usuario.selectOptions(screen.getByLabelText('Módulo'), 'PAGOS');
 
     expect(
       await screen.findByText('No se encontraron registros de auditoría con los criterios indicados')
