@@ -13,11 +13,7 @@ import estilos from './TablaLogErrores.module.css';
  * module oculta una según el ancho de pantalla (ver `docs/planes/shell.md` §19.3).
  *
  * @param {Object} props
- * @param {Array<{
- *   id: number, fechaHora: string, fecha: string, hora: string,
- *   moduloEtiqueta: string, moduloTono: string, operacion: string,
- *   tipoError: string, tipoErrorTono: string, mensaje: string, usuario: string
- * }>} props.errores
+ * @param {Array} props.errores Logs adaptados desde `LogErrorResponse`.
  * @param {boolean} [props.ocupado] `true` mientras se recalcula por un cambio de filtro.
  */
 export default function TablaLogErrores({ errores, ocupado = false }) {
@@ -31,11 +27,12 @@ export default function TablaLogErrores({ errores, ocupado = false }) {
           <thead>
             <tr>
               <th scope="col">Fecha y hora</th>
-              <th scope="col">Módulo</th>
-              <th scope="col">Operación</th>
+              <th scope="col">Endpoint</th>
               <th scope="col">Tipo de error</th>
               <th scope="col">Mensaje</th>
+              <th scope="col">Detalle</th>
               <th scope="col">Usuario</th>
+              <th scope="col">Estado HTTP</th>
             </tr>
           </thead>
           <tbody>
@@ -47,10 +44,10 @@ export default function TablaLogErrores({ errores, ocupado = false }) {
                     <span className={estilos.hora}>{error.hora}</span>
                   </time>
                 </td>
-                <td>
-                  <Insignia tono={error.moduloTono}>{error.moduloEtiqueta}</Insignia>
+                <td className={estilos.operacion}>
+                  <span>{error.metodoHttp}</span>
+                  <code>{error.endpoint}</code>
                 </td>
-                <td className={estilos.operacion}>{error.operacion}</td>
                 <td>
                   <Insignia tono={error.tipoErrorTono}>{error.tipoError}</Insignia>
                 </td>
@@ -58,13 +55,20 @@ export default function TablaLogErrores({ errores, ocupado = false }) {
                   <p className={estilos.mensaje}>{error.mensaje}</p>
                 </td>
                 <td>
-                  {error.usuario && (
-                    <p className={estilos.usuario}>
-                      <Icono nombre="usuario" tamano={14} />
-                      {error.usuario}
-                    </p>
+                  {error.detalle && (
+                    <details className={estilos.detalle}>
+                      <summary>Ver detalle</summary>
+                      <pre>{error.detalle}</pre>
+                    </details>
                   )}
                 </td>
+                <td>
+                  <p className={estilos.usuario}>
+                    {error.usuarioId != null && <Icono nombre="usuario" tamano={14} />}
+                    {error.usuario}
+                  </p>
+                </td>
+                <td>{error.codigoEstado}</td>
               </tr>
             ))}
           </tbody>
@@ -78,11 +82,11 @@ export default function TablaLogErrores({ errores, ocupado = false }) {
               <time dateTime={error.fechaHora} className={estilos.fechaHoraTarjeta}>
                 {formatearFechaVisible(error.fecha)} · {error.hora}
               </time>
-              <Insignia tono={error.moduloTono}>{error.moduloEtiqueta}</Insignia>
             </div>
 
             <p className={estilos.campo}>
-              <span className={estilos.rotuloCampo}>Operación:</span> {error.operacion}
+              <span className={estilos.rotuloCampo}>Endpoint:</span>{' '}
+              {error.metodoHttp} <code>{error.endpoint}</code>
             </p>
 
             <p className={estilos.campo}>
@@ -92,12 +96,20 @@ export default function TablaLogErrores({ errores, ocupado = false }) {
 
             <p className={estilos.mensajeTarjeta}>{error.mensaje}</p>
 
-            {error.usuario && (
-              <p className={estilos.usuario}>
-                <Icono nombre="usuario" tamano={14} />
-                {error.usuario}
-              </p>
+            {error.detalle && (
+              <details className={estilos.detalle}>
+                <summary>Ver detalle</summary>
+                <pre>{error.detalle}</pre>
+              </details>
             )}
+
+            <p className={estilos.usuario}>
+              {error.usuarioId != null && <Icono nombre="usuario" tamano={14} />}
+              {error.usuario}
+            </p>
+            <p className={estilos.campo}>
+              <span className={estilos.rotuloCampo}>Estado HTTP:</span> {error.codigoEstado}
+            </p>
           </li>
         ))}
       </ul>

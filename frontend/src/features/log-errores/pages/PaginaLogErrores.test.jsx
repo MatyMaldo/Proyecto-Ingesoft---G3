@@ -1,56 +1,31 @@
-import { describe, it, expect } from 'vitest';
-import { render, screen, waitFor, fireEvent } from '@testing-library/react';
+import { describe, it, expect, vi } from 'vitest';
+import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+
+vi.mock('../../../shared/api/configuracionApi.js', () => ({ USAR_MOCK: true }));
 
 import PaginaLogErrores from './PaginaLogErrores.jsx';
 
-describe('HU-SAT-05 · Mensaje exacto cuando ningún error cumple los filtros', () => {
-  it('muestra el texto exacto "No se encontraron errores con los criterios indicados"', async () => {
-    const usuario = userEvent.setup();
+describe('HU-SAT-05 · Logs de errores según el contrato paginado', () => {
+  it('muestra los campos del contrato y controles para la página siguiente', async () => {
     render(<PaginaLogErrores />);
 
-    // Se espera a que termine la carga inicial (texto de la región viva) antes de
-    // tocar los filtros: cambiarlos mientras la carga inicial está en curso no es
-    // el escenario bajo prueba aquí (ver hallazgo reportado para `useLogErrores`).
-    await waitFor(() => expect(screen.getByText(/^Mostrando \d+ errores?$/)).toBeInTheDocument(), {
-      timeout: 3000
-    });
+    await screen.findByRole('columnheader', { name: 'Endpoint' }, { timeout: 3000 });
+    expect(screen.getByRole('columnheader', { name: 'Detalle' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Estado HTTP' })).toBeInTheDocument();
+    expect(screen.getByRole('columnheader', { name: 'Usuario' })).toBeInTheDocument();
+    expect(screen.getByText('Página 1 de 2 · 18 registros')).toBeInTheDocument();
 
-    await usuario.selectOptions(screen.getByLabelText('Módulo'), 'USUARIOS');
+    await userEvent.click(screen.getByRole('button', { name: 'Siguiente' }));
 
-    // Los campos de fecha son type="date": se cambian directamente, como hace un navegador real.
-    const campoDesde = screen.getByLabelText('Desde');
-    const campoHasta = screen.getByLabelText('Hasta');
-    fireEvent.change(campoDesde, { target: { value: '2026-01-01' } });
-    fireEvent.change(campoHasta, { target: { value: '2026-01-02' } });
-
-    await waitFor(
-      () =>
-        expect(
-          screen.getByText('No se encontraron errores con los criterios indicados')
-        ).toBeInTheDocument(),
-      { timeout: 3000 }
-    );
+    await waitFor(() => expect(screen.getByText('Página 2 de 2 · 18 registros')).toBeInTheDocument());
+    expect(screen.getByRole('button', { name: 'Siguiente' })).toBeDisabled();
   });
-});
 
-describe('HU-SAT-06 · Columna "Tipo de error" junto a "Operación"', () => {
-  it('muestra ambas columnas en la tabla de resultados', async () => {
+  it('muestra la operación y el código HTTP', async () => {
     render(<PaginaLogErrores />);
 
-    await waitFor(() => expect(screen.getByRole('columnheader', { name: 'Operación' })).toBeInTheDocument(), {
-      timeout: 3000
-    });
-    expect(screen.getByRole('columnheader', { name: 'Tipo de error' })).toBeInTheDocument();
-  });
-});
-
-describe('HU-SAT-06 · Proceso automático con "Sistema" como usuario, sin aviso al usuario final', () => {
-  it('muestra "Sistema" como un nombre de usuario más, sin ningún aviso o alerta adicional', async () => {
-    render(<PaginaLogErrores />);
-
-    await waitFor(() => expect(screen.getAllByText('Sistema').length).toBeGreaterThan(0), { timeout: 3000 });
-    // No debe aparecer ningún mensaje de error visible al usuario por este registro automático.
-    expect(screen.queryByText('Se registró un error inesperado')).not.toBeInTheDocument();
+    await screen.findAllByText('GET', {}, { timeout: 3000 });
+    expect(screen.getAllByText('500').length).toBeGreaterThan(0);
   });
 });

@@ -57,7 +57,7 @@
 
 .filaUno > :first-child {
   flex: 1 1 260px;
-  max-width: 325px;
+  max-width: 420px;
 }
 
 .tarjetaResultados {
@@ -73,6 +73,37 @@
   padding: var(--espacio-3) var(--espacio-4) 0;
   font-size: var(--texto-md);
   color: var(--color-texto-suave);
+}
+
+.paginacion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  padding: var(--espacio-3) var(--espacio-4);
+  border-top: 1px solid var(--color-borde);
+  color: var(--color-texto-secundario);
+  font-size: var(--texto-sm);
+}
+
+.paginacion > div {
+  display: flex;
+  gap: var(--espacio-2);
+}
+
+.paginacion button {
+  min-height: var(--tactil-min);
+  padding: var(--espacio-2) var(--espacio-4);
+  color: var(--color-texto);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.paginacion button:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .notaPie {
@@ -101,51 +132,4 @@
     align-items: stretch;
   }
 
-  .filaUno > :first-child {
-    flex: 0 0 auto;
-    max-width: none;
-  }
-
-}
-
-.campoModulo {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-1);
-  min-width: calc(var(--espacio-10) * 5);
-}
-
-.etiquetaModulo {
-  font-size: var(--texto-md);
-  font-weight: var(--peso-medio);
-  color: var(--color-texto-secundario);
-}
-
-.selectorModulo {
-  min-height: var(--tactil-min);
-  max-width: 100%;
-  padding: 10px var(--espacio-3);
-  font-size: var(--texto-base);
-  color: var(--color-texto);
-  background-color: var(--color-superficie);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio-md);
-  cursor: pointer;
-  appearance: none;
-  padding-right: var(--espacio-10);
-  background-image: var(--flecha-select);
-  background-repeat: no-repeat;
-  background-position: right var(--espacio-4) center;
-  background-size: 16px 16px;
-}
-
-.selectorModulo:hover {
-  border-color: var(--color-borde-fuerte);
-}
-
-.selectorModulo:focus,
-.selectorModulo:focus-visible {
-  outline: 2px solid var(--color-foco);
-  outline-offset: 2px;
-  border-color: var(--color-foco);
 }

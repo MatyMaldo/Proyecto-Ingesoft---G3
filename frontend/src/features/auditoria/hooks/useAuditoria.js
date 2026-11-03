@@ -1,14 +1,18 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { formatearFechaHora, calcularDiasAbarcados } from '../../../shared/utils/formatoFecha.js';
+import { formatearFechaHora } from '../../../shared/utils/formatoFecha.js';
 import { obtenerTonoModulo } from '../../../shared/constants/tonosModulo.js';
 import { obtenerMensajeRangoFechas } from '../../../shared/utils/rangoFechas.js';
 import {
   listarRegistrosAuditoria,
-  obtenerResumenAuditoria,
-  obtenerHistorialElemento
+  obtenerHistorialAuditoria,
+  obtenerRegistroAuditoria
 } from '../services/auditoriaService.js';
-import { obtenerEtiquetaCategoria, obtenerEtiquetaRol } from '../constants/categoriasAuditoria.js';
+import {
+  normalizarCodigoCategoria,
+  obtenerEtiquetaCategoria,
+  obtenerEtiquetaRol
+} from '../constants/categoriasAuditoria.js';
 import { obtenerEtiquetaAccion, obtenerTonoAccion } from '../constants/tiposAccionAuditoria.js';
 
 const CATEGORIA_TODOS = 'TODOS';
@@ -22,6 +26,10 @@ const FORMATEADOR_HORA_SEGUNDOS = new Intl.DateTimeFormat('es-PE', {
   second: '2-digit',
   hour12: false
 });
+
+function normalizarFechaHoraApi(fechaHora) {
+  return /(?:Z|[+-]\d{2}:\d{2})$/i.test(fechaHora) ? fechaHora : `${fechaHora}-05:00`;
+}
 
 /**
  * Primera letra de cada una de las dos primeras palabras del nombre, en mayúsculas.
@@ -50,38 +58,78 @@ function derivarIniciales(nombre) {
  * @returns {Object} RegistroVista
  */
 function transformarRegistro(registroApi) {
-  const { fecha, hora } = formatearFechaHora(registroApi.fechaHora);
-  const horaConSegundos = FORMATEADOR_HORA_SEGUNDOS.format(new Date(registroApi.fechaHora));
+  const fechaHoraIso = normalizarFechaHoraApi(registroApi.fechaHora);
+  const { fecha, hora } = formatearFechaHora(fechaHoraIso);
+  const horaConSegundos = FORMATEADOR_HORA_SEGUNDOS.format(new Date(fechaHoraIso));
+  const usuarioApi = registroApi.usuario ?? {
+    nombre: registroApi.usuarioId === undefined ? 'Usuario' : `Usuario #${registroApi.usuarioId}`,
+    rol: 'No especificado'
+  };
+  const detalles = Array.isArray(registroApi.detalles) ? registroApi.detalles : [];
+  const convertirDetalles = (campo) => detalles
+    .map((detalle) => {
+      const valor = detalle[campo];
+      return {
+        campo: detalle.campo,
+        valor: valor === null || valor === undefined
+          ? '—'
+          : typeof valor === 'string'
+            ? valor
+            : JSON.stringify(valor)
+      };
+    });
+  const valoresAntes = registroApi.valoresAntes ?? (detalles.length ? convertirDetalles('valorAnterior') : null);
+  const valoresDespues = registroApi.valoresDespues ?? (detalles.length ? convertirDetalles('valorNuevo') : null);
+  const entidad = registroApi.entidad;
+  const entidadId = registroApi.entidadId;
 
   return {
     id: registroApi.id,
-    // LAB05: reemplaza a `idTransaccion`. Clave opaca del elemento afectado (el mismo
-    // pago, nota, bloque horario, usuario…), con la que se pide el historial (§6.2, §8.3).
-    idElemento: registroApi.idElemento,
-    fechaHoraIso: registroApi.fechaHora,
+    idElemento: registroApi.idElemento ?? `${entidad ?? ''}-${entidadId ?? ''}`,
+    entidad,
+    entidadId,
+    fechaHoraIso,
     fecha,
     hora,
     fechaHoraCompleta: `${fecha} ${horaConSegundos}`,
     usuario: {
-      nombre: registroApi.usuario.nombre,
-      rol: obtenerEtiquetaRol(registroApi.usuario.rol),
-      iniciales: derivarIniciales(registroApi.usuario.nombre)
+      nombre: usuarioApi.nombre,
+      rol: obtenerEtiquetaRol(usuarioApi.rol),
+      iniciales: derivarIniciales(usuarioApi.nombre)
     },
     modulo: {
-      codigo: registroApi.categoria,
+      codigo: normalizarCodigoCategoria(registroApi.categoria),
       etiqueta: obtenerEtiquetaCategoria(registroApi.categoria),
-      tono: obtenerTonoModulo(registroApi.categoria)
+      tono: obtenerTonoModulo({
+        USUARIO: 'USUARIOS',
+        MATRICULA: 'MATRICULAS',
+        ACADEMICO: 'EVALUACIONES'
+      }[normalizarCodigoCategoria(registroApi.categoria)] ?? normalizarCodigoCategoria(registroApi.categoria))
     },
     accion: {
-      codigo: registroApi.tipoAccion,
-      etiqueta: obtenerEtiquetaAccion(registroApi.tipoAccion),
-      tono: obtenerTonoAccion(registroApi.tipoAccion)
+      codigo: registroApi.tipoAccion ?? registroApi.accion,
+      etiqueta: obtenerEtiquetaAccion(registroApi.tipoAccion ?? registroApi.accion),
+      tono: obtenerTonoAccion(registroApi.tipoAccion ?? registroApi.accion)
     },
-    // Nombre de la transacción del catálogo de la HU; la interfaz lo muestra como "Descripción".
-    tipoTransaccion: registroApi.tipoTransaccion,
-    valoresAntes: registroApi.valoresAntes,
-    valoresDespues: registroApi.valoresDespues
+    tipoTransaccion: registroApi.tipoTransaccion ?? registroApi.descripcion,
+    valoresAntes,
+    valoresDespues
   };
+}
+
+function normalizarTextoBusqueda(texto) {
+  return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
+}
+
+function filtrarBusqueda(registros, busqueda) {
+  const termino = normalizarTextoBusqueda(busqueda.trim());
+  if (!termino) {
+    return registros;
+  }
+  return registros.filter((registro) =>
+    [registro.usuario.nombre, registro.tipoTransaccion]
+      .some((texto) => normalizarTextoBusqueda(texto ?? '').includes(termino))
+  );
 }
 
 /**
@@ -97,8 +145,8 @@ function ordenarAscendentePorFecha(lista) {
 }
 
 /**
- * Lógica de la página de Auditorías: carga el listado y el resumen, aplica
- * filtro por categoría, búsqueda y rango de fechas (en servidor, LAB05), y
+ * Lógica de la página de Auditorías: carga el listado, aplica los filtros
+ * soportados por el API y una búsqueda local sobre la página recibida, y
  * gestiona el panel de detalle con el historial del elemento afectado.
  * Ver docs/planes/auditorias.md §6.
  *
@@ -116,12 +164,14 @@ export default function useAuditoria() {
   const [fechaHasta, establecerFechaHastaEstado] = useState('');
 
   const [detalleRegistro, establecerDetalleRegistro] = useState(null);
+  const [estadoDetalle, establecerEstadoDetalle] = useState('listo');
+  const [mensajeErrorDetalle, establecerMensajeErrorDetalle] = useState('');
   const [historial, establecerHistorial] = useState({ estado: 'listo', registros: [] });
 
   const secuenciaListadoRef = useRef(0);
-  const cargaInicialCompletaRef = useRef(false);
   const temporizadorBusquedaRef = useRef(null);
   const secuenciaHistorialRef = useRef(0);
+  const secuenciaDetalleRef = useRef(0);
   const elementoOrigenRef = useRef(null);
   // (LAB05) Último rango de fechas válido aplicado: chip, búsqueda y `reintentar`
   // siempre consultan con este rango, nunca con uno inválido (docs/planes/auditorias.md §6.3).
@@ -132,20 +182,14 @@ export default function useAuditoria() {
   const mensajeErrorRango = obtenerMensajeRangoFechas(fechaDesde, fechaHasta);
 
   /**
-   * Pide el listado (y el resumen, si aún no se cargó con éxito) con los filtros
-   * indicados. Descarta la respuesta si ya no es la última solicitud en curso
+   * Pide el listado con los filtros indicados. Descarta la respuesta si ya no
+   * es la última solicitud en curso
    * (docs/planes/auditorias.md §6.3, pasos 1, 5 y 6).
-   *
-   * El resumen se pide mientras `cargaInicialCompletaRef` siga en `false` (en vez de
-   * depender de "es la primera llamada"), para que si el usuario cambia el filtro
-   * antes de que la carga inicial responda, la siguiente llamada que gane la carrera
-   * siga trayendo el resumen y no se quede sin él.
    */
   async function cargarListado(categoriaActual, busquedaActual, rangoActual, tipoAccionActual) {
     const idSolicitud = (secuenciaListadoRef.current += 1);
-    const necesitaResumen = !cargaInicialCompletaRef.current;
 
-    if (necesitaResumen) {
+    if (estado === 'cargando' || estado === 'error') {
       establecerEstado('cargando');
     } else {
       establecerActualizando(true);
@@ -157,45 +201,29 @@ export default function useAuditoria() {
       fechaDesde: rangoActual.fechaDesde,
       fechaHasta: rangoActual.fechaHasta,
       tipoAccion: tipoAccionActual || '',
-      // HU-SAT-04 Esc. 4 (paginados de 15 en 15, D20): la paginación la resuelve el
-      // backend; el frontend siempre pide la primera página, sin paginador visible
-      // (docs/planes/auditorias.md §A.3).
+      // El backend pagina los resultados; el frontend solicita la primera página.
+      // No se muestra un paginador en esta vista.
       pagina: 0
     };
 
-    const [resultadoListado, resultadoResumen] = await Promise.all([
-      listarRegistrosAuditoria(filtros),
-      necesitaResumen ? obtenerResumenAuditoria() : Promise.resolve(null)
-    ]);
+    const resultadoListado = await listarRegistrosAuditoria(filtros);
 
     if (idSolicitud !== secuenciaListadoRef.current) {
       return;
     }
 
-    if (!resultadoListado.exitoso || (necesitaResumen && !resultadoResumen.exitoso)) {
+    if (!resultadoListado.exitoso) {
       establecerEstado('error');
       establecerActualizando(false);
       return;
     }
 
-    const registrosVista = ordenarDescendentePorFecha(
+    const registrosPagina = ordenarDescendentePorFecha(
       (resultadoListado.datos?.registros ?? []).map(transformarRegistro)
     );
+    const registrosVista = filtrarBusqueda(registrosPagina, busquedaActual);
     establecerRegistros(registrosVista);
-
-    if (necesitaResumen) {
-      const datosResumen = resultadoResumen.datos;
-      establecerResumen({
-        totalAcciones: datosResumen.totalAcciones,
-        modulosActivos: datosResumen.modulosActivos,
-        usuariosUnicos: datosResumen.usuariosUnicos,
-        diasCubiertos: calcularDiasAbarcados([
-          datosResumen.fechaPrimerRegistro,
-          datosResumen.fechaUltimoRegistro
-        ])
-      });
-      cargaInicialCompletaRef.current = true;
-    }
+    establecerResumen({ totalAcciones: resultadoListado.datos?.totalElementos ?? 0 });
 
     establecerEstado('listo');
     establecerActualizando(false);
@@ -238,7 +266,7 @@ export default function useAuditoria() {
 
   /**
    * Actualiza el texto de búsqueda en cada tecla (campo controlado) y refiltra
-   * 300 ms después de que el usuario deja de escribir (docs/planes/auditorias.md §6.3).
+   * localmente la página recibida 300 ms después de que el usuario deja de escribir.
    *
    * @param {string} texto
    */
@@ -290,8 +318,7 @@ export default function useAuditoria() {
 
   /**
    * Repite la consulta con los filtros vigentes (incluido el último rango de
-   * fechas válido). Si el resumen nunca llegó a cargarse con éxito, `cargarListado`
-   * lo vuelve a pedir también.
+   * fechas válido).
    */
   function reintentar() {
     cargarListado(categoria, busqueda.trim(), rangoAplicadoRef.current, tipoAccionRef.current);
@@ -302,11 +329,32 @@ export default function useAuditoria() {
    * servicio, sin reutilizar el listado, porque este puede estar filtrado
    * (docs/planes/auditorias.md §6.3, paso 7), y no aplica los filtros del listado.
    */
-  async function cargarHistorial(idElemento) {
+  async function cargarDetalle(registro) {
+    const idSolicitud = (secuenciaDetalleRef.current += 1);
+    establecerEstadoDetalle('cargando');
+    establecerMensajeErrorDetalle('');
+
+    const resultado = await obtenerRegistroAuditoria(registro.id);
+
+    if (idSolicitud !== secuenciaDetalleRef.current) {
+      return;
+    }
+
+    if (!resultado.exitoso || !resultado.datos) {
+      establecerEstadoDetalle('error');
+      establecerMensajeErrorDetalle(resultado.mensaje || 'No se pudo cargar el detalle de auditoría.');
+      return;
+    }
+
+    establecerDetalleRegistro(transformarRegistro(resultado.datos));
+    establecerEstadoDetalle('listo');
+  }
+
+  async function cargarHistorial(registro) {
     const idSolicitud = (secuenciaHistorialRef.current += 1);
     establecerHistorial({ estado: 'cargando', registros: [] });
 
-    const resultado = await obtenerHistorialElemento(idElemento);
+    const resultado = await obtenerHistorialAuditoria(registro);
 
     if (idSolicitud !== secuenciaHistorialRef.current) {
       return;
@@ -317,7 +365,9 @@ export default function useAuditoria() {
       return;
     }
 
-    const registrosVista = ordenarAscendentePorFecha((resultado.datos ?? []).map(transformarRegistro));
+    const registrosVista = ordenarAscendentePorFecha(
+      (resultado.datos?.registros ?? []).map(transformarRegistro)
+    );
     establecerHistorial({ estado: 'listo', registros: registrosVista });
   }
 
@@ -330,7 +380,8 @@ export default function useAuditoria() {
   function abrir(registro, elementoOrigen) {
     elementoOrigenRef.current = elementoOrigen ?? null;
     establecerDetalleRegistro(registro);
-    cargarHistorial(registro.idElemento);
+    cargarDetalle(registro);
+    cargarHistorial(registro);
   }
 
   /**
@@ -339,7 +390,10 @@ export default function useAuditoria() {
    */
   function cerrar() {
     secuenciaHistorialRef.current += 1;
+    secuenciaDetalleRef.current += 1;
     establecerDetalleRegistro(null);
+    establecerEstadoDetalle('listo');
+    establecerMensajeErrorDetalle('');
 
     const elementoOrigen = elementoOrigenRef.current;
     if (elementoOrigen && document.contains(elementoOrigen)) {
@@ -350,7 +404,13 @@ export default function useAuditoria() {
 
   function reintentarHistorial() {
     if (detalleRegistro) {
-      cargarHistorial(detalleRegistro.idElemento);
+      cargarHistorial(detalleRegistro);
+    }
+  }
+
+  function reintentarDetalle() {
+    if (detalleRegistro) {
+      cargarDetalle(detalleRegistro);
     }
   }
 
@@ -374,9 +434,12 @@ export default function useAuditoria() {
     reintentar,
     detalle: {
       registro: detalleRegistro,
+      estado: estadoDetalle,
+      mensajeError: mensajeErrorDetalle,
       historial,
       abrir,
       cerrar,
+      reintentarDetalle,
       reintentarHistorial
     }
   };

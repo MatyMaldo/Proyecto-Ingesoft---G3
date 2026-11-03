@@ -18,6 +18,7 @@ const ROL_BADGE = {
     Docente: { bg: '#fdf4ff', color: '#7e22ce', border: '#e9d5ff' },
     Administrador: { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
 };
+const ROL_BADGE_DESCONOCIDO = { bg: '#f1f5f9', color: '#475569', border: '#e2e8f0' };
 
 const ROL_POR_TIPO_REGISTRO = {
     apoderado: 'Apoderado',
@@ -891,7 +892,7 @@ function PaginaUsuarios() {
             <button type="button" onClick={() => setIntentoCarga(actual => actual + 1)}>Reintentar</button>
           </div>
         ) : filtered.length === 0 ? (<div style={{ padding: '40px 20px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>No se encontraron usuarios.</div>) : (filtered.map((u, idx) => {
-            const rb = ROL_BADGE[u.rol];
+            const rb = ROL_BADGE[u.rol] ?? ROL_BADGE_DESCONOCIDO;
             return (<div key={u.id} style={{ display: 'grid', gridTemplateColumns: '2fr 100px 120px 1.6fr 100px 160px', padding: '0 20px', borderBottom: idx < filtered.length - 1 ? '1px solid #f1f4f9' : 'none', alignItems: 'center', minHeight: 56, transition: 'background 0.1s' }} onMouseEnter={e => e.currentTarget.style.background = '#fafbff'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
                 <div style={{ minWidth: 0 }}>
                   <div style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{u.nombre} {u.apellido}</div>

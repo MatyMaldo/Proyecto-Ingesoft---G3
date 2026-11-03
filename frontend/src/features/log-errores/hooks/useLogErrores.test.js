@@ -1,5 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
+
+vi.mock('../../../shared/api/configuracionApi.js', () => ({ USAR_MOCK: true }));
 
 import useLogErrores from './useLogErrores.js';
 
@@ -7,163 +9,56 @@ async function esperarCargaInicial(result) {
   await waitFor(() => expect(result.current.estado).toBe('listo'), { timeout: 3000 });
 }
 
-describe('HU-SAT-06 · Filtro combinado de rango de fechas y módulo', () => {
-  it('combina módulo y rango de fechas con Y lógico, ordenado del más reciente al más antiguo', async () => {
+describe('HU-SAT-06 · integración del contrato paginado de logs de errores', () => {
+  it('adapta los campos del log y pagina de 15 en 15', async () => {
     const { result } = renderHook(() => useLogErrores());
     await esperarCargaInicial(result);
 
-    act(() => {
-      result.current.establecerModulo('PAGOS');
+    expect(result.current.errores).toHaveLength(15);
+    expect(result.current.totalElementos).toBe(18);
+    expect(result.current.totalPaginas).toBe(2);
+    expect(result.current.errores[0]).toMatchObject({
+      id: 9,
+      endpoint: '/notas',
+      metodoHttp: 'GET',
+      codigoEstado: 500,
+      tipoError: 'Excepción no controlada'
     });
+
+    act(() => result.current.irAPagina(1));
+    await waitFor(() => expect(result.current.pagina).toBe(1));
     await waitFor(() => expect(result.current.recargando).toBe(false));
 
-    act(() => {
-      result.current.establecerFechaDesde('2026-09-18');
-    });
-    await waitFor(() => expect(result.current.recargando).toBe(false));
-
-    act(() => {
-      result.current.establecerFechaHasta('2026-09-18');
-    });
-    await waitFor(() => expect(result.current.recargando).toBe(false));
-
-    // Solo los errores de PAGOS del 2026-09-18: id 7 (11:20) e id 11 (11:21).
-    expect(result.current.errores.map((error) => error.id)).toEqual([11, 7]);
+    expect(result.current.errores).toHaveLength(3);
+    expect(result.current.errores.map((error) => error.id)).toEqual([16, 17, 18]);
   });
 
-  it('con "Desde" posterior a "Hasta" no aplica el rango y conserva la lista anterior', async () => {
+  it('aplica fechas inclusivas y rechaza rangos inválidos sin cambiar la consulta', async () => {
     const { result } = renderHook(() => useLogErrores());
     await esperarCargaInicial(result);
 
-    const totalInicial = result.current.errores.length;
+    act(() => result.current.establecerFechaDesde('2026-09-18'));
+    act(() => result.current.establecerFechaHasta('2026-09-18'));
+    await waitFor(() => expect(result.current.recargando).toBe(false));
 
-    act(() => {
-      result.current.establecerFechaDesde('2026-09-19');
-    });
-    act(() => {
-      result.current.establecerFechaHasta('2026-09-15');
-    });
+    expect(result.current.errores.map((error) => error.id)).toEqual([8, 11, 7]);
+
+    act(() => result.current.establecerFechaDesde('2026-09-19'));
+    act(() => result.current.establecerFechaHasta('2026-09-15'));
 
     expect(result.current.mensajeErrorRango).toBe(
       'La fecha «Desde» no puede ser posterior a la fecha «Hasta».'
     );
-    expect(result.current.errores.length).toBe(totalInicial);
+    expect(result.current.errores.map((error) => error.id)).toEqual([8, 11, 7]);
   });
 
-  it('no deja ningún error cuando el módulo y el rango de fechas no tienen coincidencias', async () => {
+  it('muestra el nombre del usuario nulo como Sistema y expone el total del contrato', async () => {
     const { result } = renderHook(() => useLogErrores());
     await esperarCargaInicial(result);
 
-    act(() => {
-      result.current.establecerModulo('USUARIOS');
-    });
-    await waitFor(() => expect(result.current.recargando).toBe(false));
-
-    act(() => {
-      result.current.establecerFechaDesde('2026-01-01');
-    });
-    await waitFor(() => expect(result.current.recargando).toBe(false));
-
-    act(() => {
-      result.current.establecerFechaHasta('2026-01-02');
-    });
-    await waitFor(() => expect(result.current.recargando).toBe(false));
-
-    expect(result.current.errores).toEqual([]);
-  });
-});
-
-describe('HU-SAT-06 · Escenario 3: registro de un error en un proceso automático con "Sistema" como usuario', () => {
-  it('incluye el registro del proceso automático con "Sistema" como usuario, con la misma forma que cualquier otro', async () => {
-    const { result } = renderHook(() => useLogErrores());
-    await esperarCargaInicial(result);
-
-    const registroSistema = result.current.errores.find((error) => error.usuario === 'Sistema');
-    expect(registroSistema).toBeDefined();
-    expect(registroSistema.moduloEtiqueta).toBeTruthy();
-    expect(registroSistema).toHaveProperty('operacion');
-    expect(registroSistema).toHaveProperty('tipoError');
-    expect(registroSistema).toHaveProperty('mensaje');
-  });
-});
-
-describe('HU-SAT-06 · Condición de carrera entre la carga inicial y un cambio de filtro', () => {
-  it('aplica el filtro de módulo aunque se cambie antes de que termine la carga inicial', async () => {
-    const { result } = renderHook(() => useLogErrores());
-
-    // Cambia el filtro ANTES de esperar a que la carga inicial termine (estado
-    // sigue en 'cargando' en este punto): este era exactamente el escenario del bug.
-    act(() => {
-      result.current.establecerModulo('PAGOS');
-    });
-
-    await esperarCargaInicial(result);
-    await waitFor(() => expect(result.current.recargando).toBe(false));
-
-    // Debe quedar filtrado por PAGOS (ids 7 y 11), no con la lista completa sin filtrar.
-    expect(result.current.errores.every((error) => error.moduloEtiqueta === 'Pagos')).toBe(true);
-    expect(result.current.errores.map((error) => error.id).sort((a, b) => a - b)).toEqual([7, 11]);
-    expect(result.current.resumen).not.toBeNull();
-  });
-});
-
-describe('HU-SAT-06 · Columna "Tipo de error"', () => {
-  it('cada fila adaptada conserva el tipo de error además de la operación', async () => {
-    const { result } = renderHook(() => useLogErrores());
-    await esperarCargaInicial(result);
-
-    expect(result.current.errores.length).toBeGreaterThan(0);
-    result.current.errores.forEach((error) => {
-      expect(error).toHaveProperty('operacion');
-      expect(error).toHaveProperty('tipoError');
-    });
-  });
-});
-
-describe('HU-SAT-05 · Búsqueda sobre las columnas sin filtro propio', () => {
-  async function buscar(result, texto) {
-    act(() => {
-      result.current.establecerBusqueda(texto);
-    });
-    // El hook espera 300 ms antes de consultar (debounce).
-    await waitFor(() => expect(result.current.recargando).toBe(false), { timeout: 3000 });
-  }
-
-  it('encuentra por tipo de operación', async () => {
-    const { result } = renderHook(() => useLogErrores());
-    await esperarCargaInicial(result);
-
-    await buscar(result, 'guardar calificacion');
-    await waitFor(() => expect(result.current.errores.map((error) => error.id)).toEqual([9]), { timeout: 3000 });
-  });
-
-  it('encuentra por usuario', async () => {
-    const { result } = renderHook(() => useLogErrores());
-    await esperarCargaInicial(result);
-
-    await buscar(result, 'ramirez');
-    await waitFor(() => expect(result.current.errores.map((error) => error.id)).toEqual([11, 7]), {
-      timeout: 3000
-    });
-  });
-
-  it('no busca en el módulo: ese criterio es del selector', async () => {
-    const { result } = renderHook(() => useLogErrores());
-    await esperarCargaInicial(result);
-
-    await buscar(result, 'notas');
-    await waitFor(() => expect(result.current.errores).toEqual([]), { timeout: 3000 });
-  });
-});
-
-describe('HU-SAT-06 · El tipo de error es solo una columna, no se busca', () => {
-  it('escribir un tipo de error en el buscador no devuelve resultados por ese criterio', async () => {
-    const { result } = renderHook(() => useLogErrores());
-    await esperarCargaInicial(result);
-
-    act(() => {
-      result.current.establecerBusqueda('excepcion no controlada');
-    });
-    await waitFor(() => expect(result.current.errores).toEqual([]), { timeout: 3000 });
+    const automatico = result.current.errores.find((error) => error.id === 10);
+    expect(automatico.usuarioId).toBeNull();
+    expect(automatico.usuario).toBe('Sistema');
+    expect(result.current.textoInsignia).toBe('18 errores');
   });
 });

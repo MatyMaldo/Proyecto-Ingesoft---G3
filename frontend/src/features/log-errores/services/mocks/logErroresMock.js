@@ -1,6 +1,4 @@
-// TODO(backend): mock del log de errores. Reemplazar por las llamadas reales
-// descritas en docs/planes/log-errores.md §6.5 cuando el backend exponga los
-// endpoints `GET /log-errores` y `GET /log-errores/resumen`.
+// Datos ficticios usados cuando VITE_USAR_MOCK está habilitado.
 
 const ESPERA_SIMULADA_MS = 400;
 

@@ -11,14 +11,18 @@
  */
 export const TONOS_MODULO = Object.freeze({
   NOTAS: 'azul',
+  USUARIO: 'violeta',
   USUARIOS: 'violeta',
   ASISTENCIA: 'cian',
+  MATRICULA: 'marino',
   MATRICULAS: 'marino',
   CONFIGURACION: 'acero',
   PAGOS: 'turquesa',
   HORARIOS: 'indigo',
   SISTEMA: 'gris',
+  ACADEMICO: 'ciruela',
   EVALUACIONES: 'ciruela',
+  SEGURIDAD: 'gris',
   AUTENTICACION: 'gris',
   REPORTES: 'gris'
 });

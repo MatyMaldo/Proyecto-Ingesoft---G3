@@ -1,55 +1,101 @@
-import { obtenerErroresMock, obtenerResumenErroresMock } from './mocks/logErroresMock.js';
+import { obtenerErroresMock } from './mocks/logErroresMock.js';
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import { solicitar } from '../../../shared/api/clienteHttp.js';
 
-/**
- * Construye el objeto de parámetros de consulta a partir de los filtros,
- * para mantener la legibilidad en el punto de llamada.
- *
- * @param {{modulo?: string, fechaDesde?: string, fechaHasta?: string, busqueda?: string}} filtros
- * @returns {Object<string, string|undefined>}
- */
-function construirParametros(filtros) {
+export const TAMANIO_PAGINA_LOG_ERRORES = 15;
+
+function normalizarRegistro(registro) {
   return {
-    modulo: filtros.modulo,
-    fechaDesde: filtros.fechaDesde,
-    fechaHasta: filtros.fechaHasta,
-    busqueda: filtros.busqueda
+    ...registro,
+    nombreUsuario: registro.nombreUsuario ?? null,
+    detalle: registro.detalle ?? ''
+  };
+}
+
+function normalizarPagina(datos) {
+  if (
+    !datos ||
+    !Array.isArray(datos.content) ||
+    typeof datos.number !== 'number' ||
+    typeof datos.totalPages !== 'number' ||
+    typeof datos.totalElements !== 'number'
+  ) {
+    return null;
+  }
+
+  return {
+    registros: datos.content.map(normalizarRegistro),
+    pagina: datos.number,
+    totalPaginas: datos.totalPages,
+    totalElementos: datos.totalElements
   };
 }
 
 /**
- * Obtiene los errores registrados, filtrados y ordenados por fecha descendente.
- *
- * @param {{modulo?: string, fechaDesde?: string, fechaHasta?: string, busqueda?: string}} filtros
- *        fechas en formato 'YYYY-MM-DD', ambas inclusive; claves vacías se omiten.
- * @param {{ signal?: AbortSignal }} [opciones]
- * @returns {Promise<{exitoso: boolean, datos: Array|null, mensaje: string}>}
+ * Lista logs de errores con el contrato GET /api/admin/logs-error.
+ * Las fechas recibidas son inclusivas y se convierten al inicio/final del día.
  */
 export async function obtenerErrores(filtros = {}, opciones = {}) {
   if (USAR_MOCK) {
-    return obtenerErroresMock(filtros);
+    const respuesta = await obtenerErroresMock(filtros);
+    if (!respuesta.exitoso) {
+      return respuesta;
+    }
+
+    const todos = respuesta.datos.map((registro) => ({
+      id: registro.id,
+      fechaHora: registro.fechaHora,
+      usuarioId: registro.usuarioId ?? null,
+      nombreUsuario: registro.nombreUsuario ?? registro.usuario ?? null,
+      tipoError: registro.tipoError,
+      mensaje: registro.mensaje,
+      detalle: registro.detalle ?? '',
+      endpoint: registro.endpoint ?? `/${registro.modulo?.toLowerCase() ?? 'sistema'}`,
+      metodoHttp: registro.metodoHttp ?? 'GET',
+      codigoEstado: registro.codigoEstado ?? 500
+    }));
+    const pagina = filtros.page ?? 0;
+    const totalElementos = todos.length;
+    const totalPaginas = Math.ceil(totalElementos / TAMANIO_PAGINA_LOG_ERRORES);
+    const inicio = pagina * TAMANIO_PAGINA_LOG_ERRORES;
+
+    return {
+      exitoso: true,
+      datos: {
+        registros: todos.slice(inicio, inicio + TAMANIO_PAGINA_LOG_ERRORES),
+        pagina,
+        totalPaginas,
+        totalElementos
+      },
+      mensaje: ''
+    };
   }
 
-  return solicitar('/log-errores', {
-    parametros: construirParametros(filtros),
+  const respuesta = await solicitar('/admin/logs-error', {
+    sinVersionApi: true,
+    parametros: {
+      fechaInicio: filtros.fechaDesde ? `${filtros.fechaDesde}T00:00:00` : undefined,
+      fechaFin: filtros.fechaHasta ? `${filtros.fechaHasta}T23:59:59` : undefined,
+      page: filtros.page ?? 0,
+      size: TAMANIO_PAGINA_LOG_ERRORES,
+      sortBy: 'fechaHora',
+      sortDirection: 'DESC'
+    },
     signal: opciones.signal
   });
-}
 
-/**
- * Obtiene las métricas globales del log (no dependen de los filtros).
- *
- * @param {{ signal?: AbortSignal }} [opciones]
- * @returns {Promise<{exitoso: boolean,
- *   datos: {totalErrores: number, modulosAfectados: number, usuariosInvolucrados: number,
- *           fechaPrimerError: string|null, fechaUltimoError: string|null}|null,
- *   mensaje: string}>}
- */
-export async function obtenerResumenErrores(opciones = {}) {
-  if (USAR_MOCK) {
-    return obtenerResumenErroresMock();
+  if (!respuesta.exitoso) {
+    return respuesta;
   }
 
-  return solicitar('/log-errores/resumen', { signal: opciones.signal });
+  const pagina = normalizarPagina(respuesta.datos);
+  if (!pagina) {
+    return {
+      exitoso: false,
+      datos: null,
+      mensaje: 'El backend devolvió un formato de logs de errores no válido.'
+    };
+  }
+
+  return { exitoso: true, datos: pagina, mensaje: '' };
 }

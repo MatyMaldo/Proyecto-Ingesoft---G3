@@ -60,6 +60,26 @@ describe('usuariosService', () => {
     }]);
   });
 
+  it('normaliza el sufijo de proxy Hibernate en el tipo de usuario', async () => {
+    solicitar.mockResolvedValue({
+      exitoso: true,
+      datos: {
+        last: true,
+        content: [{
+          id: 8,
+          nombre: 'Jose',
+          tipoUsuario: 'APODERADO$HIBERNATEPROXY$XYFAAEK8',
+          activo: true
+        }]
+      },
+      mensaje: ''
+    });
+
+    const resultado = await listarUsuarios();
+
+    expect(resultado.datos[0].rol).toBe('Apoderado');
+  });
+
   it('informa cuando la respuesta paginada no contiene content', async () => {
     solicitar.mockResolvedValue({ exitoso: true, datos: {}, mensaje: '' });
 

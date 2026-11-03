@@ -1,10 +1,9 @@
-import CampoBusqueda from '../../../shared/components/CampoBusqueda.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import FiltroRangoFechas from '../../../shared/components/FiltroRangoFechas.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
 import estilosUtil from '../../../shared/styles/utilidades.module.css';
 import TablaLogErrores from '../components/TablaLogErrores.jsx';
-import useLogErrores, { OPCIONES_MODULO } from '../hooks/useLogErrores.js';
+import useLogErrores from '../hooks/useLogErrores.js';
 import estilos from './PaginaLogErrores.module.css';
 
 const MENSAJE_VACIO = 'No se encontraron errores con los criterios indicados';
@@ -17,18 +16,18 @@ const MENSAJE_VACIO = 'No se encontraron errores con los criterios indicados';
 export default function PaginaLogErrores() {
   const {
     errores,
+    totalElementos,
+    totalPaginas,
+    pagina,
     textoInsignia,
     estado,
     recargando,
-    modulo,
-    busqueda,
     fechaDesde,
     fechaHasta,
     mensajeErrorRango,
-    establecerModulo,
-    establecerBusqueda,
     establecerFechaDesde,
     establecerFechaHasta,
+    irAPagina,
     reintentar
   } = useLogErrores();
 
@@ -57,30 +56,6 @@ export default function PaginaLogErrores() {
 
       <section className={estilos.filtros} aria-label="Filtros del log de errores">
         <div className={estilos.filaUno}>
-          <CampoBusqueda
-            id="busqueda-log-errores"
-            etiqueta="Buscar por operación, mensaje o usuario"
-            placeholder="Buscar operación, mensaje o usuario"
-            valor={busqueda}
-            alCambiar={establecerBusqueda}
-          />
-          <div className={estilos.campoModulo}>
-            <label htmlFor="modulo-log-errores" className={estilos.etiquetaModulo}>
-              Módulo
-            </label>
-            <select
-              id="modulo-log-errores"
-              className={estilos.selectorModulo}
-              value={modulo}
-              onChange={(evento) => establecerModulo(evento.target.value)}
-            >
-              {OPCIONES_MODULO.map((opcion) => (
-                <option key={opcion.valor} value={opcion.valor}>
-                  {opcion.valor === 'TODOS' ? 'Todos los módulos' : opcion.etiqueta}
-                </option>
-              ))}
-            </select>
-          </div>
           <FiltroRangoFechas
             fechaDesde={fechaDesde}
             fechaHasta={fechaHasta}
@@ -113,6 +88,23 @@ export default function PaginaLogErrores() {
           <>
             {recargando && <p className={estilos.actualizando}>Actualizando resultados…</p>}
             <TablaLogErrores errores={errores} ocupado={recargando} />
+            <nav className={estilos.paginacion} aria-label="Paginación de logs de errores">
+              <span>
+                Página {pagina + 1} de {Math.max(totalPaginas, 1)} · {totalElementos} registros
+              </span>
+              <div>
+                <button type="button" onClick={() => irAPagina(pagina - 1)} disabled={pagina === 0 || recargando}>
+                  Anterior
+                </button>
+                <button
+                  type="button"
+                  onClick={() => irAPagina(pagina + 1)}
+                  disabled={pagina + 1 >= totalPaginas || recargando}
+                >
+                  Siguiente
+                </button>
+              </div>
+            </nav>
           </>
         )}
       </section>

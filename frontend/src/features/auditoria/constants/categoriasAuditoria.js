@@ -2,30 +2,35 @@ import { obtenerTonoModulo } from '../../../shared/constants/tonosModulo.js';
 import { ROLES } from '../../../shared/auth/roles.js';
 
 /**
- * Catálogo de categorías (módulos) de auditoría, en el orden del prototipo.
- * Fuente: docs/planes/auditorias.md §4.1 (opciones de `FiltroChips`) y §6.2 (etiquetas de categoría).
- * "Sistema" y "Evaluaciones" no están en las categorías de la HU-SAT-04; por decisión del dueño
- * del producto (2026-10-20) se mantienen (D9 de docs/planes/auditorias.md).
- * "Matrícula" (D18, 2026-10-20): la etiqueta va en singular, como la escribe la HU; el código
- * `MATRICULAS` no cambia. "Configuración" (LAB05, HU-GEMAP-11): solo cubre el registro de
- * secciones; los grados son datos precargados y no se gestionan desde aquí (D19, 2026-10-20).
+ * Códigos alineados con el contrato del endpoint GET /auditorias.
  */
 export const CATEGORIAS_AUDITORIA = Object.freeze([
   Object.freeze({ valor: 'TODOS', etiqueta: 'Todos' }),
   Object.freeze({ valor: 'NOTAS', etiqueta: 'Notas' }),
-  Object.freeze({ valor: 'USUARIOS', etiqueta: 'Usuarios' }),
+  Object.freeze({ valor: 'USUARIO', etiqueta: 'Usuarios' }),
+  Object.freeze({ valor: 'MATRICULA', etiqueta: 'Matrícula' }),
   Object.freeze({ valor: 'ASISTENCIA', etiqueta: 'Asistencia' }),
-  Object.freeze({ valor: 'MATRICULAS', etiqueta: 'Matrícula' }),
   Object.freeze({ valor: 'PAGOS', etiqueta: 'Pagos' }),
   Object.freeze({ valor: 'HORARIOS', etiqueta: 'Horarios' }),
   Object.freeze({ valor: 'CONFIGURACION', etiqueta: 'Configuración' }),
-  Object.freeze({ valor: 'SISTEMA', etiqueta: 'Sistema' }),
-  Object.freeze({ valor: 'EVALUACIONES', etiqueta: 'Evaluaciones' })
+  Object.freeze({ valor: 'ACADEMICO', etiqueta: 'Académico' }),
+  Object.freeze({ valor: 'SEGURIDAD', etiqueta: 'Seguridad' }),
+  Object.freeze({ valor: 'SISTEMA', etiqueta: 'Sistema' })
 ]);
+
+const ALIASES_CATEGORIA = Object.freeze({
+  USUARIOS: 'USUARIO',
+  MATRICULAS: 'MATRICULA',
+  EVALUACIONES: 'ACADEMICO'
+});
 
 const MAPA_ETIQUETAS_CATEGORIA = new Map(
   CATEGORIAS_AUDITORIA.map((categoria) => [categoria.valor, categoria.etiqueta])
 );
+
+export function normalizarCodigoCategoria(codigo) {
+  return ALIASES_CATEGORIA[codigo] ?? codigo;
+}
 
 /**
  * Etiqueta visible de una categoría (módulo). Un código desconocido se muestra tal
@@ -35,7 +40,8 @@ const MAPA_ETIQUETAS_CATEGORIA = new Map(
  * @returns {string}
  */
 export function obtenerEtiquetaCategoria(codigo) {
-  return MAPA_ETIQUETAS_CATEGORIA.get(codigo) ?? codigo;
+  const normalizado = normalizarCodigoCategoria(codigo);
+  return MAPA_ETIQUETAS_CATEGORIA.get(normalizado) ?? normalizado;
 }
 
 /**

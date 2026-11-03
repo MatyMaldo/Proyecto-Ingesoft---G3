@@ -60,7 +60,8 @@ export default function PaginaAuditorias() {
   const filtrosActivos =
     (categoria !== 'TODOS' ? 1 : 0) + (tipoAccion ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0);
   const textoMostrandoAhora = mostrandoAhora === 1 ? '1 registro' : `${mostrandoAhora} registros`;
-  const mensajeVacio = resumen && resumen.totalAcciones === 0 ? MENSAJE_VACIO_TOTAL : MENSAJE_VACIO_FILTRADO;
+  const hayFiltrosAplicados = filtrosActivos > 0 || busqueda.trim().length > 0;
+  const mensajeVacio = hayFiltrosAplicados ? MENSAJE_VACIO_FILTRADO : MENSAJE_VACIO_TOTAL;
 
   return (
     <div className={estilos.pagina}>
@@ -84,9 +85,9 @@ export default function PaginaAuditorias() {
           <div className={estilos.campoBusquedaContenedor}>
             <CampoBusqueda
               id="busqueda-auditorias"
-              etiqueta="Buscar usuario o descripción"
+              etiqueta="Buscar usuario o descripción en la página"
               etiquetaVisible
-              placeholder="Buscar usuario o descripción..."
+              placeholder="Buscar en la página cargada..."
               valor={busqueda}
               alCambiar={establecerBusqueda}
             />
@@ -189,7 +190,10 @@ export default function PaginaAuditorias() {
 
       <DetalleTransaccion
         registro={detalle.registro}
+        estadoDetalle={detalle.estado}
+        mensajeErrorDetalle={detalle.mensajeError}
         historial={detalle.historial}
+        alReintentarDetalle={detalle.reintentarDetalle}
         alReintentarHistorial={detalle.reintentarHistorial}
         alCerrar={detalle.cerrar}
       />

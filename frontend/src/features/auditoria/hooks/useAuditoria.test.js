@@ -1,5 +1,7 @@
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
+
+vi.mock('../../../shared/api/configuracionApi.js', () => ({ USAR_MOCK: true }));
 
 import useAuditoria from './useAuditoria.js';
 

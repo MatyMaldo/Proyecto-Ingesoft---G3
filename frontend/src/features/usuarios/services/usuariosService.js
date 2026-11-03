@@ -11,6 +11,7 @@ const ROLES_API = Object.freeze({
 });
 
 function transformarUsuario(usuario) {
+  const tipoUsuario = usuario.tipoUsuario?.replace(/\$HIBERNATEPROXY\$.*$/i, '');
   const partesApellido = [usuario.apellidoPaterno, usuario.apellidoMaterno].filter(Boolean);
   const nombreCompleto = usuario.nombreCompleto?.trim();
   const apoderado = usuario.apoderado ?? usuario.apoderadoAsignado ?? null;
@@ -32,7 +33,7 @@ function transformarUsuario(usuario) {
     apellidoPaterno: usuario.apellidoPaterno ?? '',
     apellidoMaterno: usuario.apellidoMaterno ?? '',
     dni: usuario.dni ?? '',
-    rol: ROLES_API[usuario.tipoUsuario] ?? usuario.tipoUsuario,
+    rol: ROLES_API[tipoUsuario] ?? tipoUsuario,
     correo: usuario.email ?? '',
     activo: Boolean(usuario.activo),
     telefono: usuario.telefono ?? '',

@@ -78,7 +78,15 @@ function ItemHistorial({ item, esSeleccionado }) {
  * @param {() => void} props.alReintentarHistorial
  * @param {() => void} props.alCerrar Se llama cuando el diálogo se cierra (Esc, velo o botón Cerrar).
  */
-export default function DetalleTransaccion({ registro, historial, alReintentarHistorial, alCerrar }) {
+export default function DetalleTransaccion({
+  registro,
+  estadoDetalle = 'listo',
+  mensajeErrorDetalle = '',
+  historial,
+  alReintentarDetalle = () => {},
+  alReintentarHistorial,
+  alCerrar
+}) {
   const refDialogo = useRef(null);
   const refBotonCerrar = useRef(null);
 
@@ -158,6 +166,13 @@ export default function DetalleTransaccion({ registro, historial, alReintentarHi
           </div>
 
           <div className={estilos.cuerpo} tabIndex={0} aria-label="Contenido del detalle">
+            {estadoDetalle === 'cargando' && <p role="status">Cargando detalle del registro…</p>}
+            {estadoDetalle === 'error' && (
+              <p role="alert">
+                {mensajeErrorDetalle || 'No se pudo cargar el detalle del registro.'}{' '}
+                <button type="button" onClick={alReintentarDetalle}>Reintentar detalle</button>
+              </p>
+            )}
             <dl className={estilos.datosRegistro}>
               <div className={estilos.parValor}>
                 <dt className={estilos.campoValor}>ID</dt>

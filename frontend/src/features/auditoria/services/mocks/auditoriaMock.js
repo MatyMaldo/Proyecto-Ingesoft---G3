@@ -566,3 +566,19 @@ export function obtenerHistorialElementoMock(idElemento) {
     return clonar(ordenado);
   });
 }
+
+/**
+ * Obtiene un registro ficticio por su ID, como el endpoint GET /auditorias/{id}.
+ *
+ * @param {string|number} id
+ * @returns {Promise<{exitoso: boolean, datos: Object|null, mensaje: string}>}
+ */
+export function obtenerRegistroAuditoriaMock(id) {
+  return simularLatencia(() => {
+    const registro = REGISTROS.find((item) => String(item.id) === String(id));
+    if (!registro) {
+      throw new Error('No se encontró el registro de auditoría.');
+    }
+    return clonar([registro])[0];
+  });
+}
