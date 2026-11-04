@@ -121,7 +121,6 @@ export async function crearMatricula(asignacion) {
 
   const respuesta = await solicitar('/matriculas', {
     metodo: 'POST',
-    sinVersionApi: true,
     cuerpo: {
       estudianteId: Number(asignacion.alumno.id),
       seccionId: Number(asignacion.seccion.id)
@@ -167,7 +166,6 @@ export async function emitirCompromisoMatricula(estudianteId) {
 
   const respuesta = await solicitar('/compromisos-pago/matricula', {
     metodo: 'POST',
-    sinVersionApi: true,
     cuerpo: { matriculaId: Number(matricula.id) }
   });
   if (respuesta.exitoso) matriculasCreadasEnSesion.delete(String(estudianteId));
