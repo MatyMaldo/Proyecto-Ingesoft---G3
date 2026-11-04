@@ -1,9 +1,16 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
+import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('../../../shared/api/configuracionApi.js', () => ({ USAR_MOCK: true }));
 
-import useLogErrores from './useLogErrores.js';
+import useLogErrores, { obtenerTonoCodigoEstado } from './useLogErrores.js';
+
+function renderizarHook(ruta = '/') {
+  return renderHook(() => useLogErrores(), {
+    wrapper: ({ children }) => <MemoryRouter initialEntries={[ruta]}>{children}</MemoryRouter>
+  });
+}
 
 async function esperarCargaInicial(result) {
   await waitFor(() => expect(result.current.estado).toBe('listo'), { timeout: 3000 });
@@ -11,7 +18,7 @@ async function esperarCargaInicial(result) {
 
 describe('HU-SAT-06 · integración del contrato paginado de logs de errores', () => {
   it('adapta los campos del log y pagina de 15 en 15', async () => {
-    const { result } = renderHook(() => useLogErrores());
+    const { result } = renderizarHook();
     await esperarCargaInicial(result);
 
     expect(result.current.errores).toHaveLength(15);
@@ -19,8 +26,8 @@ describe('HU-SAT-06 · integración del contrato paginado de logs de errores', (
     expect(result.current.totalPaginas).toBe(2);
     expect(result.current.errores[0]).toMatchObject({
       id: 9,
-      endpoint: '/notas',
-      metodoHttp: 'GET',
+      endpoint: '/api/v1/notas',
+      metodoHttp: 'PUT',
       codigoEstado: 500,
       tipoError: 'Excepción no controlada'
     });
@@ -34,7 +41,7 @@ describe('HU-SAT-06 · integración del contrato paginado de logs de errores', (
   });
 
   it('aplica fechas inclusivas y rechaza rangos inválidos sin cambiar la consulta', async () => {
-    const { result } = renderHook(() => useLogErrores());
+    const { result } = renderizarHook();
     await esperarCargaInicial(result);
 
     act(() => result.current.establecerFechaDesde('2026-09-18'));
@@ -52,13 +59,50 @@ describe('HU-SAT-06 · integración del contrato paginado de logs de errores', (
     expect(result.current.errores.map((error) => error.id)).toEqual([8, 11, 7]);
   });
 
+  it('filtra por módulo y vuelve a la primera página', async () => {
+    const { result } = renderizarHook();
+    await esperarCargaInicial(result);
+
+    act(() => result.current.irAPagina(1));
+    await waitFor(() => expect(result.current.pagina).toBe(1));
+
+    act(() => result.current.establecerModulo('USUARIOS'));
+    await waitFor(() => expect(result.current.totalElementos).toBe(4));
+
+    expect(result.current.pagina).toBe(0);
+    expect(result.current.errores.every((error) => error.moduloEtiqueta === 'Usuarios')).toBe(true);
+  });
+
   it('muestra el nombre del usuario nulo como Sistema y expone el total del contrato', async () => {
-    const { result } = renderHook(() => useLogErrores());
+    const { result } = renderizarHook();
     await esperarCargaInicial(result);
 
     const automatico = result.current.errores.find((error) => error.id === 10);
     expect(automatico.usuarioId).toBeNull();
     expect(automatico.usuario).toBe('Sistema');
-    expect(result.current.textoInsignia).toBe('18 errores');
+  });
+
+  it('lee la página desde la URL y vuelve a la última si está fuera de rango', async () => {
+    const { result } = renderizarHook('/?pagina=2');
+    await esperarCargaInicial(result);
+    expect(result.current.pagina).toBe(1);
+    expect(result.current.errores.map((error) => error.id)).toEqual([16, 17, 18]);
+
+    const fuera = renderizarHook('/?pagina=99');
+    await waitFor(() => expect(fuera.result.current.pagina).toBe(1), { timeout: 3000 });
+    await waitFor(() => expect(fuera.result.current.estado).toBe('listo'), { timeout: 3000 });
+    expect(fuera.result.current.errores).toHaveLength(3);
+
+    const invalida = renderizarHook('/?pagina=abc');
+    await esperarCargaInicial(invalida.result);
+    expect(invalida.result.current.pagina).toBe(0);
+  });
+
+  it('asigna el tono del estado HTTP según su rango', () => {
+    expect(obtenerTonoCodigoEstado(500)).toBe('rojo');
+    expect(obtenerTonoCodigoEstado(504)).toBe('rojo');
+    expect(obtenerTonoCodigoEstado(404)).toBe('ambar');
+    expect(obtenerTonoCodigoEstado(200)).toBe('gris');
+    expect(obtenerTonoCodigoEstado(null)).toBe('gris');
   });
 });

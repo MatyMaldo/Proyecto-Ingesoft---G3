@@ -1,0 +1,177 @@
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-6);
+}
+
+/* Fila 1: título a la izquierda y total a su nivel, a la derecha. Fila 2: descripción. */
+.cabecera {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: center;
+  column-gap: var(--espacio-4);
+  row-gap: var(--espacio-1);
+}
+
+.titulo {
+  grid-column: 1;
+  grid-row: 1;
+  margin: 0;
+  font-size: var(--texto-titulo);
+  font-weight: var(--peso-negrita);
+  color: var(--color-texto);
+}
+
+.descripcion {
+  grid-column: 1 / -1;
+  grid-row: 2;
+  margin: 0;
+  font-size: var(--texto-md);
+  color: var(--color-texto-suave);
+}
+
+/* Total de resultados a la altura del título. */
+.contador {
+  grid-column: 2;
+  grid-row: 1;
+  display: flex;
+  align-items: center;
+  min-height: 48px;
+  margin: 0;
+  font-size: var(--texto-md);
+  color: var(--color-texto-suave);
+  white-space: nowrap;
+}
+
+/* Fila 1: búsqueda y acciones, cada una en un extremo. Fila 2: chips de rol bajo el buscador. */
+.filtros {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+
+.filaBusqueda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+}
+
+.campoBusqueda {
+  flex: 1 1 16rem;
+  width: 16rem;
+  max-width: 22rem;
+}
+
+.campoRol {
+  display: flex;
+  flex-direction: column;
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-4);
+  margin-left: auto;
+}
+
+.grupoRegistro {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-2);
+}
+
+.etiquetaGrupo {
+  font-size: var(--texto-md);
+  font-weight: var(--peso-medio);
+  color: var(--color-texto-secundario);
+}
+
+.boton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-4);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  white-space: nowrap;
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.boton:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.boton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.botonPrimario {
+  color: #fff;
+  background: var(--color-primario);
+  border: 1px solid var(--color-primario);
+}
+
+.botonPrimario:hover:not(:disabled) {
+  background: var(--color-primario-hover);
+}
+
+.botonPrimario:active:not(:disabled) {
+  background: var(--color-primario-activo);
+}
+
+.botonSecundario {
+  color: var(--color-accion);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-accion);
+}
+
+.botonSecundario:hover:not(:disabled) {
+  background: var(--color-accion-suave);
+}
+
+.botonSecundario:active:not(:disabled) {
+  background: var(--color-accion-suave-activo);
+}
+
+.tarjetaResultados {
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-sm);
+  overflow: hidden;
+}
+
+@media (max-width: 767px) {
+  .acciones,
+  .grupoRegistro {
+    width: 100%;
+  }
+
+  .etiquetaGrupo {
+    flex: 1 1 100%;
+  }
+
+  .acciones .boton {
+    flex: 1 1 100%;
+    justify-content: center;
+  }
+
+  .campoBusqueda {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: none;
+  }
+
+  .campoRol {
+    min-width: 0;
+  }
+}

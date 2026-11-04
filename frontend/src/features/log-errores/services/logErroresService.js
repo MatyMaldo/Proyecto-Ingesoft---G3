@@ -4,6 +4,15 @@ import { solicitar } from '../../../shared/api/clienteHttp.js';
 
 export const TAMANIO_PAGINA_LOG_ERRORES = 15;
 
+/**
+ * Indica si el origen de datos soporta el filtro de módulo y el buscador.
+ * Hoy solo lo hacen los mocks: el contrato real de `GET /admin/logs-error` solo
+ * filtra por rango de fechas y no devuelve `modulo` ni `operacion`.
+ * TODO(backend): cuando el endpoint acepte `modulo`/`busqueda` y devuelva
+ * `modulo`/`operacion`, cambiar a `true` y enviar esos parámetros en `solicitar`.
+ */
+export const SOPORTA_FILTRO_MODULO_Y_BUSQUEDA = USAR_MOCK;
+
 function normalizarRegistro(registro) {
   return {
     ...registro,
@@ -47,12 +56,14 @@ export async function obtenerErrores(filtros = {}, opciones = {}) {
       fechaHora: registro.fechaHora,
       usuarioId: registro.usuarioId ?? null,
       nombreUsuario: registro.nombreUsuario ?? registro.usuario ?? null,
+      modulo: registro.modulo ?? null,
+      operacion: registro.operacion ?? null,
       tipoError: registro.tipoError,
       mensaje: registro.mensaje,
       detalle: registro.detalle ?? '',
-      endpoint: registro.endpoint ?? `/${registro.modulo?.toLowerCase() ?? 'sistema'}`,
-      metodoHttp: registro.metodoHttp ?? 'GET',
-      codigoEstado: registro.codigoEstado ?? 500
+      endpoint: registro.endpoint ?? null,
+      metodoHttp: registro.metodoHttp ?? null,
+      codigoEstado: registro.codigoEstado ?? null
     }));
     const pagina = filtros.page ?? 0;
     const totalElementos = todos.length;

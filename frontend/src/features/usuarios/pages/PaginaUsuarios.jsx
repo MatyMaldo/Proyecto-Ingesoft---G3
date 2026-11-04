@@ -1,5 +1,11 @@
 import { useEffect, useState } from 'react';
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
+import CampoBusqueda from '../../../shared/components/CampoBusqueda.jsx';
+import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
+import FiltroChips from '../../../shared/components/FiltroChips.jsx';
+import Icono from '../../../shared/components/Icono.jsx';
+import TablaUsuarios from '../components/TablaUsuarios.jsx';
+import { OPCIONES_FILTRO_ROL } from '../constants/rolesUsuario.js';
 import {
     USUARIOS_INICIAL,
     CODIGOS_ESTUDIANTE_HISTORICOS,
@@ -11,14 +17,7 @@ import {
     cambiarEstadoUsuario,
     listarSeccionesTutor
 } from '../services/usuariosService.js';
-
-const ROL_BADGE = {
-    Apoderado: { bg: '#eff6ff', color: '#1d4ed8', border: '#bfdbfe' },
-    Estudiante: { bg: '#f0fdf4', color: '#15803d', border: '#bbf7d0' },
-    Docente: { bg: '#fdf4ff', color: '#7e22ce', border: '#e9d5ff' },
-    Administrador: { bg: '#fff7ed', color: '#c2410c', border: '#fed7aa' },
-};
-const ROL_BADGE_DESCONOCIDO = { bg: '#f1f5f9', color: '#475569', border: '#e2e8f0' };
+import estilos from './PaginaUsuarios.module.css';
 
 const ROL_POR_TIPO_REGISTRO = {
     apoderado: 'Apoderado',
@@ -830,7 +829,7 @@ function PaginaUsuarios() {
             </div>)}
         </div>)}
     </div>);
-    return (<div>
+    return (<div className={estilos.pagina}>
       {/* Toast */}
       {toast && (<div role={toast.error ? 'alert' : 'status'} style={{ position: 'fixed', top: 20, right: 24, zIndex: 99999, background: '#121c2a', color: '#fff', padding: '12px 18px', borderRadius: 10, fontSize: 13, fontWeight: 500, boxShadow: '0 8px 28px rgba(0,0,0,0.18)', display: 'flex', alignItems: 'center', gap: 10, maxWidth: 420 }}>
           <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={toast.error ? '#f87171' : '#4ade80'} strokeWidth="2.5" strokeLinecap="round">
@@ -839,88 +838,78 @@ function PaginaUsuarios() {
           {toast.mensaje}
         </div>)}
 
-      {/* Page header */}
-      <div style={{ marginBottom: 24 }}>
-        <h1 style={{ fontSize: 24, fontWeight: 700, color: '#121c2a', letterSpacing: '-0.02em', margin: '0 0 6px' }}>Usuarios</h1>
-        <p style={{ fontSize: 13, color: '#64748b', margin: 0 }}>Gestiona los usuarios registrados en el sistema.</p>
-      </div>
+      {/* Título a la izquierda y total de resultados a su nivel, a la derecha */}
+      <header className={estilos.cabecera}>
+        <h1 className={estilos.titulo}>Usuarios</h1>
+        {!cargando && !errorCarga && (
+          <p className={estilos.contador} role="status" aria-live="polite">
+            {filtered.length} {filtered.length === 1 ? 'usuario' : 'usuarios'}
+          </p>
+        )}
+        <p className={estilos.descripcion}>Gestiona los usuarios registrados en el sistema.</p>
+      </header>
 
-      {/* Search + action bar */}
-      <div style={{ display: 'flex', alignItems: 'center', gap: 10, marginBottom: 20, flexWrap: 'wrap' }}>
-        <div style={{ display: 'flex', alignItems: 'center', gap: 8, flex: '1 1 240px', minWidth: 200, padding: '9px 13px', background: '#fff', border: '1.5px solid #dde2f0', borderRadius: 8, transition: 'border-color 0.15s' }} onFocusCapture={e => e.currentTarget.style.borderColor = '#0058be'} onBlurCapture={e => e.currentTarget.style.borderColor = '#dde2f0'}>
-          <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#94a3b8" strokeWidth="2" strokeLinecap="round"><circle cx="11" cy="11" r="8"/><path d="m21 21-4.35-4.35"/></svg>
-          <input value={query} onChange={e => setQuery(e.target.value)} placeholder="Buscar por nombre o DNI..." style={{ border: 'none', outline: 'none', background: 'transparent', fontSize: 13, color: '#121c2a', width: '100%', fontFamily: 'inherit' }}/>
-          {query && <button onClick={() => setQuery('')} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 0, display: 'flex' }}><svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>}
-        </div>
-        <select value={rolFiltro} onChange={e => setRolFiltro(e.target.value)} aria-label="Filtrar usuarios por rol" style={{ minWidth: 164, padding: '10px 12px', border: '1.5px solid #dde2f0', borderRadius: 8, background: '#fff', color: '#374151', fontSize: 13, fontFamily: 'inherit', outline: 'none', cursor: 'pointer' }}>
-          <option value="Todos">Todos los roles</option>
-          <option value="Apoderado">Solo apoderados</option>
-          <option value="Docente">Solo docentes</option>
-          <option value="Estudiante">Solo estudiantes</option>
-        </select>
-        <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
-          {[['apoderado', 'Registrar apoderado'], ['estudiante', 'Registrar estudiante'], ['docente', 'Registrar docente']].map(([kind, label]) => {
-            return (<button key={kind} onClick={() => openRegister(kind)} style={{ padding: '9px 16px', borderRadius: 8, border: 'none', background: '#00236f', color: '#fff', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', display: 'flex', alignItems: 'center', gap: 6, boxShadow: '0 2px 6px rgba(0,35,111,0.18)', transition: 'background 0.12s', whiteSpace: 'nowrap' }} onMouseEnter={e => { e.currentTarget.style.background = '#001d5a'; }} onMouseLeave={e => { e.currentTarget.style.background = '#00236f'; }}>
-              <svg width="12" height="12" viewBox="0 0 24 24" fill="none" stroke="white" strokeWidth="2.5" strokeLinecap="round"><line x1="12" y1="5" x2="12" y2="19"/><line x1="5" y1="12" x2="19" y2="12"/></svg>
-              {label}
-            </button>);
-          })}
-          <button type="button" disabled={cargando || csvBusy} onClick={() => {
-            setCsvFileName('');
-            setCsvRows([]);
-            setCsvErrors([]);
-            setCsvSummary(null);
-            setModal('cargaCsv');
-          }} style={{ padding: '9px 16px', borderRadius: 8, border: '1px solid #0058be', background: '#fff', color: '#0058be', fontSize: 13, fontWeight: 600, cursor: cargando || csvBusy ? 'not-allowed' : 'pointer', opacity: cargando || csvBusy ? 0.6 : 1, fontFamily: 'inherit', whiteSpace: 'nowrap' }}>
-            Carga masiva CSV
-          </button>
-        </div>
-      </div>
-
-      {/* Users table */}
-      <div style={{ background: '#fff', border: '1px solid #e5e7eb', borderRadius: 10, overflow: 'hidden', boxShadow: '0 1px 4px rgba(0,35,111,0.04)' }}>
-        {/* Header */}
-        <div style={{ display: 'grid', gridTemplateColumns: '2fr 100px 120px 1.6fr 100px 160px', padding: '0 20px', background: '#f8f9ff', borderBottom: '2px solid #e8eaf0' }}>
-          {['NOMBRE COMPLETO', 'DNI', 'ROL', 'CORREO', 'ESTADO', 'ACCIONES'].map(col => (<div key={col} style={{ padding: '11px 0', fontSize: 11, fontWeight: 700, color: '#64748b', letterSpacing: '0.07em', textTransform: 'uppercase' }}>{col}</div>))}
-        </div>
-
-        {cargando ? (
-          <div role="status" style={{ padding: '40px 20px', textAlign: 'center', color: '#64748b', fontSize: 13 }}>Cargando usuarios...</div>
-        ) : errorCarga ? (
-          <div role="alert" style={{ padding: '24px 20px', textAlign: 'center', color: '#ba1a1a', fontSize: 13 }}>
-            <p>{errorCarga}</p>
-            <button type="button" onClick={() => setIntentoCarga(actual => actual + 1)}>Reintentar</button>
+      {/* Fila 1: búsqueda a la izquierda y acciones a la derecha. Fila 2: rol en chips bajo el buscador. */}
+      <section className={estilos.filtros} aria-label="Búsqueda, filtros y acciones de usuarios">
+        <div className={estilos.filaBusqueda}>
+          <div className={estilos.campoBusqueda}>
+            <CampoBusqueda
+              id="busqueda-usuarios"
+              etiqueta="Buscar usuarios por nombre o DNI"
+              placeholder="Buscar por nombre o DNI"
+              valor={query}
+              alCambiar={setQuery}
+            />
           </div>
-        ) : filtered.length === 0 ? (<div style={{ padding: '40px 20px', textAlign: 'center', color: '#94a3b8', fontSize: 13 }}>No se encontraron usuarios.</div>) : (filtered.map((u, idx) => {
-            const rb = ROL_BADGE[u.rol] ?? ROL_BADGE_DESCONOCIDO;
-            return (<div key={u.id} style={{ display: 'grid', gridTemplateColumns: '2fr 100px 120px 1.6fr 100px 160px', padding: '0 20px', borderBottom: idx < filtered.length - 1 ? '1px solid #f1f4f9' : 'none', alignItems: 'center', minHeight: 56, transition: 'background 0.1s' }} onMouseEnter={e => e.currentTarget.style.background = '#fafbff'} onMouseLeave={e => e.currentTarget.style.background = 'transparent'}>
-                <div style={{ minWidth: 0 }}>
-                  <div style={{ fontSize: 13, fontWeight: 600, color: '#1e293b' }}>{u.nombre} {u.apellido}</div>
-                  {u.rol === 'Estudiante' && u.codigoEstudiante && <div style={{ fontSize: 10, color: '#64748b', marginTop: 2 }}>Código: {u.codigoEstudiante}</div>}
-                </div>
-                <span style={{ fontSize: 12, color: '#64748b', fontFamily: 'monospace' }}>{u.dni}</span>
-                <span style={{ display: 'inline-flex', justifySelf: 'start', width: 'fit-content', alignItems: 'center', padding: '3px 9px', borderRadius: 999, fontSize: 11, fontWeight: 700, background: rb.bg, color: rb.color, border: `1px solid ${rb.border}` }}>{u.rol}</span>
-                <span style={{ fontSize: 12, color: '#64748b', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap', paddingRight: 8 }}>{u.correo}</span>
-                <span>
-                  {u.activo
-                    ? <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 999, fontSize: 11, fontWeight: 700, background: '#f0fdf4', color: '#15803d', border: '1px solid #bbf7d0' }}><span style={{ width: 5, height: 5, borderRadius: '50%', background: '#16a34a', display: 'inline-block' }}/>Activo</span>
-                    : <span style={{ display: 'inline-flex', alignItems: 'center', gap: 4, padding: '3px 9px', borderRadius: 999, fontSize: 11, fontWeight: 700, background: '#f1f5f9', color: '#64748b', border: '1px solid #e2e8f0' }}>Desactivado</span>}
-                </span>
-                <div style={{ display: 'flex', gap: 6 }}>
-                  {esAdministrador(u) ? (
-                    <span title="Las cuentas de administrador no se pueden modificar desde esta pantalla." style={{ fontSize: 11, color: '#64748b' }}>
-                      Cuenta protegida
-                    </span>
-                  ) : (
-                    <>
-                      <button onClick={() => openEdit(u)} style={{ padding: '5px 12px', borderRadius: 6, border: '1px solid #e2e8f0', background: '#fff', color: '#374151', fontSize: 12, fontWeight: 500, cursor: 'pointer', fontFamily: 'inherit', transition: 'background 0.12s' }} onMouseEnter={e => e.currentTarget.style.background = '#f8f9ff'} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>Editar</button>
-                      <button onClick={() => openToggle(u)} style={{ padding: '5px 12px', borderRadius: 6, background: u.activo ? '#fff1f1' : '#f0fdf4', color: u.activo ? '#ba1a1a' : '#16a34a', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', border: `1px solid ${u.activo ? '#fecaca' : '#bbf7d0'}`, transition: 'opacity 0.12s' }} onMouseEnter={e => e.currentTarget.style.opacity = '0.8'} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>{u.activo ? 'Desactivar' : 'Activar'}</button>
-                    </>
-                  )}
-                </div>
-              </div>);
-        }))}
-      </div>
+          <div className={estilos.acciones}>
+            <button type="button" className={`${estilos.boton} ${estilos.botonSecundario}`} disabled={cargando || csvBusy} onClick={() => {
+              setCsvFileName('');
+              setCsvRows([]);
+              setCsvErrors([]);
+              setCsvSummary(null);
+              setModal('cargaCsv');
+            }}>
+              Carga masiva CSV
+            </button>
+            <div className={estilos.grupoRegistro} role="group" aria-label="Registrar usuario">
+              <span className={estilos.etiquetaGrupo} aria-hidden="true">Registrar</span>
+              {[['apoderado', 'Apoderado'], ['estudiante', 'Estudiante'], ['docente', 'Docente']].map(([kind, label]) => (
+                <button
+                  key={kind}
+                  type="button"
+                  className={`${estilos.boton} ${estilos.botonPrimario}`}
+                  onClick={() => openRegister(kind)}
+                  aria-label={`Registrar ${label.toLowerCase()}`}
+                >
+                  <Icono nombre="agregar" tamano={16} />
+                  {label}
+                </button>
+              ))}
+            </div>
+          </div>
+        </div>
+        <div className={estilos.campoRol}>
+          <FiltroChips
+            etiquetaGrupo="Filtrar usuarios por rol"
+            opciones={OPCIONES_FILTRO_ROL}
+            valorSeleccionado={rolFiltro}
+            alSeleccionar={setRolFiltro}
+          />
+        </div>
+      </section>
+
+      {/* Listado de usuarios */}
+      <section className={estilos.tarjetaResultados} aria-busy={cargando || undefined}>
+        {cargando ? (
+          <EstadoConsulta tipo="carga" mensaje="Cargando usuarios…" filasEsqueleto={5} />
+        ) : errorCarga ? (
+          <EstadoConsulta tipo="error" mensaje={errorCarga} alReintentar={() => setIntentoCarga(actual => actual + 1)} />
+        ) : filtered.length === 0 ? (
+          <EstadoConsulta tipo="vacio" mensaje="No se encontraron usuarios." />
+        ) : (
+          <TablaUsuarios usuarios={filtered} esProtegido={esAdministrador} alEditar={openEdit} alCambiarEstado={openToggle} />
+        )}
+      </section>
 
       {/* ── Modals: Register ── */}
       {(modal === 'apoderado' || modal === 'estudiante' || modal === 'docente') && (<UsuarioModalShell title={`Registrar ${modal}`} subtitle="Gestión de usuarios" onSubmit={() => handleRegister(modal)} submitLabel="Registrar" submitDisabled={submitting} submitting={submitting} onClose={closeModal}>

@@ -1,8 +1,15 @@
+import { useRef, useState } from 'react';
+
 import Icono from '../../../shared/components/Icono.jsx';
 import { formatearFechaVisible } from '../../../shared/utils/formatoFecha.js';
 import Insignia from '../../../shared/components/Insignia.jsx';
 import estilosUtil from '../../../shared/styles/utilidades.module.css';
+import DetalleError from './DetalleError.jsx';
 import estilos from './TablaLogErrores.module.css';
+
+function construirEtiquetaDetalle(error) {
+  return `Ver detalle: ${error.tipoError}, ${formatearFechaVisible(error.fecha)} ${error.hora}`;
+}
 
 /**
  * Pinta las filas del log de errores ya adaptadas (`FilaError`). No ordena, no
@@ -17,6 +24,26 @@ import estilos from './TablaLogErrores.module.css';
  * @param {boolean} [props.ocupado] `true` mientras se recalcula por un cambio de filtro.
  */
 export default function TablaLogErrores({ errores, ocupado = false }) {
+  // Estas columnas solo existen si el origen de datos las entrega (hoy, los mocks).
+  const hayModulo = errores.some((error) => error.moduloEtiqueta);
+  const hayOperacion = errores.some((error) => error.operacion);
+
+  const [seleccionado, establecerSeleccionado] = useState(null);
+  const origenRef = useRef(null);
+
+  const abrirDetalle = (error, evento) => {
+    origenRef.current = evento.currentTarget;
+    establecerSeleccionado(error);
+  };
+
+  const cerrarDetalle = () => {
+    establecerSeleccionado(null);
+    const origen = origenRef.current;
+    if (origen && document.contains(origen)) {
+      origen.focus();
+    }
+  };
+
   return (
     <div className={estilos.contenedor} aria-busy={ocupado || undefined}>
       <div className={estilos.vistaTabla}>
@@ -27,12 +54,13 @@ export default function TablaLogErrores({ errores, ocupado = false }) {
           <thead>
             <tr>
               <th scope="col">Fecha y hora</th>
-              <th scope="col">Endpoint</th>
+              {hayModulo && <th scope="col">Módulo</th>}
+              {hayOperacion && <th scope="col">Operación</th>}
               <th scope="col">Tipo de error</th>
-              <th scope="col">Mensaje</th>
-              <th scope="col">Detalle</th>
               <th scope="col">Usuario</th>
-              <th scope="col">Estado HTTP</th>
+              <th scope="col" className={estilos.columnaDetalle}>
+                Detalle
+              </th>
             </tr>
           </thead>
           <tbody>
@@ -44,23 +72,14 @@ export default function TablaLogErrores({ errores, ocupado = false }) {
                     <span className={estilos.hora}>{error.hora}</span>
                   </time>
                 </td>
-                <td className={estilos.operacion}>
-                  <span>{error.metodoHttp}</span>
-                  <code>{error.endpoint}</code>
-                </td>
+                {hayModulo && (
+                  <td>
+                    {error.moduloEtiqueta && <Insignia tono={error.moduloTono}>{error.moduloEtiqueta}</Insignia>}
+                  </td>
+                )}
+                {hayOperacion && <td className={estilos.operacion}>{error.operacion}</td>}
                 <td>
                   <Insignia tono={error.tipoErrorTono}>{error.tipoError}</Insignia>
-                </td>
-                <td>
-                  <p className={estilos.mensaje}>{error.mensaje}</p>
-                </td>
-                <td>
-                  {error.detalle && (
-                    <details className={estilos.detalle}>
-                      <summary>Ver detalle</summary>
-                      <pre>{error.detalle}</pre>
-                    </details>
-                  )}
                 </td>
                 <td>
                   <p className={estilos.usuario}>
@@ -68,7 +87,17 @@ export default function TablaLogErrores({ errores, ocupado = false }) {
                     {error.usuario}
                   </p>
                 </td>
-                <td>{error.codigoEstado}</td>
+                <td className={estilos.celdaDetalle}>
+                  <button
+                    type="button"
+                    className={estilos.botonDetalle}
+                    onClick={(evento) => abrirDetalle(error, evento)}
+                    aria-label={construirEtiquetaDetalle(error)}
+                    title="Ver detalle"
+                  >
+                    <Icono nombre="ojo" tamano={18} />
+                  </button>
+                </td>
               </tr>
             ))}
           </tbody>
@@ -82,37 +111,38 @@ export default function TablaLogErrores({ errores, ocupado = false }) {
               <time dateTime={error.fechaHora} className={estilos.fechaHoraTarjeta}>
                 {formatearFechaVisible(error.fecha)} · {error.hora}
               </time>
+              {error.moduloEtiqueta && <Insignia tono={error.moduloTono}>{error.moduloEtiqueta}</Insignia>}
             </div>
 
-            <p className={estilos.campo}>
-              <span className={estilos.rotuloCampo}>Endpoint:</span>{' '}
-              {error.metodoHttp} <code>{error.endpoint}</code>
-            </p>
+            {error.operacion && (
+              <p className={estilos.campo}>
+                <span className={estilos.rotuloCampo}>Operación:</span> {error.operacion}
+              </p>
+            )}
 
             <p className={estilos.campo}>
               <span className={estilos.rotuloCampo}>Tipo de error:</span>{' '}
               <Insignia tono={error.tipoErrorTono}>{error.tipoError}</Insignia>
             </p>
 
-            <p className={estilos.mensajeTarjeta}>{error.mensaje}</p>
-
-            {error.detalle && (
-              <details className={estilos.detalle}>
-                <summary>Ver detalle</summary>
-                <pre>{error.detalle}</pre>
-              </details>
-            )}
-
             <p className={estilos.usuario}>
               {error.usuarioId != null && <Icono nombre="usuario" tamano={14} />}
               {error.usuario}
             </p>
-            <p className={estilos.campo}>
-              <span className={estilos.rotuloCampo}>Estado HTTP:</span> {error.codigoEstado}
-            </p>
+            <button
+              type="button"
+              className={estilos.botonDetalleTarjeta}
+              onClick={(evento) => abrirDetalle(error, evento)}
+              aria-label={construirEtiquetaDetalle(error)}
+            >
+              <Icono nombre="ojo" tamano={18} />
+              Ver detalle
+            </button>
           </li>
         ))}
       </ul>
+
+      <DetalleError error={seleccionado} alCerrar={cerrarDetalle} />
     </div>
   );
 }
