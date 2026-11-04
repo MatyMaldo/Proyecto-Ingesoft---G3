@@ -76,21 +76,6 @@ h1 {
   font-weight: 700;
 }
 
-.formulario-asistencia {
-  display: grid;
-  grid-template-columns: 1fr 220px auto;
-  gap: 16px;
-  align-items: end;
-  margin-top: 32px;
-}
-
-.formulario-asistencia label {
-  display: grid;
-  gap: 8px;
-  color: #334155;
-  font-weight: 700;
-}
-
 input,
 select {
   width: 100%;
@@ -174,29 +159,6 @@ th {
   text-transform: uppercase;
 }
 
-.estado-asistencia {
-  display: inline-block;
-  padding: 6px 10px;
-  border-radius: 999px;
-  font-size: 12px;
-  font-weight: 800;
-}
-
-.estado-asistencia.presente {
-  background: #ecfdf5;
-  color: #047857;
-}
-
-.estado-asistencia.tardanza {
-  background: #fffbeb;
-  color: #b45309;
-}
-
-.estado-asistencia.falta {
-  background: #fef2f2;
-  color: #b91c1c;
-}
-
 .cargando,
 .sin-registros {
   margin-top: 20px;
@@ -211,9 +173,5 @@ th {
   .cabecera-panel,
   .cabecera-tabla {
     flex-direction: column;
-  }
-
-  .formulario-asistencia {
-    grid-template-columns: 1fr;
   }
 }

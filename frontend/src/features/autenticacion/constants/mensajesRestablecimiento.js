@@ -66,11 +66,10 @@ export const PLACEHOLDER_CONFIRMACION = 'Vuelve a escribir la nueva contraseña'
 export const DESCRIPCION_ESPERA = 'Disponible cuando termine la cuenta regresiva.';
 
 /**
- * Aviso tras solicitar el código (Esc. 2, 3, 4). Redactado para la persona usuaria y deliberadamente
- * condicional: no confirma ni niega que la cuenta exista. Reemplaza el literal de la HU-SAT-03
- * ("Si el correo corresponde a una cuenta activa, enviamos un código…") por decisión del usuario.
+ * Aviso tras solicitar el código (Esc. 2, 3, 4). Literal de la HU-SAT-03 (lista de verificación "Mensajes").
+ * Deliberadamente condicional: no confirma ni niega que la cuenta exista.
  */
-export const MENSAJE_SOLICITUD_CODIGO = 'Si tu cuenta está activa, recibirás un código de verificación en tu correo.';
+export const MENSAJE_SOLICITUD_CODIGO = 'Si el correo corresponde a una cuenta activa, enviamos un código de verificación a ese correo.';
 
 /** Literal HU (Esc. 11, 12; lista de verificación "Mensajes"). */
 export const MENSAJE_CODIGO_INVALIDO = 'Código inválido o vencido. Solicita uno nuevo.';

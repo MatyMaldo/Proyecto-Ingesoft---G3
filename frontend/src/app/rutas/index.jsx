@@ -1,6 +1,5 @@
 import { Routes, Route, Link, Navigate } from 'react-router-dom';
 
-import PaginaAsistencia from '../../pages/Asistencia/PaginaAsistencia.jsx';
 import PaginaLogin from '../../features/autenticacion/pages/PaginaLogin.jsx';
 import PaginaSolicitarCodigo from '../../features/autenticacion/pages/PaginaSolicitarCodigo.jsx';
 import PaginaRestablecerContrasena from '../../features/autenticacion/pages/PaginaRestablecerContrasena.jsx';
@@ -15,10 +14,8 @@ import estilosAviso from '../../shared/components/AvisoPagina.module.css';
 import LayoutPrincipal from '../layout/LayoutPrincipal.jsx';
 import { obtenerItemsNavegacion, RUTA_INICIO_POR_ROL } from '../navegacion/navegacion.config.js';
 
-const RUTA_ASISTENCIA = '/asistencia';
 const RUTAS_RESERVADAS = new Set([
   '/',
-  RUTA_ASISTENCIA,
   RUTA_LOGIN,
   RUTA_SOLICITAR_CODIGO,
   RUTA_RESTABLECER_CONTRASENA
@@ -178,18 +175,6 @@ function PaginaNoEncontrada() {
 export default function RutasAplicacion() {
   return (
     <Routes>
-      {/* TODO(pregunta): /asistencia queda fuera de RutaProtegida y del layout por decisión
-          del usuario (página preexistente de un compañero); confirmar si se protegerá más
-          adelante (docs/planes/shell.md §18, Duda 12). */}
-      <Route
-        path={RUTA_ASISTENCIA}
-        element={
-          <LimiteErrores clave={RUTA_ASISTENCIA}>
-            <PaginaAsistencia />
-          </LimiteErrores>
-        }
-      />
-
       <Route
         path={RUTA_LOGIN}
         element={

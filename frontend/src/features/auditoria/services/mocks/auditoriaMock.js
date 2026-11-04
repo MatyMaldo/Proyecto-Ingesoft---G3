@@ -58,7 +58,7 @@ function clonar(lista) {
 // (decisión del usuario, 2026-11-03): AUD-0025 y AUD-0026 son registros LOGIN.
 // TODO(pregunta): el backlog no define en qué categoría de módulo se registra el inicio de sesión;
 // en el mock va en USUARIOS.
-// AUD-0004 (SISTEMA) se mantiene sin cambios (D9/D22). AUD-0009 ("Generó libreta") va en NOTAS
+// AUD-0004 (SISTEMA) se mantiene sin cambios (D9/D22). AUD-0009 ("Generación de libreta") va en NOTAS
 // por decisión del usuario (2026-11-03): la generación de libreta se audita en Notas.
 // 2026-11-03: en Evaluaciones se audita la "Creación de evaluación" (decisión del usuario; se agrega
 //   al checklist de HU-SAT-04). AUD-0023 y AUD-0024 son datos ficticios con ese tipo de transacción.
@@ -350,7 +350,7 @@ const REGISTROS = congelarProfundo([
     // 2026-11-03: la generación de libreta se audita en Notas (antes EVALUACIONES).
     categoria: 'NOTAS',
     tipoAccion: 'CAMBIO_ESTADO',
-    tipoTransaccion: 'Generó libreta',
+    tipoTransaccion: 'Generación de libreta',
     valoresAntes: [
       { campo: 'Estudiante', valor: 'Diego Paredes Soto' },
       { campo: 'Sección', valor: '3.° A' },

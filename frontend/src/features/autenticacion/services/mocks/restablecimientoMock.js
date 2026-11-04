@@ -178,7 +178,7 @@ export function solicitarCodigoMock({ correo }) {
 
     const respuestaExitosa = {
       exitoso: true,
-      datos: { mensaje: 'Si tu cuenta está activa, recibirás un código de verificación en tu correo.' },
+      datos: { mensaje: 'Si el correo corresponde a una cuenta activa, enviamos un código de verificación a ese correo.' },
       mensaje: ''
     };
 

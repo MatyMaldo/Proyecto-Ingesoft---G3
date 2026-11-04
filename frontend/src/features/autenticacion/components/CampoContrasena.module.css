@@ -40,6 +40,13 @@
   padding-inline: var(--espacio-4);
 }
 
+/* Edge/Windows dibuja su propio ojo nativo en los campos de contraseña con texto y foco.
+   Se oculta para que solo se vea el botón de la aplicación (o ninguno, en "Confirmar contraseña"). */
+.campo::-ms-reveal,
+.campoSinOjo::-ms-reveal {
+  display: none;
+}
+
 .campo:hover,
 .campoSinOjo:hover {
   border-color: var(--color-borde-fuerte);
