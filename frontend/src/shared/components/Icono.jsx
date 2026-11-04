@@ -63,6 +63,10 @@ const CATALOGO_ICONOS = {
   'chevron-derecha': [
     { tag: 'path', props: { d: 'm9 18 6-6-6-6' } }
   ],
+  'chevrones-derecha': [
+    { tag: 'path', props: { d: 'm6 17 5-5-5-5' } },
+    { tag: 'path', props: { d: 'm13 17 5-5-5-5' } }
+  ],
   salir: [
     { tag: 'path', props: { d: 'M9 21H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h4' } },
     { tag: 'polyline', props: { points: '16 17 21 12 16 7' } },

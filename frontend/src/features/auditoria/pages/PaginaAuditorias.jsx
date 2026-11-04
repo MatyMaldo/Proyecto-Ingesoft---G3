@@ -86,8 +86,7 @@ export default function PaginaAuditorias() {
             <CampoBusqueda
               id="busqueda-auditorias"
               etiqueta="Buscar usuario o descripción en la página"
-              etiquetaVisible
-              placeholder="Buscar en la página cargada..."
+              placeholder="Buscar usuario o descripción en la página"
               valor={busqueda}
               alCambiar={establecerBusqueda}
             />

@@ -10,7 +10,11 @@ const ERRORES = [
     operacion: 'Guardar calificación',
     tipoError: 'Excepción no controlada',
     mensaje: 'Valor fuera de rango: se esperaba AD/A/B/C',
-    usuario: 'Prof. García'
+    usuario: 'Prof. García',
+    metodoHttp: 'PUT',
+    endpoint: '/api/v1/notas',
+    codigoEstado: 500,
+    detalle: 'IllegalArgumentException: Valor fuera de rango: se esperaba AD/A/B/C\n  at com.educoders.evaluacion.service.NotaService.validarEscala(NotaService.java:88)'
   },
   // Fallo de correo del restablecimiento de contraseña (HU-SAT-03/HU-SAT-06 LV8,
   // actualización 2026-11-01, Duda U10 resuelta por `docs/frontend-contexto.md`):
@@ -23,7 +27,11 @@ const ERRORES = [
     operacion: 'Restablecer contraseña',
     tipoError: 'Notificación por correo',
     mensaje: 'No se pudo enviar el correo de restablecimiento',
-    usuario: 'No determinado'
+    usuario: 'No determinado',
+    metodoHttp: 'POST',
+    endpoint: '/api/v1/auth/solicitar-codigo',
+    codigoEstado: 200,
+    detalle: 'MailSendException: Fallo al enviar el correo de restablecimiento (SMTP 554)'
   },
   {
     id: 7,
@@ -32,7 +40,11 @@ const ERRORES = [
     operacion: 'Registrar comprobante',
     tipoError: 'Excepción no controlada',
     mensaje: 'No se pudo almacenar el comprobante en el servidor',
-    usuario: 'Sra. Ramírez'
+    usuario: 'Sra. Ramírez',
+    metodoHttp: 'POST',
+    endpoint: '/api/v1/pagos/comprobantes',
+    codigoEstado: 500,
+    detalle: 'IOException: No se pudo escribir el archivo en el almacenamiento\n  at com.educoders.pago.service.ComprobanteService.guardar(ComprobanteService.java:61)'
   },
   {
     id: 6,
@@ -41,7 +53,11 @@ const ERRORES = [
     operacion: 'Exportar PDF',
     tipoError: 'Excepción no controlada',
     mensaje: 'Tiempo de espera agotado al generar el documento',
-    usuario: 'Prof. Delgado'
+    usuario: 'Prof. Delgado',
+    metodoHttp: 'GET',
+    endpoint: '/api/v1/notas/libretas/pdf',
+    codigoEstado: 504,
+    detalle: 'TimeoutException: Tiempo de espera agotado al generar el documento'
   },
   {
     id: 5,
@@ -50,7 +66,11 @@ const ERRORES = [
     operacion: 'Confirmar matrícula',
     tipoError: 'Excepción no controlada',
     mensaje: 'Ya existe una matrícula del estudiante en el periodo indicado',
-    usuario: 'Administrador'
+    usuario: 'Administrador',
+    metodoHttp: 'PATCH',
+    endpoint: '/api/v1/matriculas/45/confirmar',
+    codigoEstado: 500,
+    detalle: 'IllegalStateException: Ya existe una matrícula del estudiante en el periodo indicado'
   },
   {
     id: 4,
@@ -59,7 +79,11 @@ const ERRORES = [
     operacion: 'Asignar bloque horario',
     tipoError: 'Excepción no controlada',
     mensaje: 'Referencia nula al obtener el aula del bloque horario',
-    usuario: 'Administrador'
+    usuario: 'Administrador',
+    metodoHttp: 'POST',
+    endpoint: '/api/v1/horarios/bloques',
+    codigoEstado: 500,
+    detalle: 'NullPointerException: aula es null\n  at com.educoders.horario.service.BloqueHorarioService.asignar(BloqueHorarioService.java:104)'
   },
   {
     id: 3,
@@ -68,7 +92,11 @@ const ERRORES = [
     operacion: 'Registrar usuario',
     tipoError: 'Excepción no controlada',
     mensaje: 'Tiempo de espera agotado al consultar la base de datos',
-    usuario: 'Administrador'
+    usuario: 'Administrador',
+    metodoHttp: 'POST',
+    endpoint: '/api/v1/usuarios',
+    codigoEstado: 500,
+    detalle: 'QueryTimeoutException: Tiempo de espera agotado al consultar la base de datos'
   },
   {
     id: 2,
@@ -77,7 +105,11 @@ const ERRORES = [
     operacion: 'Registrar asistencia',
     tipoError: 'Excepción no controlada',
     mensaje: 'Estado de asistencia no reconocido: se esperaba Asistió, Tardanza o Falta',
-    usuario: 'Prof. Quispe'
+    usuario: 'Prof. Quispe',
+    metodoHttp: 'POST',
+    endpoint: '/api/v1/asistencias',
+    codigoEstado: 500,
+    detalle: 'IllegalArgumentException: Estado de asistencia no reconocido'
   },
   // Reporte de inasistencias (HU-SAT-06 LV8, actualización 2026-11-01, Duda U10
   // resuelta por `docs/frontend-contexto.md`): el módulo pasa de "REPORTES" a
@@ -90,7 +122,11 @@ const ERRORES = [
     operacion: 'Consultar reporte de asistencia',
     tipoError: 'Excepción no controlada',
     mensaje: 'Referencia nula al obtener el periodo académico',
-    usuario: 'Est. Huamán'
+    usuario: 'Est. Huamán',
+    metodoHttp: 'GET',
+    endpoint: '/api/v1/asistencias/reportes',
+    codigoEstado: 500,
+    detalle: 'NullPointerException: periodoAcademico es null\n  at com.educoders.asistencia.service.ReporteService.generar(ReporteService.java:72)'
   },
   // Registros agregados en la actualización 2026-10-20 (HU-SAT-06 E3 y E4, §6.6 del plan).
   // Los ids no siguen el orden cronológico; no importa, porque el mock y el hook ordenan por `fechaHora`.
@@ -101,7 +137,11 @@ const ERRORES = [
     operacion: 'Cierre del periodo de matrícula',
     tipoError: 'Proceso automático',
     mensaje: 'Referencia nula al obtener el periodo de matrícula vigente',
-    usuario: 'Sistema'
+    usuario: 'Sistema',
+    metodoHttp: null,
+    endpoint: null,
+    codigoEstado: null,
+    detalle: 'NullPointerException: periodo de matrícula vigente es null\n  at com.educoders.matricula.job.CierrePeriodoJob.ejecutar(CierrePeriodoJob.java:39)'
   },
   // Fallo del correo de notificación de un comprobante registrado (HU-SAT-06 E4,
   // actualización 2026-11-01, Duda U8 resuelta por la regla única de usuario
@@ -114,7 +154,11 @@ const ERRORES = [
     operacion: 'Envío de notificación por correo',
     tipoError: 'Notificación por correo',
     mensaje: 'No se pudo enviar el correo de notificación del comprobante registrado',
-    usuario: 'Sra. Ramírez'
+    usuario: 'Sra. Ramírez',
+    metodoHttp: 'POST',
+    endpoint: '/api/v1/pagos/comprobantes',
+    codigoEstado: 201,
+    detalle: 'MailSendException: Fallo al enviar la notificación del comprobante (tiempo de espera SMTP)'
   },
   // Registros agregados en la actualización 2026-11-01 (§A11.4 del plan): cubren
   // Autenticación, Configuración, Otros, "No determinado" y un proceso automático
@@ -127,7 +171,11 @@ const ERRORES = [
     operacion: 'Iniciar sesión',
     tipoError: 'Excepción no controlada',
     mensaje: 'Tiempo de espera agotado al validar las credenciales',
-    usuario: 'No determinado'
+    usuario: 'No determinado',
+    metodoHttp: 'POST',
+    endpoint: '/api/v1/auth/login',
+    codigoEstado: 500,
+    detalle: 'QueryTimeoutException: Tiempo de espera agotado al validar las credenciales'
   },
   {
     id: 13,
@@ -136,7 +184,11 @@ const ERRORES = [
     operacion: 'Registrar sección',
     tipoError: 'Excepción no controlada',
     mensaje: 'Referencia nula al obtener el grado de la sección',
-    usuario: 'Administrador'
+    usuario: 'Administrador',
+    metodoHttp: 'POST',
+    endpoint: '/api/v1/configuracion/secciones',
+    codigoEstado: 500,
+    detalle: 'NullPointerException: grado es null\n  at com.educoders.configuracion.service.SeccionService.registrar(SeccionService.java:57)'
   },
   {
     id: 14,
@@ -145,7 +197,11 @@ const ERRORES = [
     operacion: 'Asignación automática de Falta',
     tipoError: 'Proceso automático',
     mensaje: 'No se pudo procesar el cierre de la sesión de clase',
-    usuario: 'Sistema'
+    usuario: 'Sistema',
+    metodoHttp: null,
+    endpoint: null,
+    codigoEstado: null,
+    detalle: 'IllegalStateException: No se pudo procesar el cierre de la sesión de clase\n  at com.educoders.asistencia.job.FaltaAutomaticaJob.ejecutar(FaltaAutomaticaJob.java:48)'
   },
   // Id 15 = correo del alta de una cuenta (usuario: el administrador que la
   // registró). Id 16 = correo de "¿Olvidaste tu contraseña?" (sin sesión). Ambos
@@ -157,7 +213,11 @@ const ERRORES = [
     operacion: 'Envío de código de verificación',
     tipoError: 'Notificación por correo',
     mensaje: 'No se pudo enviar el correo con el código de verificación',
-    usuario: 'Administrador'
+    usuario: 'Administrador',
+    metodoHttp: 'POST',
+    endpoint: '/api/v1/usuarios',
+    codigoEstado: 201,
+    detalle: 'MailSendException: Fallo al enviar el correo con el código de verificación (SMTP 554)'
   },
   {
     id: 16,
@@ -166,7 +226,11 @@ const ERRORES = [
     operacion: 'Envío de código de verificación',
     tipoError: 'Notificación por correo',
     mensaje: 'No se pudo enviar el correo con el código de verificación',
-    usuario: 'No determinado'
+    usuario: 'No determinado',
+    metodoHttp: 'POST',
+    endpoint: '/api/v1/auth/solicitar-codigo',
+    codigoEstado: 200,
+    detalle: 'MailSendException: Fallo al enviar el correo con el código de verificación (SMTP 554)'
   },
   {
     id: 17,
@@ -175,7 +239,11 @@ const ERRORES = [
     operacion: 'Cargar pantalla principal',
     tipoError: 'Excepción no controlada',
     mensaje: 'Referencia nula al cargar las opciones del rol',
-    usuario: 'Prof. Quispe'
+    usuario: 'Prof. Quispe',
+    metodoHttp: 'GET',
+    endpoint: '/api/v1/menu',
+    codigoEstado: 500,
+    detalle: 'NullPointerException: opciones del rol es null\n  at com.educoders.shared.service.MenuService.obtener(MenuService.java:33)'
   },
   {
     id: 18,
@@ -184,7 +252,11 @@ const ERRORES = [
     operacion: 'Cerrar sesión',
     tipoError: 'Excepción no controlada',
     mensaje: 'Error al invalidar la sesión',
-    usuario: 'Prof. García'
+    usuario: 'Prof. García',
+    metodoHttp: 'POST',
+    endpoint: '/api/v1/auth/logout',
+    codigoEstado: 500,
+    detalle: 'IllegalStateException: Error al invalidar la sesión'
   }
 ];
 

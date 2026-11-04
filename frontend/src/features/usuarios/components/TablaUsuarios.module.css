@@ -1,0 +1,209 @@
+.contenedor {
+  width: 100%;
+}
+
+.vistaTabla {
+  overflow-x: auto;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.tabla thead th {
+  padding: var(--espacio-3) var(--espacio-4);
+  background: var(--color-superficie-suave);
+  color: var(--color-texto-secundario);
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: var(--espaciado-letra-ancho);
+  border-bottom: 1px solid var(--color-borde);
+  white-space: nowrap;
+}
+
+.tabla tbody td {
+  height: 48px;
+  padding: var(--espacio-2) var(--espacio-4);
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-borde);
+  font-size: var(--texto-md);
+  color: var(--color-texto);
+}
+
+.fila:last-child td {
+  border-bottom: 0;
+}
+
+.fila:hover td {
+  background: var(--color-superficie-suave);
+}
+
+/*
+ * Las columnas se ajustan a su contenido y el ancho sobrante se reparte entre todas por igual
+ * (en proporción a su contenido), sin que ninguna acapare el espacio.
+ */
+.tabla tbody td:nth-child(2),
+.tabla tbody td:nth-child(3),
+.tabla tbody td:nth-child(5),
+.tabla tbody td:nth-child(6) {
+  white-space: nowrap;
+}
+
+.tabla .colNombre {
+  min-width: 11rem;
+}
+
+.nombre {
+  display: block;
+  font-weight: var(--peso-medio);
+  color: var(--color-texto);
+}
+
+.codigo {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--texto-xs);
+  color: var(--color-texto-suave);
+}
+
+.dni {
+  font-variant-numeric: tabular-nums;
+  color: var(--color-texto-secundario);
+}
+
+.correo {
+  display: block;
+  max-width: 20rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-texto-secundario);
+}
+
+.acciones {
+  display: flex;
+  gap: var(--espacio-2);
+}
+
+.boton {
+  min-height: 36px;
+  padding: 0 var(--espacio-2);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-medio);
+  white-space: nowrap;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.boton:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.botonEditar {
+  color: var(--color-accion);
+  border-color: var(--color-accion);
+}
+
+.botonEditar:hover {
+  background: var(--color-accion-suave);
+}
+
+.botonEditar:active {
+  background: var(--color-accion-suave-activo);
+}
+
+.botonDesactivar {
+  color: var(--color-peligro-texto);
+  background: var(--color-peligro-fondo);
+  border-color: var(--color-peligro-borde);
+}
+
+.botonDesactivar:hover {
+  border-color: var(--color-peligro);
+}
+
+.botonActivar {
+  color: var(--color-exito-texto);
+  background: var(--color-exito-fondo);
+  border-color: var(--color-exito-borde);
+}
+
+.botonActivar:hover {
+  border-color: var(--color-exito-texto);
+}
+
+.protegida {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-1);
+  font-size: var(--texto-md);
+  color: var(--color-texto-suave);
+}
+
+.listaTarjetas {
+  display: none;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  margin: 0;
+  padding: var(--espacio-4);
+  list-style: none;
+}
+
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  padding: var(--espacio-4);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+}
+
+.filaSuperior {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+}
+
+.insigniasTarjeta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+}
+
+.campo {
+  margin: 0;
+  font-size: var(--texto-md);
+  color: var(--color-texto);
+}
+
+.rotuloCampo {
+  font-size: var(--texto-xs);
+  color: var(--color-texto-suave);
+}
+
+.correoTarjeta {
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 767px) {
+  .vistaTabla {
+    display: none;
+  }
+
+  .listaTarjetas {
+    display: flex;
+  }
+
+  .tarjeta .boton {
+    min-height: var(--tactil-min);
+  }
+}
