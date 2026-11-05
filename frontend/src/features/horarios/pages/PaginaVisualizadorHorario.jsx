@@ -1,4 +1,4 @@
-﻿
+
 import { useEffect, useState } from 'react';
 import useAuth from '../../../shared/auth/useAuth.js';
 import { DIAS } from '../constants/horarios.js';
@@ -10,6 +10,7 @@ import {
   horarioApoderado,
   listarSecciones,
   listarDocentes,
+  consultarEstadoProgramacion,
   listarMisEstudiantes
 } from '../services/visualizadoresService.js';
 
@@ -24,6 +25,7 @@ export default function PaginaVisualizadorHorario() {
 
   const [tipo, setTipo] = useState('seccion');
   const [gradoId, setGradoId] = useState('');
+  const [programacionAbierta, setProgramacionAbierta] = useState(false);
   const [id, setId] = useState('');
   const [datos, setDatos] = useState(null);
   const [error, setError] = useState('');
@@ -107,6 +109,25 @@ useEffect(() => {
 
 
 
+  useEffect(() => {
+    let vigente = true;
+    setProgramacionAbierta(false);
+
+    if (rol !== ADMIN || tipo !== 'seccion' ||
+        !/^[1-9]\d*$/.test(id)) {
+      return () => { vigente = false; };
+    }
+
+    consultarEstadoProgramacion(id).then(resultado => {
+      if (!vigente) return;
+      setProgramacionAbierta(
+        resultado.exitoso &&
+        resultado.datos?.programacionAbierta === true
+      );
+    });
+
+    return () => { vigente = false; };
+  }, [rol, tipo, id]);
   const requiereFiltro = rol === ADMIN || rol === APODERADO;
 
   useEffect(() => {
@@ -312,6 +333,12 @@ const seccionesFiltradas = opciones.filter(
         Actualizar horario
       </button>
 
+      {rol === ADMIN && tipo === 'seccion' &&
+        programacionAbierta && (
+          <p>
+            <a href="/horarios">Editar horario</a>
+          </p>
+        )}
       {cargando && <p>Cargando horario...</p>}
       {error && <p role="alert">{error}</p>}
       {!cargando && !error && datos?.mensaje && (

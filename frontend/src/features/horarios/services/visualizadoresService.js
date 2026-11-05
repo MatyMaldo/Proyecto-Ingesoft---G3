@@ -47,3 +47,7 @@ export function listarDocentes() {
 export function listarMisEstudiantes() {
   return solicitar('/visualizadores-horario/apoderado/mis-estudiantes');
 }
+
+export function consultarEstadoProgramacion(seccionId) {
+  return solicitar(`${BASE}/estado-programacion/${seccionId}`);
+}
