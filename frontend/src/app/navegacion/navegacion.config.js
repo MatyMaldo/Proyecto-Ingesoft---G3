@@ -26,7 +26,23 @@ export const SECCIONES_NAVEGACION = Object.freeze([
         ruta: '/horarios',
         icono: 'reloj',
         roles: Object.freeze([ROLES.ADMIN])
+      }),
+      Object.freeze({
+        id: 'consulta-horarios',
+        etiqueta: 'Consulta de horarios',
+        ruta: '/consulta-horarios',
+        icono: 'reloj',
+        roles: Object.freeze([
+          ROLES.ADMIN,
+          ROLES.DOCENTE,
+          ROLES.ESTUDIANTE,
+          ROLES.APODERADO
+        ])
       })
+
+
+
+
     ])
   }),
   Object.freeze({

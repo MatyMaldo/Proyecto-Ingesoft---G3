@@ -1,4 +1,3 @@
-
 import { solicitar } from '../../../shared/api/clienteHttp.js';
 
 const BASE = '/visualizadores-horario';
@@ -26,4 +25,24 @@ export function miHorarioEstudiante() {
 // HU-GEMIH-07: Apoderado - estudiante vinculado
 export function horarioApoderado(estudianteId) {
   return solicitar(`${BASE}/apoderado/${estudianteId}`);
+}
+// Listas para los selectores del administrador
+export function listarSecciones() {
+  return solicitar('/secciones');
+}
+
+export function listarDocentes() {
+  return solicitar('/usuarios', {
+    parametros: {
+      tipoUsuario: 'DOCENTE',
+      activo: true,
+      page: 0,
+      size: 100
+    }
+  });
+}
+
+
+export function listarMisEstudiantes() {
+  return solicitar('/visualizadores-horario/apoderado/mis-estudiantes');
 }

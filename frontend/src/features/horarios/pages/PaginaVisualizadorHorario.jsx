@@ -7,7 +7,10 @@ import {
   horarioDocente,
   miHorarioDocente,
   miHorarioEstudiante,
-  horarioApoderado
+  horarioApoderado,
+  listarSecciones,
+  listarDocentes,
+  listarMisEstudiantes
 } from '../services/visualizadoresService.js';
 
 const ADMIN = 'ADMINISTRADOR';
@@ -25,6 +28,83 @@ export default function PaginaVisualizadorHorario() {
   const [error, setError] = useState('');
   const [cargando, setCargando] = useState(false);
   const [recarga, setRecarga] = useState(0);
+
+
+  
+const [opciones, setOpciones] = useState([]);
+const [cargandoOpciones, setCargandoOpciones] = useState(false);
+const [errorOpciones, setErrorOpciones] = useState('');
+
+useEffect(() => {
+  if (rol !== ADMIN) return;
+
+  let activo = true;
+  setOpciones([]);
+  setId('');
+  setCargandoOpciones(true);
+  setErrorOpciones('');
+
+  async function cargarOpciones() {
+    const resultado = tipo === 'seccion'
+      ? await listarSecciones()
+      : await listarDocentes();
+
+    if (!activo) return;
+
+    if (resultado.exitoso) {
+      const lista = tipo === 'seccion'
+        ? resultado.datos ?? []
+        : resultado.datos?.content ?? [];
+
+      setOpciones(
+        tipo === 'seccion'
+          ? lista.filter(s => s.anioAcademico === new Date().getFullYear())
+          : lista
+      );
+    } else {
+      setErrorOpciones(resultado.mensaje || 'No se pudieron cargar las opciones.');
+    }
+
+    setCargandoOpciones(false);
+  }
+
+  cargarOpciones();
+
+  return () => { activo = false; };
+}, [rol, tipo]);
+
+
+useEffect(() => {
+  if (rol !== APODERADO) return;
+
+  let activo = true;
+  setOpciones([]);
+  setId('');
+  setCargandoOpciones(true);
+  setErrorOpciones('');
+
+  async function cargarEstudiantes() {
+    const resultado = await listarMisEstudiantes();
+
+    if (!activo) return;
+
+    if (resultado.exitoso) {
+      setOpciones(resultado.datos ?? []);
+    } else {
+      setErrorOpciones(
+        resultado.mensaje || 'No se pudieron cargar los estudiantes.'
+      );
+    }
+
+    setCargandoOpciones(false);
+  }
+
+  cargarEstudiantes();
+
+  return () => { activo = false; };
+}, [rol]);
+
+
 
   const requiereFiltro = rol === ADMIN || rol === APODERADO;
 
@@ -110,20 +190,66 @@ export default function PaginaVisualizadorHorario() {
         </label>
       )}
 
-      {requiereFiltro && (
-        <label style={{ display: 'block', marginTop: 12 }}>
-          {rol === APODERADO
-            ? 'ID del estudiante a cargo'
-            : tipo === 'seccion' ? 'ID de sección' : 'ID de docente'}
-          {' '}
-          <input
-            type="number"
-            min="1"
-            value={id}
-            onChange={e => setId(e.target.value)}
-          />
-        </label>
-      )}
+      
+{rol === ADMIN && (
+  <label style={{ display: 'block', marginTop: 12 }}>
+    {tipo === 'seccion'
+      ? 'Seleccionar sección'
+      : 'Seleccionar docente'}
+    {' '}
+    <select
+      value={id}
+      onChange={e => setId(e.target.value)}
+      disabled={cargandoOpciones}
+    >
+      <option value="">Seleccione una opción</option>
+      {opciones.map(opcion => (
+        <option key={opcion.id} value={opcion.id}>
+          {tipo === 'seccion'
+            ? `${opcion.gradoNombre} - ${opcion.nombre} (${opcion.anioAcademico})`
+            : opcion.nombreCompleto}
+        </option>
+      ))}
+    </select>
+  </label>
+)}
+
+{rol === ADMIN && cargandoOpciones && (
+  <p>Cargando opciones...</p>
+)}
+
+{rol === ADMIN && errorOpciones && (
+  <p role="alert">{errorOpciones}</p>
+)}
+
+
+{rol === APODERADO && (
+  <label style={{ display: 'block', marginTop: 12 }}>
+    Seleccionar estudiante a cargo{' '}
+    <select
+      value={id}
+      onChange={e => setId(e.target.value)}
+      disabled={cargandoOpciones}
+    >
+      <option value="">Seleccione un estudiante</option>
+      {opciones.map(estudiante => (
+        <option key={estudiante.id} value={estudiante.id}>
+          {estudiante.nombreCompleto}
+        </option>
+      ))}
+    </select>
+  </label>
+)}
+
+{rol === APODERADO && cargandoOpciones && (
+  <p>Cargando estudiantes...</p>
+)}
+
+{rol === APODERADO && errorOpciones && (
+  <p role="alert">{errorOpciones}</p>
+)}
+
+
 
       <button
         type="button"
