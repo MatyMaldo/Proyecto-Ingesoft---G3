@@ -3,7 +3,8 @@ import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 
 const escenario = vi.hoisted(() => ({
-  abierta: false
+  abierta: false,
+  conBloques: false
 }));
 
 vi.mock('../../../shared/auth/useAuth.js', () => ({
@@ -18,7 +19,15 @@ vi.mock('../services/visualizadoresService.js', () => ({
     datos: {
       estado: 'SIN_BLOQUES',
       mensaje: 'Aún no se ha registrado un horario para esta sección',
-      bloques: []
+      bloques: escenario.conBloques ? [{
+        id: 1,
+        diaSemana: 'LUNES',
+        horaInicio: '08:00:00',
+        horaFin: '10:00:00',
+        cursoNombre: 'Matematicas',
+        docenteNombre: 'Juan Perez',
+        aulaNombre: 'Aula 101'
+      }] : []
     }
   })),
   horarioDocente: vi.fn(),
@@ -33,6 +42,14 @@ vi.mock('../services/visualizadoresService.js', () => ({
       gradoNombre: 'Primer grado',
       nombre: 'A',
       anioAcademico: new Date().getFullYear()
+    }]
+  })),
+  listarAniosAcademicos: vi.fn(async () => ({
+    exitoso: true,
+    datos: [{
+      anio: new Date().getFullYear(),
+      fechaInicio: '2000-01-01',
+      fechaFin: '2100-12-31'
     }]
   })),
   listarDocentes: vi.fn(),
@@ -64,6 +81,7 @@ async function seleccionarSeccion() {
 
 beforeEach(() => {
   escenario.abierta = false;
+  escenario.conBloques = false;
   vi.clearAllMocks();
 });
 
@@ -91,6 +109,34 @@ describe('HU-GEMIH-03 - Navegacion al editor', () => {
       name: 'Editar horario'
     });
 
-    expect(enlace).toHaveAttribute('href', '/horarios');
+    expect(enlace).toHaveAttribute('href', '/horarios?grado=1&seccion=A');
+  });
+
+  it('permite navegar desde un bloque con programacion abierta', async () => {
+    escenario.abierta = true;
+    escenario.conBloques = true;
+
+    render(<PaginaVisualizadorHorario />);
+    await seleccionarSeccion();
+
+    const curso = await screen.findByText('Matematicas');
+
+    await waitFor(() => {
+      expect(curso.closest('a')).toHaveAttribute(
+        'href', '/horarios?grado=1&seccion=A'
+      );
+    });
+  });
+
+  it('mantiene los bloques en solo lectura cuando esta cerrada', async () => {
+    escenario.abierta = false;
+    escenario.conBloques = true;
+
+    render(<PaginaVisualizadorHorario />);
+    await seleccionarSeccion();
+
+    const curso = await screen.findByText('Matematicas');
+
+    expect(curso.closest('a')).toBeNull();
   });
 });

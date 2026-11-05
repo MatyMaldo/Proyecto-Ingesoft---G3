@@ -51,3 +51,6 @@ export function listarMisEstudiantes() {
 export function consultarEstadoProgramacion(seccionId) {
   return solicitar(`${BASE}/estado-programacion/${seccionId}`);
 }
+export function listarAniosAcademicos() {
+  return solicitar('/anios-academicos');
+}

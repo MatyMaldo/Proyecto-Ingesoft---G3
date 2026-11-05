@@ -9,6 +9,7 @@ import {
   miHorarioEstudiante,
   horarioApoderado,
   listarSecciones,
+  listarAniosAcademicos,
   listarDocentes,
   consultarEstadoProgramacion,
   listarMisEstudiantes
@@ -48,20 +49,32 @@ useEffect(() => {
   setErrorOpciones('');
 
   async function cargarOpciones() {
-    const resultado = tipo === 'seccion'
-      ? await listarSecciones()
-      : await listarDocentes();
+    const [resultado, respuestaAnios] = tipo === 'seccion'
+      ? await Promise.all([listarSecciones(), listarAniosAcademicos()])
+      : [await listarDocentes(), null];
 
     if (!activo) return;
 
-    if (resultado.exitoso) {
+    if (resultado.exitoso && (!respuestaAnios || respuestaAnios.exitoso)) {
       const lista = tipo === 'seccion'
         ? resultado.datos ?? []
         : resultado.datos?.content ?? [];
 
       setOpciones(
         tipo === 'seccion'
-          ? lista.filter(s => s.anioAcademico === new Date().getFullYear())
+          ? lista.filter(s => {
+              const hoy = new Date();
+              const fechaHoy = [
+                hoy.getFullYear(),
+                String(hoy.getMonth() + 1).padStart(2, '0'),
+                String(hoy.getDate()).padStart(2, '0')
+              ].join('-');
+              return (respuestaAnios.datos ?? []).some(a =>
+                a.anio === s.anioAcademico &&
+                a.fechaInicio <= fechaHoy &&
+                a.fechaFin >= fechaHoy
+              );
+            })
           : lista
       );
     } else {
@@ -194,6 +207,14 @@ const seccionesFiltradas = opciones.filter(
 );
 
   
+  const seccionParaEditar = opciones.find(
+    opcion => String(opcion.id) === String(id)
+  );
+
+  const rutaEdicion = seccionParaEditar
+    ? `/horarios?grado=${encodeURIComponent(String(seccionParaEditar.gradoId))}&seccion=${encodeURIComponent(seccionParaEditar.nombre)}`
+    : '/horarios';
+
   const bloques = datos?.bloques ?? [];
 
   const limites = [...new Set(
@@ -336,7 +357,7 @@ const seccionesFiltradas = opciones.filter(
       {rol === ADMIN && tipo === 'seccion' &&
         programacionAbierta && (
           <p>
-            <a href="/horarios">Editar horario</a>
+            <a href={rutaEdicion}>Editar horario</a>
           </p>
         )}
       {cargando && <p>Cargando horario...</p>}
@@ -400,13 +421,27 @@ const seccionesFiltradas = opciones.filter(
                       finBloque - inicioBloque
                     );
 
+                    const puedeEditarBloque =
+                      rol === ADMIN &&
+                      tipo === 'seccion' &&
+                      programacionAbierta;
+
+                    const EtiquetaBloque = puedeEditarBloque
+                      ? 'a'
+                      : 'div';
+
                     return (
                       <td
                         key={dia.id}
                         rowSpan={filasOcupadas}
                         style={estiloCelda}
                       >
-                        <div style={{
+                        <EtiquetaBloque
+                          href={puedeEditarBloque ? rutaEdicion : undefined}
+                          style={{
+                          display: 'block',
+                          textDecoration: 'none',
+                          cursor: puedeEditarBloque ? 'pointer' : 'default',
                           background: '#e8f0fe',
                           color: '#172554',
                           borderRadius: 6,
@@ -433,7 +468,7 @@ const seccionesFiltradas = opciones.filter(
                             {' - '}
                             {bloque.horaFin.slice(0, 5)}
                           </small>
-                        </div>
+                        </EtiquetaBloque>
                       </td>
                     );
                   })}
