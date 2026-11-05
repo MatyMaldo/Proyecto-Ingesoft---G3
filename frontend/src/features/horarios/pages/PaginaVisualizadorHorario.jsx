@@ -1,4 +1,4 @@
-
+﻿
 import { useEffect, useState } from 'react';
 import useAuth from '../../../shared/auth/useAuth.js';
 import { DIAS } from '../constants/horarios.js';
@@ -23,6 +23,7 @@ export default function PaginaVisualizadorHorario() {
   const rol = usuario?.rol;
 
   const [tipo, setTipo] = useState('seccion');
+  const [gradoId, setGradoId] = useState('');
   const [id, setId] = useState('');
   const [datos, setDatos] = useState(null);
   const [error, setError] = useState('');
@@ -112,10 +113,11 @@ useEffect(() => {
     let activo = true;
 
     if (requiereFiltro && !/^[1-9]\d*$/.test(id)) {
-      setDatos(null);
-      setError('');
-      return;
-    }
+        setDatos(null);
+        setError('');
+        setCargando(false);
+        return;
+}
 
     async function cargar() {
       setCargando(true);
@@ -156,12 +158,31 @@ useEffect(() => {
     return () => { activo = false; };
   }, [rol, tipo, id, recarga, requiereFiltro]);
 
+  
+const grados = [
+  ...new Map(
+    opciones.map(s => [
+      s.gradoId,
+      { id: s.gradoId, nombre: s.gradoNombre }
+    ])
+  ).values()
+];
+
+const seccionesFiltradas = opciones.filter(
+  s => String(s.gradoId) === gradoId
+);
+
+  
   const bloques = datos?.bloques ?? [];
 
-  const franjas = [...new Set(
-    bloques.map(b => `${b.horaInicio}|${b.horaFin}`)
+  const limites = [...new Set(
+    bloques.flatMap(b => [b.horaInicio, b.horaFin])
   )].sort();
 
+  const franjas = limites.slice(0, -1).map((inicio, indice) => ({
+    inicio,
+    fin: limites[indice + 1]
+  }));
   const estiloCelda = {
     border: '1px solid #d1d5db',
     padding: '12px',
@@ -191,28 +212,59 @@ useEffect(() => {
       )}
 
       
+
 {rol === ADMIN && (
-  <label style={{ display: 'block', marginTop: 12 }}>
-    {tipo === 'seccion'
-      ? 'Seleccionar sección'
-      : 'Seleccionar docente'}
-    {' '}
-    <select
-      value={id}
-      onChange={e => setId(e.target.value)}
-      disabled={cargandoOpciones}
-    >
-      <option value="">Seleccione una opción</option>
-      {opciones.map(opcion => (
-        <option key={opcion.id} value={opcion.id}>
-          {tipo === 'seccion'
-            ? `${opcion.gradoNombre} - ${opcion.nombre} (${opcion.anioAcademico})`
-            : opcion.nombreCompleto}
-        </option>
-      ))}
-    </select>
-  </label>
+  <div style={{ marginTop: 12 }}>
+    {tipo === 'seccion' && (
+      <label>
+        Seleccionar grado{' '}
+        <select
+          value={gradoId}
+          onChange={e => {
+            setGradoId(e.target.value);
+            setId('');
+          }}
+          disabled={cargandoOpciones}
+        >
+          <option value="">Seleccione un grado</option>
+          {grados.map(grado => (
+            <option key={grado.id} value={grado.id}>
+              {grado.nombre}
+            </option>
+          ))}
+        </select>
+      </label>
+    )}
+
+    <label style={{ display: 'block', marginTop: 12 }}>
+      {tipo === 'seccion'
+        ? 'Seleccionar sección'
+        : 'Seleccionar docente'}
+      {' '}
+      <select
+        value={id}
+        onChange={e => setId(e.target.value)}
+        disabled={
+          cargandoOpciones ||
+          (tipo === 'seccion' && !gradoId)
+        }
+      >
+        <option value="">Seleccione una opción</option>
+        {(tipo === 'seccion'
+          ? seccionesFiltradas
+          : opciones
+        ).map(opcion => (
+          <option key={opcion.id} value={opcion.id}>
+            {tipo === 'seccion'
+              ? `${opcion.nombre} (${opcion.anioAcademico})`
+              : `${opcion.nombreCompleto}${opcion.activo ? '' : ' (Inactivo)'}`}
+          </option>
+        ))}
+      </select>
+    </label>
+  </div>
 )}
+
 
 {rol === ADMIN && cargandoOpciones && (
   <p>Cargando opciones...</p>
@@ -268,7 +320,10 @@ useEffect(() => {
 
       {!cargando && franjas.length > 0 && (
         <div style={{ overflowX: 'auto', marginTop: 20 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table style={{
+            width: '100%',
+            borderCollapse: 'collapse'
+          }}>
             <thead>
               <tr>
                 <th style={estiloCelda}>Horario</th>
@@ -279,40 +334,84 @@ useEffect(() => {
                 ))}
               </tr>
             </thead>
+
             <tbody>
-              {franjas.map(franja => {
-                const [inicio, fin] = franja.split('|');
-                return (
-                  <tr key={franja}>
-                    <th style={estiloCelda}>
-                      {inicio.slice(0, 5)} - {fin.slice(0, 5)}
-                    </th>
+              {franjas.map(franja => (
+                <tr key={franja.inicio}>
+                  <th style={estiloCelda}>
+                    {franja.inicio.slice(0, 5)} - {franja.fin.slice(0, 5)}
+                  </th>
 
-                    {DIAS.map(dia => {
-                      const coincidencias = bloques.filter(b =>
-                        b.diaSemana === dia.id &&
-                        b.horaInicio === inicio &&
-                        b.horaFin === fin
-                      );
+                  {DIAS.map(dia => {
+                    const bloque = bloques.find(b =>
+                      b.diaSemana === dia.id &&
+                      b.horaInicio <= franja.inicio &&
+                      b.horaFin > franja.inicio
+                    );
 
+                    if (!bloque) {
                       return (
-                        <td key={dia.id} style={estiloCelda}>
-                          {coincidencias.map(b => (
-                            <div key={b.id ?? b.bloqueHorarioId}>
-                              <strong>{b.cursoNombre}</strong>
-                              <div>{b.docenteNombre}</div>
-                              <div>{b.aulaNombre}</div>
-                              {rol === DOCENTE && (
-                                <div>{b.seccionNombre}</div>
-                              )}
-                            </div>
-                          ))}
-                        </td>
+                        <td key={dia.id} style={estiloCelda} />
                       );
-                    })}
-                  </tr>
-                );
-              })}
+                    }
+
+                    // La celda ya fue dibujada en una fila anterior.
+                    if (bloque.horaInicio !== franja.inicio) {
+                      return null;
+                    }
+
+                    const inicioBloque = limites.indexOf(
+                      bloque.horaInicio
+                    );
+
+                    const finBloque = limites.indexOf(
+                      bloque.horaFin
+                    );
+
+                    const filasOcupadas = Math.max(
+                      1,
+                      finBloque - inicioBloque
+                    );
+
+                    return (
+                      <td
+                        key={dia.id}
+                        rowSpan={filasOcupadas}
+                        style={estiloCelda}
+                      >
+                        <div style={{
+                          background: '#e8f0fe',
+                          color: '#172554',
+                          borderRadius: 6,
+                          padding: 10,
+                          height: '100%',
+                          boxSizing: 'border-box'
+                        }}>
+                          <strong>{bloque.cursoNombre}</strong>
+
+                          <div>{bloque.docenteNombre}</div>
+                          <div>{bloque.aulaNombre}</div>
+
+                          {(rol === DOCENTE ||
+                            (rol === ADMIN && tipo === 'docente')) && (
+                            <div>
+                              {bloque.gradoNombre}
+                              {' '}
+                              {bloque.seccionNombre}
+                            </div>
+                          )}
+
+                          <small>
+                            {bloque.horaInicio.slice(0, 5)}
+                            {' - '}
+                            {bloque.horaFin.slice(0, 5)}
+                          </small>
+                        </div>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -320,3 +419,4 @@ useEffect(() => {
     </section>
   );
 }
+
