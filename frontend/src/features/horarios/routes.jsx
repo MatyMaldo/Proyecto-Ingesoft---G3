@@ -1,5 +1,6 @@
 import PaginaHorarios from './pages/PaginaHorarios.jsx';
 import { ROLES_QUE_VEN_HORARIOS } from './constants/horarios.js';
+import PaginaVisualizadorHorario from './pages/PaginaVisualizadorHorario.jsx';
 
 /**
  * Rutas de la feature Horarios. La ruta coincide con el ítem "Horarios" de
@@ -12,5 +13,18 @@ export default [
     element: <PaginaHorarios />,
     enLayout: true,
     rolesPermitidos: [...ROLES_QUE_VEN_HORARIOS]
-  }
+  },
+
+{
+  path: '/consulta-horarios',
+  element: <PaginaVisualizadorHorario />,
+  enLayout: true,
+  rolesPermitidos: [
+    'ADMINISTRADOR',
+    'DOCENTE',
+    'ESTUDIANTE',
+    'APODERADO'
+  ]
+}
+
 ];
