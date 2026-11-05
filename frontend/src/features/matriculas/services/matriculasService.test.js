@@ -98,12 +98,10 @@ describe('matriculasService', () => {
 
     expect(solicitar).toHaveBeenNthCalledWith(1, '/matriculas', {
       metodo: 'POST',
-      sinVersionApi: true,
       cuerpo: { estudianteId: 4, seccionId: 7 }
     });
     expect(solicitar).toHaveBeenNthCalledWith(2, '/compromisos-pago/matricula', {
       metodo: 'POST',
-      sinVersionApi: true,
       cuerpo: { matriculaId: 9 }
     });
   });

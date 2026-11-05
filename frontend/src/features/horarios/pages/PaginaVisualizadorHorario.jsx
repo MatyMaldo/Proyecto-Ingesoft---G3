@@ -9,7 +9,9 @@ import {
   miHorarioEstudiante,
   horarioApoderado,
   listarSecciones,
+  listarAniosAcademicos,
   listarDocentes,
+  consultarEstadoProgramacion,
   listarMisEstudiantes
 } from '../services/visualizadoresService.js';
 
@@ -23,6 +25,8 @@ export default function PaginaVisualizadorHorario() {
   const rol = usuario?.rol;
 
   const [tipo, setTipo] = useState('seccion');
+  const [gradoId, setGradoId] = useState('');
+  const [programacionAbierta, setProgramacionAbierta] = useState(false);
   const [id, setId] = useState('');
   const [datos, setDatos] = useState(null);
   const [error, setError] = useState('');
@@ -45,20 +49,32 @@ useEffect(() => {
   setErrorOpciones('');
 
   async function cargarOpciones() {
-    const resultado = tipo === 'seccion'
-      ? await listarSecciones()
-      : await listarDocentes();
+    const [resultado, respuestaAnios] = tipo === 'seccion'
+      ? await Promise.all([listarSecciones(), listarAniosAcademicos()])
+      : [await listarDocentes(), null];
 
     if (!activo) return;
 
-    if (resultado.exitoso) {
+    if (resultado.exitoso && (!respuestaAnios || respuestaAnios.exitoso)) {
       const lista = tipo === 'seccion'
         ? resultado.datos ?? []
         : resultado.datos?.content ?? [];
 
       setOpciones(
         tipo === 'seccion'
-          ? lista.filter(s => s.anioAcademico === new Date().getFullYear())
+          ? lista.filter(s => {
+              const hoy = new Date();
+              const fechaHoy = [
+                hoy.getFullYear(),
+                String(hoy.getMonth() + 1).padStart(2, '0'),
+                String(hoy.getDate()).padStart(2, '0')
+              ].join('-');
+              return (respuestaAnios.datos ?? []).some(a =>
+                a.anio === s.anioAcademico &&
+                a.fechaInicio <= fechaHoy &&
+                a.fechaFin >= fechaHoy
+              );
+            })
           : lista
       );
     } else {
@@ -106,16 +122,36 @@ useEffect(() => {
 
 
 
+  useEffect(() => {
+    let vigente = true;
+    setProgramacionAbierta(false);
+
+    if (rol !== ADMIN || tipo !== 'seccion' ||
+        !/^[1-9]\d*$/.test(id)) {
+      return () => { vigente = false; };
+    }
+
+    consultarEstadoProgramacion(id).then(resultado => {
+      if (!vigente) return;
+      setProgramacionAbierta(
+        resultado.exitoso &&
+        resultado.datos?.programacionAbierta === true
+      );
+    });
+
+    return () => { vigente = false; };
+  }, [rol, tipo, id]);
   const requiereFiltro = rol === ADMIN || rol === APODERADO;
 
   useEffect(() => {
     let activo = true;
 
     if (requiereFiltro && !/^[1-9]\d*$/.test(id)) {
-      setDatos(null);
-      setError('');
-      return;
-    }
+        setDatos(null);
+        setError('');
+        setCargando(false);
+        return;
+}
 
     async function cargar() {
       setCargando(true);
@@ -156,12 +192,39 @@ useEffect(() => {
     return () => { activo = false; };
   }, [rol, tipo, id, recarga, requiereFiltro]);
 
+  
+const grados = [
+  ...new Map(
+    opciones.map(s => [
+      s.gradoId,
+      { id: s.gradoId, nombre: s.gradoNombre }
+    ])
+  ).values()
+];
+
+const seccionesFiltradas = opciones.filter(
+  s => String(s.gradoId) === gradoId
+);
+
+  
+  const seccionParaEditar = opciones.find(
+    opcion => String(opcion.id) === String(id)
+  );
+
+  const rutaEdicion = seccionParaEditar
+    ? `/horarios?grado=${encodeURIComponent(String(seccionParaEditar.gradoId))}&seccion=${encodeURIComponent(seccionParaEditar.nombre)}`
+    : '/horarios';
+
   const bloques = datos?.bloques ?? [];
 
-  const franjas = [...new Set(
-    bloques.map(b => `${b.horaInicio}|${b.horaFin}`)
+  const limites = [...new Set(
+    bloques.flatMap(b => [b.horaInicio, b.horaFin])
   )].sort();
 
+  const franjas = limites.slice(0, -1).map((inicio, indice) => ({
+    inicio,
+    fin: limites[indice + 1]
+  }));
   const estiloCelda = {
     border: '1px solid #d1d5db',
     padding: '12px',
@@ -191,28 +254,59 @@ useEffect(() => {
       )}
 
       
+
 {rol === ADMIN && (
-  <label style={{ display: 'block', marginTop: 12 }}>
-    {tipo === 'seccion'
-      ? 'Seleccionar sección'
-      : 'Seleccionar docente'}
-    {' '}
-    <select
-      value={id}
-      onChange={e => setId(e.target.value)}
-      disabled={cargandoOpciones}
-    >
-      <option value="">Seleccione una opción</option>
-      {opciones.map(opcion => (
-        <option key={opcion.id} value={opcion.id}>
-          {tipo === 'seccion'
-            ? `${opcion.gradoNombre} - ${opcion.nombre} (${opcion.anioAcademico})`
-            : opcion.nombreCompleto}
-        </option>
-      ))}
-    </select>
-  </label>
+  <div style={{ marginTop: 12 }}>
+    {tipo === 'seccion' && (
+      <label>
+        Seleccionar grado{' '}
+        <select
+          value={gradoId}
+          onChange={e => {
+            setGradoId(e.target.value);
+            setId('');
+          }}
+          disabled={cargandoOpciones}
+        >
+          <option value="">Seleccione un grado</option>
+          {grados.map(grado => (
+            <option key={grado.id} value={grado.id}>
+              {grado.nombre}
+            </option>
+          ))}
+        </select>
+      </label>
+    )}
+
+    <label style={{ display: 'block', marginTop: 12 }}>
+      {tipo === 'seccion'
+        ? 'Seleccionar sección'
+        : 'Seleccionar docente'}
+      {' '}
+      <select
+        value={id}
+        onChange={e => setId(e.target.value)}
+        disabled={
+          cargandoOpciones ||
+          (tipo === 'seccion' && !gradoId)
+        }
+      >
+        <option value="">Seleccione una opción</option>
+        {(tipo === 'seccion'
+          ? seccionesFiltradas
+          : opciones
+        ).map(opcion => (
+          <option key={opcion.id} value={opcion.id}>
+            {tipo === 'seccion'
+              ? `${opcion.nombre} (${opcion.anioAcademico})`
+              : `${opcion.nombreCompleto}${opcion.activo ? '' : ' (Inactivo)'}`}
+          </option>
+        ))}
+      </select>
+    </label>
+  </div>
 )}
+
 
 {rol === ADMIN && cargandoOpciones && (
   <p>Cargando opciones...</p>
@@ -260,6 +354,12 @@ useEffect(() => {
         Actualizar horario
       </button>
 
+      {rol === ADMIN && tipo === 'seccion' &&
+        programacionAbierta && (
+          <p>
+            <a href={rutaEdicion}>Editar horario</a>
+          </p>
+        )}
       {cargando && <p>Cargando horario...</p>}
       {error && <p role="alert">{error}</p>}
       {!cargando && !error && datos?.mensaje && (
@@ -268,7 +368,10 @@ useEffect(() => {
 
       {!cargando && franjas.length > 0 && (
         <div style={{ overflowX: 'auto', marginTop: 20 }}>
-          <table style={{ width: '100%', borderCollapse: 'collapse' }}>
+          <table style={{
+            width: '100%',
+            borderCollapse: 'collapse'
+          }}>
             <thead>
               <tr>
                 <th style={estiloCelda}>Horario</th>
@@ -279,40 +382,98 @@ useEffect(() => {
                 ))}
               </tr>
             </thead>
+
             <tbody>
-              {franjas.map(franja => {
-                const [inicio, fin] = franja.split('|');
-                return (
-                  <tr key={franja}>
-                    <th style={estiloCelda}>
-                      {inicio.slice(0, 5)} - {fin.slice(0, 5)}
-                    </th>
+              {franjas.map(franja => (
+                <tr key={franja.inicio}>
+                  <th style={estiloCelda}>
+                    {franja.inicio.slice(0, 5)} - {franja.fin.slice(0, 5)}
+                  </th>
 
-                    {DIAS.map(dia => {
-                      const coincidencias = bloques.filter(b =>
-                        b.diaSemana === dia.id &&
-                        b.horaInicio === inicio &&
-                        b.horaFin === fin
-                      );
+                  {DIAS.map(dia => {
+                    const bloque = bloques.find(b =>
+                      b.diaSemana === dia.id &&
+                      b.horaInicio <= franja.inicio &&
+                      b.horaFin > franja.inicio
+                    );
 
+                    if (!bloque) {
                       return (
-                        <td key={dia.id} style={estiloCelda}>
-                          {coincidencias.map(b => (
-                            <div key={b.id ?? b.bloqueHorarioId}>
-                              <strong>{b.cursoNombre}</strong>
-                              <div>{b.docenteNombre}</div>
-                              <div>{b.aulaNombre}</div>
-                              {rol === DOCENTE && (
-                                <div>{b.seccionNombre}</div>
-                              )}
-                            </div>
-                          ))}
-                        </td>
+                        <td key={dia.id} style={estiloCelda} />
                       );
-                    })}
-                  </tr>
-                );
-              })}
+                    }
+
+                    // La celda ya fue dibujada en una fila anterior.
+                    if (bloque.horaInicio !== franja.inicio) {
+                      return null;
+                    }
+
+                    const inicioBloque = limites.indexOf(
+                      bloque.horaInicio
+                    );
+
+                    const finBloque = limites.indexOf(
+                      bloque.horaFin
+                    );
+
+                    const filasOcupadas = Math.max(
+                      1,
+                      finBloque - inicioBloque
+                    );
+
+                    const puedeEditarBloque =
+                      rol === ADMIN &&
+                      tipo === 'seccion' &&
+                      programacionAbierta;
+
+                    const EtiquetaBloque = puedeEditarBloque
+                      ? 'a'
+                      : 'div';
+
+                    return (
+                      <td
+                        key={dia.id}
+                        rowSpan={filasOcupadas}
+                        style={estiloCelda}
+                      >
+                        <EtiquetaBloque
+                          href={puedeEditarBloque ? rutaEdicion : undefined}
+                          style={{
+                          display: 'block',
+                          textDecoration: 'none',
+                          cursor: puedeEditarBloque ? 'pointer' : 'default',
+                          background: '#e8f0fe',
+                          color: '#172554',
+                          borderRadius: 6,
+                          padding: 10,
+                          height: '100%',
+                          boxSizing: 'border-box'
+                        }}>
+                          <strong>{bloque.cursoNombre}</strong>
+
+                          <div>{bloque.docenteNombre}</div>
+                          <div>{bloque.aulaNombre}</div>
+
+                          {(rol === DOCENTE ||
+                            (rol === ADMIN && tipo === 'docente')) && (
+                            <div>
+                              {bloque.gradoNombre}
+                              {' '}
+                              {bloque.seccionNombre}
+                            </div>
+                          )}
+
+                          <small>
+                            {bloque.horaInicio.slice(0, 5)}
+                            {' - '}
+                            {bloque.horaFin.slice(0, 5)}
+                          </small>
+                        </EtiquetaBloque>
+                      </td>
+                    );
+                  })}
+                </tr>
+              ))}
             </tbody>
           </table>
         </div>
@@ -320,3 +481,4 @@ useEffect(() => {
     </section>
   );
 }
+

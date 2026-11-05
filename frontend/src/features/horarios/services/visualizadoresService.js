@@ -31,11 +31,11 @@ export function listarSecciones() {
   return solicitar('/secciones');
 }
 
+
 export function listarDocentes() {
   return solicitar('/usuarios', {
     parametros: {
       tipoUsuario: 'DOCENTE',
-      activo: true,
       page: 0,
       size: 100
     }
@@ -43,6 +43,14 @@ export function listarDocentes() {
 }
 
 
+
 export function listarMisEstudiantes() {
   return solicitar('/visualizadores-horario/apoderado/mis-estudiantes');
+}
+
+export function consultarEstadoProgramacion(seccionId) {
+  return solicitar(`${BASE}/estado-programacion/${seccionId}`);
+}
+export function listarAniosAcademicos() {
+  return solicitar('/anios-academicos');
 }
