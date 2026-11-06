@@ -9,4 +9,9 @@ import { ROLES } from '../../../shared/auth/roles.js';
  *
  * @type {string[]}
  */
-export const ROLES_HABILITADOS_LOGIN = Object.freeze([ROLES.ADMIN, ROLES.DOCENTE]);
+export const ROLES_HABILITADOS_LOGIN = Object.freeze([
+  ROLES.ADMIN,
+  ROLES.DOCENTE,
+  ROLES.ESTUDIANTE,
+  ROLES.APODERADO
+]);
