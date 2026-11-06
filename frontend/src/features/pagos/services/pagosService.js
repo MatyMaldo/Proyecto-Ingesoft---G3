@@ -15,6 +15,7 @@ const normalizarTexto = (texto) => String(texto ?? '')
   .toLocaleLowerCase('es')
   .trim();
 
+// Obtener alumnos
 export async function obtenerAlumnos(filtros = {}) {
   // Mocks aun no se implemenan
   if (USAR_MOCK) return null;
@@ -42,3 +43,49 @@ export async function obtenerAlumnos(filtros = {}) {
     }
   };
 }
+
+// Obtener anio académico
+export async function obtenerAnioAcademico() {
+  if (USAR_MOCK) {
+    return null;
+  }
+
+  const [respuestaAnios] = await Promise.all([
+    solicitar('/anios-academicos/con-periodo-matricula-vigente')
+  ]);
+  const error = [respuestaAnios].find((respuesta) => !respuesta.exitoso);
+  if (error) return error;
+  if (!respuestaAnios.datos) {
+    return {
+      exitoso: false,
+      datos: null,
+      mensaje: respuestaAnios.mensaje || 'No existe un año académico vigente.'
+    };
+  }
+  return {
+    exitoso: true,
+    datos: { anios: [respuestaAnios.datos] },
+    mensaje: ''
+  };
+}
+
+// Emitir compromiso de pago de pension
+
+/*
+export async function emitirCompromisoPension(estudianteId,mes,anioId) {
+  if (USAR_MOCK) {
+    return { exitoso: false, datos, mensaje: '' }; // Moccks no implementados
+  }
+
+  const respuesta = await solicitar('/compromisos-pago/pension', {
+    metodo: 'POST',
+    cuerpo: { 
+      estudiante_id: Number(estudianteId),
+      mes: mes,
+      anio_academico_id: Number(anioId)
+    }
+  });
+  if (respuesta.exitoso) matriculasCreadasEnSesion.delete(String(estudianteId));
+  return respuesta;
+}
+*/
