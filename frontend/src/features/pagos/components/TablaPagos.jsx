@@ -10,7 +10,7 @@ import Boton from '../../../shared/components/Boton.jsx';
 import ModalEmitirPension from './ModalEmitirPension.jsx';
 import Notificacion from '../../../shared/components/Notificacion.jsx';
 import useNotificacion from '../../../shared/hooks/useNotificacion.js';
-import { emitirCompromisoPension } from '../services/pagosService.js';
+//import { emitirCompromisoPension } from '../services/pagosService.js';
 
 /**
  * @param {Object} props
