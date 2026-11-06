@@ -59,6 +59,52 @@ describe('servicio de logs de errores · contrato backend', () => {
     });
   });
 
+  it('envía módulo (traducido al código del backend) y búsqueda, y devuelve el módulo con el código del front', async () => {
+    solicitar.mockResolvedValue({
+      exitoso: true,
+      datos: {
+        content: [{
+          id: 2,
+          fechaHora: '2026-11-03T14:30:00',
+          modulo: 'MATRICULA',
+          moduloEtiqueta: 'Matrícula',
+          tipoError: 'Error',
+          mensaje: 'Fallo',
+          codigoEstado: 500
+        }],
+        number: 0,
+        totalPages: 1,
+        totalElements: 1
+      },
+      mensaje: ''
+    });
+
+    const resultado = await obtenerErrores({ modulo: 'MATRICULAS', busqueda: 'fallo' });
+
+    expect(solicitar).toHaveBeenCalledWith(
+      '/admin/logs-error',
+      expect.objectContaining({
+        parametros: expect.objectContaining({ modulo: 'MATRICULA', busqueda: 'fallo' })
+      })
+    );
+    expect(resultado.datos.registros[0].modulo).toBe('MATRICULAS');
+  });
+
+  it('traduce CONFIGURACION a ESTRUCTURA_ACADEMICA y no envía módulo ni búsqueda vacíos', async () => {
+    solicitar.mockResolvedValue({
+      exitoso: true,
+      datos: { content: [], number: 0, totalPages: 0, totalElements: 0 },
+      mensaje: ''
+    });
+
+    await obtenerErrores({ modulo: 'CONFIGURACION' });
+    expect(solicitar.mock.calls[0][1].parametros.modulo).toBe('ESTRUCTURA_ACADEMICA');
+
+    await obtenerErrores({});
+    expect(solicitar.mock.calls[1][1].parametros.modulo).toBeUndefined();
+    expect(solicitar.mock.calls[1][1].parametros.busqueda).toBeUndefined();
+  });
+
   it('informa si la respuesta no trae una página Spring válida', async () => {
     solicitar.mockResolvedValue({ exitoso: true, datos: [], mensaje: '' });
 

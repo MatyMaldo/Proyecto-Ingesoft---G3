@@ -6,16 +6,27 @@ export const TAMANIO_PAGINA_LOG_ERRORES = 15;
 
 /**
  * Indica si el origen de datos soporta el filtro de módulo y el buscador.
- * Hoy solo lo hacen los mocks: el contrato real de `GET /admin/logs-error` solo
- * filtra por rango de fechas y no devuelve `modulo` ni `operacion`.
- * TODO(backend): cuando el endpoint acepte `modulo`/`busqueda` y devuelva
- * `modulo`/`operacion`, cambiar a `true` y enviar esos parámetros en `solicitar`.
+ * Lo soportan los mocks y el backend real (`GET /admin/logs-error` acepta `modulo` y
+ * `busqueda`, y devuelve `modulo` y `moduloEtiqueta`). Se conserva por si algún origen no los admite.
  */
-export const SOPORTA_FILTRO_MODULO_Y_BUSQUEDA = USAR_MOCK;
+export const SOPORTA_FILTRO_MODULO_Y_BUSQUEDA = true;
+
+/**
+ * El front usa los códigos de módulo de sus mocks y del selector; el backend usa los del enum
+ * `Modulo`. Solo difieren estos dos (el resto coincide).
+ */
+const MODULO_FRONT_A_BACKEND = Object.freeze({
+  MATRICULAS: 'MATRICULA',
+  CONFIGURACION: 'ESTRUCTURA_ACADEMICA'
+});
+const MODULO_BACKEND_A_FRONT = Object.freeze(
+  Object.fromEntries(Object.entries(MODULO_FRONT_A_BACKEND).map(([front, backend]) => [backend, front]))
+);
 
 function normalizarRegistro(registro) {
   return {
     ...registro,
+    modulo: MODULO_BACKEND_A_FRONT[registro.modulo] ?? registro.modulo ?? null,
     nombreUsuario: registro.nombreUsuario ?? null,
     detalle: registro.detalle ?? ''
   };
@@ -87,6 +98,8 @@ export async function obtenerErrores(filtros = {}, opciones = {}) {
     parametros: {
       fechaInicio: filtros.fechaDesde ? `${filtros.fechaDesde}T00:00:00` : undefined,
       fechaFin: filtros.fechaHasta ? `${filtros.fechaHasta}T23:59:59` : undefined,
+      modulo: filtros.modulo ? (MODULO_FRONT_A_BACKEND[filtros.modulo] ?? filtros.modulo) : undefined,
+      busqueda: filtros.busqueda || undefined,
       page: filtros.page ?? 0,
       size: TAMANIO_PAGINA_LOG_ERRORES,
       sortBy: 'fechaHora',
