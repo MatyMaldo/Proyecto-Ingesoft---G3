@@ -71,8 +71,8 @@ export async function obtenerAnioAcademico() {
 
 // Emitir compromiso de pago de pension
 
-/*
-export async function emitirCompromisoPension(estudianteId,mes,anioId) {
+
+export async function emitirCompromisoPension({estudianteId,anioId,mes}) {
   if (USAR_MOCK) {
     return { exitoso: false, datos, mensaje: '' }; // Moccks no implementados
   }
@@ -80,12 +80,11 @@ export async function emitirCompromisoPension(estudianteId,mes,anioId) {
   const respuesta = await solicitar('/compromisos-pago/pension', {
     metodo: 'POST',
     cuerpo: { 
-      estudiante_id: Number(estudianteId),
-      mes: mes,
-      anio_academico_id: Number(anioId)
+      estudianteId: Number(estudianteId),
+      anioId: Number(anioId),
+      mes: mes
     }
   });
-  if (respuesta.exitoso) matriculasCreadasEnSesion.delete(String(estudianteId));
+  if(!respuesta) return { exitoso: false, datos, mensaje: '' };
   return respuesta;
 }
-*/

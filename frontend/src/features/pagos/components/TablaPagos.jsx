@@ -10,7 +10,7 @@ import Boton from '../../../shared/components/Boton.jsx';
 import ModalEmitirPension from './ModalEmitirPension.jsx';
 import Notificacion from '../../../shared/components/Notificacion.jsx';
 import useNotificacion from '../../../shared/hooks/useNotificacion.js';
-//import { emitirCompromisoPension } from '../services/pagosService.js';
+import { emitirCompromisoPension } from '../services/pagosService.js';
 
 /**
  * @param {Object} props
@@ -36,15 +36,16 @@ export default function TablaPagos({ alumnos, ocupado = false }) {
   const cerrarModalEmitirPension = () => {
     establecerModalEmitirPensionAbierto(false);
     establecerAlumnoSeleccionado(null);
+    establecerEnviando(false);
   };
 
   // Función para emitir notificación
-  const confirmarComprobante = async ({alumno,anioId,mes}) => {
+  const confirmarComprobante = async ({estudianteId,anioId,mes}) => {
     if (enviando)
       return;
-    /*
+    
     establecerEnviando(true);
-    const respuesta = await emitirCompromisoPension({ estudianteId: alumno.id, anioId, mes });
+    const respuesta = await emitirCompromisoPension({ estudianteId, anioId, mes });
     establecerEnviando(false);
 
     if (!respuesta.exitoso) {
@@ -53,8 +54,8 @@ export default function TablaPagos({ alumnos, ocupado = false }) {
     }
 
     cerrarModalEmitirPension();
-    mostrarNotificacion(`Se emitió el compromiso de pensión de ${alumno.nombre} (${mes}).`);
-    */
+    mostrarNotificacion(`Se emitió el compromiso de pensión de (${mes}).`);
+    
   };
 
   return (
