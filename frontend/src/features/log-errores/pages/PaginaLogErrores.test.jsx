@@ -104,7 +104,7 @@ describe('HU-SAT-05 · Logs de errores según el contrato paginado', () => {
     await waitFor(() => expect(within(paginadorInferior()).getByText('1 – 2 de 2 errores')).toBeInTheDocument(), { timeout: 3000 });
     expect(screen.getAllByText('Iniciar sesión').length).toBeGreaterThan(0);
 
-    await userEvent.type(screen.getByLabelText('Buscar por operación, mensaje o usuario'), 'garcia');
+    await userEvent.type(screen.getByLabelText('Buscar por mensaje, tipo de error o usuario'), 'garcia');
     await waitFor(() => expect(screen.queryAllByText('Iniciar sesión')).toHaveLength(0), { timeout: 3000 });
     expect(screen.getAllByText('Cerrar sesión').length).toBeGreaterThan(0);
   });
@@ -154,10 +154,10 @@ describe('Log de errores · coherencia con Usuarios y Auditorías', () => {
     expect(screen.getByLabelText('Módulo')).toHaveValue('TODOS');
 
     await userEvent.selectOptions(screen.getByLabelText('Módulo'), 'PAGOS');
-    await userEvent.type(screen.getByLabelText('Buscar por operación, mensaje o usuario'), 'zzz');
+    await userEvent.type(screen.getByLabelText('Buscar por mensaje, tipo de error o usuario'), 'zzz');
     await userEvent.click(await screen.findByRole('button', { name: 'Limpiar filtros' }));
     expect(screen.getByLabelText('Módulo')).toHaveValue('TODOS');
-    expect(screen.getByLabelText('Buscar por operación, mensaje o usuario')).toHaveValue('');
+    expect(screen.getByLabelText('Buscar por mensaje, tipo de error o usuario')).toHaveValue('');
   });
 
   it('el rango de fechas se ve como filtro aplicado y el mensaje de sin resultados ofrece limpiar', async () => {

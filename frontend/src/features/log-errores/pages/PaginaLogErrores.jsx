@@ -115,8 +115,8 @@ export default function PaginaLogErrores() {
             <>
               <CampoBusqueda
                 id="busqueda-log-errores"
-                etiqueta="Buscar por operación, mensaje o usuario"
-                placeholder="Buscar por operación, mensaje o usuario"
+                etiqueta="Buscar por mensaje, tipo de error o usuario"
+                placeholder="Buscar por mensaje, tipo de error o usuario"
                 valor={busqueda}
                 alCambiar={establecerBusqueda}
               />
