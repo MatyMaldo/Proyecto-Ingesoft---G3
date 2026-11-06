@@ -34,6 +34,9 @@
   --color-peligro-borde: #FCC9C9;
   --color-peligro-texto: #BA1A1A;
   --color-peligro-acento: #F8B4B4;
+  /* Íconos de estado sobre fondo oscuro (notificaciones flotantes). */
+  --color-exito-claro: #4ADE80;
+  --color-peligro-claro: #F87171;
 
   /* Cifras de la barra de resumen */
   --color-cifra-azul-marino: #00236F;
@@ -182,6 +185,8 @@
   --capa-velo: 30;
   --capa-cajon: 40;
   --capa-panel: 50;
+  --capa-menu: 60;
+  --capa-notificacion: 99999;
 }
 
 @media (prefers-reduced-motion: reduce) {

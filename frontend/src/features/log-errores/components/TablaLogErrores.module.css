@@ -114,7 +114,7 @@
 .usuario {
   display: flex;
   align-items: center;
-  gap: var(--espacio-1);
+  gap: var(--espacio-2);
   margin: var(--espacio-1) 0 0;
   font-size: var(--texto-md);
   color: var(--color-texto-suave);

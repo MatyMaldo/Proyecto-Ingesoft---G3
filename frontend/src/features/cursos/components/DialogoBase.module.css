@@ -147,6 +147,18 @@
   background: var(--color-primario-intenso);
 }
 
+.botonPrimario.botonPeligro {
+  background: var(--color-peligro);
+}
+
+.botonPrimario.botonPeligro:hover:not(:disabled) {
+  background: var(--color-peligro-hover);
+}
+
+.botonPrimario.botonPeligro:active:not(:disabled) {
+  background: var(--color-peligro-activo);
+}
+
 .botonSecundario {
   color: var(--color-texto-secundario);
   background: var(--color-superficie);

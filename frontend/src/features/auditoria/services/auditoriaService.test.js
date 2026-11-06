@@ -37,7 +37,7 @@ describe('servicio de auditoría · contrato backend', () => {
         fechaInicio: '2026-11-03T00:00:00',
         fechaFin: '2026-11-04T23:59:59',
         page: 0,
-        size: 20,
+        size: 15,
         sort: 'fechaHora,desc'
       },
       signal: undefined

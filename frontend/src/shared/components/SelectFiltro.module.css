@@ -1,0 +1,56 @@
+.campo {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+}
+
+.etiqueta {
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+/* Misma altura que los chips (36 px en escritorio, 44 px en móvil). */
+.selector {
+  height: calc(var(--tactil-min) - var(--espacio-2));
+  max-width: 100%;
+  padding: 0 var(--espacio-10) 0 var(--espacio-4);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-medio);
+  color: var(--color-texto-secundario);
+  background-color: var(--color-superficie);
+  background-image: var(--flecha-select);
+  background-repeat: no-repeat;
+  background-position: right var(--espacio-3) center;
+  background-size: 16px 16px;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-pildora);
+  cursor: pointer;
+  appearance: none;
+  transition: border-color var(--transicion), background-color var(--transicion);
+}
+
+.selector:hover {
+  border-color: var(--color-borde-fuerte);
+  background-color: var(--color-accion-suave);
+}
+
+.selector:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  .campo {
+    flex-direction: column;
+    align-items: stretch;
+    gap: var(--espacio-1);
+  }
+
+  .selector {
+    height: var(--tactil-min);
+  }
+}

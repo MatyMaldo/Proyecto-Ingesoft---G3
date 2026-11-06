@@ -9,15 +9,15 @@
  * Catálogo cerrado de tipos de acción de un registro de auditoría, en el orden del filtro.
  * Reemplaza al filtro por tipo de transacción (dependiente del módulo): ahora el tipo de
  * acción es independiente del módulo y el nombre de la transacción se muestra como
- * descripción. Los tonos evitan los de los módulos de `shared/constants/tonosModulo.js`
- * (azul, violeta, cian, marino, acero, turquesa, índigo, ciruela).
+ * descripción. El color de la tabla vive solo aquí (el módulo es neutro) y sigue la GUI §1: verde =
+ * positivo (crear), rojo = crítico (eliminar), ámbar = preventivo (cambio de estado), azul y gris = neutros.
  */
 export const TIPOS_ACCION_AUDITORIA = Object.freeze([
   Object.freeze({ valor: 'CREAR', etiqueta: 'Crear', tono: 'verde' }),
-  Object.freeze({ valor: 'ACTUALIZAR', etiqueta: 'Actualizar', tono: 'ambar' }),
+  Object.freeze({ valor: 'ACTUALIZAR', etiqueta: 'Actualizar', tono: 'azul' }),
   Object.freeze({ valor: 'ELIMINAR', etiqueta: 'Eliminar', tono: 'rojo' }),
   Object.freeze({ valor: 'LOGIN', etiqueta: 'Login', tono: 'gris' }),
-  Object.freeze({ valor: 'CAMBIO_ESTADO', etiqueta: 'Cambio de estado', tono: 'rosa' })
+  Object.freeze({ valor: 'CAMBIO_ESTADO', etiqueta: 'Cambio de estado', tono: 'ambar' })
 ]);
 
 const MAPA_TIPOS_ACCION = new Map(TIPOS_ACCION_AUDITORIA.map((tipo) => [tipo.valor, tipo]));

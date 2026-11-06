@@ -1,255 +1,33 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import CampoBusqueda from '../../../shared/components/CampoBusqueda.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import FiltroChips from '../../../shared/components/FiltroChips.jsx';
+import FiltrosActivos from '../../../shared/components/FiltrosActivos.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
+import MenuDesplegable from '../../../shared/components/MenuDesplegable.jsx';
+import Notificacion from '../../../shared/components/Notificacion.jsx';
+import Paginacion from '../../../shared/components/Paginacion.jsx';
+import SelectFiltro from '../../../shared/components/SelectFiltro.jsx';
+import useCoincideMedia from '../../../shared/hooks/useCoincideMedia.js';
+import useNotificacion from '../../../shared/hooks/useNotificacion.js';
+import DialogoCambiarEstado from '../components/DialogoCambiarEstado.jsx';
+import DialogoCargaCsv from '../components/DialogoCargaCsv.jsx';
+import DialogoEditarUsuario from '../components/DialogoEditarUsuario.jsx';
+import DialogoRegistroUsuario from '../components/DialogoRegistroUsuario.jsx';
 import TablaUsuarios from '../components/TablaUsuarios.jsx';
-import { OPCIONES_FILTRO_ROL } from '../constants/rolesUsuario.js';
 import {
-    USUARIOS_INICIAL,
-    CODIGOS_ESTUDIANTE_HISTORICOS,
-    listarUsuarios,
-    actualizarUsuario,
-    registrarEstudiante,
-    registrarApoderado,
-    registrarDocente,
-    cambiarEstadoUsuario,
-    listarSeccionesTutor
-} from '../services/usuariosService.js';
+    OPCIONES_FILTRO_ESTADO,
+    OPCIONES_FILTRO_ROL,
+    TAMANIO_PAGINA_USUARIOS
+} from '../constants/rolesUsuario.js';
+import { USUARIOS_INICIAL, listarUsuarios } from '../services/usuariosService.js';
+import esAdministrador from '../utils/esAdministrador.js';
+import { ORDEN_INICIAL, ordenarUsuarios } from '../utils/ordenarUsuarios.js';
 import estilos from './PaginaUsuarios.module.css';
 
-const ROL_POR_TIPO_REGISTRO = {
-    apoderado: 'Apoderado',
-    estudiante: 'Estudiante',
-    docente: 'Docente'
-};
+const TIPOS_REGISTRO = ['apoderado', 'estudiante', 'docente'];
 
-function separarTelefono(telefono) {
-    const valor = String(telefono ?? '').trim();
-    const digitos = valor.replace(/\D/g, '');
-    const nacional = digitos.length === 11 && digitos.startsWith('51') ? digitos.slice(2) : digitos;
-    return nacional.slice(0, 9);
-}
-
-function telefonoPeru(telefono) {
-    const digitos = separarTelefono(telefono);
-    return digitos ? `+51${digitos}` : '';
-}
-
-function TelefonoField({ value, onChange, required = false, error = '', hint = 'Ingrese un celular peruano de 9 dígitos.' }) {
-    return <div>
-      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 5 }}>
-        Teléfono{required && <span style={{ color: '#ba1a1a' }}> *</span>}
-      </label>
-      <div style={{ display: 'flex', gap: 8 }}>
-        <div aria-label="País Perú, prefijo +51" style={{ height: 40, minWidth: 92, display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8, padding: '0 10px', borderRadius: 8, border: `1.5px solid ${error ? '#ba1a1a' : '#dde2f0'}`, background: '#fff', color: '#121c2a', fontSize: 14, fontWeight: 600, boxSizing: 'border-box', flexShrink: 0 }}>
-          <span aria-hidden="true" style={{ fontSize: 20, lineHeight: 1 }}>🇵🇪</span>
-          <span>+51</span>
-        </div>
-        <input
-          type="tel"
-          inputMode="numeric"
-          autoComplete="tel-national"
-          value={value}
-          onChange={evento => onChange(evento.target.value.replace(/\D/g, '').slice(0, 9))}
-          placeholder="Número de teléfono"
-          maxLength={9}
-          pattern="[0-9]{9}"
-          required={required}
-          aria-invalid={Boolean(error)}
-          style={{ width: '100%', minWidth: 0, padding: '9px 12px', borderRadius: 8, border: `1.5px solid ${error ? '#ba1a1a' : '#dde2f0'}`, background: '#f8f9ff', fontSize: 13, color: '#121c2a', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
-        />
-      </div>
-      {error
-        ? <p role="alert" style={{ fontSize: 11, color: '#ba1a1a', margin: '3px 0 0' }}>{error}</p>
-        : <p style={{ fontSize: 11, color: '#64748b', margin: '4px 0 0' }}>{hint}</p>}
-    </div>;
-}
-
-const CSV_USUARIOS_COLUMNAS = [
-    'tipoUsuario', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'dni',
-    'telefono', 'correo', 'password', 'edad', 'fechaNacimiento', 'dniApoderado'
-];
-
-function normalizarCsv(valor) {
-    return String(valor ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLocaleLowerCase('es');
-}
-
-function leerCsv(texto) {
-    const filas = [];
-    let fila = [];
-    let campo = '';
-    let entreComillas = false;
-    const contenido = String(texto ?? '').replace(/^\uFEFF/, '');
-    let comillasEncabezado = false;
-    let comas = 0;
-    let puntoYComa = 0;
-    for (const caracter of contenido) {
-        if (caracter === '"') comillasEncabezado = !comillasEncabezado;
-        else if (!comillasEncabezado && caracter === ',') comas += 1;
-        else if (!comillasEncabezado && caracter === ';') puntoYComa += 1;
-        else if (!comillasEncabezado && (caracter === '\n' || caracter === '\r')) break;
-    }
-    const separador = puntoYComa > comas ? ';' : ',';
-
-    for (let indice = 0; indice < contenido.length; indice += 1) {
-        const caracter = contenido[indice];
-        if (entreComillas) {
-            if (caracter === '"' && contenido[indice + 1] === '"') {
-                campo += '"';
-                indice += 1;
-            } else if (caracter === '"') {
-                entreComillas = false;
-            } else {
-                campo += caracter;
-            }
-        } else if (caracter === '"' && campo === '') {
-            entreComillas = true;
-        } else if (caracter === separador) {
-            fila.push(campo);
-            campo = '';
-        } else if (caracter === '\n' || caracter === '\r') {
-            fila.push(campo);
-            if (fila.some(valor => valor.trim() !== '')) filas.push(fila);
-            fila = [];
-            campo = '';
-            if (caracter === '\r' && contenido[indice + 1] === '\n') indice += 1;
-        } else {
-            campo += caracter;
-        }
-    }
-    if (entreComillas) throw new Error('Hay una comilla sin cerrar en el archivo CSV.');
-    fila.push(campo);
-    if (fila.some(valor => valor.trim() !== '')) filas.push(fila);
-    if (filas.length < 2) throw new Error('El CSV debe incluir los encabezados y al menos una fila de usuarios.');
-
-    const encabezados = filas[0].map(normalizarCsv);
-    const faltantes = CSV_USUARIOS_COLUMNAS.filter(columna => !encabezados.includes(normalizarCsv(columna)));
-    if (faltantes.length) throw new Error(`Faltan columnas requeridas en el encabezado: ${faltantes.join(', ')}.`);
-
-    return filas.slice(1).map((valores, indice) => {
-        const datos = Object.fromEntries(encabezados.map((encabezado, posicion) => [encabezado, (valores[posicion] ?? '').trim()]));
-        if (valores.slice(encabezados.length).some(valor => valor.trim())) {
-            return { linea: indice + 2, error: 'La fila tiene más valores que columnas en el encabezado.' };
-        }
-        const tipo = normalizarCsv(datos.tipousuario);
-        const tipoUsuario = ({ apoderado: 'apoderado', docente: 'docente', estudiante: 'estudiante' })[tipo];
-        if (!tipoUsuario) return { linea: indice + 2, error: 'tipoUsuario debe ser APODERADO, DOCENTE o ESTUDIANTE.' };
-        return {
-            linea: indice + 2,
-            tipoUsuario,
-            nombre: datos.nombre ?? '',
-            apellidoPaterno: datos.apellidopaterno ?? '',
-            apellidoMaterno: datos.apellidomaterno ?? '',
-            dni: datos.dni ?? '',
-            telefonoTexto: datos.telefono ?? '',
-            telefono: (() => {
-                const digitos = String(datos.telefono ?? '').replace(/\D/g, '');
-                return digitos.length === 11 && digitos.startsWith('51') ? digitos.slice(2) : digitos;
-            })(),
-            correo: datos.correo ?? '',
-            password: datos.password ?? '',
-            edad: datos.edad ?? '',
-            fechaNacimiento: datos.fechanacimiento ?? '',
-            dniApoderado: datos.dniapoderado ?? ''
-        };
-    });
-}
-
-function validarFilasCsv(filas, usuarios, usarMock) {
-    const errores = filas.filter(fila => fila.error).map(fila => `Fila ${fila.linea}: ${fila.error}`);
-    const correos = new Set(usuarios.map(usuario => normalizarCsv(usuario.correo)).filter(Boolean));
-    const dniPorRol = new Set(usuarios.map(usuario => `${normalizarCsv(usuario.rol)}:${usuario.dni}`));
-    const dniApoderados = new Set(usuarios.filter(usuario => usuario.rol === 'Apoderado' && usuario.activo).map(usuario => usuario.dni));
-    const dniApoderadosCsv = new Set(filas.filter(fila => fila.tipoUsuario === 'apoderado' && !fila.error).map(fila => fila.dni));
-    const prioridad = { apoderado: 0, docente: 1, estudiante: 2 };
-    const filasOrdenadas = filas.filter(fila => !fila.error).slice().sort((a, b) => prioridad[a.tipoUsuario] - prioridad[b.tipoUsuario] || a.linea - b.linea);
-
-    for (const fila of filasOrdenadas) {
-        const erroresFila = [];
-        const rol = ROL_POR_TIPO_REGISTRO[fila.tipoUsuario];
-        const etiqueta = `Fila ${fila.linea}`;
-        if (!fila.nombre || fila.nombre.length > 80) erroresFila.push('nombre es obligatorio y admite hasta 80 caracteres');
-        if (!fila.apellidoPaterno || fila.apellidoPaterno.length > 80) erroresFila.push('apellidoPaterno es obligatorio y admite hasta 80 caracteres');
-        if (fila.apellidoMaterno.length > 80) erroresFila.push('apellidoMaterno admite hasta 80 caracteres');
-        const dniValido = usarMock && fila.tipoUsuario === 'apoderado' ? /^(?:\d{8}|\d{9})$/.test(fila.dni) : /^\d{8}$/.test(fila.dni);
-        if (!dniValido) erroresFila.push('DNI debe tener 8 dígitos (el apoderado admite 9 en el modo de demostración)');
-        const dniClave = `${normalizarCsv(rol)}:${fila.dni}`;
-        if (dniPorRol.has(dniClave)) erroresFila.push('ya existe un usuario con ese DNI y rol');
-        dniPorRol.add(dniClave);
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fila.correo) || fila.correo.length > 160) erroresFila.push('correo debe tener un formato válido');
-        const correoClave = normalizarCsv(fila.correo);
-        if (correoClave && correos.has(correoClave)) erroresFila.push('el correo ya está registrado');
-        if (correoClave) correos.add(correoClave);
-        const telefonoIngresado = fila.telefonoTexto.trim() !== '';
-        if (telefonoIngresado && (!/^[+\d\s().-]+$/.test(fila.telefonoTexto) || !/^\d{9}$/.test(fila.telefono))) erroresFila.push('telefono debe tener exactamente 9 dígitos peruanos');
-        if ((fila.tipoUsuario === 'estudiante' || (usarMock && fila.tipoUsuario === 'docente')) && !telefonoIngresado) erroresFila.push('telefono es obligatorio');
-        if (!fila.password || fila.password.length < 8 || fila.password.length > 40) erroresFila.push('password es obligatorio y debe tener entre 8 y 40 caracteres');
-        if (fila.tipoUsuario === 'apoderado' || (usarMock && fila.tipoUsuario === 'docente')) {
-            const edad = Number(fila.edad);
-            const edadMinima = usarMock ? 18 : 1;
-            if (!/^\d+$/.test(fila.edad) || !Number.isSafeInteger(edad) || edad < edadMinima) erroresFila.push(`edad debe ser un entero de ${edadMinima} o más`);
-        }
-        if (fila.tipoUsuario === 'estudiante') {
-            const fecha = new Date(`${fila.fechaNacimiento}T00:00:00`);
-            const hoy = new Date();
-            hoy.setHours(23, 59, 59, 999);
-            if (!/^\d{4}-\d{2}-\d{2}$/.test(fila.fechaNacimiento) || Number.isNaN(fecha.getTime()) || fecha.toISOString().slice(0, 10) !== fila.fechaNacimiento || fecha > hoy) erroresFila.push('fechaNacimiento debe ser válida y no posterior a hoy');
-            if (!fila.dniApoderado || (!dniApoderados.has(fila.dniApoderado) && !dniApoderadosCsv.has(fila.dniApoderado))) erroresFila.push('dniApoderado debe identificar a un apoderado activo existente o incluido en este CSV');
-        }
-        if (erroresFila.length) errores.push(`${etiqueta}: ${erroresFila.join('; ')}.`);
-    }
-    return { errores, filasOrdenadas };
-}
-
-function descargarPlantillaCsv() {
-    const contenido = `\uFEFF${CSV_USUARIOS_COLUMNAS.join(',')}\r\n`;
-    const archivo = new Blob([contenido], { type: 'text/csv;charset=utf-8' });
-    const url = URL.createObjectURL(archivo);
-    const enlace = document.createElement('a');
-    enlace.href = url;
-    enlace.download = 'plantilla-carga-usuarios.csv';
-    enlace.click();
-    setTimeout(() => URL.revokeObjectURL(url), 1000);
-}
-
-function esAdministrador(usuario) {
-    return usuario?.rol === 'Administrador'
-        || usuario?.rol === 'ADMINISTRADOR'
-        || usuario?.rol === 'ADMIN';
-}
-
-function UsuarioField({ label, value, onChange, placeholder, type = 'text', error, required = false, min, maxLength, step }) {
-    return (<div>
-      <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 5 }}>{label}{required && <span style={{ color: '#ba1a1a' }}> *</span>}</label>
-      <input type={type} value={value} onChange={e => onChange(e.target.value)} placeholder={placeholder} required={required} min={min} maxLength={maxLength} step={step} style={{ width: '100%', padding: '9px 12px', borderRadius: 8, border: `1.5px solid ${error ? '#ba1a1a' : '#dde2f0'}`, background: '#f8f9ff', fontSize: 13, color: '#121c2a', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box', transition: 'border-color 0.15s' }} onFocus={e => e.currentTarget.style.borderColor = error ? '#ba1a1a' : '#0058be'} onBlur={e => e.currentTarget.style.borderColor = error ? '#ba1a1a' : '#dde2f0'}/>
-      {error && <p style={{ fontSize: 11, color: '#ba1a1a', margin: '3px 0 0', display: 'flex', alignItems: 'center', gap: 3 }}><svg width="10" height="10" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>{error}</p>}
-    </div>);
-}
-function UsuarioModalShell({ title, subtitle, onSubmit, submitLabel, submitDisabled, submitting, onClose, children }) {
-    return (<div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 24 }} onClick={e => { if (e.target === e.currentTarget)
-        onClose(); }}>
-      <div style={{ background: '#fff', borderRadius: 14, width: '100%', maxWidth: 520, boxShadow: '0 20px 60px rgba(0,35,111,0.18)', display: 'flex', flexDirection: 'column', maxHeight: '90vh' }}>
-        <div style={{ padding: '20px 24px 16px', borderBottom: '1px solid #f1f4f9', display: 'flex', alignItems: 'flex-start', justifyContent: 'space-between', gap: 12, flexShrink: 0 }}>
-          <div>
-            <div style={{ fontSize: 11, fontWeight: 700, color: '#94a3b8', letterSpacing: '0.07em', textTransform: 'uppercase', marginBottom: 4 }}>{subtitle}</div>
-            <h2 style={{ fontSize: 17, fontWeight: 700, color: '#121c2a', margin: 0 }}>{title}</h2>
-          </div>
-          <button onClick={onClose} style={{ width: 30, height: 30, borderRadius: '50%', border: '1px solid #e5e7eb', background: '#f8f9ff', cursor: 'pointer', display: 'flex', alignItems: 'center', justifyContent: 'center', flexShrink: 0 }}>
-            <svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="#64748b" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
-          </button>
-        </div>
-        <div style={{ padding: '20px 24px', overflowY: 'auto', flex: 1 }}>{children}</div>
-        <div style={{ padding: '14px 24px', borderTop: '1px solid #f1f4f9', display: 'flex', justifyContent: 'flex-end', gap: 10, background: '#fafbff', flexShrink: 0 }}>
-          <button onClick={onClose} style={{ padding: '9px 20px', borderRadius: 7, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onMouseEnter={e => e.currentTarget.style.background = '#f8f9ff'} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>Cancelar</button>
-          <button onClick={onSubmit} disabled={submitting || submitDisabled} style={{ padding: '9px 24px', borderRadius: 7, border: 'none', background: submitDisabled ? '#94a3b8' : '#00236f', color: '#fff', fontSize: 13, fontWeight: 700, cursor: submitDisabled ? 'not-allowed' : 'pointer', fontFamily: 'inherit', boxShadow: submitDisabled ? 'none' : '0 2px 8px rgba(0,35,111,0.22)', transition: 'background 0.15s' }} onMouseEnter={e => { if (!submitDisabled && !submitting)
-        e.currentTarget.style.background = '#001d5a'; }} onMouseLeave={e => { if (!submitDisabled && !submitting)
-        e.currentTarget.style.background = '#00236f'; }}>{submitting ? 'Guardando...' : submitLabel}</button>
-        </div>
-      </div>
-    </div>);
-}
 function PaginaUsuarios() {
     const [usuarios, setUsuarios] = useState(() => USAR_MOCK ? USUARIOS_INICIAL : []);
     const [cargando, setCargando] = useState(!USAR_MOCK);
@@ -257,26 +35,14 @@ function PaginaUsuarios() {
     const [intentoCarga, setIntentoCarga] = useState(0);
     const [query, setQuery] = useState('');
     const [rolFiltro, setRolFiltro] = useState('Todos');
-    const [toast, setToast] = useState(null);
+    const [estadoFiltro, setEstadoFiltro] = useState('Todos');
+    const [pagina, setPagina] = useState(0);
+    const [orden, setOrden] = useState(ORDEN_INICIAL);
+    const esMovil = useCoincideMedia('(max-width: 767px)');
+    const { notificacion, mostrarNotificacion } = useNotificacion();
+    // Diálogo abierto: un tipo de registro, 'cargaCsv', 'editar' o 'toggle'; `usuarioActivo` es el usuario de los dos últimos.
     const [modal, setModal] = useState(null);
-    const [csvFileName, setCsvFileName] = useState('');
-    const [csvRows, setCsvRows] = useState([]);
-    const [csvErrors, setCsvErrors] = useState([]);
-    const [csvSummary, setCsvSummary] = useState(null);
-    const [editTarget, setEditTarget] = useState(null);
-    const [toggleTarget, setToggleTarget] = useState(null);
-    const [submitting, setSubmitting] = useState(false);
-    const [csvBusy, setCsvBusy] = useState(false);
-    const [seccionesTutor, setSeccionesTutor] = useState([]);
-    const [cargandoSeccionesTutor, setCargandoSeccionesTutor] = useState(false);
-    const [errorSeccionesTutor, setErrorSeccionesTutor] = useState('');
-    const [intentoSeccionesTutor, setIntentoSeccionesTutor] = useState(0);
-    // Form fields
-    const emptyForm = { nombre: '', apellido: '', apellidoPaterno: '', apellidoMaterno: '', edad: '', dni: '', telefono: '', correo: '', password: '', confirm: '', fechaNacimiento: '', dniApoderado: '', apoderadoSeleccionado: null, apoderadoError: '' };
-    const [form, setForm] = useState(emptyForm);
-    const [formErrors, setFormErrors] = useState({});
-    const [editForm, setEditForm] = useState({ nombre: '', apellidoPaterno: '', apellidoMaterno: '', dni: '', telefono: '', correo: '', apoderadoId: '', dniApoderado: '', apoderadoSeleccionado: null, apoderadoError: '' });
-    const [editErrors, setEditErrors] = useState({});
+    const [usuarioActivo, setUsuarioActivo] = useState(null);
     useEffect(() => {
         if (USAR_MOCK) return undefined;
         let vigente = true;
@@ -293,610 +59,152 @@ function PaginaUsuarios() {
         });
         return () => { vigente = false; };
     }, [intentoCarga]);
-    useEffect(() => {
-        if (modal !== 'toggle' || !toggleTarget?.activo || toggleTarget.rol !== 'Docente') {
-            setSeccionesTutor([]);
-            setErrorSeccionesTutor('');
-            setCargandoSeccionesTutor(false);
-            return undefined;
-        }
-
-        let vigente = true;
-        setCargandoSeccionesTutor(true);
-        setSeccionesTutor([]);
-        setErrorSeccionesTutor('');
-        listarSeccionesTutor(toggleTarget.id).then((resultado) => {
-            if (!vigente) return;
-            if (!resultado.exitoso) {
-                setErrorSeccionesTutor(resultado.mensaje);
-            } else {
-                setSeccionesTutor(resultado.datos);
-            }
-            setCargandoSeccionesTutor(false);
-        });
-        return () => { vigente = false; };
-    }, [modal, toggleTarget, intentoSeccionesTutor]);
     const busqueda = query.trim().toLowerCase();
-    const filtered = usuarios.filter(u =>
-        (rolFiltro === 'Todos' || u.rol === rolFiltro) &&
-        (!busqueda || `${u.nombre} ${u.apellido}`.toLowerCase().includes(busqueda) || u.dni.includes(query.trim()))
+    const coincideBusqueda = u => !busqueda
+        || `${u.nombre} ${u.apellido}`.toLowerCase().includes(busqueda)
+        || u.dni.includes(query.trim())
+        || (u.correo ?? '').toLowerCase().includes(busqueda);
+    const coincideEstado = u => estadoFiltro === 'Todos' || (estadoFiltro === 'activo') === Boolean(u.activo);
+    const coincideRol = u => rolFiltro === 'Todos' || u.rol === rolFiltro;
+    const filtered = usuarios.filter(u => coincideBusqueda(u) && coincideRol(u) && coincideEstado(u));
+    const hayFiltros = Boolean(busqueda) || rolFiltro !== 'Todos' || estadoFiltro !== 'Todos';
+    // Conteo de los chips de rol: la búsqueda y el estado se aplican a cada chip. Con el rol en "Todos" todos
+    // los chips muestran su cantidad; al elegir un rol solo ese chip la muestra (el resultado filtrado), porque
+    // el conteo de los demás ya no corresponde a lo que se está viendo.
+    const opcionesRol = OPCIONES_FILTRO_ROL.map(opcion => ({
+        ...opcion,
+        conteo: rolFiltro === 'Todos' || opcion.valor === rolFiltro
+            ? usuarios.filter(u => coincideBusqueda(u) && coincideEstado(u) && (opcion.valor === 'Todos' || u.rol === opcion.valor)).length
+            : undefined
+    }));
+    // Filtros aplicados que no se ven como chip (el rol ya se ve en sus chips): el estado, que está en un selector.
+    const chipsActivos = estadoFiltro === 'Todos'
+        ? []
+        : [{
+            id: 'estado',
+            etiqueta: `Estado: ${OPCIONES_FILTRO_ESTADO.find(opcion => opcion.valor === estadoFiltro)?.etiqueta ?? estadoFiltro}`,
+            alQuitar: () => cambiarEstado('Todos')
+        }];
+    const ordenados = ordenarUsuarios(filtered, orden);
+    const totalPaginas = Math.max(1, Math.ceil(ordenados.length / TAMANIO_PAGINA_USUARIOS));
+    const paginaActual = Math.min(pagina, totalPaginas - 1);
+    const usuariosPagina = ordenados.slice(paginaActual * TAMANIO_PAGINA_USUARIOS, (paginaActual + 1) * TAMANIO_PAGINA_USUARIOS);
+    const refInicioListado = useRef(null);
+    // Al cambiar de página (sobre todo desde el paginador inferior), devuelve la vista al inicio del listado.
+    const cambiarPagina = nuevaPagina => {
+        setPagina(nuevaPagina);
+        const reducirMovimiento = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+        refInicioListado.current?.scrollIntoView?.({ block: 'start', behavior: reducirMovimiento ? 'auto' : 'smooth' });
+    };
+    const hayResultados = !cargando && !errorCarga && ordenados.length > 0;
+    // El mismo paginador (con el total y el campo de página) va arriba y abajo del listado, como en Log de errores.
+    const paginador = posicion => (
+        <Paginacion
+          pagina={paginaActual}
+          totalPaginas={totalPaginas}
+          totalElementos={ordenados.length}
+          tamanioPagina={TAMANIO_PAGINA_USUARIOS}
+          cantidadEnPagina={usuariosPagina.length}
+          alCambiarPagina={cambiarPagina}
+          etiqueta={`Paginación de usuarios (${posicion})`}
+          unidadSingular="usuario"
+          unidadPlural="usuarios"
+          anunciarTotal={posicion === 'superior'}
+        />
     );
-    const showToast = (msg, error = false) => {
-        setToast({ mensaje: msg, error });
-        setTimeout(() => setToast(null), 4000);
+    // Cambiar un criterio de búsqueda o filtro vuelve a la primera página.
+    const cambiarBusqueda = valor => { setQuery(valor); setPagina(0); };
+    const cambiarRol = valor => { setRolFiltro(valor); setPagina(0); };
+    const cambiarEstado = valor => { setEstadoFiltro(valor); setPagina(0); };
+    const limpiarFiltros = () => { setQuery(''); setRolFiltro('Todos'); setEstadoFiltro('Todos'); setPagina(0); };
+    // Pulsar la misma columna invierte el sentido; otra columna empieza en ascendente.
+    const ordenarPor = campo => {
+        setOrden(actual => ({ campo, direccion: actual.campo === campo && actual.direccion === 'asc' ? 'desc' : 'asc' }));
+        setPagina(0);
     };
-    const openRegister = (kind) => {
-        setForm(emptyForm);
-        setFormErrors({});
-        setModal(kind);
-    };
+    const closeModal = () => setModal(null);
+    const abrirCargaCsv = () => setModal('cargaCsv');
+    const openRegister = (tipo) => setModal(tipo);
     const openEdit = (u) => {
         if (esAdministrador(u)) return;
-        const telefonoInicial = separarTelefono(u.telefono);
-        const apoderadoAsignado = u.rol === 'Estudiante'
-            ? usuarios.find(usuario => String(usuario.id) === String(u.apoderadoId))
-                ?? (u.apoderadoId != null && u.apoderadoNombre
-                    ? { id: u.apoderadoId, nombre: u.apoderadoNombre, apellido: '', dni: u.apoderadoDni ?? '', activo: true }
-                    : null)
-            : null;
-        setEditTarget(u);
-        setEditForm({
-            nombre: u.nombre ?? '',
-            apellidoPaterno: u.apellidoPaterno ?? u.apellido ?? '',
-            apellidoMaterno: u.apellidoMaterno ?? '',
-            dni: u.dni ?? '',
-            telefono: telefonoInicial,
-            correo: u.correo ?? '',
-            apoderadoId: apoderadoAsignado?.id == null ? '' : String(apoderadoAsignado.id),
-            dniApoderado: apoderadoAsignado?.dni ?? '',
-            apoderadoSeleccionado: apoderadoAsignado,
-            apoderadoError: ''
-        });
-        setEditErrors({});
+        setUsuarioActivo(u);
         setModal('editar');
     };
     const openToggle = (u) => {
         if (esAdministrador(u)) return;
-        setToggleTarget(u);
+        setUsuarioActivo(u);
         setModal('toggle');
     };
-    const closeModal = () => { setModal(null); setSubmitting(false); };
-    const f = (key, val) => {
-        setForm(p => ({ ...p, [key]: val }));
-        setFormErrors(p => ({ ...p, [key]: '' }));
-    };
-    // Apoderado search for estudiante form
-    const searchApoderado = () => {
-        const found = usuarios.find(u => u.rol === 'Apoderado' && u.activo && u.dni === form.dniApoderado.trim());
-        if (found)
-            setForm(p => ({ ...p, apoderadoSeleccionado: found, apoderadoError: '' }));
-        else
-            setForm(p => ({ ...p, apoderadoSeleccionado: null, apoderadoError: 'No se encontró un apoderado registrado con este DNI.' }));
-    };
-    const searchEditApoderado = () => {
-        const dniBuscado = editForm.dniApoderado.trim();
-        const found = usuarios.find(usuario => usuario.rol === 'Apoderado'
-            && usuario.dni === dniBuscado
-            && (usuario.activo || String(usuario.id) === String(editTarget?.apoderadoId)));
-        if (found) {
-            setEditForm(p => ({
-                ...p,
-                apoderadoId: String(found.id),
-                apoderadoSeleccionado: found,
-                apoderadoError: ''
-            }));
-            setEditErrors(p => ({ ...p, apoderadoId: '' }));
-        } else {
-            setEditForm(p => ({ ...p, apoderadoId: '', apoderadoSeleccionado: null, apoderadoError: 'No se encontró un apoderado activo con este DNI.' }));
-        }
-    };
-    const validateRegister = (kind) => {
-        const errs = {};
-        if (!form.nombre.trim())
-            errs.nombre = 'Ingrese el nombre.';
-        const apellidosSeparados = kind === 'estudiante' || !USAR_MOCK;
-        if (apellidosSeparados && !form.apellidoPaterno.trim())
-            errs.apellidoPaterno = 'Ingrese el apellido paterno.';
-        if (!apellidosSeparados && !form.apellido.trim())
-            errs.apellido = 'Ingrese el apellido.';
-        if (kind === 'estudiante' && !form.fechaNacimiento)
-            errs.fechaNacimiento = 'Ingrese la fecha de nacimiento.';
-        if (kind === 'apoderado') {
-            const edad = Number(form.edad);
-            const edadMinima = USAR_MOCK ? 18 : 1;
-            if (!/^\d+$/.test(form.edad.trim()) || !Number.isSafeInteger(edad) || edad < edadMinima)
-                errs.edad = USAR_MOCK ? 'La edad debe ser un número entero de 18 años o más.' : 'Ingrese una edad válida mayor que cero.';
-        } else if (USAR_MOCK && kind === 'docente') {
-            const edad = Number(form.edad);
-            if (!/^\d+$/.test(form.edad.trim()) || !Number.isSafeInteger(edad) || edad < 18)
-                errs.edad = 'La edad del docente debe ser un número entero de 18 años o más.';
-        }
-        const documentoValido = USAR_MOCK && kind === 'apoderado'
-            ? /^(?:\d{8}|\d{9})$/.test(form.dni.trim())
-            : /^\d{8}$/.test(form.dni.trim());
-        if (!documentoValido)
-            errs.dni = kind === 'apoderado' ? 'Ingrese un DNI de 8 dígitos o un Carné de Extranjería de 9 dígitos.' : 'El DNI debe tener 8 dígitos.';
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo.trim()))
-            errs.correo = 'Ingrese un correo válido.';
-        if (usuarios.some(u => u.dni.trim() === form.dni.trim() && u.rol === ROL_POR_TIPO_REGISTRO[kind]))
-            errs.dni = 'Ya existe una cuenta con este DNI y rol.';
-        if (form.nombre.trim().length > 80)
-            errs.nombre = 'El nombre no puede superar los 80 caracteres.';
-        if (form.apellidoPaterno.trim().length > 80)
-            errs.apellidoPaterno = 'El apellido paterno no puede superar los 80 caracteres.';
-        if (form.apellidoMaterno.trim().length > 80)
-            errs.apellidoMaterno = 'El apellido materno no puede superar los 80 caracteres.';
-        if (form.correo.trim().length > 160)
-            errs.correo = 'El correo no puede superar los 160 caracteres.';
-        if (usuarios.some(u => u.correo.trim().toLowerCase() === form.correo.trim().toLowerCase()))
-            errs.correo = 'Ya existe un usuario registrado con este correo.';
-        const telefonoIngresado = form.telefono.trim();
-        const telefonoValido = /^\d{9}$/.test(telefonoIngresado);
-        if (USAR_MOCK && (kind === 'estudiante' || kind === 'docente') && !telefonoIngresado)
-            errs.telefono = kind === 'docente' ? 'Ingrese el teléfono del docente.' : 'Ingrese el teléfono del estudiante.';
-        else if (telefonoIngresado && !telefonoValido)
-            errs.telefono = 'El teléfono debe tener exactamente 9 dígitos.';
-        if (!form.password)
-            errs.password = 'Ingrese la contraseña.';
-        else if (form.password.length < 8 || form.password.length > 40)
-            errs.password = 'La contraseña debe tener entre 8 y 40 caracteres.';
-        if (form.password !== form.confirm)
-            errs.confirm = 'Las contraseñas no coinciden.';
-        if (kind === 'estudiante' && !form.apoderadoSeleccionado)
-            errs.dniApoderado = 'Seleccione un apoderado válido.';
-        return errs;
-    };
-    const handleRegister = async (kind) => {
-        const errs = validateRegister(kind);
-        if (Object.keys(errs).length) {
-            setFormErrors(errs);
-            return;
-        }
-        let codigoEstudiante;
-        if (kind === 'estudiante') {
-            const normalizarCodigo = codigo => codigo.replace(/-/g, '').toUpperCase();
-            const codigosUsados = new Set([
-                ...CODIGOS_ESTUDIANTE_HISTORICOS,
-                ...usuarios.map(usuario => usuario.codigoEstudiante).filter(Boolean)
-            ].map(normalizarCodigo));
-            let correlativo = 1;
-            do {
-                const prefijo = USAR_MOCK ? 'EST-' : 'EST';
-                codigoEstudiante = `${prefijo}${String(correlativo).padStart(3, '0')}`;
-                correlativo += 1;
-            } while (codigosUsados.has(normalizarCodigo(codigoEstudiante)));
-        }
-        setSubmitting(true);
-        try {
-            const telefono = telefonoPeru(form.telefono);
-            if (!USAR_MOCK) {
-                const datosBase = {
-                    nombre: form.nombre.trim(),
-                    apellidoPaterno: form.apellidoPaterno.trim(),
-                    ...(form.apellidoMaterno.trim() ? { apellidoMaterno: form.apellidoMaterno.trim() } : {}),
-                    dni: form.dni.trim(),
-                    email: form.correo.trim(),
-                    ...(telefono ? { telefono } : {}),
-                    password: form.password
-                };
-                const registrar = {
-                    estudiante: () => registrarEstudiante({
-                        ...datosBase,
-                        codigo: codigoEstudiante,
-                        fechaNacimiento: form.fechaNacimiento,
-                        apoderadoId: form.apoderadoSeleccionado.id
-                    }),
-                    apoderado: () => registrarApoderado({ ...datosBase, edad: Number(form.edad) }),
-                    docente: () => registrarDocente(datosBase)
-                }[kind];
-                const resultado = await registrar();
-
-                if (!resultado.exitoso) {
-                    showToast(resultado.mensaje || `No fue posible registrar al ${kind}.`, true);
-                    return;
-                }
-
-                setUsuarios(p => [...p, resultado.datos]);
-                closeModal();
-                showToast(kind === 'estudiante'
-                    ? `El estudiante ha sido registrado correctamente. Código: ${resultado.datos.codigoEstudiante}`
-                    : `El ${kind} ha sido registrado correctamente.`);
-                return;
-            }
-
-            const nuevo = {
-                id: 'u' + Date.now(), nombre: form.nombre.trim(),
-                apellido: kind === 'estudiante' ? `${form.apellidoPaterno.trim()} ${form.apellidoMaterno.trim()}` : form.apellido.trim(),
-                dni: form.dni.trim(), rol: ROL_POR_TIPO_REGISTRO[kind], correo: form.correo.trim(), activo: true,
-                ...(kind !== 'estudiante' ? { edad: Number(form.edad) } : {}),
-                ...(telefono ? { telefono } : {}),
-                ...(kind === 'estudiante' ? { codigoEstudiante, apoderadoId: form.apoderadoSeleccionado.id, fechaNacimiento: form.fechaNacimiento } : {})
-            };
-            setUsuarios(p => [...p, nuevo]);
-            closeModal();
-            const msg = { apoderado: 'El apoderado ha sido registrado correctamente.', estudiante: 'El estudiante ha sido registrado correctamente.', docente: 'El docente ha sido registrado correctamente.' };
-            showToast(kind === 'estudiante' ? `${msg[kind]} Código: ${codigoEstudiante}` : msg[kind]);
-        } catch {
-            showToast('No fue posible registrar al usuario. Inténtalo de nuevo.', true);
-        } finally {
-            setSubmitting(false);
-        }
-    };
-    const handleCsvFile = async (evento) => {
-        const archivo = evento.target.files?.[0];
-        evento.target.value = '';
-        setCsvFileName(archivo?.name ?? '');
-        setCsvRows([]);
-        setCsvErrors([]);
-        setCsvSummary(null);
-        if (!archivo) return;
-        if (!archivo.name.toLowerCase().endsWith('.csv')) {
-            setCsvErrors(['Selecciona un archivo con extensión .csv.']);
-            return;
-        }
-        if (archivo.size > 5 * 1024 * 1024) {
-            setCsvErrors(['El archivo no debe superar los 5 MB.']);
-            return;
-        }
-        try {
-            const filas = leerCsv(await archivo.text());
-            const { errores, filasOrdenadas } = validarFilasCsv(filas, usuarios, USAR_MOCK);
-            setCsvRows(filasOrdenadas);
-            setCsvErrors(errores);
-        } catch (error) {
-            setCsvErrors([error.message || 'No se pudo leer el archivo CSV.']);
-        }
-    };
-    const handleImportarCsv = async () => {
-        const { errores, filasOrdenadas } = validarFilasCsv(csvRows, usuarios, USAR_MOCK);
-        if (errores.length || !filasOrdenadas.length) {
-            setCsvErrors(errores.length ? errores : ['El archivo no contiene filas para importar.']);
-            return;
-        }
-
-        setCsvBusy(true);
-        const usuariosActuales = [...usuarios];
-        const apoderadosPorDni = new Map(usuariosActuales
-            .filter(usuario => usuario.rol === 'Apoderado' && usuario.activo)
-            .map(usuario => [usuario.dni, usuario]));
-        const codigosUsados = new Set([
-            ...CODIGOS_ESTUDIANTE_HISTORICOS,
-            ...usuariosActuales.map(usuario => usuario.codigoEstudiante).filter(Boolean)
-        ].map(codigo => codigo.replace(/-/g, '').toUpperCase()));
-        const erroresImportacion = [];
-        let importados = 0;
-
-        try {
-            for (const [indice, fila] of filasOrdenadas.entries()) {
-                let nuevoUsuario;
-                const telefono = telefonoPeru(fila.telefono);
-                const datosBase = {
-                    nombre: fila.nombre,
-                    apellidoPaterno: fila.apellidoPaterno,
-                    ...(fila.apellidoMaterno ? { apellidoMaterno: fila.apellidoMaterno } : {}),
-                    dni: fila.dni,
-                    email: fila.correo,
-                    ...(telefono ? { telefono } : {}),
-                    password: fila.password
-                };
-                const prefijoCodigo = USAR_MOCK ? 'EST-' : 'EST';
-                let codigoEstudiante;
-
-                if (fila.tipoUsuario === 'estudiante') {
-                    let correlativo = 1;
-                    do {
-                        codigoEstudiante = `${prefijoCodigo}${String(correlativo).padStart(3, '0')}`;
-                        correlativo += 1;
-                    } while (codigosUsados.has(codigoEstudiante.replace(/-/g, '').toUpperCase()));
-                    codigosUsados.add(codigoEstudiante.replace(/-/g, '').toUpperCase());
-                }
-
-                try {
-                    if (USAR_MOCK) {
-                        const apoderado = fila.tipoUsuario === 'estudiante' ? apoderadosPorDni.get(fila.dniApoderado) : null;
-                        if (fila.tipoUsuario === 'estudiante' && !apoderado) {
-                            erroresImportacion.push(`Fila ${fila.linea}: no se pudo asociar el apoderado ${fila.dniApoderado}.`);
-                            continue;
-                        }
-                        nuevoUsuario = {
-                            id: `csv-${Date.now()}-${indice}`,
-                            nombre: fila.nombre,
-                            apellido: [fila.apellidoPaterno, fila.apellidoMaterno].filter(Boolean).join(' '),
-                            apellidoPaterno: fila.apellidoPaterno,
-                            apellidoMaterno: fila.apellidoMaterno,
-                            dni: fila.dni,
-                            rol: ROL_POR_TIPO_REGISTRO[fila.tipoUsuario],
-                            correo: fila.correo,
-                            activo: true,
-                            ...(fila.edad ? { edad: Number(fila.edad) } : {}),
-                            ...(telefono ? { telefono } : {}),
-                            ...(fila.tipoUsuario === 'estudiante' ? {
-                                codigoEstudiante,
-                                fechaNacimiento: fila.fechaNacimiento,
-                                apoderadoId: apoderado.id
-                            } : {})
-                        };
-                    } else {
-                        let resultado;
-                        if (fila.tipoUsuario === 'apoderado') {
-                            resultado = await registrarApoderado({ ...datosBase, edad: Number(fila.edad) });
-                        } else if (fila.tipoUsuario === 'docente') {
-                            resultado = await registrarDocente(datosBase);
-                        } else {
-                            const apoderado = apoderadosPorDni.get(fila.dniApoderado);
-                            if (!apoderado) {
-                                erroresImportacion.push(`Fila ${fila.linea}: no se pudo asociar el apoderado ${fila.dniApoderado}; verifica que se haya creado correctamente.`);
-                                continue;
-                            }
-                            resultado = await registrarEstudiante({
-                                ...datosBase,
-                                codigo: codigoEstudiante,
-                                fechaNacimiento: fila.fechaNacimiento,
-                                apoderadoId: apoderado.id
-                            });
-                        }
-                        if (!resultado.exitoso || !resultado.datos) {
-                            erroresImportacion.push(`Fila ${fila.linea}: ${resultado.mensaje || 'el servidor rechazó el registro.'}`);
-                            continue;
-                        }
-                        nuevoUsuario = resultado.datos;
-                    }
-
-                    usuariosActuales.push(nuevoUsuario);
-                    if (fila.tipoUsuario === 'apoderado') apoderadosPorDni.set(fila.dni, nuevoUsuario);
-                    importados += 1;
-                } catch (error) {
-                    erroresImportacion.push(`Fila ${fila.linea}: ${error.message || 'no fue posible registrar el usuario.'}`);
-                }
-            }
-            setUsuarios(usuariosActuales);
-            setCsvSummary({ importados, errores: erroresImportacion });
-            if (importados && erroresImportacion.length === 0) {
-                setModal(null);
-                showToast(`Se importaron correctamente ${importados} usuarios.`);
-            } else if (importados) {
-                showToast(`Se importaron ${importados} usuarios; ${erroresImportacion.length} filas requieren revisión.`, true);
-            }
-        } finally {
-            setCsvBusy(false);
-        }
-    };
-    const handleEdit = async () => {
-        if (!editTarget || esAdministrador(editTarget)) return;
-        const errs = {};
-        if (!editForm.nombre.trim())
-            errs.nombre = 'Ingrese el nombre.';
-        if (editForm.nombre.trim().length > 80)
-            errs.nombre = 'El nombre no puede superar los 80 caracteres.';
-        if (editForm.apellidoPaterno.trim().length > 80)
-            errs.apellidoPaterno = 'El apellido paterno no puede superar los 80 caracteres.';
-        if (editForm.apellidoMaterno.trim().length > 80)
-            errs.apellidoMaterno = 'El apellido materno no puede superar los 80 caracteres.';
-        if (!/^\d{8}$/.test(editForm.dni.trim()))
-            errs.dni = 'El DNI debe tener exactamente 8 dígitos.';
-        if (usuarios.some(u => u.id !== editTarget.id && u.dni.trim() === editForm.dni.trim() && u.rol === editTarget.rol))
-            errs.dni = 'Este DNI ya pertenece a otra cuenta del mismo rol.';
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(editForm.correo.trim()) || editForm.correo.trim().length > 160)
-            errs.correo = 'Ingrese un correo válido.';
-        if (usuarios.some(u => u.id !== editTarget.id && u.correo.trim().toLowerCase() === editForm.correo.trim().toLowerCase()))
-            errs.correo = 'Este correo ya pertenece a otro usuario.';
-        const telefonoIngresado = editForm.telefono.trim();
-        const telefonoCompacto = telefonoPeru(telefonoIngresado);
-        if (telefonoIngresado && !/^\d{9}$/.test(telefonoIngresado))
-            errs.telefono = 'El teléfono debe tener exactamente 9 dígitos.';
-        if (editTarget.rol === 'Estudiante' && (!editForm.apoderadoId || !editForm.apoderadoSeleccionado))
-            errs.apoderadoId = 'Seleccione un apoderado para el estudiante.';
-        if (Object.keys(errs).length) {
-            setEditErrors(errs);
-            return;
-        }
-
-        const datosActualizados = {};
-        const nombre = editForm.nombre.trim();
-        const apellidoPaterno = editForm.apellidoPaterno.trim();
-        const apellidoMaterno = editForm.apellidoMaterno.trim();
-        const dni = editForm.dni.trim();
-        const correo = editForm.correo.trim();
-        if (nombre !== (editTarget.nombre ?? '')) datosActualizados.nombre = nombre;
-        if (apellidoPaterno !== (editTarget.apellidoPaterno ?? editTarget.apellido ?? '')) {
-            datosActualizados.apellidoPaterno = apellidoPaterno;
-        }
-        if (apellidoMaterno !== (editTarget.apellidoMaterno ?? '')) {
-            datosActualizados.apellidoMaterno = apellidoMaterno || null;
-        }
-        if (dni !== (editTarget.dni ?? '')) datosActualizados.dni = dni;
-        if (correo !== (editTarget.correo ?? '')) datosActualizados.email = correo;
-        if (telefonoCompacto !== telefonoPeru(editTarget.telefono)) {
-            datosActualizados.telefono = telefonoCompacto || null;
-        }
-        if (editTarget.rol === 'Estudiante'
-            && String(editForm.apoderadoId) !== String(editTarget.apoderadoId ?? '')) {
-            datosActualizados.apoderadoId = editForm.apoderadoSeleccionado.id;
-        }
-
-        if (Object.keys(datosActualizados).length === 0) {
-            closeModal();
-            showToast('No hay cambios para guardar.');
-            return;
-        }
-
-        setSubmitting(true);
-        try {
-            if (USAR_MOCK) {
-                setUsuarios(actuales => actuales.map(usuario => usuario.id === editTarget.id ? {
-                    ...usuario,
-                    nombre,
-                    apellido: [apellidoPaterno, apellidoMaterno].filter(Boolean).join(' '),
-                    dni,
-                    correo,
-                    telefono: telefonoCompacto,
-                    ...(editTarget.rol === 'Estudiante' ? { apoderadoId: datosActualizados.apoderadoId ?? editTarget.apoderadoId } : {})
-                } : usuario));
-                closeModal();
-                showToast('Los datos del usuario han sido actualizados correctamente.');
-                return;
-            }
-
-            const resultado = await actualizarUsuario(editTarget.id, datosActualizados);
-            if (!resultado.exitoso) {
-                showToast(resultado.mensaje || 'No fue posible actualizar el usuario.', true);
-                return;
-            }
-
-            setUsuarios(actuales => actuales.map(usuario => usuario.id === editTarget.id ? {
-                ...editTarget,
-                ...resultado.datos,
-                ...(editTarget.rol === 'Estudiante' ? { apoderadoId: datosActualizados.apoderadoId ?? editTarget.apoderadoId } : {})
-            } : usuario));
-            closeModal();
-            showToast('Los datos del usuario han sido actualizados correctamente.');
-        } catch {
-            showToast('No fue posible actualizar el usuario. Revisa la conexión con el backend.', true);
-        } finally {
-            setSubmitting(false);
-        }
-    };
-    const handleToggle = async () => {
-        if (!toggleTarget || esAdministrador(toggleTarget)) return;
-        const debeVerificarTutor = toggleTarget.activo && toggleTarget.rol === 'Docente';
-        if (debeVerificarTutor && (cargandoSeccionesTutor || errorSeccionesTutor)) return;
-        setSubmitting(true);
-        const resultado = await cambiarEstadoUsuario(toggleTarget.id, toggleTarget.activo);
-        setSubmitting(false);
-        if (!resultado.exitoso) {
-            showToast(resultado.mensaje || 'No fue posible actualizar el estado del usuario.', true);
-            return;
-        }
-        setUsuarios(p => p.map(u => u.id === toggleTarget.id ? { ...u, activo: !u.activo } : u));
-        const msg = toggleTarget.activo ? 'El usuario ha sido desactivado correctamente.' : 'El usuario ha sido activado correctamente.';
-        closeModal();
-        showToast(msg);
-    };
-    // Register form body shared by apoderado+docente (same fields)
-    const RegisterFields = ({ kind }) => (<div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <UsuarioField label="Nombre" value={form.nombre} onChange={v => f('nombre', v)} placeholder="Ingrese el nombre" error={formErrors.nombre} maxLength={80} required/>
-        {kind === 'estudiante'
-          ? <UsuarioField label="Apellido paterno" value={form.apellidoPaterno} onChange={v => f('apellidoPaterno', v)} placeholder="Ingrese el apellido paterno" error={formErrors.apellidoPaterno} maxLength={80} required/>
-          : !USAR_MOCK
-            ? <UsuarioField label="Apellido paterno" value={form.apellidoPaterno} onChange={v => f('apellidoPaterno', v)} placeholder="Ingrese el apellido paterno" error={formErrors.apellidoPaterno} maxLength={80} required/>
-            : <UsuarioField label="Apellido" value={form.apellido} onChange={v => f('apellido', v)} placeholder="Ingrese el apellido" error={formErrors.apellido} required/>}
-      </div>
-      {(kind === 'estudiante' || !USAR_MOCK) && <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <UsuarioField label="Apellido materno" value={form.apellidoMaterno} onChange={v => f('apellidoMaterno', v)} placeholder="Opcional" error={formErrors.apellidoMaterno} maxLength={80}/>
-        {kind === 'estudiante' && <UsuarioField label="Fecha de nacimiento" type="date" value={form.fechaNacimiento} onChange={v => f('fechaNacimiento', v)} error={formErrors.fechaNacimiento} required/>}
-      </div>}
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        {(kind === 'apoderado' || (USAR_MOCK && kind === 'docente')) && <div>
-          <UsuarioField label="Edad" type="number" min={USAR_MOCK ? 18 : 1} step={1} value={form.edad} onChange={v => f('edad', v)} placeholder="Ingrese la edad" error={formErrors.edad} required/>
-          {kind === 'docente' && <p style={{ fontSize: 11, color: '#64748b', margin: '4px 0 0' }}>El docente debe tener 18 años o más.</p>}
-        </div>}
-        <UsuarioField label={kind === 'apoderado' && USAR_MOCK ? 'Documento de identidad' : 'DNI'} value={form.dni} onChange={v => f('dni', v)} placeholder="Ingrese el DNI" error={formErrors.dni} maxLength={9} required/>
-      </div>
-      {(kind === 'apoderado' || kind === 'docente' || kind === 'estudiante') && (<>
-          <TelefonoField
-            value={form.telefono}
-            onChange={telefono => {
-              setForm(p => ({ ...p, telefono }));
-              setFormErrors(p => ({ ...p, telefono: '' }));
-            }}
-            error={formErrors.telefono}
-            required={USAR_MOCK ? (kind === 'estudiante' || kind === 'docente') : kind === 'estudiante'}
-            hint="Celular peruano: ingrese exactamente 9 dígitos."
-          />
-        </>)}
-      <UsuarioField label="Correo" type="email" value={form.correo} onChange={v => f('correo', v)} placeholder="Ingrese el correo electrónico" error={formErrors.correo} maxLength={160} required/>
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-        <UsuarioField label={kind === 'estudiante' || kind === 'docente' ? 'Contraseña inicial' : 'Contraseña'} type="password" value={form.password} onChange={v => f('password', v)} placeholder="Ingrese la contraseña" error={formErrors.password} maxLength={40} required/>
-        <UsuarioField label="Confirmar contraseña" type="password" value={form.confirm} onChange={v => f('confirm', v)} placeholder="Confirme la contraseña" error={formErrors.confirm} maxLength={40}/>
-      </div>
-      <p style={{ fontSize: 11, color: '#64748b', margin: '-8px 0 0' }}>La contraseña debe tener entre 8 y 40 caracteres.</p>
-      {kind === 'estudiante' && (<div>
-          <label style={{ display: 'block', fontSize: 12, fontWeight: 600, color: '#374151', marginBottom: 5 }}>DNI del apoderado <span style={{ color: '#ba1a1a' }}>*</span></label>
-          <div style={{ display: 'flex', gap: 8 }}>
-            <input value={form.dniApoderado} onChange={e => { setForm(p => ({ ...p, dniApoderado: e.target.value, apoderadoError: '', apoderadoSeleccionado: null })); setFormErrors(p => ({ ...p, dniApoderado: '' })); }} placeholder="Ingrese DNI o Carné de Extranjería..." style={{ flex: 1, padding: '9px 12px', borderRadius: 8, border: `1.5px solid ${(formErrors.dniApoderado || form.apoderadoError) ? '#ba1a1a' : '#dde2f0'}`, background: '#f8f9ff', fontSize: 13, color: '#121c2a', fontFamily: 'inherit', outline: 'none', transition: 'border-color 0.15s' }} onFocus={e => e.currentTarget.style.borderColor = '#0058be'} onBlur={e => e.currentTarget.style.borderColor = '#dde2f0'} onKeyDown={e => e.key === 'Enter' && searchApoderado()}/>
-            <button onClick={searchApoderado} style={{ padding: '9px 16px', borderRadius: 8, border: 'none', background: '#0058be', color: '#fff', fontSize: 12, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit', whiteSpace: 'nowrap' }}>Buscar</button>
-          </div>
-          {form.apoderadoError && <p style={{ fontSize: 11, color: '#ba1a1a', margin: '3px 0 0' }}>{form.apoderadoError}</p>}
-          {formErrors.dniApoderado && !form.apoderadoError && <p style={{ fontSize: 11, color: '#ba1a1a', margin: '3px 0 0' }}>{formErrors.dniApoderado}</p>}
-          {form.apoderadoSeleccionado && (<div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, padding: '10px 14px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 8 }}>
-              <div>
-                <div style={{ fontSize: 11, fontWeight: 700, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 2 }}>Apoderado seleccionado</div>
-                <div style={{ fontSize: 13, fontWeight: 600, color: '#121c2a' }}>{form.apoderadoSeleccionado.nombre} {form.apoderadoSeleccionado.apellido}</div>
-                <div style={{ fontSize: 12, color: '#64748b' }}>DNI: {form.apoderadoSeleccionado.dni}</div>
-              </div>
-              <button onClick={() => setForm(p => ({ ...p, apoderadoSeleccionado: null, dniApoderado: '' }))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 4, borderRadius: 6 }} onMouseEnter={e => e.currentTarget.style.color = '#ba1a1a'} onMouseLeave={e => e.currentTarget.style.color = '#94a3b8'}><svg width="14" height="14" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2.5" strokeLinecap="round"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg></button>
-            </div>)}
-        </div>)}
-    </div>);
     return (<div className={estilos.pagina}>
-      {/* Toast */}
-      {toast && (<div role={toast.error ? 'alert' : 'status'} style={{ position: 'fixed', top: 20, right: 24, zIndex: 99999, background: '#121c2a', color: '#fff', padding: '12px 18px', borderRadius: 10, fontSize: 13, fontWeight: 500, boxShadow: '0 8px 28px rgba(0,0,0,0.18)', display: 'flex', alignItems: 'center', gap: 10, maxWidth: 420 }}>
-          <svg width="15" height="15" viewBox="0 0 24 24" fill="none" stroke={toast.error ? '#f87171' : '#4ade80'} strokeWidth="2.5" strokeLinecap="round">
-            {toast.error ? <><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></> : <polyline points="20 6 9 17 4 12"/>}
-          </svg>
-          {toast.mensaje}
-        </div>)}
+      {notificacion && <Notificacion mensaje={notificacion.mensaje} error={notificacion.error} />}
 
-      {/* Título a la izquierda y total de resultados a su nivel, a la derecha */}
+      {/* Barra de título (GUI §6): título a la izquierda y acciones globales a la derecha, secundaria y luego primaria. */}
       <header className={estilos.cabecera}>
-        <h1 className={estilos.titulo}>Usuarios</h1>
-        {!cargando && !errorCarga && (
-          <p className={estilos.contador} role="status" aria-live="polite">
-            {filtered.length} {filtered.length === 1 ? 'usuario' : 'usuarios'}
-          </p>
-        )}
-        <p className={estilos.descripcion}>Gestiona los usuarios registrados en el sistema.</p>
+        <div className={estilos.textoCabecera}>
+          <h1 className={estilos.titulo}>Usuarios</h1>
+          <p className={estilos.descripcion}>Gestiona los usuarios registrados en el sistema.</p>
+        </div>
+        <div className={estilos.acciones}>
+          {/* En móvil la carga masiva pasa al menú "Nuevo usuario" para no apilar dos botones a ancho completo. */}
+          {!esMovil && (
+            <button type="button" className={`${estilos.boton} ${estilos.botonSecundario}`} disabled={cargando} onClick={abrirCargaCsv}>
+              <Icono nombre="subir" tamano={16} />
+              Carga masiva CSV
+            </button>
+          )}
+          <MenuDesplegable
+            etiquetaBoton="Nuevo usuario"
+            claseBoton={`${estilos.boton} ${estilos.botonPrimario}`}
+            alineacion="fin"
+            contenidoBoton={<>
+              <Icono nombre="agregar" tamano={16} />
+              Nuevo usuario
+              <Icono nombre="chevron-abajo" tamano={16} />
+            </>}
+            items={[
+              { id: 'apoderado', etiqueta: 'Apoderado', ariaLabel: 'Registrar apoderado', icono: 'usuarios', alSeleccionar: () => openRegister('apoderado') },
+              { id: 'estudiante', etiqueta: 'Estudiante', ariaLabel: 'Registrar estudiante', icono: 'birrete', alSeleccionar: () => openRegister('estudiante') },
+              { id: 'docente', etiqueta: 'Docente', ariaLabel: 'Registrar docente', icono: 'libro', alSeleccionar: () => openRegister('docente') },
+              ...(esMovil && !cargando
+                ? [{ id: 'csv', etiqueta: 'Carga masiva CSV', icono: 'subir', separadorAntes: true, alSeleccionar: abrirCargaCsv }]
+                : [])
+            ]}
+          />
+        </div>
       </header>
 
-      {/* Fila 1: búsqueda a la izquierda y acciones a la derecha. Fila 2: rol en chips bajo el buscador. */}
-      <section className={estilos.filtros} aria-label="Búsqueda, filtros y acciones de usuarios">
-        <div className={estilos.filaBusqueda}>
+      {/* Búsqueda, chips de rol (con conteo) y estado en una sola fila; debajo, los filtros aplicados y "Limpiar filtros"
+          (mismo patrón que Auditorías). */}
+      <section className={estilos.filtros} aria-label="Búsqueda y filtros de usuarios">
+        <div className={estilos.filaFiltros}>
           <div className={estilos.campoBusqueda}>
             <CampoBusqueda
               id="busqueda-usuarios"
-              etiqueta="Buscar usuarios por nombre o DNI"
-              placeholder="Buscar por nombre o DNI"
+              etiqueta="Buscar usuarios por nombre, DNI o correo"
+              placeholder="Buscar por nombre, DNI o correo"
               valor={query}
-              alCambiar={setQuery}
+              alCambiar={cambiarBusqueda}
             />
           </div>
-          <div className={estilos.acciones}>
-            <button type="button" className={`${estilos.boton} ${estilos.botonSecundario}`} disabled={cargando || csvBusy} onClick={() => {
-              setCsvFileName('');
-              setCsvRows([]);
-              setCsvErrors([]);
-              setCsvSummary(null);
-              setModal('cargaCsv');
-            }}>
-              Carga masiva CSV
-            </button>
-            <div className={estilos.grupoRegistro} role="group" aria-label="Registrar usuario">
-              <span className={estilos.etiquetaGrupo} aria-hidden="true">Registrar</span>
-              {[['apoderado', 'Apoderado'], ['estudiante', 'Estudiante'], ['docente', 'Docente']].map(([kind, label]) => (
-                <button
-                  key={kind}
-                  type="button"
-                  className={`${estilos.boton} ${estilos.botonPrimario}`}
-                  onClick={() => openRegister(kind)}
-                  aria-label={`Registrar ${label.toLowerCase()}`}
-                >
-                  <Icono nombre="agregar" tamano={16} />
-                  {label}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-        <div className={estilos.campoRol}>
           <FiltroChips
             etiquetaGrupo="Filtrar usuarios por rol"
-            opciones={OPCIONES_FILTRO_ROL}
+            opciones={opcionesRol}
             valorSeleccionado={rolFiltro}
-            alSeleccionar={setRolFiltro}
+            alSeleccionar={cambiarRol}
+          />
+          <SelectFiltro
+            id="filtro-estado-usuarios"
+            etiqueta="Estado"
+            valor={estadoFiltro}
+            opciones={OPCIONES_FILTRO_ESTADO}
+            alCambiar={cambiarEstado}
           />
         </div>
+        <FiltrosActivos filtros={chipsActivos} hayFiltros={hayFiltros} alLimpiar={limpiarFiltros} />
       </section>
+
+      {/* Total y paginación arriba del listado: el total queda a la vista sin bajar hasta el final. */}
+      {hayResultados && <div ref={refInicioListado} className={estilos.barraPaginacion}>{paginador('superior')}</div>}
 
       {/* Listado de usuarios */}
       <section className={estilos.tarjetaResultados} aria-busy={cargando || undefined}>
@@ -905,172 +213,73 @@ function PaginaUsuarios() {
         ) : errorCarga ? (
           <EstadoConsulta tipo="error" mensaje={errorCarga} alReintentar={() => setIntentoCarga(actual => actual + 1)} />
         ) : filtered.length === 0 ? (
-          <EstadoConsulta tipo="vacio" mensaje="No se encontraron usuarios." />
+          <EstadoConsulta
+            tipo="vacio"
+            mensaje="No se encontraron usuarios."
+            etiquetaAccion={hayFiltros ? 'Limpiar filtros' : undefined}
+            alAccion={hayFiltros ? limpiarFiltros : undefined}
+          />
         ) : (
-          <TablaUsuarios usuarios={filtered} esProtegido={esAdministrador} alEditar={openEdit} alCambiarEstado={openToggle} />
+          <>
+            <TablaUsuarios usuarios={usuariosPagina} esProtegido={esAdministrador} alEditar={openEdit} alCambiarEstado={openToggle} orden={orden} alOrdenar={ordenarPor} />
+            <div className={estilos.pie}>{paginador('inferior')}</div>
+          </>
         )}
       </section>
 
-      {/* ── Modals: Register ── */}
-      {(modal === 'apoderado' || modal === 'estudiante' || modal === 'docente') && (<UsuarioModalShell title={`Registrar ${modal}`} subtitle="Gestión de usuarios" onSubmit={() => handleRegister(modal)} submitLabel="Registrar" submitDisabled={submitting} submitting={submitting} onClose={closeModal}>
-          {RegisterFields({ kind: modal })}
-        </UsuarioModalShell>)}
+      {/* ── Diálogos (cada uno se monta al abrirse, así empieza siempre con estado limpio) ── */}
+      {TIPOS_REGISTRO.includes(modal) && (
+        <DialogoRegistroUsuario
+          key={modal}
+          tipo={modal}
+          usuarios={usuarios}
+          alRegistrado={(nuevo, mensaje) => {
+            setUsuarios(actuales => [...actuales, nuevo]);
+            closeModal();
+            mostrarNotificacion(mensaje);
+          }}
+          alCerrar={closeModal}
+        />
+      )}
 
-      {modal === 'cargaCsv' && (<UsuarioModalShell title="Carga masiva de usuarios" subtitle="Archivo CSV" onSubmit={handleImportarCsv} submitLabel={`Importar ${csvRows.length} usuarios`} submitDisabled={!csvRows.length || csvErrors.length > 0 || csvBusy} submitting={csvBusy} onClose={closeModal}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <p style={{ margin: 0, color: '#475569', fontSize: 13, lineHeight: 1.6 }}>
-              Descarga la plantilla y completa una fila por usuario. La carga procesa primero los apoderados, luego los docentes y finalmente los estudiantes, para que estos puedan quedar asociados a su apoderado aunque sus filas aparezcan antes en el archivo.
-            </p>
-            <div role="alert" style={{ display: 'flex', alignItems: 'flex-start', gap: 9, padding: '11px 12px', borderRadius: 8, background: '#fff7ed', border: '1px solid #fdba74', color: '#9a3412', fontSize: 12, lineHeight: 1.5 }}>
-              <span aria-hidden="true" style={{ fontSize: 16, lineHeight: 1 }}>⚠️</span>
-              <div><strong>Importante:</strong> coloca primero todas las filas de tipo APODERADO. Después agrega docentes y estudiantes; cada estudiante debe tener el DNI de un apoderado incluido o ya registrado.</div>
-            </div>
-            <button type="button" onClick={descargarPlantillaCsv} style={{ alignSelf: 'flex-start', padding: '8px 12px', borderRadius: 7, border: '1px solid #cbd5e1', background: '#fff', color: '#1e293b', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-              Descargar plantilla CSV
-            </button>
-            <div style={{ padding: 12, borderRadius: 8, background: '#f8f9ff', border: '1px solid #e2e8f0' }}>
-              <div style={{ fontSize: 12, fontWeight: 700, color: '#334155', marginBottom: 6 }}>Columnas del archivo</div>
-              <code style={{ fontSize: 11, color: '#475569', overflowWrap: 'anywhere' }}>{CSV_USUARIOS_COLUMNAS.join(',')}</code>
-              <ul style={{ paddingLeft: 18, margin: '8px 0 0', color: '#64748b', fontSize: 11, lineHeight: 1.6 }}>
-                <li>tipoUsuario: APODERADO, DOCENTE o ESTUDIANTE. Nombre, apellidoPaterno, DNI, correo y password son obligatorios.</li>
-                <li>apellidoMaterno es opcional. telefono, cuando se incluye, debe tener 9 dígitos peruanos; es obligatorio para estudiantes y docentes en el modo de demostración.</li>
-                <li>edad es obligatoria para apoderados. fechaNacimiento y dniApoderado son obligatorios para estudiantes.</li>
-                <li>Incluye las filas de apoderados antes de estudiantes; el sistema también las procesa primero automáticamente.</li>
-                <li>Usa fechas YYYY-MM-DD y guarda el archivo como CSV UTF-8. Los códigos de estudiante se generan automáticamente.</li>
-              </ul>
-            </div>
-            <label htmlFor="archivo-usuarios-csv" style={{ alignSelf: 'flex-start', padding: '9px 14px', borderRadius: 7, background: '#0058be', color: '#fff', fontSize: 12, fontWeight: 600, cursor: csvBusy ? 'not-allowed' : 'pointer', opacity: csvBusy ? 0.7 : 1 }}>
-              Seleccionar archivo CSV
-            </label>
-            <input id="archivo-usuarios-csv" type="file" accept=".csv,text/csv" onChange={handleCsvFile} disabled={csvBusy} style={{ display: 'none' }}/>
-            {csvFileName && <div style={{ fontSize: 12, color: '#475569' }}>Archivo: <strong>{csvFileName}</strong></div>}
-            {csvRows.length > 0 && <div style={{ fontSize: 12, color: '#334155' }}>Filas listas para revisar: <strong>{csvRows.length}</strong></div>}
-            {csvErrors.length > 0 && <div role="alert" style={{ maxHeight: 150, overflowY: 'auto', padding: 10, borderRadius: 8, background: '#fff1f2', border: '1px solid #fecdd3', color: '#9f1239', fontSize: 11 }}>
-              <strong>Corrige estos problemas antes de importar:</strong>
-              <ul style={{ paddingLeft: 18, margin: '6px 0 0', lineHeight: 1.5 }}>{csvErrors.slice(0, 30).map((error, indice) => <li key={`${indice}-${error}`}>{error}</li>)}</ul>
-              {csvErrors.length > 30 && <div>Y {csvErrors.length - 30} errores más.</div>}
-            </div>}
-            {csvRows.length > 0 && <div style={{ overflowX: 'auto', border: '1px solid #e2e8f0', borderRadius: 8 }}>
-              <table style={{ width: '100%', borderCollapse: 'collapse', fontSize: 11 }}>
-                <thead><tr style={{ background: '#f8f9ff', textAlign: 'left' }}>
-                  {['Fila', 'Tipo', 'Nombre', 'DNI', 'Apoderado DNI'].map(columna => <th key={columna} style={{ padding: '8px 9px', color: '#475569', whiteSpace: 'nowrap' }}>{columna}</th>)}
-                </tr></thead>
-                <tbody>{csvRows.slice(0, 8).map(fila => <tr key={fila.linea} style={{ borderTop: '1px solid #e2e8f0' }}>
-                  <td style={{ padding: '8px 9px' }}>{fila.linea}</td>
-                  <td style={{ padding: '8px 9px' }}>{fila.tipoUsuario}</td>
-                  <td style={{ padding: '8px 9px' }}>{fila.nombre} {fila.apellidoPaterno}</td>
-                  <td style={{ padding: '8px 9px' }}>{fila.dni}</td>
-                  <td style={{ padding: '8px 9px' }}>{fila.dniApoderado || '—'}</td>
-                </tr>)}</tbody>
-              </table>
-              {csvRows.length > 8 && <div style={{ padding: 8, color: '#64748b' }}>Se muestran 8 de {csvRows.length} filas.</div>}
-            </div>}
-            {csvSummary && <div role={csvSummary.errores.length ? 'alert' : 'status'} style={{ padding: 12, borderRadius: 8, background: csvSummary.errores.length ? '#fff7ed' : '#f0fdf4', border: `1px solid ${csvSummary.errores.length ? '#fed7aa' : '#bbf7d0'}`, color: csvSummary.errores.length ? '#9a3412' : '#166534', fontSize: 12 }}>
-              <strong>Importación finalizada: {csvSummary.importados} usuarios creados.</strong>
-              {csvSummary.errores.length > 0 && <ul style={{ paddingLeft: 18, margin: '6px 0 0', maxHeight: 120, overflowY: 'auto' }}>{csvSummary.errores.map((error, indice) => <li key={`${indice}-${error}`}>{error}</li>)}</ul>}
-            </div>}
-            <p style={{ margin: 0, color: '#64748b', fontSize: 11, lineHeight: 1.5 }}>Si una fila falla en el servidor, las demás se intentan registrar y se muestran los resultados. Los usuarios creados correctamente no se revierten automáticamente.</p>
-          </div>
-        </UsuarioModalShell>)}
+      {modal === 'cargaCsv' && (
+        <DialogoCargaCsv
+          usuarios={usuarios}
+          alImportar={setUsuarios}
+          alImportacionCompleta={importados => {
+            closeModal();
+            mostrarNotificacion(`Se importaron correctamente ${importados} usuarios.`);
+          }}
+          alCerrar={closeModal}
+        />
+      )}
 
-      {/* ── Modal: Edit ── */}
-      {modal === 'editar' && editTarget && (<UsuarioModalShell title="Editar usuario" subtitle="Gestión de usuarios" onSubmit={handleEdit} submitLabel="Guardar cambios" submitDisabled={editTarget.rol === 'Estudiante' && (!editForm.apoderadoId || !editForm.apoderadoSeleccionado)} submitting={submitting} onClose={closeModal}>
-          <div style={{ display: 'flex', flexDirection: 'column', gap: 14 }}>
-            <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 12 }}>
-              <UsuarioField label="Nombre" value={editForm.nombre} onChange={v => { setEditForm(p => ({ ...p, nombre: v })); setEditErrors(p => ({ ...p, nombre: '' })); }} placeholder="Nombre" error={editErrors.nombre} maxLength={80} required/>
-              <UsuarioField label="Apellido paterno" value={editForm.apellidoPaterno} onChange={v => { setEditForm(p => ({ ...p, apellidoPaterno: v })); setEditErrors(p => ({ ...p, apellidoPaterno: '' })); }} placeholder="Apellido paterno" error={editErrors.apellidoPaterno} maxLength={80}/>
-            </div>
-            <UsuarioField label="Apellido materno" value={editForm.apellidoMaterno} onChange={v => { setEditForm(p => ({ ...p, apellidoMaterno: v })); setEditErrors(p => ({ ...p, apellidoMaterno: '' })); }} placeholder="Apellido materno (opcional)" error={editErrors.apellidoMaterno} maxLength={80}/>
-            <UsuarioField label="DNI" value={editForm.dni} onChange={v => { setEditForm(p => ({ ...p, dni: v })); setEditErrors(p => ({ ...p, dni: '' })); }} placeholder="8 dígitos" error={editErrors.dni} maxLength={8} required/>
-            <TelefonoField
-              value={editForm.telefono}
-              onChange={telefono => {
-                setEditForm(p => ({ ...p, telefono }));
-                setEditErrors(p => ({ ...p, telefono: '' }));
-              }}
-              error={editErrors.telefono}
-              hint="Celular peruano: ingrese exactamente 9 dígitos."
-            />
-            <UsuarioField label="Correo" value={editForm.correo} onChange={v => { setEditForm(p => ({ ...p, correo: v })); setEditErrors(p => ({ ...p, correo: '' })); }} placeholder="Correo" type="email" error={editErrors.correo} maxLength={160} required/>
-            {editTarget.rol === 'Estudiante' && <div>
-              <label htmlFor="editar-dni-apoderado" style={{ display: 'block', fontSize: 14, fontWeight: 600, color: '#374151', marginBottom: 8 }}>DNI del apoderado <span style={{ color: '#ba1a1a' }}>*</span></label>
-              <div style={{ display: 'flex', gap: 10 }}>
-                <input
-                  id="editar-dni-apoderado"
-                  value={editForm.dniApoderado}
-                  onChange={evento => {
-                    setEditForm(p => ({ ...p, dniApoderado: evento.target.value, apoderadoId: '', apoderadoSeleccionado: null, apoderadoError: '' }));
-                    setEditErrors(p => ({ ...p, apoderadoId: '' }));
-                  }}
-                  placeholder="Ingrese DNI o Carné de Extranjería..."
-                  aria-invalid={Boolean(editErrors.apoderadoId || editForm.apoderadoError)}
-                  onKeyDown={evento => { if (evento.key === 'Enter') { evento.preventDefault(); searchEditApoderado(); } }}
-                  style={{ flex: 1, minWidth: 0, padding: '15px 16px', borderRadius: 11, border: `1.5px solid ${(editErrors.apoderadoId || editForm.apoderadoError) ? '#ba1a1a' : '#dde2f0'}`, background: '#f8f9ff', fontSize: 16, color: '#121c2a', fontFamily: 'inherit', outline: 'none', boxSizing: 'border-box' }}
-                />
-                <button type="button" onClick={searchEditApoderado} style={{ padding: '0 22px', borderRadius: 11, border: 'none', background: '#0058be', color: '#fff', fontSize: 14, fontWeight: 700, cursor: 'pointer', fontFamily: 'inherit' }}>Buscar</button>
-              </div>
-              {(editForm.apoderadoError || editErrors.apoderadoId) && <p role="alert" style={{ fontSize: 11, color: '#ba1a1a', margin: '4px 0 0' }}>{editForm.apoderadoError || editErrors.apoderadoId}</p>}
-              {editForm.apoderadoSeleccionado && <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginTop: 10, padding: '12px 18px', background: '#f0fdf4', border: '1px solid #bbf7d0', borderRadius: 11 }}>
-                <div>
-                  <div style={{ fontSize: 13, fontWeight: 700, color: '#15803d', textTransform: 'uppercase', letterSpacing: '0.06em', marginBottom: 4 }}>Apoderado seleccionado</div>
-                  <div style={{ fontSize: 16, fontWeight: 600, color: '#121c2a' }}>{editForm.apoderadoSeleccionado.nombre} {editForm.apoderadoSeleccionado.apellido}</div>
-                  <div style={{ fontSize: 14, color: '#64748b' }}>DNI: {editForm.apoderadoSeleccionado.dni}</div>
-                </div>
-                <button type="button" aria-label="Quitar apoderado seleccionado" onClick={() => setEditForm(p => ({ ...p, apoderadoId: '', dniApoderado: '', apoderadoSeleccionado: null, apoderadoError: '' }))} style={{ background: 'none', border: 'none', cursor: 'pointer', color: '#94a3b8', padding: 4, borderRadius: 6, fontSize: 22, lineHeight: 1 }}>×</button>
-              </div>}
-            </div>}
-          </div>
-        </UsuarioModalShell>)}
+      {modal === 'editar' && usuarioActivo && (
+        <DialogoEditarUsuario
+          usuario={usuarioActivo}
+          usuarios={usuarios}
+          alGuardado={({ usuario, mensaje }) => {
+            if (usuario) {
+                setUsuarios(actuales => actuales.map(u => u.id === usuario.id ? usuario : u));
+            }
+            closeModal();
+            mostrarNotificacion(mensaje);
+          }}
+          alCerrar={closeModal}
+        />
+      )}
 
-      {/* ── Modal: Toggle active ── */}
-      {modal === 'toggle' && toggleTarget && (<div style={{ position: 'fixed', inset: 0, background: 'rgba(0,0,0,0.45)', display: 'flex', alignItems: 'center', justifyContent: 'center', zIndex: 9999, padding: 24 }} onClick={e => { if (e.target === e.currentTarget)
-            closeModal(); }}>
-          <div style={{ background: '#fff', borderRadius: 14, width: '100%', maxWidth: 500, boxShadow: '0 20px 60px rgba(0,35,111,0.18)', padding: '28px 28px 24px' }}>
-            <div style={{ width: 44, height: 44, borderRadius: 11, background: toggleTarget.activo ? '#fff1f1' : '#f0fdf4', border: `1px solid ${toggleTarget.activo ? '#fecaca' : '#bbf7d0'}`, display: 'flex', alignItems: 'center', justifyContent: 'center', marginBottom: 16 }}>
-              {toggleTarget.activo
-                ? <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#ba1a1a" strokeWidth="2" strokeLinecap="round"><circle cx="12" cy="12" r="10"/><line x1="15" y1="9" x2="9" y2="15"/><line x1="9" y1="9" x2="15" y2="15"/></svg>
-                : <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="#16a34a" strokeWidth="2" strokeLinecap="round"><polyline points="20 6 9 17 4 12"/></svg>}
-            </div>
-            <h2 style={{ fontSize: 17, fontWeight: 700, color: '#121c2a', margin: '0 0 8px' }}>{toggleTarget.activo ? 'Desactivar' : 'Activar'} usuario</h2>
-            <p style={{ fontSize: 13, color: '#64748b', margin: '0 0 6px', lineHeight: 1.6 }}>
-              {toggleTarget.activo
-                ? `¿Está seguro de que desea desactivar a ${toggleTarget.nombre} ${toggleTarget.apellido}?`
-                : `¿Está seguro de que desea activar a ${toggleTarget.nombre} ${toggleTarget.apellido}?`}
-            </p>
-            <p style={{ fontSize: 12, color: '#94a3b8', margin: '0 0 24px', lineHeight: 1.5 }}>
-              {toggleTarget.activo
-                ? 'El usuario no podrá acceder al sistema mientras se encuentre desactivado.'
-                : 'El usuario recuperará el acceso al sistema.'}
-            </p>
-            {toggleTarget.activo && toggleTarget.rol === 'Docente' && <div style={{ margin: '-10px 0 24px', padding: '12px 14px', borderRadius: 8, background: '#fff7ed', border: '1px solid #fed7aa' }}>
-              <p style={{ fontSize: 12, fontWeight: 700, color: '#9a3412', margin: '0 0 8px' }}>
-                {cargandoSeccionesTutor
-                  ? 'Consultando las secciones asignadas como tutor…'
-                  : errorSeccionesTutor
-                    ? 'No se pudieron consultar las asignaciones del docente.'
-                    : seccionesTutor.length
-                      ? 'Al desactivar este docente, se removerá su asignación como tutor de:'
-                      : 'Este docente no tiene asignaciones como tutor en secciones.'}
-              </p>
-              {seccionesTutor.length > 0 && <ul style={{ margin: 0, paddingLeft: 20, color: '#7c2d12', fontSize: 12, lineHeight: 1.6 }}>
-                {seccionesTutor.map((seccion, indice) => <li key={`${seccion.seccionNombre}-${seccion.gradoNombre}-${indice}`}>
-                  Sección {seccion.seccionNombre} — {seccion.gradoNombre}
-                  {seccion.anioAcademico != null && ` — Año académico ${seccion.anioAcademico}`}
-                </li>)}
-              </ul>}
-              {errorSeccionesTutor && <>
-                <p role="alert" style={{ fontSize: 12, color: '#ba1a1a', margin: '0 0 8px' }}>{errorSeccionesTutor}</p>
-                <button type="button" onClick={() => setIntentoSeccionesTutor((actual) => actual + 1)} style={{ padding: '6px 10px', borderRadius: 6, border: '1px solid #fed7aa', background: '#fff', color: '#9a3412', fontSize: 12, fontWeight: 600, cursor: 'pointer' }}>
-                  Reintentar consulta
-                </button>
-              </>}
-            </div>}
-            <div style={{ display: 'flex', justifyContent: 'flex-end', gap: 10 }}>
-              <button onClick={closeModal} style={{ padding: '9px 20px', borderRadius: 7, border: '1.5px solid #e5e7eb', background: '#fff', color: '#374151', fontSize: 13, fontWeight: 600, cursor: 'pointer', fontFamily: 'inherit' }} onMouseEnter={e => e.currentTarget.style.background = '#f8f9ff'} onMouseLeave={e => e.currentTarget.style.background = '#fff'}>Cancelar</button>
-              <button onClick={handleToggle} disabled={submitting || cargandoSeccionesTutor || Boolean(errorSeccionesTutor)} style={{ padding: '9px 24px', borderRadius: 7, border: 'none', background: submitting || cargandoSeccionesTutor || errorSeccionesTutor ? '#94a3b8' : toggleTarget.activo ? '#ba1a1a' : '#16a34a', color: '#fff', fontSize: 13, fontWeight: 700, cursor: submitting || cargandoSeccionesTutor || errorSeccionesTutor ? 'not-allowed' : 'pointer', fontFamily: 'inherit', boxShadow: `0 2px 8px ${toggleTarget.activo ? 'rgba(186,26,26,0.25)' : 'rgba(22,163,74,0.25)'}`, transition: 'background 0.12s' }} onMouseEnter={e => { if (!submitting && !cargandoSeccionesTutor && !errorSeccionesTutor) e.currentTarget.style.opacity = '0.88'; }} onMouseLeave={e => e.currentTarget.style.opacity = '1'}>{submitting ? 'Guardando...' : (cargandoSeccionesTutor ? 'Consultando…' : toggleTarget.activo ? 'Desactivar' : 'Activar')}</button>
-            </div>
-          </div>
-        </div>)}
+      {modal === 'toggle' && usuarioActivo && (
+        <DialogoCambiarEstado
+          usuario={usuarioActivo}
+          alCambiado={mensaje => {
+            setUsuarios(actuales => actuales.map(u => u.id === usuarioActivo.id ? { ...u, activo: !u.activo } : u));
+            closeModal();
+            mostrarNotificacion(mensaje);
+          }}
+          alCerrar={closeModal}
+        />
+      )}
     </div>);
 }
 

@@ -1,15 +1,19 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
 import CampoBusqueda from '../../../shared/components/CampoBusqueda.jsx';
-import FiltroRangoFechas from '../../../shared/components/FiltroRangoFechas.jsx';
-import Icono from '../../../shared/components/Icono.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
+import FiltroRangoFechas from '../../../shared/components/FiltroRangoFechas.jsx';
+import FiltrosActivos from '../../../shared/components/FiltrosActivos.jsx';
+import Icono from '../../../shared/components/Icono.jsx';
+import Paginacion from '../../../shared/components/Paginacion.jsx';
 import estilosUtil from '../../../shared/styles/utilidades.module.css';
+import { describirRangoFechas } from '../../../shared/utils/rangoFechas.js';
 import TablaAuditoria from '../components/TablaAuditoria.jsx';
 import DetalleTransaccion from '../components/DetalleTransaccion.jsx';
 import useAuditoria from '../hooks/useAuditoria.js';
-import { obtenerOpcionesFiltroCategoria } from '../constants/categoriasAuditoria.js';
-import { TIPOS_ACCION_AUDITORIA } from '../constants/tiposAccionAuditoria.js';
+import { obtenerEtiquetaCategoria, obtenerOpcionesFiltroCategoria } from '../constants/categoriasAuditoria.js';
+import { TAMANIO_PAGINA_AUDITORIA } from '../constants/paginacionAuditoria.js';
+import { TIPOS_ACCION_AUDITORIA, obtenerEtiquetaAccion } from '../constants/tiposAccionAuditoria.js';
 import estilos from './PaginaAuditorias.module.css';
 
 const OPCIONES_CATEGORIA = obtenerOpcionesFiltroCategoria();
@@ -19,19 +23,8 @@ const MENSAJE_VACIO_TOTAL = 'Aún no hay registros de auditoría.';
 const MENSAJE_VACIO_FILTRADO = 'No se encontraron registros de auditoría con los criterios indicados';
 
 /**
- * Texto de la insignia de cabecera: "{N} registros" (LAB05, D13: sin referencia a días,
- * porque los registros son permanentes y "Últimos N días" abarcaría todo el histórico).
- *
- * @param {{ totalAcciones: number }} resumen
- * @returns {string}
- */
-function formatearTextoInsignia(resumen) {
-  return resumen.totalAcciones === 1 ? '1 registro' : `${resumen.totalAcciones} registros`;
-}
-
-/**
  * Página de Auditorías del Sistema (HU-SAT-04). Consulta de solo lectura: listado
- * general con filtros y panel de detalle con el historial de
+ * general con filtros, paginación de 15 en 15 y panel de detalle con el historial de
  * una transacción. No hay ningún control de edición ni eliminación.
  */
 export default function PaginaAuditorias() {
@@ -39,8 +32,6 @@ export default function PaginaAuditorias() {
     registros,
     estado,
     actualizando,
-    resumen,
-    mostrandoAhora,
     categoria,
     establecerCategoria,
     busqueda,
@@ -52,32 +43,70 @@ export default function PaginaAuditorias() {
     fechaHasta,
     establecerFechaHasta,
     mensajeErrorRango,
+    rangoVigente,
+    establecerRango,
+    limpiarFiltros,
+    pagina,
+    totalPaginas,
+    totalElementos,
+    cantidadPagina,
+    cambiarPagina,
     reintentar,
     detalle
   } = useAuditoria();
 
   const [filtrosAbiertos, establecerFiltrosAbiertos] = useState(false);
-  const filtrosActivos =
-    (categoria !== 'TODOS' ? 1 : 0) + (tipoAccion ? 1 : 0) + (fechaDesde || fechaHasta ? 1 : 0);
-  const textoMostrandoAhora = mostrandoAhora === 1 ? '1 registro' : `${mostrandoAhora} registros`;
+  const refInicioListado = useRef(null);
+
+  const hayRangoVigente = Boolean(rangoVigente.fechaDesde || rangoVigente.fechaHasta);
+  const filtrosActivos = (categoria !== 'TODOS' ? 1 : 0) + (tipoAccion ? 1 : 0) + (hayRangoVigente ? 1 : 0);
   const hayFiltrosAplicados = filtrosActivos > 0 || busqueda.trim().length > 0;
   const mensajeVacio = hayFiltrosAplicados ? MENSAJE_VACIO_FILTRADO : MENSAJE_VACIO_TOTAL;
+  const hayResultados = estado === 'listo' && registros.length > 0;
+
+  const chipsActivos = [
+    ...(categoria !== 'TODOS'
+      ? [{ id: 'categoria', etiqueta: `Módulo: ${obtenerEtiquetaCategoria(categoria)}`, alQuitar: () => establecerCategoria('TODOS') }]
+      : []),
+    ...(tipoAccion
+      ? [{ id: 'accion', etiqueta: `Acción: ${obtenerEtiquetaAccion(tipoAccion)}`, alQuitar: () => establecerTipoAccion('') }]
+      : []),
+    ...(hayRangoVigente
+      ? [{ id: 'fechas', etiqueta: describirRangoFechas(rangoVigente), alQuitar: () => establecerRango('', '') }]
+      : [])
+  ];
+
+  // Al cambiar de página (sobre todo desde el paginador inferior) la vista vuelve al inicio del listado.
+  const irAPagina = (nuevaPagina) => {
+    cambiarPagina(nuevaPagina);
+    const reducirMovimiento = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    refInicioListado.current?.scrollIntoView?.({ block: 'start', behavior: reducirMovimiento ? 'auto' : 'smooth' });
+  };
+
+  // El mismo paginador va arriba y abajo del listado; solo el superior anuncia el total.
+  const paginador = (posicion) => (
+    <Paginacion
+      pagina={pagina}
+      totalPaginas={totalPaginas}
+      totalElementos={totalElementos}
+      tamanioPagina={TAMANIO_PAGINA_AUDITORIA}
+      cantidadEnPagina={cantidadPagina}
+      alCambiarPagina={irAPagina}
+      etiqueta={`Paginación de auditorías (${posicion})`}
+      unidadSingular="registro"
+      unidadPlural="registros"
+      anunciarTotal={posicion === 'superior'}
+    />
+  );
 
   return (
     <div className={estilos.pagina}>
       <header className={estilos.cabecera}>
-        <div>
-          <p className={estilos.sobretitulo}>Módulo de administración</p>
-          <h1 className={estilos.titulo}>Auditorías del Sistema</h1>
-        </div>
-        {resumen && (
-          <div className={estilos.espacioInsignia}>
-            <span className={estilos.insigniaEstado}>
-              <span className={estilos.puntoEstado} aria-hidden="true" />
-              {formatearTextoInsignia(resumen)}
-            </span>
-          </div>
-        )}
+        <h1 className={estilos.titulo}>Auditorías del Sistema</h1>
+        <p className={estilos.descripcion}>
+          <Icono nombre="candado" tamano={16} />
+          <span>Consulta de solo lectura. Los registros de auditoría se conservan de forma permanente.</span>
+        </p>
       </header>
 
       <section className={estilos.barraHerramientas} aria-label="Filtros de auditoría">
@@ -86,7 +115,7 @@ export default function PaginaAuditorias() {
             <CampoBusqueda
               id="busqueda-auditorias"
               etiqueta="Buscar usuario o descripción en la página"
-              placeholder="Buscar usuario o descripción en la página"
+              placeholder="Buscar por usuario o descripción"
               valor={busqueda}
               alCambiar={establecerBusqueda}
             />
@@ -159,33 +188,38 @@ export default function PaginaAuditorias() {
               alCambiarFechaHasta={establecerFechaHasta}
               mensajeError={mensajeErrorRango}
             />
+
           </div>
         </div>
+
+        <FiltrosActivos filtros={chipsActivos} hayFiltros={hayFiltrosAplicados} alLimpiar={limpiarFiltros} />
       </section>
 
-      <p className={estilos.notaPie}>
-        <Icono nombre="informacion" tamano={16} />
-        <span>Los registros de auditoría son de solo lectura y se conservan de forma permanente.</span>
-      </p>
+      {/* Total y paginación arriba del listado, como en Usuarios y Log de errores. */}
+      {hayResultados && <div ref={refInicioListado} className={estilos.barraPaginacion}>{paginador('superior')}</div>}
 
-      <section className={estilos.tarjetaResultados} aria-label="Registros de auditoría">
+      <section className={estilos.tarjetaResultados} aria-label="Registros de auditoría" aria-busy={estado === 'cargando' || undefined}>
         {estado === 'cargando' && <EstadoConsulta tipo="carga" filasEsqueleto={5} />}
         {estado === 'error' && <EstadoConsulta tipo="error" alReintentar={reintentar} />}
         {estado === 'listo' && registros.length === 0 && (
-          <EstadoConsulta tipo="vacio" mensaje={mensajeVacio} />
-        )}
-        {estado === 'listo' && registros.length > 0 && (
-          <TablaAuditoria
-            registros={registros}
-            actualizando={actualizando}
-            alSeleccionarRegistro={detalle.abrir}
+          <EstadoConsulta
+            tipo="vacio"
+            mensaje={mensajeVacio}
+            etiquetaAccion={hayFiltrosAplicados ? 'Limpiar filtros' : undefined}
+            alAccion={hayFiltrosAplicados ? limpiarFiltros : undefined}
           />
         )}
+        {hayResultados && (
+          <>
+            <TablaAuditoria
+              registros={registros}
+              actualizando={actualizando}
+              alSeleccionarRegistro={detalle.abrir}
+            />
+            <div className={estilos.pie}>{paginador('inferior')}</div>
+          </>
+        )}
       </section>
-
-      <p role="status" aria-live="polite" className={estilosUtil.ocultoVisualmente}>
-        {estado === 'listo' ? `Mostrando ${textoMostrandoAhora}` : ''}
-      </p>
 
       <DetalleTransaccion
         registro={detalle.registro}

@@ -23,7 +23,7 @@ describe('TablaUsuarios', () => {
     renderizar();
 
     const encabezados = screen.getAllByRole('columnheader').map((columna) => columna.textContent);
-    expect(encabezados).toEqual(['Nombre completo', 'DNI', 'Rol', 'Correo', 'Estado', 'Acciones']);
+    expect(encabezados).toEqual(['Nombre completo', 'DNI', 'Correo', 'Rol', 'Estado', 'Acciones']);
     expect(screen.getAllByRole('row')).toHaveLength(USUARIOS.length + 1);
   });
 
@@ -37,18 +37,29 @@ describe('TablaUsuarios', () => {
     expect(within(tabla).getByText('Código: EST-016')).toBeInTheDocument();
   });
 
-  it('avisa qué usuario se edita o se activa/desactiva', async () => {
+  it('ofrece Editar y Activar/Desactivar como botones de ícono con nombre accesible y avisa qué usuario se afecta', async () => {
     const { alEditar, alCambiarEstado } = renderizar();
     const tabla = screen.getByRole('table');
 
     await userEvent.click(within(tabla).getByRole('button', { name: 'Editar a María López' }));
     expect(alEditar).toHaveBeenCalledWith(USUARIOS[0]);
 
-    await userEvent.click(within(tabla).getByRole('button', { name: 'Desactivar a María López' }));
+    const desactivar = within(tabla).getByRole('button', { name: 'Desactivar a María López' });
+    expect(desactivar).toHaveAttribute('title', 'Desactivar');
+    await userEvent.click(desactivar);
     expect(alCambiarEstado).toHaveBeenCalledWith(USUARIOS[0]);
 
     await userEvent.click(within(tabla).getByRole('button', { name: 'Activar a Carlos Ramírez' }));
     expect(alCambiarEstado).toHaveBeenCalledWith(USUARIOS[1]);
+  });
+
+  it('en las tarjetas móviles deja los botones Editar y Desactivar a la vista', async () => {
+    const { alEditar } = renderizar();
+    const lista = screen.getByRole('list', { name: 'Usuarios registrados' });
+
+    await userEvent.click(within(lista).getByRole('button', { name: 'Editar a María López' }));
+    expect(alEditar).toHaveBeenCalledWith(USUARIOS[0]);
+    expect(within(lista).getByRole('button', { name: 'Desactivar a María López' })).toBeInTheDocument();
   });
 
   it('no ofrece acciones sobre cuentas de administrador', () => {
@@ -57,5 +68,18 @@ describe('TablaUsuarios', () => {
 
     expect(within(tabla).getByText('Cuenta protegida')).toBeInTheDocument();
     expect(within(tabla).queryByRole('button', { name: /Admin General/ })).not.toBeInTheDocument();
+  });
+
+  it('permite ordenar por Nombre y Estado desde el encabezado y marca la columna activa con aria-sort', async () => {
+    const alOrdenar = vi.fn();
+    renderizar({ orden: { campo: 'nombre', direccion: 'asc' }, alOrdenar });
+    const tabla = screen.getByRole('table');
+
+    expect(within(tabla).getByRole('columnheader', { name: /Nombre completo/ })).toHaveAttribute('aria-sort', 'ascending');
+    expect(within(tabla).getByRole('columnheader', { name: /Estado/ })).toHaveAttribute('aria-sort', 'none');
+    expect(within(tabla).getByRole('columnheader', { name: 'DNI' })).not.toHaveAttribute('aria-sort');
+
+    await userEvent.click(within(tabla).getByRole('button', { name: /Estado/ }));
+    expect(alOrdenar).toHaveBeenCalledWith('estado');
   });
 });

@@ -15,8 +15,10 @@ const MENSAJE_POR_DEFECTO = {
  * @param {string} [props.mensaje] Obligatorio para `vacio`; en `carga`/`error` tiene mensaje por defecto.
  * @param {number} [props.filasEsqueleto] Solo en `carga`: muestra esa cantidad de filas de carga (mantiene la altura); el texto sigue disponible para lectores de pantalla.
  * @param {() => void} [props.alReintentar] Solo en `error`: si se pasa, muestra el botón "Reintentar".
+ * @param {string} [props.etiquetaAccion] Solo en `vacio`: texto del botón de salida (p. ej. "Limpiar filtros").
+ * @param {() => void} [props.alAccion] Solo en `vacio`: se llama al pulsar ese botón. Sin ambos, no se muestra.
  */
-export default function EstadoConsulta({ tipo, mensaje, filasEsqueleto = 0, alReintentar }) {
+export default function EstadoConsulta({ tipo, mensaje, filasEsqueleto = 0, alReintentar, etiquetaAccion, alAccion }) {
   const texto = mensaje ?? MENSAJE_POR_DEFECTO[tipo];
   const propsRegion = tipo === 'error' ? { role: 'alert' } : { role: 'status' };
 
@@ -39,6 +41,11 @@ export default function EstadoConsulta({ tipo, mensaje, filasEsqueleto = 0, alRe
         <button type="button" className={estilos.boton} onClick={alReintentar}>
           <Icono nombre="reintentar" tamano={16} />
           Reintentar
+        </button>
+      )}
+      {tipo === 'vacio' && etiquetaAccion && alAccion && (
+        <button type="button" className={estilos.boton} onClick={alAccion}>
+          {etiquetaAccion}
         </button>
       )}
     </div>

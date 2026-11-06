@@ -4,18 +4,23 @@
   gap: var(--espacio-6);
 }
 
-/* Fila 1: título a la izquierda y total a su nivel, a la derecha. Fila 2: descripción. */
+/* Barra de título (GUI §6): título y descripción a la izquierda, acciones globales a la derecha. */
 .cabecera {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  align-items: center;
-  column-gap: var(--espacio-4);
-  row-gap: var(--espacio-1);
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+}
+
+.textoCabecera {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1);
+  min-width: 0;
 }
 
 .titulo {
-  grid-column: 1;
-  grid-row: 1;
   margin: 0;
   font-size: var(--texto-titulo);
   font-weight: var(--peso-negrita);
@@ -23,71 +28,40 @@
 }
 
 .descripcion {
-  grid-column: 1 / -1;
-  grid-row: 2;
   margin: 0;
   font-size: var(--texto-md);
   color: var(--color-texto-suave);
-}
-
-/* Total de resultados a la altura del título. */
-.contador {
-  grid-column: 2;
-  grid-row: 1;
-  display: flex;
-  align-items: center;
-  min-height: 48px;
-  margin: 0;
-  font-size: var(--texto-md);
-  color: var(--color-texto-suave);
-  white-space: nowrap;
-}
-
-/* Fila 1: búsqueda y acciones, cada una en un extremo. Fila 2: chips de rol bajo el buscador. */
-.filtros {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-4);
-}
-
-.filaBusqueda {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  justify-content: space-between;
-  gap: var(--espacio-4);
-}
-
-.campoBusqueda {
-  flex: 1 1 16rem;
-  width: 16rem;
-  max-width: 22rem;
-}
-
-.campoRol {
-  display: flex;
-  flex-direction: column;
 }
 
 .acciones {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--espacio-4);
-  margin-left: auto;
+  gap: var(--espacio-3);
 }
 
-.grupoRegistro {
+/* Búsqueda, chips de rol y estado en una sola fila (se acomodan en varias líneas si no caben); debajo, los
+   filtros aplicados. El total de resultados lo muestra el paginador. */
+.filtros {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+  /* Sin esto, los chips (que no se parten) ensanchan la sección en pantallas angostas. */
+  min-width: 0;
+}
+
+.filaFiltros {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--espacio-2);
+  gap: var(--espacio-3) var(--espacio-4);
+  min-width: 0;
 }
 
-.etiquetaGrupo {
-  font-size: var(--texto-md);
-  font-weight: var(--peso-medio);
-  color: var(--color-texto-secundario);
+.campoBusqueda {
+  /* Crece hasta 18 rem si hay espacio, para que el texto de ayuda no quede cortado. */
+  flex: 1 1 15rem;
+  max-width: 18rem;
 }
 
 .boton {
@@ -120,7 +94,8 @@
   border: 1px solid var(--color-primario);
 }
 
-.botonPrimario:hover:not(:disabled) {
+.botonPrimario:hover:not(:disabled),
+.botonPrimario[aria-expanded='true'] {
   background: var(--color-primario-hover);
 }
 
@@ -150,28 +125,43 @@
   overflow: hidden;
 }
 
+.barraPaginacion {
+  /* Deja un poco de aire entre los filtros y el listado; la barra se alinea a la derecha como en Log de errores. */
+  margin-bottom: calc(var(--espacio-3) * -1);
+}
+
+.pie {
+  padding: var(--espacio-3) var(--espacio-4);
+  border-top: 1px solid var(--color-borde);
+}
+
 @media (max-width: 767px) {
-  .acciones,
-  .grupoRegistro {
+  .acciones {
     width: 100%;
   }
 
-  .etiquetaGrupo {
-    flex: 1 1 100%;
-  }
-
-  .acciones .boton {
+  /* Acción principal arriba y a todo el ancho; la secundaria debajo. */
+  .acciones > * {
     flex: 1 1 100%;
     justify-content: center;
+  }
+
+  .acciones {
+    flex-direction: column-reverse;
+    align-items: stretch;
   }
 
   .campoBusqueda {
     flex: 1 1 100%;
     width: 100%;
-    max-width: none;
-  }
-
-  .campoRol {
     min-width: 0;
   }
+
+  .filaFiltros {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: var(--espacio-3);
+  }
+
 }

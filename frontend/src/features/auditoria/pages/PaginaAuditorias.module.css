@@ -4,59 +4,39 @@
   gap: var(--espacio-6);
 }
 
+/* Título a la izquierda (GUI §6). Esta pantalla es de solo lectura: no tiene acciones globales. */
 .cabecera {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
-  gap: var(--espacio-3);
-}
-
-.sobretitulo {
-  margin: 0 0 var(--espacio-1);
-  font-size: var(--texto-xs);
-  font-weight: var(--peso-seminegrita);
-  letter-spacing: var(--espaciado-letra-ancho);
-  text-transform: uppercase;
-  color: var(--color-texto-suave);
+  gap: var(--espacio-1);
 }
 
 .titulo {
   margin: 0;
   font-size: var(--texto-titulo);
-  font-weight: var(--peso-seminegrita);
+  font-weight: var(--peso-negrita);
   color: var(--color-texto);
 }
 
-.espacioInsignia {
+.descripcion {
   display: flex;
-  align-items: center;
-}
-
-.insigniaEstado {
-  display: inline-flex;
-  align-items: center;
+  align-items: flex-start;
   gap: var(--espacio-2);
-  padding: var(--espacio-1) var(--espacio-3);
+  margin: 0;
   font-size: var(--texto-md);
-  font-weight: var(--peso-seminegrita);
-  white-space: nowrap;
-  color: var(--color-exito-texto);
-  background: var(--color-exito-fondo);
-  border: 1px solid var(--color-exito-borde);
-  border-radius: var(--radio-pildora);
+  color: var(--color-texto-suave);
 }
 
-.puntoEstado {
-  width: var(--espacio-2);
-  height: var(--espacio-2);
-  background: var(--color-exito-texto);
-  border-radius: var(--radio-pildora);
+.descripcion svg {
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .barraHerramientas {
   display: flex;
   flex-direction: column;
   gap: var(--espacio-4);
+  min-width: 0;
 }
 
 .filaUno {
@@ -75,6 +55,7 @@
   flex-direction: column;
   gap: var(--espacio-1);
   width: 100%;
+  min-width: 0;
 }
 
 .etiquetaFiltro {
@@ -86,28 +67,22 @@
 .selectorFiltro {
   min-height: var(--tactil-min);
   max-width: 100%;
-  padding: 10px var(--espacio-3);
-  font-size: var(--texto-base);
+  padding: 10px var(--espacio-10) 10px var(--espacio-3);
+  font: inherit;
+  font-size: var(--texto-md);
   color: var(--color-texto);
   background-color: var(--color-superficie);
+  background-image: var(--flecha-select);
+  background-repeat: no-repeat;
+  background-position: right var(--espacio-3) center;
+  background-size: 16px 16px;
   border: 1px solid var(--color-borde);
   border-radius: var(--radio-md);
   cursor: pointer;
   appearance: none;
-  padding-right: var(--espacio-10);
-  background-image: var(--flecha-select);
-  background-repeat: no-repeat;
-  background-position: right var(--espacio-4) center;
-  background-size: 16px 16px;
 }
 
-.selectorFiltro:disabled {
-  color: var(--color-texto-suave);
-  background-color: var(--color-superficie-suave);
-  cursor: not-allowed;
-}
-
-.selectorFiltro:hover:not(:disabled) {
+.selectorFiltro:hover {
   border-color: var(--color-borde-fuerte);
 }
 
@@ -116,49 +91,6 @@
   outline: 2px solid var(--color-foco);
   outline-offset: 2px;
   border-color: var(--color-foco);
-}
-
-.tarjetaResultados {
-  overflow: hidden;
-  background: var(--color-superficie);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio-lg);
-  box-shadow: var(--sombra-sm);
-}
-
-.notaPie {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--espacio-2);
-  margin: 0;
-  font-size: var(--texto-md);
-  color: var(--color-texto-suave);
-  text-align: left;
-}
-
-.notaPie svg {
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-@media (min-width: 1024px) {
-  .cabecera {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
-  }
-
-  .campoBusquedaContenedor {
-    flex: 1 1 calc(var(--espacio-10) * 6.5);
-    width: auto;
-    max-width: calc(var(--espacio-10) * 8);
-  }
-
-  .campoFiltro {
-    width: auto;
-    min-width: calc(var(--espacio-10) * 5);
-  }
-
 }
 
 /* En escritorio el contenedor no genera caja: los filtros siguen siendo hijos de la fila. */
@@ -170,10 +102,45 @@
   display: none;
 }
 
+.tarjetaResultados {
+  overflow: hidden;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-sm);
+}
+
+.barraPaginacion {
+  /* Deja un poco de aire entre los filtros y el listado; la barra se alinea a la derecha. */
+  margin-bottom: calc(var(--espacio-3) * -1);
+}
+
+.pie {
+  padding: var(--espacio-3) var(--espacio-4);
+  border-top: 1px solid var(--color-borde);
+}
+
+@media (min-width: 1024px) {
+  .campoBusquedaContenedor {
+    flex: 1 1 calc(var(--espacio-10) * 6.5);
+    width: auto;
+    max-width: calc(var(--espacio-10) * 8);
+  }
+
+  .campoFiltro {
+    width: auto;
+    min-width: calc(var(--espacio-10) * 5);
+  }
+}
+
 @media (max-width: 767px) {
   .filaUno {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .selectorFiltro {
+    font-size: var(--texto-base);
   }
 
   .botonFiltros {
@@ -183,6 +150,7 @@
     gap: var(--espacio-2);
     min-height: var(--tactil-min);
     padding: 0 var(--espacio-4);
+    font: inherit;
     font-size: var(--texto-base);
     font-weight: var(--peso-seminegrita);
     color: var(--color-accion);

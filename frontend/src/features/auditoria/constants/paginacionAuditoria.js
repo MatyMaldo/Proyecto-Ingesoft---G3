@@ -1,8 +1,11 @@
 /**
- * Tamaño de página del API de auditorías (contrato backend, default 20).
- * Constante local a la feature: por decisión del
- * usuario (D20, docs/planes/auditorias.md §A), la paginación se implementa en
- * el backend y el frontend no construye ningún paginador visible, así que no
- * hay nada que compartir con otras features.
+ * Tamaño de página del listado de auditorías: 15 en 15 (HU-SAT-04, Esc. 4; igual que HU-SAT-02 y HU-SAT-05).
+ * Se envía al backend como `size` y el mock lo respeta.
  */
-export const TAMANIO_PAGINA_AUDITORIA = 20;
+export const TAMANIO_PAGINA_AUDITORIA = 15;
+
+/**
+ * Máximo de registros que se piden para el historial de una transacción (no se pagina: la HU solo pagina
+ * la búsqueda general, HU-SAT-04 L8).
+ */
+export const TAMANIO_HISTORIAL_AUDITORIA = 20;

@@ -13,17 +13,17 @@
    horizontalmente dentro de `.contenedorTabla`. */
 .tabla {
   width: 100%;
-  min-width: 720px;
+  min-width: 760px;
   table-layout: fixed;
   border-collapse: collapse;
 }
 
-.tabla thead th:nth-child(1) { width: 12.5%; }
-.tabla thead th:nth-child(2) { width: 17.5%; }
+.tabla thead th:nth-child(1) { width: 15%; }
+.tabla thead th:nth-child(2) { width: 20%; }
 .tabla thead th:nth-child(3) { width: 15%; }
-.tabla thead th:nth-child(4) { width: 18.5%; }
-.tabla thead th:nth-child(5) { width: 28.5%; }
-.tabla thead th:nth-child(6) { width: 8%; }
+.tabla thead th:nth-child(4) { width: 16%; }
+.tabla thead th:nth-child(5) { width: 27%; }
+.tabla thead th:nth-child(6) { width: 7%; }
 
 .tabla thead th {
   padding: var(--espacio-3);
@@ -110,21 +110,6 @@
 .bloqueUsuario {
   display: flex;
   flex-direction: column;
-}
-
-.avatar {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  width: var(--tamano-avatar-sm);
-  height: var(--tamano-avatar-sm);
-  font-size: var(--texto-xs);
-  font-weight: var(--peso-seminegrita);
-  color: var(--color-avatar-texto);
-  background: var(--color-avatar-fondo);
-  border: 1px solid var(--color-avatar-borde);
-  border-radius: var(--radio-pildora);
 }
 
 .nombreUsuario {

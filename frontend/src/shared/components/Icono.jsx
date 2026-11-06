@@ -166,6 +166,31 @@ const CATALOGO_ICONOS = {
     { tag: 'circle', props: { cx: 12, cy: 12, r: 10 } },
     { tag: 'path', props: { d: 'M12 16v-4' } },
     { tag: 'path', props: { d: 'M12 8h.01' } }
+  ],
+  editar: [
+    { tag: 'path', props: { d: 'M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z' } },
+    { tag: 'path', props: { d: 'm15 5 4 4' } }
+  ],
+  'mas-vertical': [
+    { tag: 'circle', props: { cx: 12, cy: 12, r: 1 } },
+    { tag: 'circle', props: { cx: 12, cy: 5, r: 1 } },
+    { tag: 'circle', props: { cx: 12, cy: 19, r: 1 } }
+  ],
+  subir: [
+    { tag: 'path', props: { d: 'M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4' } },
+    { tag: 'polyline', props: { points: '17 8 12 3 7 8' } },
+    { tag: 'line', props: { x1: 12, x2: 12, y1: 3, y2: 15 } }
+  ],
+  'usuario-desactivar': [
+    { tag: 'path', props: { d: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2' } },
+    { tag: 'circle', props: { cx: 9, cy: 7, r: 4 } },
+    { tag: 'line', props: { x1: 17, x2: 22, y1: 8, y2: 13 } },
+    { tag: 'line', props: { x1: 22, x2: 17, y1: 8, y2: 13 } }
+  ],
+  'usuario-activar': [
+    { tag: 'path', props: { d: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2' } },
+    { tag: 'circle', props: { cx: 9, cy: 7, r: 4 } },
+    { tag: 'polyline', props: { points: '16 11 18 13 22 9' } }
   ]
 };
 

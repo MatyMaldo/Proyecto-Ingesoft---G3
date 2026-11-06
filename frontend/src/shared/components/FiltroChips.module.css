@@ -9,6 +9,12 @@
     flex-wrap: nowrap;
     overflow-x: auto;
     padding-bottom: var(--espacio-1);
+    /* El desplazamiento sigue disponible con el dedo; solo se oculta la barra. */
+    scrollbar-width: none;
+  }
+
+  .grupo::-webkit-scrollbar {
+    display: none;
   }
 }
 
@@ -65,9 +71,40 @@
   outline-offset: 2px;
 }
 
+/*
+ * Chip seleccionado: relleno sólido con el color del tono y texto blanco, para que se distinga a
+ * simple vista del resto. Los colores de texto de los tonos tienen contraste >= 5:1 sobre blanco.
+ */
 .chip[aria-pressed='true'] {
   font-weight: var(--peso-seminegrita);
-  background: var(--tono-fondo);
-  border-color: var(--tono-borde);
+  background: var(--tono-texto);
+  border-color: var(--tono-texto);
+  color: var(--color-superficie);
+}
+
+.chip[aria-pressed='true']:hover {
+  background: var(--tono-texto);
+  border-color: var(--tono-texto);
+  filter: brightness(1.12);
+}
+
+.conteo {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.5rem;
+  height: 1.25rem;
+  margin-left: var(--espacio-2);
+  padding: 0 var(--espacio-1);
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-texto-secundario);
+  background: var(--color-superficie-suave);
+  border-radius: var(--radio-pildora);
+}
+
+.chip[aria-pressed='true'] .conteo {
   color: var(--tono-texto);
+  background: var(--color-superficie);
 }

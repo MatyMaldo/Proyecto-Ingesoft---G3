@@ -1,3 +1,5 @@
+import { formatearFechaVisible } from './formatoFecha.js';
+
 /**
  * Regla de validación del rango de fechas "Desde"/"Hasta", compartida por
  * Auditorías (HU-SAT-04, LAB05) y Log de errores (HU-SAT-05/06). Antes vivía
@@ -23,4 +25,22 @@ export function obtenerMensajeRangoFechas(fechaDesde, fechaHasta) {
     return MENSAJE_RANGO_FECHAS_INVALIDO;
   }
   return '';
+}
+
+/**
+ * Texto del chip de un rango de fechas aplicado: "Fecha: 17/09/2026 – 18/09/2026", "Fecha: desde ..." o
+ * "Fecha: hasta ...". Con un solo día, "Fecha: 17/09/2026".
+ *
+ * @param {{ fechaDesde: string, fechaHasta: string }} rango Al menos un extremo con valor `'AAAA-MM-DD'`.
+ * @returns {string}
+ */
+export function describirRangoFechas({ fechaDesde, fechaHasta }) {
+  if (fechaDesde && fechaHasta) {
+    return fechaDesde === fechaHasta
+      ? `Fecha: ${formatearFechaVisible(fechaDesde)}`
+      : `Fecha: ${formatearFechaVisible(fechaDesde)} – ${formatearFechaVisible(fechaHasta)}`;
+  }
+  return fechaDesde
+    ? `Fecha: desde ${formatearFechaVisible(fechaDesde)}`
+    : `Fecha: hasta ${formatearFechaVisible(fechaHasta)}`;
 }

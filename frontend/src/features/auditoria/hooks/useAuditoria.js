@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { formatearFechaHora } from '../../../shared/utils/formatoFecha.js';
-import { obtenerTonoModulo } from '../../../shared/constants/tonosModulo.js';
+import { formatearFechaHora, formatearFechaVisible } from '../../../shared/utils/formatoFecha.js';
 import { obtenerMensajeRangoFechas } from '../../../shared/utils/rangoFechas.js';
 import {
   listarRegistrosAuditoria,
@@ -16,6 +15,7 @@ import {
 import { obtenerEtiquetaAccion, obtenerTonoAccion } from '../constants/tiposAccionAuditoria.js';
 
 const CATEGORIA_TODOS = 'TODOS';
+const RANGO_VACIO = Object.freeze({ fechaDesde: '', fechaHasta: '' });
 const RETRASO_BUSQUEDA_MS = 300;
 
 const FORMATEADOR_HORA_SEGUNDOS = new Intl.DateTimeFormat('es-PE', {
@@ -91,20 +91,18 @@ function transformarRegistro(registroApi) {
     fechaHoraIso,
     fecha,
     hora,
-    fechaHoraCompleta: `${fecha} ${horaConSegundos}`,
+    // Mismo formato de fecha que el listado (DD/MM/AAAA); en el detalle se añaden los segundos.
+    fechaHoraCompleta: `${formatearFechaVisible(fecha)} ${horaConSegundos}`,
     usuario: {
       nombre: usuarioApi.nombre,
       rol: obtenerEtiquetaRol(usuarioApi.rol),
       iniciales: derivarIniciales(usuarioApi.nombre)
     },
+    // El módulo es neutro (gris): el color de la tabla se reserva para la acción.
     modulo: {
       codigo: normalizarCodigoCategoria(registroApi.categoria),
       etiqueta: obtenerEtiquetaCategoria(registroApi.categoria),
-      tono: obtenerTonoModulo({
-        USUARIO: 'USUARIOS',
-        MATRICULA: 'MATRICULAS',
-        ACADEMICO: 'EVALUACIONES'
-      }[normalizarCodigoCategoria(registroApi.categoria)] ?? normalizarCodigoCategoria(registroApi.categoria))
+      tono: 'gris'
     },
     accion: {
       codigo: registroApi.tipoAccion ?? registroApi.accion,
@@ -162,6 +160,10 @@ export default function useAuditoria() {
   const [tipoAccion, establecerTipoAccionEstado] = useState('');
   const [fechaDesde, establecerFechaDesdeEstado] = useState('');
   const [fechaHasta, establecerFechaHastaEstado] = useState('');
+  // Último rango válido aplicado (puede diferir de lo escrito en los campos mientras el rango es inválido).
+  const [rangoVigente, establecerRangoVigente] = useState(RANGO_VACIO);
+  const [pagina, establecerPaginaEstado] = useState(0);
+  const [paginacion, establecerPaginacion] = useState({ totalPaginas: 0, totalElementos: 0, cantidadPagina: 0 });
 
   const [detalleRegistro, establecerDetalleRegistro] = useState(null);
   const [estadoDetalle, establecerEstadoDetalle] = useState('listo');
@@ -175,7 +177,8 @@ export default function useAuditoria() {
   const elementoOrigenRef = useRef(null);
   // (LAB05) Último rango de fechas válido aplicado: chip, búsqueda y `reintentar`
   // siempre consultan con este rango, nunca con uno inválido (docs/planes/auditorias.md §6.3).
-  const rangoAplicadoRef = useRef({ fechaDesde: '', fechaHasta: '' });
+  const rangoAplicadoRef = useRef(RANGO_VACIO);
+  const paginaRef = useRef(0);
   // Filtro por tipo de acción: se aplica de inmediato, como el de categoría, y es independiente de ella.
   const tipoAccionRef = useRef('');
 
@@ -186,7 +189,7 @@ export default function useAuditoria() {
    * es la última solicitud en curso
    * (docs/planes/auditorias.md §6.3, pasos 1, 5 y 6).
    */
-  async function cargarListado(categoriaActual, busquedaActual, rangoActual, tipoAccionActual) {
+  async function cargarListado(categoriaActual, busquedaActual, rangoActual, tipoAccionActual, paginaActual = 0) {
     const idSolicitud = (secuenciaListadoRef.current += 1);
 
     if (estado === 'cargando' || estado === 'error') {
@@ -201,10 +204,11 @@ export default function useAuditoria() {
       fechaDesde: rangoActual.fechaDesde,
       fechaHasta: rangoActual.fechaHasta,
       tipoAccion: tipoAccionActual || '',
-      // El backend pagina los resultados; el frontend solicita la primera página.
-      // No se muestra un paginador en esta vista.
-      pagina: 0
+      // El backend pagina de 15 en 15; cualquier cambio de filtro vuelve a la primera página.
+      pagina: paginaActual
     };
+    paginaRef.current = paginaActual;
+    establecerPaginaEstado(paginaActual);
 
     const resultadoListado = await listarRegistrosAuditoria(filtros);
 
@@ -224,6 +228,13 @@ export default function useAuditoria() {
     const registrosVista = filtrarBusqueda(registrosPagina, busquedaActual);
     establecerRegistros(registrosVista);
     establecerResumen({ totalAcciones: resultadoListado.datos?.totalElementos ?? 0 });
+    // Los totales son los del backend. La búsqueda de texto solo recorta la página recibida
+    // (TODO(backend): parámetro de búsqueda en GET /auditorias), por eso `cantidadPagina` es la cantidad sin recortar.
+    establecerPaginacion({
+      totalPaginas: resultadoListado.datos?.totalPaginas ?? 0,
+      totalElementos: resultadoListado.datos?.totalElementos ?? 0,
+      cantidadPagina: registrosPagina.length
+    });
 
     establecerEstado('listo');
     establecerActualizando(false);
@@ -295,6 +306,7 @@ export default function useAuditoria() {
     if (mensaje === '') {
       const rango = { fechaDesde: valor, fechaHasta };
       rangoAplicadoRef.current = rango;
+      establecerRangoVigente(rango);
       cargarListado(categoria, busqueda.trim(), rango, tipoAccionRef.current);
     }
   }
@@ -312,8 +324,50 @@ export default function useAuditoria() {
     if (mensaje === '') {
       const rango = { fechaDesde, fechaHasta: valor };
       rangoAplicadoRef.current = rango;
+      establecerRangoVigente(rango);
       cargarListado(categoria, busqueda.trim(), rango, tipoAccionRef.current);
     }
+  }
+
+  /**
+   * Aplica de una vez los dos extremos del rango (chip de filtro activo). Los extremos
+   * recibidos son siempre válidos, así que se aplican sin pasar por el mensaje de error.
+   *
+   * @param {string} desde `'AAAA-MM-DD'` o `''`.
+   * @param {string} hasta `'AAAA-MM-DD'` o `''`.
+   */
+  function establecerRango(desde, hasta) {
+    const rango = { fechaDesde: desde, fechaHasta: hasta };
+    establecerFechaDesdeEstado(desde);
+    establecerFechaHastaEstado(hasta);
+    rangoAplicadoRef.current = rango;
+    establecerRangoVigente(rango);
+    cargarListado(categoria, busqueda.trim(), rango, tipoAccionRef.current);
+  }
+
+  /** Quita todos los filtros (módulo, acción, fechas y búsqueda) y vuelve a la primera página. */
+  function limpiarFiltros() {
+    if (temporizadorBusquedaRef.current) {
+      clearTimeout(temporizadorBusquedaRef.current);
+    }
+    establecerCategoriaEstado(CATEGORIA_TODOS);
+    establecerBusquedaEstado('');
+    establecerTipoAccionEstado('');
+    tipoAccionRef.current = '';
+    establecerFechaDesdeEstado('');
+    establecerFechaHastaEstado('');
+    rangoAplicadoRef.current = RANGO_VACIO;
+    establecerRangoVigente(RANGO_VACIO);
+    cargarListado(CATEGORIA_TODOS, '', RANGO_VACIO, '');
+  }
+
+  /**
+   * Cambia de página conservando todos los filtros vigentes.
+   *
+   * @param {number} nuevaPagina Base 0.
+   */
+  function cambiarPagina(nuevaPagina) {
+    cargarListado(categoria, busqueda.trim(), rangoAplicadoRef.current, tipoAccionRef.current, nuevaPagina);
   }
 
   /**
@@ -321,7 +375,7 @@ export default function useAuditoria() {
    * fechas válido).
    */
   function reintentar() {
-    cargarListado(categoria, busqueda.trim(), rangoAplicadoRef.current, tipoAccionRef.current);
+    cargarListado(categoria, busqueda.trim(), rangoAplicadoRef.current, tipoAccionRef.current, paginaRef.current);
   }
 
   /**
@@ -431,6 +485,14 @@ export default function useAuditoria() {
     fechaHasta,
     establecerFechaHasta,
     mensajeErrorRango,
+    rangoVigente,
+    establecerRango,
+    limpiarFiltros,
+    pagina,
+    totalPaginas: paginacion.totalPaginas,
+    totalElementos: paginacion.totalElementos,
+    cantidadPagina: paginacion.cantidadPagina,
+    cambiarPagina,
     reintentar,
     detalle: {
       registro: detalleRegistro,

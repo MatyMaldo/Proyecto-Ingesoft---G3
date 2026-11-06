@@ -1,0 +1,19 @@
+.avatar {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--tamano-avatar-sm);
+  height: var(--tamano-avatar-sm);
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-avatar-texto);
+  background: var(--color-avatar-fondo);
+  border: 1px solid var(--color-avatar-borde);
+  border-radius: var(--radio-pildora);
+  user-select: none;
+}
+
+.atenuado {
+  opacity: 0.55;
+}

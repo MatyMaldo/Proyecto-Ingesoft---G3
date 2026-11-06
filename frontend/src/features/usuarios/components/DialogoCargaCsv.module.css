@@ -1,0 +1,223 @@
+.contenido {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+  min-width: 0;
+}
+
+.texto {
+  margin: 0;
+  font-size: var(--texto-md);
+  line-height: var(--interlineado-md);
+  color: var(--color-texto-secundario);
+}
+
+.nota {
+  margin: 0;
+  font-size: var(--texto-xs);
+  line-height: var(--interlineado-xs);
+  color: var(--color-texto-suave);
+}
+
+/* Aviso preventivo (ámbar, GUI §1) con ícono y texto. */
+.aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espacio-2);
+  padding: var(--espacio-3);
+  font-size: var(--texto-md);
+  line-height: var(--interlineado-md);
+  color: var(--tono-ambar-texto);
+  background: var(--tono-ambar-fondo);
+  border: 1px solid var(--tono-ambar-borde);
+  border-radius: var(--radio-md);
+}
+
+.aviso svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-3);
+}
+
+.botonPrimario,
+.botonSecundario {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-4);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+  transition: background-color var(--transicion);
+}
+
+.botonPrimario {
+  color: var(--color-marca-texto);
+  background: var(--color-primario);
+  border: 1px solid var(--color-primario);
+}
+
+.botonPrimario:hover {
+  background: var(--color-primario-hover);
+}
+
+.botonSecundario {
+  color: var(--color-accion);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-accion);
+}
+
+.botonSecundario:hover {
+  background: var(--color-accion-suave);
+}
+
+.botonSecundario:focus-visible,
+.botonPrimario:focus-within {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.botonInactivo {
+  opacity: var(--opacidad-deshabilitado);
+  cursor: not-allowed;
+}
+
+/* El <input type="file"> sigue en la página y recibe el foco, pero queda oculto detrás de la etiqueta-botón. */
+.archivo {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0;
+  cursor: pointer;
+}
+
+.columnas {
+  padding: var(--espacio-3);
+  background: var(--color-fondo);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+}
+
+.rotulo {
+  margin: 0 0 var(--espacio-1);
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+.codigo {
+  font-size: var(--texto-xs);
+  color: var(--color-texto-secundario);
+  overflow-wrap: anywhere;
+}
+
+.lista {
+  margin: var(--espacio-2) 0 0;
+  padding-left: var(--espacio-4);
+  font-size: var(--texto-xs);
+  line-height: var(--interlineado-xs);
+  color: var(--color-texto-suave);
+}
+
+.lista li + li {
+  margin-top: var(--espacio-1);
+}
+
+.errores,
+.resumenAviso,
+.resumenExito {
+  padding: var(--espacio-3);
+  font-size: var(--texto-xs);
+  line-height: var(--interlineado-xs);
+  border-radius: var(--radio-md);
+}
+
+.errores ul,
+.resumenAviso ul {
+  margin: var(--espacio-2) 0 0;
+  padding-left: var(--espacio-4);
+}
+
+.errores p {
+  margin: var(--espacio-1) 0 0;
+}
+
+.errores {
+  max-height: 10rem;
+  overflow-y: auto;
+  color: var(--color-peligro-texto);
+  background: var(--color-peligro-fondo);
+  border: 1px solid var(--color-peligro-borde);
+}
+
+.resumenAviso {
+  color: var(--tono-ambar-texto);
+  background: var(--tono-ambar-fondo);
+  border: 1px solid var(--tono-ambar-borde);
+}
+
+.resumenAviso ul {
+  max-height: 8rem;
+  overflow-y: auto;
+}
+
+.resumenExito {
+  color: var(--color-exito-texto);
+  background: var(--color-exito-fondo);
+  border: 1px solid var(--color-exito-borde);
+}
+
+.vistaPrevia {
+  overflow-x: auto;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--texto-xs);
+}
+
+.leyenda {
+  /* Accesible para lectores de pantalla, sin ocupar espacio visual. */
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+
+.tabla th {
+  padding: var(--espacio-2);
+  text-align: left;
+  white-space: nowrap;
+  color: var(--color-texto-secundario);
+  background: var(--color-superficie-suave);
+}
+
+.tabla td {
+  padding: var(--espacio-2);
+  border-top: 1px solid var(--color-borde);
+  color: var(--color-texto);
+}
+
+.pieVistaPrevia {
+  margin: 0;
+  padding: var(--espacio-2);
+  font-size: var(--texto-xs);
+  color: var(--color-texto-suave);
+}

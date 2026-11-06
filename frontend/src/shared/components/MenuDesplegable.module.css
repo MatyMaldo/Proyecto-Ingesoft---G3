@@ -1,0 +1,77 @@
+.menu {
+  position: fixed;
+  z-index: var(--capa-menu);
+  display: flex;
+  flex-direction: column;
+  min-width: 12rem;
+  max-width: calc(100vw - var(--espacio-4));
+  padding: var(--espacio-1);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-lg);
+  animation: aparecer 120ms ease-out;
+}
+
+@keyframes aparecer {
+  from {
+    opacity: 0;
+    transform: translateY(-4px);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .menu {
+    animation: none;
+  }
+}
+
+.opcion {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  width: 100%;
+  min-height: 40px;
+  padding: 0 var(--espacio-3);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-medio);
+  text-align: left;
+  white-space: nowrap;
+  color: var(--color-texto);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radio-sm);
+  cursor: pointer;
+}
+
+.opcion:hover,
+.opcion:focus-visible {
+  background: var(--color-superficie-suave);
+}
+
+.opcion:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: -2px;
+}
+
+.separador {
+  height: 1px;
+  margin: var(--espacio-1) var(--espacio-2);
+  background: var(--color-borde);
+}
+
+.opcionPeligro {
+  color: var(--color-peligro-texto);
+}
+
+.opcionPeligro:hover,
+.opcionPeligro:focus-visible {
+  background: var(--color-peligro-fondo);
+}
+
+@media (max-width: 767px) {
+  .opcion {
+    min-height: var(--tactil-min);
+  }
+}

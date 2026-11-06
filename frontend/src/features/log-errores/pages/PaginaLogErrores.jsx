@@ -3,9 +3,11 @@ import { useRef } from 'react';
 import CampoBusqueda from '../../../shared/components/CampoBusqueda.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import FiltroRangoFechas from '../../../shared/components/FiltroRangoFechas.jsx';
+import FiltrosActivos from '../../../shared/components/FiltrosActivos.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
 import Paginacion from '../../../shared/components/Paginacion.jsx';
 import estilosUtil from '../../../shared/styles/utilidades.module.css';
+import { describirRangoFechas } from '../../../shared/utils/rangoFechas.js';
 import TablaLogErrores from '../components/TablaLogErrores.jsx';
 import useLogErrores, { OPCIONES_MODULO } from '../hooks/useLogErrores.js';
 import {
@@ -34,6 +36,9 @@ export default function PaginaLogErrores() {
     fechaDesde,
     fechaHasta,
     mensajeErrorRango,
+    rangoAplicado,
+    limpiarFiltros,
+    quitarRango,
     establecerModulo,
     establecerBusqueda,
     establecerFechaDesde,
@@ -53,6 +58,23 @@ export default function PaginaLogErrores() {
       behavior: reducirMovimiento ? 'auto' : 'smooth'
     });
   };
+
+  const hayRango = Boolean(rangoAplicado.fechaDesde || rangoAplicado.fechaHasta);
+  const hayModulo = SOPORTA_FILTRO_MODULO_Y_BUSQUEDA && modulo !== 'TODOS';
+  const hayBusqueda = SOPORTA_FILTRO_MODULO_Y_BUSQUEDA && busqueda.trim().length > 0;
+  const hayFiltros = hayRango || hayModulo || hayBusqueda;
+  const chipsActivos = [
+    ...(hayModulo
+      ? [{
+        id: 'modulo',
+        etiqueta: `Módulo: ${OPCIONES_MODULO.find((opcion) => opcion.valor === modulo)?.etiqueta ?? modulo}`,
+        alQuitar: () => establecerModulo('TODOS')
+      }]
+      : []),
+    ...(hayRango
+      ? [{ id: 'fechas', etiqueta: describirRangoFechas(rangoAplicado), alQuitar: quitarRango }]
+      : [])
+  ];
 
   let mensajeRegion = '';
   if (recargando) {
@@ -80,10 +102,11 @@ export default function PaginaLogErrores() {
   return (
     <div className={estilos.pagina}>
       <header className={estilos.cabecera}>
-        <div>
-          <p className={estilos.sobretitulo}>Módulo de administración</p>
-          <h1 className={estilos.titulo}>Log de Errores del Sistema</h1>
-        </div>
+        <h1 className={estilos.titulo}>Log de Errores del Sistema</h1>
+        <p className={estilos.descripcion}>
+          <Icono nombre="candado" tamano={16} />
+          <span>Consulta de solo lectura. Los errores registrados se conservan de forma permanente.</span>
+        </p>
       </header>
 
       <section className={estilos.filtros} aria-label="Filtros del log de errores">
@@ -93,7 +116,7 @@ export default function PaginaLogErrores() {
               <CampoBusqueda
                 id="busqueda-log-errores"
                 etiqueta="Buscar por operación, mensaje o usuario"
-                placeholder="Buscar operación, mensaje o usuario"
+                placeholder="Buscar por operación, mensaje o usuario"
                 valor={busqueda}
                 alCambiar={establecerBusqueda}
               />
@@ -124,14 +147,12 @@ export default function PaginaLogErrores() {
             mensajeError={mensajeErrorRango}
           />
         </div>
+
+        <FiltrosActivos filtros={chipsActivos} hayFiltros={hayFiltros} alLimpiar={limpiarFiltros} />
       </section>
 
-      <div ref={refInicioListado} className={estilos.filaInfo}>
-        <p className={estilos.notaPie}>
-          <Icono nombre="informacion" tamano={16} />
-          <span>Los errores registrados son de solo lectura y se conservan de forma permanente.</span>
-        </p>
-
+      {/* Total y paginación arriba del listado, como en Usuarios y Auditorías. */}
+      <div ref={refInicioListado} className={estilos.barraPaginacion}>
         {estado === 'listo' && errores.length > 0 && pieDePaginacion('superior')}
       </div>
 
@@ -145,18 +166,22 @@ export default function PaginaLogErrores() {
         {estado === 'error' && <EstadoConsulta tipo="error" alReintentar={reintentar} />}
 
         {estado === 'listo' && errores.length === 0 && (
-          <EstadoConsulta tipo="vacio" mensaje={MENSAJE_VACIO} />
+          <EstadoConsulta
+            tipo="vacio"
+            mensaje={MENSAJE_VACIO}
+            etiquetaAccion={hayFiltros ? 'Limpiar filtros' : undefined}
+            alAccion={hayFiltros ? limpiarFiltros : undefined}
+          />
         )}
 
         {estado === 'listo' && errores.length > 0 && (
           <>
             {recargando && <p className={estilos.actualizando}>Actualizando resultados…</p>}
             <TablaLogErrores errores={errores} ocupado={recargando} />
+            <div className={estilos.pie}>{pieDePaginacion('inferior')}</div>
           </>
         )}
       </section>
-
-      {estado === 'listo' && errores.length > 0 && pieDePaginacion('inferior')}
     </div>
   );
 }
