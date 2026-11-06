@@ -141,6 +141,39 @@
   cursor: not-allowed;
 }
 
+.botonCargaMasiva {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espacio-2);
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-5);
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-accion);
+  background: var(--color-accion-suave);
+  border: 1px solid var(--tono-azul-borde);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+  transition: background var(--transicion);
+}
+
+.botonCargaMasiva:hover:not(:disabled) {
+  background: var(--color-accion-suave-activo);
+}
+
+.botonCargaMasiva:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.botonCargaMasiva:disabled {
+  color: var(--color-texto-suave);
+  background: var(--color-superficie-suave);
+  border-color: var(--color-borde);
+  cursor: not-allowed;
+}
+
 .botonDescartar {
   min-height: var(--tactil-min);
   padding: 0 var(--espacio-6);

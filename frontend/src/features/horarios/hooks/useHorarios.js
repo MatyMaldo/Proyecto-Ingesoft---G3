@@ -244,6 +244,17 @@ export default function useHorarios() {
     });
   };
 
+  /** Vuelve a consultar la sección actual partiendo de lo guardado (p. ej. tras una carga masiva). */
+  const recargarConsulta = () => {
+    if (!consulta) {
+      return;
+    }
+    establecerBloques({});
+    establecerBloquesGuardados({});
+    establecerVersion(0);
+    establecerConsulta({ ...consulta });
+  };
+
   const agregarAsignacion = useCallback(
     async ({ cursoId, docenteId }) => {
       const resultado = await crearAsignacion({ ...consulta, cursoId, docenteId });
@@ -341,6 +352,7 @@ export default function useHorarios() {
     seleccionarGrado,
     seleccionarSeccion: establecerSeccion,
     verHorario,
+    recargarConsulta,
     consulta,
     tituloConsulta: consulta
       ? `${gradoConsultado?.nombre ?? consulta.gradoId} ${seccionConsultada?.nombre ?? consulta.seccion}`

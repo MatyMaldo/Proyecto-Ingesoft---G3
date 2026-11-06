@@ -6,6 +6,7 @@ import Notificacion from '../../../shared/components/Notificacion.jsx';
 import useNotificacion from '../../../shared/hooks/useNotificacion.js';
 import DialogoAsignacion from '../components/DialogoAsignacion.jsx';
 import DialogoBloque from '../components/DialogoBloque.jsx';
+import DialogoCargaMasiva from '../components/DialogoCargaMasiva.jsx';
 import DialogoDescartarCambios from '../components/DialogoDescartarCambios.jsx';
 import DialogoSesiones from '../components/DialogoSesiones.jsx';
 import DialogoEliminarAsignacion from '../components/DialogoEliminarAsignacion.jsx';
@@ -36,6 +37,7 @@ export default function PaginaHorarios() {
     seleccionarSeccion,
     seccionesFiltradas,
     verHorario,
+    recargarConsulta,
     consulta,
     tituloConsulta,
     asignaciones,
@@ -48,6 +50,7 @@ export default function PaginaHorarios() {
   // 'cambiar' (otra sección) o 'descartar' (volver a lo guardado), cuando hay cambios sin guardar.
   const [confirmacion, establecerConfirmacion] = useState(null);
   const [dialogoSesiones, establecerDialogoSesiones] = useState(false);
+  const [dialogoCargaMasiva, establecerDialogoCargaMasiva] = useState(false);
 
   const sinRelaciones = asignaciones.lista.length === 0;
   const sinBloquesGuardados = Object.keys(horario.bloquesGuardados).length === 0;
@@ -64,6 +67,19 @@ export default function PaginaHorarios() {
   async function guardarHorario() {
     const error = await horario.guardar();
     mostrarNotificacion(error ?? 'Horario guardado correctamente.', Boolean(error));
+  }
+
+  function completarCargaMasiva({ bloquesCreados }) {
+    establecerDialogoCargaMasiva(false);
+    if (consulta && horario.hayCambios) {
+      // No se pisa el borrador de la matriz: el usuario decide cuándo volver a consultar.
+      mostrarNotificacion(
+        `Se crearon ${bloquesCreados} bloques. Vuelve a consultar la sección para verlos; tienes cambios sin guardar.`
+      );
+      return;
+    }
+    recargarConsulta();
+    mostrarNotificacion(`Carga masiva completada: se crearon ${bloquesCreados} bloques horarios.`);
   }
 
   async function agregarAsignacion(datos) {
@@ -107,6 +123,17 @@ export default function PaginaHorarios() {
           alCambiarGrado={seleccionarGrado}
           alCambiarSeccion={seleccionarSeccion}
           alVerHorario={solicitarVerHorario}
+          acciones={(
+            <button
+              type="button"
+              className={estilos.botonCargaMasiva}
+              disabled={estadoCatalogos !== 'listo'}
+              onClick={() => establecerDialogoCargaMasiva(true)}
+            >
+              <Icono nombre="subir" tamano={18} />
+              Carga masiva
+            </button>
+          )}
         />
       )}
 
@@ -251,6 +278,14 @@ export default function PaginaHorarios() {
           tituloSeccion={tituloConsulta}
           alCancelar={() => establecerDialogoSesiones(false)}
           alNotificar={mostrarNotificacion}
+        />
+      )}
+
+      {dialogoCargaMasiva && (
+        <DialogoCargaMasiva
+          anios={catalogos.anios}
+          alCompletar={completarCargaMasiva}
+          alCancelar={() => establecerDialogoCargaMasiva(false)}
         />
       )}
 

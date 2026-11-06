@@ -7,6 +7,20 @@ afterEach(() => {
   configurarCliente();
 });
 
+describe('cliente HTTP · errores con detalle', () => {
+  it('conserva `datos` cuando el backend responde 4xx con el detalle por fila', async () => {
+    const detalle = { filasProcesadas: 2, bloquesCreados: 0, errores: [{ fila: 2, mensaje: 'Aula inexistente' }] };
+    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({ datos: detalle, error: null }),
+      { status: 400, headers: { 'Content-Type': 'application/json' } }
+    )));
+
+    const respuesta = await solicitar('/bloques-horario/carga-masiva', { metodo: 'POST' });
+
+    expect(respuesta).toMatchObject({ exitoso: false, datos: detalle, estado: 400 });
+  });
+});
+
 describe('cliente HTTP · formatos de respuesta exitosa del backend', () => {
   it('extrae el contenido cuando el backend responde con la propiedad datos', async () => {
     const cursos = [{ id: 1, nombre: 'Matemáticas', descripcion: 'Curso' }];

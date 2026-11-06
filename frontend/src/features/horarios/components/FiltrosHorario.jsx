@@ -13,6 +13,7 @@ import estilos from './FiltrosHorario.module.css';
  * @param {(valor: string) => void} props.alCambiarGrado
  * @param {(valor: string) => void} props.alCambiarSeccion
  * @param {() => void} props.alVerHorario
+ * @param {import('react').ReactNode} [props.acciones] Acciones de la página (p. ej. carga masiva), alineadas a la derecha.
  */
 export default function FiltrosHorario({
   grados,
@@ -21,7 +22,8 @@ export default function FiltrosHorario({
   deshabilitado,
   alCambiarGrado,
   alCambiarSeccion,
-  alVerHorario
+  alVerHorario,
+  acciones
 }) {
   return (
     <form
@@ -59,6 +61,7 @@ export default function FiltrosHorario({
         <Icono nombre="buscar" tamano={18} />
         Ver horario
       </button>
+      {acciones && <div className={estilos.acciones}>{acciones}</div>}
     </form>
   );
 }

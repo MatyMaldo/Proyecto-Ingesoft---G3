@@ -160,7 +160,8 @@ export async function solicitar(ruta, opciones = {}) {
       }
       return {
         exitoso: false,
-        datos: null,
+        // Algunos endpoints (p. ej. la carga masiva de horarios) responden 4xx con el detalle por fila en `datos`.
+        datos: json?.datos ?? json?.data ?? null,
         mensaje: json?.message ?? json?.error ?? json?.mensaje ?? 'No se pudo completar la operación.',
         estado: respuesta.status,
         codigo
