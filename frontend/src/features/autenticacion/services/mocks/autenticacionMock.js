@@ -2,7 +2,6 @@
 // Usuarios y contraseñas ficticios SOLO para desarrollo. Ningún componente debe importarlos.
 
 import { ROLES } from '../../../../shared/auth/roles.js';
-import { MOTIVOS_RECHAZO } from '../autenticacionService.js';
 
 const ESPERA_SIMULADA_MS = 400;
 
@@ -100,18 +99,6 @@ export function iniciarSesionMock({ correo, password }) {
 
     if (!usuario.activo) {
       return { exitoso: false, datos: null, mensaje: 'Cuenta inactiva.', estado: 403, codigo: 'CUENTA_INACTIVA' };
-    }
-
-    if (usuario.rol === ROLES.DOCENTE) {
-      // §U3: alcance Sprint 1, solo Administrador habilitado. Ningún caso del
-      // mock corresponde a Estudiante ni Apoderado todavía.
-      return {
-        exitoso: false,
-        datos: null,
-        mensaje: 'El acceso para tu rol aún no está habilitado.',
-        estado: 403,
-        codigo: MOTIVOS_RECHAZO.ROL_NO_HABILITADO
-      };
     }
 
     // No es un JWT: con el mock activo ningún servicio llama al backend real,

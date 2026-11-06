@@ -9,7 +9,6 @@ export const SECCIONES_NAVEGACION = Object.freeze([
     id: 'gestion',
     titulo: 'Gestión',
     items: Object.freeze([
-      // TODO(pregunta): roles por ítem de Gestión (Usuarios, Matrículas, Cursos, Pagos, Horarios).
       Object.freeze({
         id: 'usuarios',
         etiqueta: 'Usuarios',
@@ -17,9 +16,28 @@ export const SECCIONES_NAVEGACION = Object.freeze([
         icono: 'usuario',
         roles: Object.freeze([ROLES.ADMIN])
       }),
-      Object.freeze({ id: 'matriculas', etiqueta: 'Matrículas', ruta: '/matriculas', icono: 'usuarios' }),
+      Object.freeze({
+        id: 'matriculas',
+        etiqueta: 'Matrículas',
+        ruta: '/matriculas',
+        icono: 'usuarios',
+        roles: Object.freeze([ROLES.ADMIN])
+      }),
       Object.freeze({ id: 'cursos', etiqueta: 'Cursos', ruta: '/cursos', icono: 'libro' }),
-      Object.freeze({ id: 'pagos', etiqueta: 'Pagos', ruta: '/pagos', icono: 'tarjeta' }),
+      Object.freeze({
+        id: 'evaluaciones',
+        etiqueta: 'Evaluaciones',
+        ruta: '/evaluaciones',
+        icono: 'archivo',
+        roles: Object.freeze([ROLES.DOCENTE])
+      }),
+      Object.freeze({
+        id: 'pagos',
+        etiqueta: 'Pagos',
+        ruta: '/pagos',
+        icono: 'tarjeta',
+        roles: Object.freeze([ROLES.ADMIN])
+      }),
       Object.freeze({
         id: 'horarios',
         etiqueta: 'Horarios',
@@ -78,5 +96,6 @@ export function obtenerItemsNavegacion() {
  * `ModuloEnConstruccion nombre="Inicio"`.
  */
 export const RUTA_INICIO_POR_ROL = Object.freeze({
-  [ROLES.ADMIN]: '/administracion/auditorias'
+  [ROLES.ADMIN]: '/administracion/auditorias',
+  [ROLES.DOCENTE]: '/evaluaciones'
 });
