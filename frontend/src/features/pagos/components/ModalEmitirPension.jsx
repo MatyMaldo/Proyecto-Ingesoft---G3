@@ -11,7 +11,7 @@ import usePagos from '../hooks/usePagos.js';
  *
  * @param {{
  *   onCerrar: () => void,
- *   onAceptar: (datos: { alumno: Object, anioId: number, mes: string }) => void,
+ *   onAceptar: (datos: { estudianteId: number, anioId: number, mes: string }) => void,
  *   alumno: Object|null,
  *   enviando?: boolean
  * }} props
@@ -31,6 +31,7 @@ export default function ModalEmitirPension({ onCerrar, onAceptar,alumno,enviando
     seleccionarMes
   } = usePagos();
 
+  const estudianteId = alumno.id;
   const idTitulo = useId();
   const idAnio = useId();
   const idMes = useId();
@@ -100,16 +101,16 @@ export default function ModalEmitirPension({ onCerrar, onAceptar,alumno,enviando
                 }
               </option>
               
-              <option key={1} value={"MARZO"}>MARZO</option>
-              <option key={2} value={"ABRIL"}>ABRIL</option>
-              <option key={3} value={"MAYO"}>MAYO</option>
-              <option key={4} value={"JUNIO"}>JUNIO</option>
-              <option key={5} value={"JULIO"}>JULIO</option>
-              <option key={6} value={"AGOSTO"}>AGOSTO</option>
-              <option key={7} value={"SEPTIEMBRE"}>SEPTIEMBRE</option>
-              <option key={8} value={"OCTUBRE"}>OCTUBRE</option>
-              <option key={9} value={"NOVIEMBRE"}>NOVIEMBRE</option>
-              <option key={10} value={"DICIEMBRE"}>DICIEMBRE</option>
+              <option key={1} value="MARZO">MARZO</option>
+              <option key={2} value="ABRIL">ABRIL</option>
+              <option key={3} value="MAYO">MAYO</option>
+              <option key={4} value="JUNIO">JUNIO</option>
+              <option key={5} value="JULIO">JULIO</option>
+              <option key={6} value="AGOSTO">AGOSTO</option>
+              <option key={7} value="SETIEMBRE">SETIEMBRE</option>
+              <option key={8} value="OCTUBRE">OCTUBRE</option>
+              <option key={9} value="NOVIEMBRE">NOVIEMBRE</option>
+              <option key={10} value="DICIEMBRE">DICIEMBRE</option>
 
             </select>
             {estadoEstructura === 'error' && (
@@ -129,7 +130,7 @@ export default function ModalEmitirPension({ onCerrar, onAceptar,alumno,enviando
             type="button"
             className={estilosModal.botonPrimario}
             disabled={ (alumno && anioId && mes) ? false : true } // Por ahora estaría así 
-            onClick={() => onAceptar({alumno,anioId,mes})}
+            onClick={() => onAceptar({estudianteId,anioId,mes})}
             //onClick={onAceptar} Por ahora
           >
             {enviando ? 'Emitiendo...' : 'Aceptar'}
