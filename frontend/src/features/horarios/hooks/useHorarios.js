@@ -8,6 +8,7 @@ import {
   eliminarAsignacion,
   guardarHorario,
   listarAsignaciones,
+  listarSeccionesHorario,
   listarOcupaciones,
   obtenerHorario
 } from '../services/horariosService.js';
@@ -22,6 +23,10 @@ const CATALOGOS_VACIOS = {
   anios: [],
   bimestres: []
 };
+
+export function buscarAnioAcademicoVigente(anios, anioVigente = new Date().getFullYear()) {
+  return anios.find((anio) => Number(anio.anio) === Number(anioVigente));
+}
 
 /** Convierte la lista de bloques del backend en un mapa `dia|franja` → { asignacionId, aulaId }. */
 function horaComparable(hora) {
@@ -67,6 +72,8 @@ export default function useHorarios() {
   const [catalogos, establecerCatalogos] = useState(CATALOGOS_VACIOS);
   const [estadoCatalogos, establecerEstadoCatalogos] = useState('cargando');
   const [errorCatalogos, establecerErrorCatalogos] = useState('');
+  const [estadoSecciones, establecerEstadoSecciones] = useState('inactivo');
+  const [errorSecciones, establecerErrorSecciones] = useState('');
   const [intento, establecerIntento] = useState(0);
 
   // Grado y sección consultados viajan en la URL (`?grado=4&seccion=B`) para poder recargar o compartir.
@@ -74,6 +81,7 @@ export default function useHorarios() {
   const [gradoId, establecerGradoId] = useState(parametros.get('grado') ?? '');
   const [seccion, establecerSeccion] = useState(parametros.get('seccion') ?? '');
   const urlRestaurada = useRef(false);
+  const seccionDeUrl = useRef(Boolean(parametros.get('seccion')));
   // Sección consultada con "Ver horario"; los filtros del formulario no la cambian hasta pulsarlo.
   const [consulta, establecerConsulta] = useState(null);
   const [version, establecerVersion] = useState(0);
@@ -116,6 +124,56 @@ export default function useHorarios() {
       cancelado = true;
     };
   }, [intento]);
+
+  useEffect(() => {
+    if (estadoCatalogos !== 'listo') return undefined;
+    if (!gradoId) {
+      establecerCatalogos((anteriores) => ({ ...anteriores, secciones: [] }));
+      establecerEstadoSecciones('inactivo');
+      establecerErrorSecciones('');
+      return undefined;
+    }
+
+    const anioVigente = buscarAnioAcademicoVigente(catalogos.anios);
+    if (!anioVigente?.id) {
+      establecerCatalogos((anteriores) => ({ ...anteriores, secciones: [] }));
+      establecerErrorSecciones(
+        `No se encontró el año académico vigente (${new Date().getFullYear()}).`
+      );
+      establecerEstadoSecciones('error');
+      return undefined;
+    }
+
+    let cancelado = false;
+    async function cargarSecciones() {
+      establecerEstadoSecciones('cargando');
+      establecerErrorSecciones('');
+      establecerCatalogos((anteriores) => ({ ...anteriores, secciones: [] }));
+      const resultado = await listarSeccionesHorario({
+        gradoId,
+        anioId: anioVigente.id,
+        anio: anioVigente.anio
+      });
+      if (cancelado) return;
+      if (!resultado.exitoso) {
+        establecerErrorSecciones(resultado.mensaje || 'No se pudieron cargar las secciones del año vigente.');
+        establecerEstadoSecciones('error');
+        return;
+      }
+      if (!Array.isArray(resultado.datos)) {
+        establecerErrorSecciones('El backend devolvió un listado de secciones no válido.');
+        establecerEstadoSecciones('error');
+        return;
+      }
+      establecerCatalogos((anteriores) => ({ ...anteriores, secciones: resultado.datos }));
+      establecerEstadoSecciones('listo');
+    }
+
+    cargarSecciones();
+    return () => {
+      cancelado = true;
+    };
+  }, [estadoCatalogos, gradoId, catalogos.anios]);
 
   useEffect(() => {
     if (!consulta) {
@@ -176,32 +234,43 @@ export default function useHorarios() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [consulta, version]);
 
-  // Al cargar los catálogos, si la URL trae un grado y una sección válidos, se consulta de inmediato.
+  // Restaura primero el grado de la URL; la sección se valida cuando el backend responde el filtro.
   useEffect(() => {
     if (estadoCatalogos !== 'listo' || urlRestaurada.current) {
       return;
     }
     urlRestaurada.current = true;
-    const valido =
-      catalogos.grados.some((grado) => String(grado.id) === String(gradoId)) &&
-      catalogos.secciones.some((elemento) => String(elemento.id) === String(seccion));
-    if (valido) {
-      const seccionSeleccionada = catalogos.secciones.find(
-        (elemento) => String(elemento.id) === String(seccion)
-      );
-      establecerConsulta({
-        gradoId,
-        seccion,
-        seccionId: seccion,
-        anioAcademicoId: seccionSeleccionada?.anioAcademicoId ?? seccionSeleccionada?.anioId,
-        anioId: seccionSeleccionada?.anioAcademicoId ?? seccionSeleccionada?.anioId,
-        anioAcademico: seccionSeleccionada?.anioAcademico
-      });
-    } else {
+    if (!catalogos.grados.some((grado) => String(grado.id) === String(gradoId))) {
       establecerGradoId('');
       establecerSeccion('');
+      seccionDeUrl.current = false;
     }
-  }, [estadoCatalogos, catalogos, gradoId, seccion]);
+  }, [estadoCatalogos, catalogos.grados, gradoId]);
+
+  useEffect(() => {
+    if (
+      estadoSecciones !== 'listo' ||
+      !urlRestaurada.current ||
+      !seccionDeUrl.current
+    ) return;
+
+    seccionDeUrl.current = false;
+    const seccionSeleccionada = catalogos.secciones.find(
+      (elemento) => String(elemento.id) === String(seccion)
+    );
+    if (!seccionSeleccionada) {
+      establecerSeccion('');
+      return;
+    }
+    establecerConsulta({
+      gradoId,
+      seccion,
+      seccionId: seccion,
+      anioAcademicoId: seccionSeleccionada.anioAcademicoId,
+      anioId: seccionSeleccionada.anioAcademicoId,
+      anioAcademico: seccionSeleccionada.anioAcademico
+    });
+  }, [estadoSecciones, catalogos.secciones, gradoId, seccion]);
 
   // Con cambios sin guardar, el navegador pide confirmar antes de recargar o cerrar la pestaña.
   useEffect(() => {
@@ -221,6 +290,7 @@ export default function useHorarios() {
   const seleccionarGrado = (valor) => {
     establecerGradoId(valor);
     establecerSeccion('');
+    establecerCatalogos((anteriores) => ({ ...anteriores, secciones: [] }));
   };
 
   const verHorario = () => {
@@ -337,15 +407,15 @@ export default function useHorarios() {
   const seccionConsultada = catalogos.secciones.find(
     (elemento) => String(elemento.id) === String(consulta?.seccionId ?? consulta?.seccion)
   );
-  const seccionesFiltradas = catalogos.secciones.filter(
-    (elemento) => String(elemento.gradoId) === String(gradoId)
-  );
+  const seccionesFiltradas = catalogos.secciones;
 
   return {
     catalogos,
     estadoCatalogos,
     reintentarCatalogos: () => establecerIntento((actual) => actual + 1),
     errorCatalogos,
+    estadoSecciones,
+    errorSecciones,
     errorHorario,
     filtros: { gradoId, seccion, completos: filtrosCompletos },
     seccionesFiltradas,

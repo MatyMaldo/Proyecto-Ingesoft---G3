@@ -17,6 +17,7 @@ const GRADOS = [
 const SECCIONES = ['A', 'B', 'C'].map((nombre) => ({
   id: nombre,
   nombre,
+  gradoId: '4',
   anioAcademicoId: '1',
   anioAcademico: 2026
 }));
@@ -140,6 +141,7 @@ export async function consultarCatalogosMock() {
     cursos: CURSOS,
     docentes: DOCENTES,
     aulas: AULAS,
+    anios: [{ id: '1', anio: 2026, fechaInicio: '2026-01-01', fechaFin: '2026-12-31' }],
     bimestres: BIMESTRES
   });
 }

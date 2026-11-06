@@ -31,6 +31,8 @@ export default function PaginaHorarios() {
     estadoCatalogos,
     errorCatalogos,
     errorHorario,
+    estadoSecciones,
+    errorSecciones,
     reintentarCatalogos,
     filtros,
     seleccionarGrado,
@@ -120,6 +122,7 @@ export default function PaginaHorarios() {
           secciones={seccionesFiltradas}
           filtros={filtros}
           deshabilitado={estadoCatalogos === 'cargando'}
+          seccionesCargando={estadoSecciones === 'cargando'}
           alCambiarGrado={seleccionarGrado}
           alCambiarSeccion={seleccionarSeccion}
           alVerHorario={solicitarVerHorario}
@@ -134,6 +137,13 @@ export default function PaginaHorarios() {
               Carga masiva
             </button>
           )}
+        />
+      )}
+      {estadoCatalogos === 'listo' && estadoSecciones === 'error' && (
+        <EstadoConsulta
+          tipo="error"
+          mensaje={errorSecciones}
+          alReintentar={reintentarCatalogos}
         />
       )}
 

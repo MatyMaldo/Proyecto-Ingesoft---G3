@@ -10,6 +10,7 @@ import estilos from './FiltrosHorario.module.css';
  * @param {Array<{ id: string, nombre: string }>} props.secciones
  * @param {{ gradoId: string, seccion: string, completos: boolean }} props.filtros
  * @param {boolean} props.deshabilitado
+ * @param {boolean} [props.seccionesCargando]
  * @param {(valor: string) => void} props.alCambiarGrado
  * @param {(valor: string) => void} props.alCambiarSeccion
  * @param {() => void} props.alVerHorario
@@ -20,6 +21,7 @@ export default function FiltrosHorario({
   secciones,
   filtros,
   deshabilitado,
+  seccionesCargando = false,
   alCambiarGrado,
   alCambiarSeccion,
   alVerHorario,
@@ -50,9 +52,9 @@ export default function FiltrosHorario({
           id="horarios-seccion"
           etiqueta="Sección"
           requerido
-          placeholder="Sección..."
+          placeholder={seccionesCargando ? 'Cargando secciones...' : 'Sección...'}
           valor={filtros.seccion}
-          deshabilitado={deshabilitado || filtros.gradoId === ''}
+          deshabilitado={deshabilitado || seccionesCargando || filtros.gradoId === ''}
           opciones={secciones.map((seccion) => ({ valor: seccion.id, etiqueta: seccion.nombre }))}
           alCambiar={alCambiarSeccion}
         />

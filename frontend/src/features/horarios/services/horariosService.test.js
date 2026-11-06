@@ -22,6 +22,7 @@ import {
   generarSesiones,
   listarAsignaciones,
   listarBloquesHorario,
+  listarSeccionesHorario,
   listarSesiones,
   obtenerAsignacion,
   obtenerBloqueHorario,
@@ -32,13 +33,9 @@ import {
 beforeEach(() => solicitar.mockClear());
 
 describe('servicio de horarios · contrato API v1', () => {
-  it('carga los catálogos desde los endpoints publicados y asocia sección, grado y año', async () => {
+  it('carga catálogos base sin listar todas las secciones', async () => {
     solicitar
       .mockResolvedValueOnce({ exitoso: true, datos: [{ id: 2, nombre: 'Primero' }] })
-      .mockResolvedValueOnce({
-        exitoso: true,
-        datos: [{ id: 7, nombre: 'A', gradoId: 2, anioId: 2026 }]
-      })
       .mockResolvedValueOnce({ exitoso: true, datos: [{ id: 3, nombre: 'Matemáticas' }] })
       .mockResolvedValueOnce({ exitoso: true, datos: [{ id: 4, nombre: 'Aula 101' }] })
       .mockResolvedValueOnce({
@@ -63,7 +60,6 @@ describe('servicio de horarios · contrato API v1', () => {
 
     expect(solicitar.mock.calls).toEqual([
       ['/grados'],
-      ['/secciones'],
       ['/cursos'],
       ['/aulas'],
       ['/anios-academicos'],
@@ -72,13 +68,8 @@ describe('servicio de horarios · contrato API v1', () => {
       }]
     ]);
     expect(respuesta.exitoso).toBe(true);
-    expect(respuesta.datos.secciones[0]).toMatchObject({
-      id: 7,
-      nombre: 'A',
-      gradoId: 2,
-      anioAcademicoId: 2026,
-      anioAcademico: 2026
-    });
+    expect(respuesta.datos.secciones).toEqual([]);
+    expect(respuesta.datos.anios[0].anio).toBe(2026);
     expect(respuesta.datos.docentes).toEqual([
       { id: 9, nombreCompleto: 'Rosa García', activo: true, nombre: 'Rosa García' }
     ]);
@@ -92,8 +83,35 @@ describe('servicio de horarios · contrato API v1', () => {
     const respuesta = await consultarCatalogos();
 
     expect(respuesta.exitoso).toBe(false);
-    expect(respuesta.mensaje).toBe('No se pudo cargar /secciones: No autorizado.');
-    expect(solicitar).toHaveBeenCalledTimes(6);
+    expect(respuesta.mensaje).toBe('No se pudo cargar /cursos: No autorizado.');
+    expect(solicitar).toHaveBeenCalledTimes(5);
+  });
+
+  it('lista secciones con filtros de grado y el ID del año vigente', async () => {
+    solicitar.mockResolvedValueOnce({
+      exitoso: true,
+      datos: [{
+        id: 17,
+        nombre: 'A',
+        gradoId: 2,
+        gradoNombre: 'Primero',
+        anioAcademicoId: 41,
+        anioAcademico: 2026
+      }]
+    });
+
+    const respuesta = await listarSeccionesHorario({ gradoId: '2', anioId: '41' });
+
+    expect(solicitar).toHaveBeenCalledWith('/secciones', {
+      parametros: { gradoId: 2, anioId: 41 }
+    });
+    expect(respuesta.datos[0]).toMatchObject({
+      id: 17,
+      nombre: 'A',
+      gradoId: 2,
+      anioAcademicoId: 41,
+      anioAcademico: 2026
+    });
   });
 
   it('consulta las asignaciones con los filtros contractuales', async () => {

@@ -44,9 +44,9 @@ function cuerpoBloque({ dia, franjaId, asignacionId, aulaId }) {
 export async function consultarCatalogos() {
   if (USAR_MOCK) return consultarCatalogosMock();
 
-  const endpoints = ['/grados', '/secciones', '/cursos', '/aulas', '/anios-academicos', '/usuarios'];
+  const endpoints = ['/grados', '/cursos', '/aulas', '/anios-academicos', '/usuarios'];
   const solicitudes = [
-    ...endpoints.slice(0, 5).map((endpoint) => () => solicitar(endpoint)),
+    ...endpoints.slice(0, 4).map((endpoint) => () => solicitar(endpoint)),
     () => solicitar('/usuarios', {
       parametros: { tipoUsuario: 'DOCENTE', activo: true, page: 0, size: 100 }
     })
@@ -63,13 +63,13 @@ export async function consultarCatalogos() {
     };
   }
 
-  const [grados, secciones, cursos, aulas, anios] = respuestas.slice(0, 5).map(
+  const [grados, cursos, aulas, anios] = respuestas.slice(0, 4).map(
     (respuesta) => respuesta.datos
   );
-  const docentesPagina = respuestas[5].datos;
+  const docentesPagina = respuestas[4].datos;
   const docentes = docentesPagina?.content;
   if (
-    ![grados, secciones, cursos, aulas, anios].every(Array.isArray) ||
+    ![grados, cursos, aulas, anios].every(Array.isArray) ||
     !Array.isArray(docentes)
   ) {
     return falloFormato('los catálogos de horarios');
@@ -84,27 +84,8 @@ export async function consultarCatalogos() {
     return falloFormato('la lista de docentes');
   }
 
-  const seccionesNormalizadas = secciones.map((seccion) => {
-    const anioRelacionado = anios.find((anio) =>
-      String(anio.id) === String(seccion.anioAcademicoId ?? seccion.anioId)
-      || String(anio.anio) === String(seccion.anioAcademico ?? seccion.anio)
-    );
-    return {
-      ...seccion,
-      id: seccion.id,
-      nombre: seccion.nombre ?? seccion.nombreSeccion,
-      gradoId: seccion.gradoId ?? seccion.grado?.id,
-      anioAcademicoId: seccion.anioAcademicoId ?? seccion.anioId ?? anioRelacionado?.id,
-      anioAcademico: seccion.anioAcademico ?? seccion.anio ?? anioRelacionado?.anio
-    };
-  });
-
   if (
     grados.some((grado) => grado.id === undefined || grado.id === null || !grado.nombre) ||
-    seccionesNormalizadas.some((seccion) =>
-      seccion.id === undefined || seccion.id === null || !seccion.nombre
-      || seccion.gradoId === undefined || seccion.gradoId === null
-    ) ||
     cursos.some((curso) => curso.id === undefined || curso.id === null || !curso.nombre) ||
     aulas.some((aula) => aula.id === undefined || aula.id === null || !aula.nombre)
   ) {
@@ -115,7 +96,7 @@ export async function consultarCatalogos() {
     exitoso: true,
     datos: {
       grados,
-      secciones: seccionesNormalizadas,
+      secciones: [],
       cursos,
       aulas,
       anios,
@@ -124,6 +105,45 @@ export async function consultarCatalogos() {
     },
     mensaje: ''
   };
+}
+
+export async function listarSeccionesHorario({ gradoId, anioId, anio }) {
+  if (USAR_MOCK) {
+    const respuesta = await consultarCatalogosMock();
+    if (!respuesta.exitoso) return respuesta;
+    return {
+      ...respuesta,
+      datos: respuesta.datos.secciones.filter((seccion) =>
+        String(seccion.gradoId) === String(gradoId)
+        && Number(seccion.anioAcademico) === Number(anio)
+      )
+    };
+  }
+
+  const respuesta = await solicitar('/secciones', {
+    parametros: {
+      gradoId: identificadorLong(gradoId),
+      anioId: identificadorLong(anioId)
+    }
+  });
+  if (!respuesta.exitoso) return respuesta;
+  if (!Array.isArray(respuesta.datos)) return falloFormato('las secciones');
+
+  const secciones = respuesta.datos.map((seccion) => ({
+    ...seccion,
+    nombre: seccion.nombre ?? seccion.nombreSeccion,
+    gradoId: seccion.gradoId ?? seccion.grado?.id,
+    anioAcademicoId: seccion.anioAcademicoId ?? seccion.anioId,
+    anioAcademico: seccion.anioAcademico ?? seccion.anio
+  }));
+  if (secciones.some((seccion) =>
+    seccion.id == null || !seccion.nombre || seccion.gradoId == null
+    || seccion.anioAcademicoId == null || seccion.anioAcademico == null
+  )) {
+    return falloFormato('las secciones');
+  }
+
+  return { ...respuesta, datos: secciones };
 }
 
 export async function listarAsignaciones({
