@@ -1,7 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import { obtenerTonoModulo } from '../../../shared/constants/tonosModulo.js';
 import { formatearFechaHora } from '../../../shared/utils/formatoFecha.js';
 import { obtenerMensajeRangoFechas } from '../../../shared/utils/rangoFechas.js';
 import { obtenerErrores } from '../services/logErroresService.js';
@@ -37,10 +36,11 @@ function leerPagina(valor) {
   return Number.isInteger(numero) && numero >= 1 ? numero - 1 : 0;
 }
 
+// La excepción no controlada (lo grave) va en rojo; la notificación por correo en azul y el proceso automático en gris neutro.
 const TONOS_TIPO_ERROR = Object.freeze({
-  'Excepción no controlada': 'rosa',
+  'Excepción no controlada': 'rojo',
   'Proceso automático': 'gris',
-  'Notificación por correo': 'gris'
+  'Notificación por correo': 'azul'
 });
 
 /**
@@ -76,7 +76,8 @@ function adaptarFilaError(registro) {
     metodoHttp: registro.metodoHttp ?? '',
     modulo: registro.modulo ?? '',
     moduloEtiqueta: registro.modulo ? (ETIQUETAS_MODULO[registro.modulo] ?? registro.modulo) : '',
-    moduloTono: obtenerTonoModulo(registro.modulo),
+    // El módulo es neutro: solo el tipo de error y el código HTTP grave llevan color.
+    moduloTono: 'gris',
     operacion: registro.operacion ?? '',
     tipoError: registro.tipoError ?? 'Error',
     tipoErrorTono: TONOS_TIPO_ERROR[registro.tipoError] ?? 'gris',
@@ -230,6 +231,24 @@ export default function useLogErrores() {
     }
   }
 
+  /** Quita todos los filtros (módulo, búsqueda y fechas) y vuelve a la primera página. */
+  function limpiarFiltros() {
+    establecerPagina(0);
+    establecerModuloEstado('TODOS');
+    establecerBusquedaEstado('');
+    establecerBusquedaAplicada('');
+    establecerFechaDesdeEstado('');
+    establecerFechaHastaEstado('');
+    establecerRangoAplicado({ fechaDesde: '', fechaHasta: '' });
+  }
+
+  /** Quita el rango de fechas aplicado (chip de filtro activo). */
+  function quitarRango() {
+    establecerFechaDesdeEstado('');
+    establecerFechaHastaEstado('');
+    aplicarRango('', '');
+  }
+
   return {
     errores,
     totalElementos,
@@ -242,6 +261,9 @@ export default function useLogErrores() {
     fechaDesde,
     fechaHasta,
     mensajeErrorRango,
+    rangoAplicado,
+    limpiarFiltros,
+    quitarRango,
     establecerModulo: cambiarModulo,
     establecerBusqueda: establecerBusquedaEstado,
     establecerFechaDesde: cambiarFechaDesde,

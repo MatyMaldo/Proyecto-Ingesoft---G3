@@ -1,7 +1,9 @@
 import { formatearFechaVisible } from '../../../shared/utils/formatoFecha.js';
+import Avatar from '../../../shared/components/Avatar.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
 import Insignia from '../../../shared/components/Insignia.jsx';
 import estilosUtil from '../../../shared/styles/utilidades.module.css';
+import { debeMostrarRol } from '../utils/usuarioAuditoria.js';
 import estilos from './TablaAuditoria.module.css';
 
 const TITULO_LISTA = 'Registros de auditoría, del más reciente al más antiguo';
@@ -14,7 +16,7 @@ const TITULO_LISTA = 'Registros de auditoría, del más reciente al más antiguo
  * @returns {string}
  */
 function construirEtiquetaHistorial(registro) {
-  return `Ver historial: ${registro.tipoTransaccion}, ${registro.usuario.nombre}, ${registro.fecha} ${registro.hora}`;
+  return `Ver historial: ${registro.tipoTransaccion}, ${registro.usuario.nombre}, ${formatearFechaVisible(registro.fecha)} ${registro.hora}`;
 }
 
 /**
@@ -76,12 +78,10 @@ export default function TablaAuditoria({ registros, actualizando, alSeleccionarR
                 </td>
                 <td>
                   <div className={estilos.celdaUsuario}>
-                    <span className={estilos.avatar} aria-hidden="true">
-                      {registro.usuario.iniciales}
-                    </span>
+                    <Avatar iniciales={registro.usuario.iniciales} />
                     <span className={estilos.bloqueUsuario}>
                       <span className={estilos.nombreUsuario}>{registro.usuario.nombre}</span>
-                      <span className={estilos.celdaRol}>{registro.usuario.rol}</span>
+                      {debeMostrarRol(registro.usuario) && <span className={estilos.celdaRol}>{registro.usuario.rol}</span>}
                     </span>
                   </div>
                 </td>
@@ -137,12 +137,10 @@ export default function TablaAuditoria({ registros, actualizando, alSeleccionarR
                 </span>
               </span>
               <span className={estilos.filaUsuarioTarjeta}>
-                <span className={estilos.avatar} aria-hidden="true">
-                  {registro.usuario.iniciales}
-                </span>
+                <Avatar iniciales={registro.usuario.iniciales} />
                 <span className={estilos.bloqueUsuarioTarjeta}>
                   <span className={estilos.nombreUsuario}>{registro.usuario.nombre}</span>
-                  <span className={estilos.celdaRol}>{registro.usuario.rol}</span>
+                  {debeMostrarRol(registro.usuario) && <span className={estilos.celdaRol}>{registro.usuario.rol}</span>}
                 </span>
               </span>
               <span className={estilos.filaInferiorTarjeta}>

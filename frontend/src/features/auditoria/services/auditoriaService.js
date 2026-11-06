@@ -5,7 +5,7 @@ import {
 } from './mocks/auditoriaMock.js';
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import { solicitar } from '../../../shared/api/clienteHttp.js';
-import { TAMANIO_PAGINA_AUDITORIA } from '../constants/paginacionAuditoria.js';
+import { TAMANIO_HISTORIAL_AUDITORIA, TAMANIO_PAGINA_AUDITORIA } from '../constants/paginacionAuditoria.js';
 
 const CATEGORIAS_MOCK = Object.freeze({
   USUARIO: 'USUARIOS',
@@ -113,7 +113,7 @@ export async function obtenerHistorialAuditoria(registro, opciones = {}) {
   const respuesta = await solicitar(`/auditorias/historial/${entidad}/${entidadId}`, {
     parametros: {
       page: 0,
-      size: TAMANIO_PAGINA_AUDITORIA,
+      size: TAMANIO_HISTORIAL_AUDITORIA,
       sort: 'fechaHora,asc'
     },
     signal: opciones.signal

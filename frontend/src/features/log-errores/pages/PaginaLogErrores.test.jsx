@@ -1,5 +1,5 @@
 import { beforeAll, describe, it, expect, vi } from 'vitest';
-import { render, screen, waitFor, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
@@ -128,5 +128,86 @@ describe('HU-SAT-05 · Logs de errores según el contrato paginado', () => {
     await screen.findAllByText('Guardar calificación', {}, { timeout: 3000 });
     expect(screen.queryByText('PUT /api/v1/notas')).not.toBeInTheDocument();
     expect(screen.queryByText('500')).not.toBeInTheDocument();
+  });
+});
+
+describe('Log de errores · coherencia con Usuarios y Auditorías', () => {
+  it('muestra título y descripción de solo lectura, sin el rótulo repetido del breadcrumb', async () => {
+    renderizarPagina();
+    await screen.findByRole('columnheader', { name: 'Operación' }, { timeout: 3000 });
+
+    expect(screen.getByRole('heading', { level: 1, name: 'Log de Errores del Sistema' })).toBeInTheDocument();
+    expect(screen.queryByText(/Módulo de administración/i)).not.toBeInTheDocument();
+    expect(screen.getByText(/Consulta de solo lectura/)).toBeInTheDocument();
+  });
+
+  it('muestra el módulo como filtro aplicado y permite quitarlo o limpiar todo', async () => {
+    renderizarPagina();
+    await screen.findByRole('columnheader', { name: 'Operación' }, { timeout: 3000 });
+    expect(screen.queryByRole('button', { name: 'Limpiar filtros' })).not.toBeInTheDocument();
+
+    await userEvent.selectOptions(screen.getByLabelText('Módulo'), 'USUARIOS');
+    const chips = await screen.findByRole('list', { name: 'Filtros aplicados' });
+    expect(within(chips).getByText('Módulo: Usuarios')).toBeInTheDocument();
+
+    await userEvent.click(within(chips).getByRole('button', { name: 'Quitar filtro Módulo: Usuarios' }));
+    expect(screen.getByLabelText('Módulo')).toHaveValue('TODOS');
+
+    await userEvent.selectOptions(screen.getByLabelText('Módulo'), 'PAGOS');
+    await userEvent.type(screen.getByLabelText('Buscar por operación, mensaje o usuario'), 'zzz');
+    await userEvent.click(await screen.findByRole('button', { name: 'Limpiar filtros' }));
+    expect(screen.getByLabelText('Módulo')).toHaveValue('TODOS');
+    expect(screen.getByLabelText('Buscar por operación, mensaje o usuario')).toHaveValue('');
+  });
+
+  it('el rango de fechas se ve como filtro aplicado y el mensaje de sin resultados ofrece limpiar', async () => {
+    renderizarPagina();
+    await screen.findByRole('columnheader', { name: 'Operación' }, { timeout: 3000 });
+
+    fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '2001-01-01' } });
+    fireEvent.change(screen.getByLabelText('Hasta'), { target: { value: '2001-01-02' } });
+
+    expect(await screen.findByText('Fecha: 01/01/2001 – 02/01/2001')).toBeInTheDocument();
+    expect(await screen.findByText('No se encontraron errores con los criterios indicados', {}, { timeout: 3000 })).toBeInTheDocument();
+
+    const botones = screen.getAllByRole('button', { name: 'Limpiar filtros' });
+    await userEvent.click(botones[botones.length - 1]);
+    expect(await screen.findByRole('columnheader', { name: 'Operación' }, { timeout: 3000 })).toBeInTheDocument();
+    expect(screen.getByLabelText('Desde')).toHaveValue('');
+  });
+
+  it('no muestra tarjetas de resumen', async () => {
+    renderizarPagina();
+    await screen.findByRole('columnheader', { name: 'Operación' }, { timeout: 3000 });
+
+    expect(screen.queryByRole('list', { name: 'Resumen de errores' })).not.toBeInTheDocument();
+  });
+
+  it('usa módulo neutro; rojo para la excepción, azul para el correo y gris para el proceso automático', async () => {
+    renderizarPagina();
+    await screen.findByRole('columnheader', { name: 'Operación' }, { timeout: 3000 });
+
+    const tabla = screen.getByRole('table');
+    const filas = within(tabla).getAllByRole('row').slice(1);
+    const insignias = filas.flatMap((fila) => [...fila.querySelectorAll('span[style*="--tono-fondo"]')]);
+    const tonoDe = (texto) => insignias.find((i) => i.textContent === texto)?.style.getPropertyValue('--tono-fondo');
+    expect(tonoDe('Excepción no controlada')).toBe('var(--tono-rojo-fondo)');
+    expect(tonoDe('Notificación por correo')).toBe('var(--tono-azul-fondo)');
+    expect(tonoDe('Proceso automático')).toBe('var(--tono-gris-fondo)');
+    // Los módulos (Notas, Usuarios, Pagos...) son neutros.
+    for (const texto of ['Notas', 'Usuarios', 'Pagos']) {
+      expect(tonoDe(texto)).toBe('var(--tono-gris-fondo)');
+    }
+    expect(screen.queryByRole('columnheader', { name: /HTTP|código/i })).not.toBeInTheDocument();
+  });
+
+  it('muestra el avatar con iniciales junto al usuario, incluido "Sistema"', async () => {
+    renderizarPagina();
+    await screen.findByRole('columnheader', { name: 'Operación' }, { timeout: 3000 });
+
+    const filas = within(screen.getByRole('table')).getAllByRole('row').slice(1);
+    const filaSistema = filas.find((fila) => within(fila).queryByText('Sistema'));
+    expect(filaSistema).toBeDefined();
+    expect(within(filaSistema).getByText('S')).toBeInTheDocument();
   });
 });

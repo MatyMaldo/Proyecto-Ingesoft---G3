@@ -10,7 +10,8 @@ const TONOS_VALIDOS = new Set([
  *
  * @param {Object} props
  * @param {string} props.etiquetaGrupo `aria-label` del contenedor `role="group"`.
- * @param {Array<{ valor: string, etiqueta: string, tono?: string }>} props.opciones
+ * @param {Array<{ valor: string, etiqueta: string, tono?: string, conteo?: number }>} props.opciones
+ *   `conteo` (opcional) muestra cuántos resultados daría esa opción.
  * @param {string} props.valorSeleccionado Valor activo.
  * @param {(valor: string) => void} props.alSeleccionar Se llama al pulsar un chip no activo.
  */
@@ -42,6 +43,7 @@ export default function FiltroChips({ etiquetaGrupo, opciones, valorSeleccionado
             }}
           >
             {opcion.etiqueta}
+            {opcion.conteo !== undefined && <span className={estilos.conteo}>{opcion.conteo}</span>}
           </button>
         );
       })}

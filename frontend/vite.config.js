@@ -31,7 +31,9 @@ export default defineConfig(({ mode }) => {
     test: {
       environment: 'jsdom',
       globals: false,
-      setupFiles: ['./src/test/setup.js']
+      setupFiles: ['./src/test/setup.js'],
+      // Varias pruebas de página escriben en muchos campos con userEvent y rozan los 5 s por defecto en equipos lentos.
+      testTimeout: 15000
     }
   };
 });

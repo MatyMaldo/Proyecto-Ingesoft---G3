@@ -1,30 +1,37 @@
-/* Colores fijos tomados del toast de PaginaUsuarios: reemplazarlos por los tokens de shared/styles/tokens.css. */
-
 .notificacion {
   position: fixed;
-  top: 20px;
-  right: 24px;
-  /* Por encima de los modales (z-index 1000) para verse también cuando el modal sigue abierto. */
-  z-index: 99999;
+  top: var(--espacio-5);
+  right: var(--espacio-6);
+  /* Por encima de cualquier capa de la página. Un <dialog> modal abierto queda aún más arriba (capa superior
+     del navegador): por eso los errores de un formulario se muestran dentro del propio diálogo. */
+  z-index: var(--capa-notificacion);
   display: flex;
   align-items: center;
-  gap: 10px;
-  max-width: 420px;
-  padding: 12px 18px;
-  border-radius: 10px;
-  background: #121c2a;
-  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.18);
-  font-size: 13px;
-  font-weight: 500;
-  color: #ffffff;
+  gap: var(--espacio-3);
+  max-width: min(26rem, calc(100% - var(--espacio-8)));
+  padding: var(--espacio-3) var(--espacio-4);
+  border-radius: var(--radio-md);
+  background: var(--color-texto);
+  box-shadow: var(--sombra-lg);
+  font-size: var(--texto-md);
+  font-weight: var(--peso-medio);
+  color: var(--color-marca-texto);
 }
 
 .iconoExito {
   flex-shrink: 0;
-  color: #4ade80;
+  color: var(--color-exito-claro);
 }
 
 .iconoError {
   flex-shrink: 0;
-  color: #f87171;
+  color: var(--color-peligro-claro);
+}
+
+@media (max-width: 767px) {
+  .notificacion {
+    right: var(--espacio-4);
+    left: var(--espacio-4);
+    max-width: none;
+  }
 }

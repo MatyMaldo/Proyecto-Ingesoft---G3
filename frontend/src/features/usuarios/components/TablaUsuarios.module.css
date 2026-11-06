@@ -42,18 +42,86 @@
 }
 
 /*
- * Las columnas se ajustan a su contenido y el ancho sobrante se reparte entre todas por igual
- * (en proporción a su contenido), sin que ninguna acapare el espacio.
+ * Anchos en porcentaje con `table-layout: fixed`: cada columna mide aproximadamente su contenido más
+ * una holgura parecida, así el espacio sobrante queda repartido en todas y no se concentra en dos
+ * columnas. Por debajo de `min-width` la tabla se desplaza dentro de `.vistaTabla` (en < 768 px
+ * se usan tarjetas). Si el nombre no cabe, se parte en dos líneas.
  */
-.tabla tbody td:nth-child(2),
-.tabla tbody td:nth-child(3),
-.tabla tbody td:nth-child(5),
-.tabla tbody td:nth-child(6) {
+.tabla {
+  table-layout: fixed;
+  min-width: 52rem;
+}
+
+.tabla th:nth-child(1) { width: 22%; }
+.tabla th:nth-child(2) { width: 12%; }
+.tabla th:nth-child(3) { width: 25%; }
+.tabla th:nth-child(4) { width: 14%; }
+.tabla th:nth-child(5) { width: 14%; }
+.tabla th:nth-child(6) { width: 13%; }
+
+.tabla td:nth-child(2),
+.tabla td:nth-child(4),
+.tabla td:nth-child(5),
+.tabla td:nth-child(6) {
   white-space: nowrap;
 }
 
-.tabla .colNombre {
-  min-width: 11rem;
+/* Encabezado ordenable: el botón hereda la tipografía del <th> y marca con una flecha la columna activa. */
+.botonOrden {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-1);
+  min-height: 0;
+  margin: calc(var(--espacio-1) * -1) calc(var(--espacio-2) * -1);
+  padding: var(--espacio-1) var(--espacio-2);
+  font: inherit;
+  font-weight: inherit;
+  letter-spacing: inherit;
+  text-transform: inherit;
+  color: inherit;
+  background: transparent;
+  border: 0;
+  border-radius: var(--radio-sm);
+  cursor: pointer;
+}
+
+.botonOrden:hover {
+  color: var(--color-accion);
+  background: var(--color-accion-suave);
+}
+
+.botonOrden:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.flechaOrden {
+  display: inline-flex;
+  opacity: 0;
+  transition: opacity var(--transicion);
+}
+
+.botonOrden:hover .flechaOrden,
+.botonOrden:focus-visible .flechaOrden,
+.flechaActiva {
+  opacity: 1;
+}
+
+.flechaActiva {
+  color: var(--color-accion);
+}
+
+.celdaNombre {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+}
+
+/* Cuenta desactivada: el texto pierde énfasis sin dejar de leerse (la insignia "Desactivado" lo dice). */
+.filaInactiva .nombre,
+.filaInactiva .dni,
+.filaInactiva .correo {
+  color: var(--color-texto-suave);
 }
 
 .nombre {
@@ -76,7 +144,7 @@
 
 .correo {
   display: block;
-  max-width: 20rem;
+  max-width: 100%;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -88,9 +156,75 @@
   gap: var(--espacio-2);
 }
 
-.boton {
+/*
+ * Botones de ícono de la tabla (Editar y Activar/Desactivar): cuadrado de 36 px con el área táctil
+ * ampliada a 44 px. El color del ícono anticipa lo que hace (azul edita, rojo desactiva, verde activa);
+ * el nombre accesible y el tooltip dicen la acción con texto.
+ */
+.botonIcono {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 36px;
   min-height: 36px;
-  padding: 0 var(--espacio-2);
+  height: 36px;
+  padding: 0;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+  transition: background var(--transicion), border-color var(--transicion);
+}
+
+.botonIcono::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+}
+
+.botonIcono:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.iconoEditar {
+  color: var(--color-accion);
+}
+
+.iconoEditar:hover {
+  background: var(--color-accion-suave);
+  border-color: var(--color-accion);
+}
+
+.iconoEditar:active {
+  background: var(--color-accion-suave-activo);
+}
+
+.iconoDesactivar {
+  color: var(--color-peligro-texto);
+}
+
+.iconoDesactivar:hover {
+  background: var(--color-peligro-fondo);
+  border-color: var(--color-peligro);
+}
+
+.iconoActivar {
+  color: var(--color-exito-texto);
+}
+
+.iconoActivar:hover {
+  background: var(--color-exito-fondo);
+  border-color: var(--color-exito-texto);
+}
+
+.boton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  min-height: 36px;
+  padding: 0 var(--espacio-3);
   font: inherit;
   font-size: var(--texto-md);
   font-weight: var(--peso-medio);

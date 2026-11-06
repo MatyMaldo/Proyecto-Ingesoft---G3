@@ -3,6 +3,11 @@ import { useEffect, useRef } from 'react';
 import Icono from '../../../shared/components/Icono.jsx';
 import estilos from './DialogoBase.module.css';
 
+// Con varios diálogos apilados (p. ej. una confirmación sobre un formulario) el desplazamiento de la página
+// se restaura solo cuando se cierra el último, sin importar el orden en que se desmonten.
+let dialogosAbiertos = 0;
+let overflowOriginal = '';
+
 /**
  * Diálogo modal con encabezado, cuerpo, mensaje de error y botones Cancelar / Confirmar.
  * Implementado con `<dialog>` + `showModal()` (capa superior, fondo inerte, Esc y foco atrapado de
@@ -25,6 +30,10 @@ import estilos from './DialogoBase.module.css';
  * @param {boolean} [props.sinConfirmar] Oculta el botón de confirmar (diálogos informativos).
  * @param {string} [props.textoCancelar]
  * @param {string} [props.notaPie] Texto auxiliar a la izquierda de los botones.
+ * @param {boolean} [props.confirmarPeligro] Pinta el botón de confirmar como acción crítica (rojo, GUI §4).
+ * @param {boolean} [props.enfocarCancelar] Al abrir, el foco va a Cancelar (la opción segura en confirmaciones).
+ * @param {() => void} [props.alSolicitarCierre] Si se indica, Esc, X, Cancelar y el velo ya no cierran el diálogo por sí
+ *   solos: llaman a esta función para que quien lo usa decida (p. ej. pedir confirmación antes de descartar cambios).
  * @param {() => void} props.alCancelar Se llama al cerrar el diálogo (Esc, clic en el velo, X o Cancelar).
  * @param {(evento: SubmitEvent) => void} props.alConfirmar
  * @param {import('react').ReactNode} props.children Cuerpo del diálogo.
@@ -42,7 +51,10 @@ export default function DialogoBase({
   anchoMaximo,
   cerrarAlClicFuera = true,
   sinConfirmar = false,
+  confirmarPeligro = false,
+  enfocarCancelar = false,
   textoCancelar = 'Cancelar',
+  alSolicitarCierre,
   alCancelar,
   alConfirmar,
   children
@@ -50,8 +62,10 @@ export default function DialogoBase({
   const refDialogo = useRef(null);
   const refAlCancelar = useRef(alCancelar);
   const refEnviando = useRef(enviando);
+  const refAlSolicitarCierre = useRef(alSolicitarCierre);
   refAlCancelar.current = alCancelar;
   refEnviando.current = enviando;
+  refAlSolicitarCierre.current = alSolicitarCierre;
 
   useEffect(() => {
     const dialogo = refDialogo.current;
@@ -65,28 +79,55 @@ export default function DialogoBase({
     // El elemento marcado con `data-enfoque-inicial` recibe el foco al abrir (por defecto, el botón X).
     (dialogo.querySelector('[data-enfoque-inicial]') ?? dialogo.querySelector('button'))?.focus();
 
-    const manejarCierre = () => refAlCancelar.current();
-    // Mientras se guarda no se permite cerrar con Esc.
+    const manejarCierre = () => {
+      const solicitarCierre = refAlSolicitarCierre.current;
+      if (!solicitarCierre) {
+        refAlCancelar.current();
+        return;
+      }
+      // Algunos navegadores cierran el diálogo con una segunda pulsación de Esc aunque se haya cancelado la
+      // primera: se vuelve a abrir y se deja que quien lo usa decida si de verdad se cierra.
+      if (!dialogo.open && dialogo.isConnected) {
+        dialogo.showModal();
+      }
+      solicitarCierre();
+    };
+    // Mientras se guarda no se permite cerrar con Esc; con `alSolicitarCierre`, Esc solo lo solicita.
     const manejarCancelacion = (evento) => {
       if (refEnviando.current) {
         evento.preventDefault();
+        return;
+      }
+      if (refAlSolicitarCierre.current) {
+        evento.preventDefault();
+        refAlSolicitarCierre.current();
       }
     };
 
     dialogo.addEventListener('close', manejarCierre);
     dialogo.addEventListener('cancel', manejarCancelacion);
 
-    const overflowPrevio = document.body.style.overflow;
-    document.body.style.overflow = 'hidden';
+    if (dialogosAbiertos === 0) {
+      overflowOriginal = document.body.style.overflow;
+      document.body.style.overflow = 'hidden';
+    }
+    dialogosAbiertos += 1;
 
     return () => {
       dialogo.removeEventListener('close', manejarCierre);
       dialogo.removeEventListener('cancel', manejarCancelacion);
-      document.body.style.overflow = overflowPrevio;
+      dialogosAbiertos -= 1;
+      if (dialogosAbiertos === 0) {
+        document.body.style.overflow = overflowOriginal;
+      }
     };
   }, []);
 
   const cerrar = () => {
+    if (alSolicitarCierre) {
+      alSolicitarCierre();
+      return;
+    }
     refDialogo.current?.close();
   };
 
@@ -139,13 +180,19 @@ export default function DialogoBase({
 
         <div className={estilos.pie}>
           {notaPie && <span className={estilos.notaPie}>{notaPie}</span>}
-          <button type="button" className={estilos.botonSecundario} disabled={enviando} onClick={cerrar}>
+          <button
+            type="button"
+            className={estilos.botonSecundario}
+            disabled={enviando}
+            onClick={cerrar}
+            data-enfoque-inicial={enfocarCancelar ? '' : undefined}
+          >
             {textoCancelar}
           </button>
           {!sinConfirmar && (
             <button
               type="submit"
-              className={estilos.botonPrimario}
+              className={confirmarPeligro ? `${estilos.botonPrimario} ${estilos.botonPeligro}` : estilos.botonPrimario}
               disabled={enviando || confirmarDeshabilitado}
             >
               {enviando ? (

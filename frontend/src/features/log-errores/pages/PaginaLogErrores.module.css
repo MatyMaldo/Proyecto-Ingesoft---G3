@@ -6,19 +6,8 @@
 
 .cabecera {
   display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--espacio-4);
-  flex-wrap: wrap;
-}
-
-.sobretitulo {
-  margin: 0 0 var(--espacio-2);
-  font-size: var(--texto-xs);
-  font-weight: var(--peso-seminegrita);
-  color: var(--color-texto-suave);
-  text-transform: uppercase;
-  letter-spacing: var(--espaciado-letra-ancho);
+  flex-direction: column;
+  gap: var(--espacio-1);
 }
 
 .titulo {
@@ -26,6 +15,20 @@
   font-size: var(--texto-titulo);
   font-weight: var(--peso-negrita);
   color: var(--color-texto);
+}
+
+.descripcion {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espacio-2);
+  margin: 0;
+  font-size: var(--texto-md);
+  color: var(--color-texto-suave);
+}
+
+.descripcion svg {
+  flex-shrink: 0;
+  margin-top: 2px;
 }
 
 .filtros {
@@ -42,8 +45,8 @@
 }
 
 .filaUno > :first-child {
-  flex: 1 1 260px;
-  max-width: 325px;
+  flex: 1 1 20rem;
+  max-width: 24rem;
 }
 
 .tarjetaResultados {
@@ -61,42 +64,22 @@
   color: var(--color-texto-suave);
 }
 
-/* Nota informativa a la izquierda y paginador superior a la derecha; si no caben, el paginador baja. */
-.filaInfo {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--espacio-2) var(--espacio-4);
+/* Paginador superior; deja un poco de aire entre los filtros y el listado. Sin paginador queda vacío. */
+.barraPaginacion {
   scroll-margin-top: var(--espacio-4);
+  margin-bottom: calc(var(--espacio-3) * -1);
 }
 
-.filaInfo > nav {
-  margin-left: auto;
+.barraPaginacion:empty {
+  display: none;
 }
 
-.notaPie {
-  display: flex;
-  flex: 1 1 20rem;
-  align-items: flex-start;
-  gap: var(--espacio-2);
-  margin: 0;
-  font-size: var(--texto-md);
-  color: var(--color-texto-suave);
-  text-align: left;
-}
-
-.notaPie svg {
-  flex-shrink: 0;
-  margin-top: 2px;
+.pie {
+  padding: var(--espacio-3) var(--espacio-4);
+  border-top: 1px solid var(--color-borde);
 }
 
 @media (max-width: 767px) {
-  .cabecera {
-    flex-direction: column;
-    align-items: flex-start;
-  }
-
   .filaUno {
     flex-direction: column;
     align-items: stretch;

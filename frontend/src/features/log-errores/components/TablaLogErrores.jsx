@@ -1,5 +1,6 @@
 import { useRef, useState } from 'react';
 
+import Avatar, { obtenerInicialesDeNombre } from '../../../shared/components/Avatar.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
 import { formatearFechaVisible } from '../../../shared/utils/formatoFecha.js';
 import Insignia from '../../../shared/components/Insignia.jsx';
@@ -83,7 +84,7 @@ export default function TablaLogErrores({ errores, ocupado = false }) {
                 </td>
                 <td>
                   <p className={estilos.usuario}>
-                    {error.usuarioId != null && <Icono nombre="usuario" tamano={14} />}
+                    <Avatar iniciales={obtenerInicialesDeNombre(error.usuario)} />
                     {error.usuario}
                   </p>
                 </td>
@@ -126,7 +127,7 @@ export default function TablaLogErrores({ errores, ocupado = false }) {
             </p>
 
             <p className={estilos.usuario}>
-              {error.usuarioId != null && <Icono nombre="usuario" tamano={14} />}
+              <Avatar iniciales={obtenerInicialesDeNombre(error.usuario)} />
               {error.usuario}
             </p>
             <button

@@ -1,5 +1,6 @@
 .grupo {
   display: flex;
+  min-width: 0;
   flex-wrap: wrap;
   align-items: flex-start;
   gap: var(--espacio-3);

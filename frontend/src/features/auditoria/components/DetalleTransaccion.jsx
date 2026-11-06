@@ -3,6 +3,8 @@ import { useEffect, useRef } from 'react';
 import Icono from '../../../shared/components/Icono.jsx';
 import Insignia from '../../../shared/components/Insignia.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
+import { formatearFechaVisible } from '../../../shared/utils/formatoFecha.js';
+import { describirUsuario } from '../utils/usuarioAuditoria.js';
 import estilos from './DetalleTransaccion.module.css';
 
 /**
@@ -53,12 +55,12 @@ function ItemHistorial({ item, esSeleccionado }) {
       {esSeleccionado && <span className={estilos.etiquetaSeleccionado}>Registro seleccionado</span>}
       <p className={estilos.fechaHistorial}>
         <time dateTime={item.fechaHoraIso}>
-          {item.fecha} {item.hora}
+          {formatearFechaVisible(item.fecha)} {item.hora}
         </time>
       </p>
       <p className={estilos.tipoHistorial}>{item.tipoTransaccion}</p>
       <p className={estilos.usuarioHistorial}>
-        {item.usuario.nombre} ({item.usuario.rol})
+        {describirUsuario(item.usuario)}
       </p>
       <BloqueValores titulo="Antes" valores={item.valoresAntes} mensajeVacio="Sin valores previos" />
       <BloqueValores titulo="Después" valores={item.valoresDespues} mensajeVacio="Sin valores posteriores" />
@@ -191,7 +193,7 @@ export default function DetalleTransaccion({
               <div className={estilos.parValor}>
                 <dt className={estilos.campoValor}>Usuario</dt>
                 <dd className={estilos.valorValor}>
-                  {registro.usuario.nombre} ({registro.usuario.rol})
+                  {describirUsuario(registro.usuario)}
                 </dd>
               </div>
               <div className={estilos.parValor}>

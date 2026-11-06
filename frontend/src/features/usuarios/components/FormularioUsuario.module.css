@@ -1,0 +1,6 @@
+/* Contenedor de las secciones de un formulario de usuarios dentro de DialogoBase. */
+.secciones {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}

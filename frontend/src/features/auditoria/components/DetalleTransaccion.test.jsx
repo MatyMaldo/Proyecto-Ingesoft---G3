@@ -124,3 +124,35 @@ describe('HU-SAT-04 · Escenario 3: historial de la transacción, del más antig
     expect(screen.getByRole('button', { name: /Reintentar/ })).toBeInTheDocument();
   });
 });
+
+describe('HU-SAT-04 · Formato de fecha unificado y usuario sin redundancia', () => {
+  it('muestra la fecha del historial como DD/MM/AAAA, igual que el listado', () => {
+    render(
+      <DetalleTransaccion
+        registro={HISTORIAL_ASCENDENTE[0]}
+        historial={{ estado: 'listo', registros: HISTORIAL_ASCENDENTE }}
+        alReintentarHistorial={vi.fn()}
+        alCerrar={vi.fn()}
+      />
+    );
+
+    expect(screen.getAllByText('16/09/2026 15:40').length).toBeGreaterThan(0);
+    expect(screen.getByText('17/09/2026 09:15')).toBeInTheDocument();
+    expect(screen.queryByText(/2026-09-1\d \d{2}:\d{2}$/)).not.toBeInTheDocument();
+  });
+
+  it('no repite "Administrador (Administrador)" y conserva el rol cuando aporta algo', () => {
+    render(
+      <DetalleTransaccion
+        registro={HISTORIAL_ASCENDENTE[0]}
+        historial={{ estado: 'listo', registros: HISTORIAL_ASCENDENTE }}
+        alReintentarHistorial={vi.fn()}
+        alCerrar={vi.fn()}
+      />
+    );
+
+    expect(screen.queryByText(/Administrador \(Administrador\)/)).not.toBeInTheDocument();
+    expect(screen.getAllByText('Administrador').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('Lucía Paredes (Apoderado)').length).toBeGreaterThan(0);
+  });
+});

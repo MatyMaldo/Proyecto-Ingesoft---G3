@@ -1,3 +1,5 @@
+// TODO(backend): mock de desarrollo. Se elimina al integrar GET /usuarios (el listado real viene paginado).
+// Hay más de 15 usuarios a propósito, para poder ver la paginación de 15 en 15 (HU-SAT-02, escenario 12).
 export const USUARIOS_INICIAL = [
     { id: 'u1', nombre: 'María', apellido: 'López', dni: '74852136', rol: 'Apoderado', correo: 'maria.lopez@email.com', activo: true, edad: 38, telefono: '+51987654321' },
     { id: 'u2', nombre: 'Carlos', apellido: 'Ramírez', dni: '70482135', rol: 'Estudiante', correo: 'carlos.ramirez@email.com', activo: true, edad: 14, telefono: '+51987654322', codigoEstudiante: 'EST-016', apoderadoId: 'u1' },
@@ -7,6 +9,30 @@ export const USUARIOS_INICIAL = [
     { id: 'u6', nombre: 'Miguel', apellido: 'Castro', dni: '71234567', rol: 'Docente', correo: 'miguel.castro@colegio.pe', activo: true, edad: 41, telefono: '+51987654326' },
     { id: 'u7', nombre: 'Patricia', apellido: 'Vega', dni: '76543210', rol: 'Apoderado', correo: 'patricia.vega@email.com', activo: true, edad: 39, telefono: '+51987654327' },
     { id: 'u8', nombre: 'Diego', apellido: 'Salinas', dni: '77654321', rol: 'Estudiante', correo: 'diego.salinas@email.com', activo: true, edad: 15, telefono: '+51987654328', codigoEstudiante: 'EST-018', apoderadoId: 'u7' },
+    { id: 'u9', nombre: 'Rosa', apellido: 'Mendoza Quispe', dni: '70123456', rol: 'Apoderado', correo: 'rosa.mendoza@email.com', activo: true, edad: 44, telefono: '+51987654329' },
+    { id: 'u10', nombre: 'Sofía', apellido: 'Paredes Mendoza', dni: '78123401', rol: 'Estudiante', correo: 'sofia.paredes@email.com', activo: true, edad: 14, telefono: '+51987654330', codigoEstudiante: 'EST-019', apoderadoId: 'u9' },
+    { id: 'u11', nombre: 'Luis', apellido: 'Paredes Mendoza', dni: '78123402', rol: 'Estudiante', correo: 'luis.paredes@email.com', activo: true, edad: 16, telefono: '+51987654331', codigoEstudiante: 'EST-020', apoderadoId: 'u9' },
+    { id: 'u12', nombre: 'Elena', apellido: 'Gutiérrez Rojas', dni: '71987654', rol: 'Docente', correo: 'elena.gutierrez@colegio.pe', activo: true, edad: 37, telefono: '+51987654332' },
+    { id: 'u13', nombre: 'Raúl', apellido: 'Quispe Huamán', dni: '72765432', rol: 'Docente', correo: 'raul.quispe@colegio.pe', activo: true, edad: 48, telefono: '+51987654333' },
+    { id: 'u14', nombre: 'Carmen', apellido: 'Delgado Ríos', dni: '73654321', rol: 'Docente', correo: 'carmen.delgado@colegio.pe', activo: false, edad: 52, telefono: '+51987654334' },
+    { id: 'u15', nombre: 'Fernando', apellido: 'Ortiz Salazar', dni: '74543210', rol: 'Apoderado', correo: 'fernando.ortiz@email.com', activo: true, edad: 46, telefono: '+51987654335' },
+    { id: 'u16', nombre: 'Valeria', apellido: 'Ortiz Campos', dni: '78123403', rol: 'Estudiante', correo: 'valeria.ortiz@email.com', activo: true, edad: 12, telefono: '+51987654336', codigoEstudiante: 'EST-021', apoderadoId: 'u15' },
+    { id: 'u17', nombre: 'Andrés', apellido: 'Ortiz Campos', dni: '78123404', rol: 'Estudiante', correo: 'andres.ortiz@email.com', activo: true, edad: 15, telefono: '+51987654337', codigoEstudiante: 'EST-022', apoderadoId: 'u15' },
+    { id: 'u18', nombre: 'Gabriela', apellido: 'Navarro Cruz', dni: '75432109', rol: 'Apoderado', correo: 'gabriela.navarro@email.com', activo: true, edad: 36, telefono: '+51987654338' },
+    { id: 'u19', nombre: 'Mateo', apellido: 'Navarro Silva', dni: '78123405', rol: 'Estudiante', correo: 'mateo.navarro@email.com', activo: true, edad: 13, telefono: '+51987654339', codigoEstudiante: 'EST-023', apoderadoId: 'u18' },
+    { id: 'u20', nombre: 'Julio', apellido: 'Ramos Aguilar', dni: '76321098', rol: 'Docente', correo: 'julio.ramos@colegio.pe', activo: true, edad: 33, telefono: '+51987654340' },
+    { id: 'u21', nombre: 'Isabel', apellido: 'Cárdenas Vera', dni: '77210987', rol: 'Apoderado', correo: 'isabel.cardenas@email.com', activo: false, edad: 50, telefono: '+51987654341' },
+    { id: 'u22', nombre: 'Camila', apellido: 'Cárdenas Soto', dni: '78123406', rol: 'Estudiante', correo: 'camila.cardenas@email.com', activo: false, edad: 16, telefono: '+51987654342', codigoEstudiante: 'EST-024', apoderadoId: 'u21' },
+    { id: 'u23', nombre: 'Héctor', apellido: 'Villanueva Paz', dni: '70987654', rol: 'Docente', correo: 'hector.villanueva@colegio.pe', activo: true, edad: 45, telefono: '+51987654343' },
+    { id: 'u24', nombre: 'Daniela', apellido: 'Reyes Luna', dni: '71876543', rol: 'Apoderado', correo: 'daniela.reyes@email.com', activo: true, edad: 34, telefono: '+51987654344' },
+    { id: 'u25', nombre: 'Joaquín', apellido: 'Reyes Medina', dni: '78123407', rol: 'Estudiante', correo: 'joaquin.reyes@email.com', activo: true, edad: 14, telefono: '+51987654345', codigoEstudiante: 'EST-025', apoderadoId: 'u24' },
+    { id: 'u26', nombre: 'Paola', apellido: 'Espinoza Tello', dni: '72765431', rol: 'Docente', correo: 'paola.espinoza@colegio.pe', activo: true, edad: 29, telefono: '+51987654346' },
+    { id: 'u27', nombre: 'Ricardo', apellido: 'Salazar Peña', dni: '73654320', rol: 'Apoderado', correo: 'ricardo.salazar@email.com', activo: true, edad: 43, telefono: '+51987654347' },
+    { id: 'u28', nombre: 'Natalia', apellido: 'Salazar Rivas', dni: '78123408', rol: 'Estudiante', correo: 'natalia.salazar@email.com', activo: true, edad: 15, telefono: '+51987654348', codigoEstudiante: 'EST-026', apoderadoId: 'u27' },
+    { id: 'u29', nombre: 'Óscar', apellido: 'Bravo Chávez', dni: '74543219', rol: 'Docente', correo: 'oscar.bravo@colegio.pe', activo: true, edad: 39, telefono: '+51987654349' },
+    { id: 'u30', nombre: 'Lorena', apellido: 'Acosta Ibarra', dni: '75432198', rol: 'Apoderado', correo: 'lorena.acosta@email.com', activo: true, edad: 40, telefono: '+51987654350' },
+    { id: 'u31', nombre: 'Sebastián', apellido: 'Acosta Pardo', dni: '78123409', rol: 'Estudiante', correo: 'sebastian.acosta@email.com', activo: true, edad: 13, telefono: '+51987654351', codigoEstudiante: 'EST-027', apoderadoId: 'u30' },
+    { id: 'u32', nombre: 'Mónica', apellido: 'Lazo Fuentes', dni: '76321097', rol: 'Docente', correo: 'monica.lazo@colegio.pe', activo: true, edad: 31, telefono: '+51987654352' },
 ];
 
 export const CODIGOS_ESTUDIANTE_HISTORICOS = ['EST-001', 'EST-002', 'EST-003', 'EST-004', 'EST-005', 'EST-006', 'EST-007', 'EST-008', 'EST-009', 'EST-010', 'EST-011', 'EST-012', 'EST-013', 'EST-014', 'EST-015'];

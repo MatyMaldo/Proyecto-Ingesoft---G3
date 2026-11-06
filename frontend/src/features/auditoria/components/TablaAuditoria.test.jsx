@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
 
 import TablaAuditoria from './TablaAuditoria.jsx';
@@ -111,5 +111,49 @@ describe('HU-SAT-04 · Escenario 5: el autor "Sistema" se muestra igual que cual
     filas.forEach((fila) => {
       expect(fila.querySelectorAll('td').length).toBe(6);
     });
+  });
+});
+
+describe('HU-SAT-04 · Tabla: usuario sin redundancia, avatar compartido y cabecera fija', () => {
+  it('no repite el rol cuando es igual al nombre y lo muestra en el resto', () => {
+    render(
+      <TablaAuditoria
+        registros={[
+          construirRegistro({ id: 'AUD-0002', usuario: { nombre: 'Administrador', rol: 'Administrador', iniciales: 'A' } }),
+          construirRegistro({ id: 'AUD-0003' })
+        ]}
+        actualizando={false}
+        alSeleccionarRegistro={vi.fn()}
+      />
+    );
+
+    const tabla = screen.getByRole('table');
+    const filas = within(tabla).getAllByRole('row').slice(1);
+    expect(within(filas[0]).getAllByText('Administrador')).toHaveLength(1);
+    expect(within(filas[1]).getByText('Docente')).toBeInTheDocument();
+  });
+
+  it('muestra el módulo con insignia neutra y solo la acción con color', () => {
+    render(
+      <TablaAuditoria
+        registros={[construirRegistro({ modulo: { codigo: 'ASISTENCIA', etiqueta: 'Asistencia', tono: 'gris' } })]}
+        actualizando={false}
+        alSeleccionarRegistro={vi.fn()}
+      />
+    );
+
+    const fila = within(screen.getByRole('table')).getAllByRole('row')[1];
+    expect(within(fila).getByText('Asistencia').style.getPropertyValue('--tono-fondo')).toBe('var(--tono-gris-fondo)');
+    expect(within(fila).getByText('Crear').style.getPropertyValue('--tono-fondo')).toBe('var(--tono-verde-fondo)');
+  });
+
+  it('muestra la fecha como DD/MM/AAAA y las iniciales en el avatar', () => {
+    render(
+      <TablaAuditoria registros={[construirRegistro()]} actualizando={false} alSeleccionarRegistro={vi.fn()} />
+    );
+
+    const fila = within(screen.getByRole('table')).getAllByRole('row')[1];
+    expect(within(fila).getByText('18/09/2026')).toBeInTheDocument();
+    expect(within(fila).getByText('PQ')).toBeInTheDocument();
   });
 });

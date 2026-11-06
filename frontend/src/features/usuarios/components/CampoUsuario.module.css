@@ -1,0 +1,109 @@
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1);
+  min-width: 0;
+}
+
+.anchoCompleto {
+  grid-column: 1 / -1;
+}
+
+.etiqueta {
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto-secundario);
+}
+
+.asterisco {
+  color: var(--color-peligro);
+}
+
+.fila {
+  display: flex;
+  gap: var(--espacio-2);
+}
+
+.entrada {
+  flex: 1 1 auto;
+  width: 100%;
+  min-width: 0;
+  height: var(--tactil-min);
+  padding: 0 var(--espacio-3);
+  font: inherit;
+  font-size: var(--texto-md);
+  color: var(--color-texto);
+  background: var(--color-fondo);
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio-md);
+  transition: border-color var(--transicion), background-color var(--transicion);
+}
+
+.entrada::placeholder {
+  color: var(--color-texto-suave);
+}
+
+.entrada:hover {
+  border-color: var(--color-texto-suave);
+}
+
+.entrada:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 1px;
+  border-color: var(--color-foco);
+}
+
+.entrada[aria-invalid='true'] {
+  background: var(--color-peligro-fondo);
+  border-color: var(--color-peligro);
+}
+
+.prefijo {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espacio-2);
+  height: var(--tactil-min);
+  padding: 0 var(--espacio-3);
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio-md);
+}
+
+.prefijoError {
+  border-color: var(--color-peligro);
+}
+
+.ayuda,
+.error {
+  margin: 0;
+  font-size: var(--texto-xs);
+  line-height: var(--interlineado-xs);
+}
+
+.ayuda {
+  color: var(--color-texto-suave);
+}
+
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espacio-1);
+  font-weight: var(--peso-medio);
+  color: var(--color-peligro-texto);
+}
+
+.error svg {
+  flex-shrink: 0;
+  margin-top: 1px;
+}
+
+@media (max-width: 767px) {
+  .entrada {
+    font-size: var(--texto-base);
+  }
+}

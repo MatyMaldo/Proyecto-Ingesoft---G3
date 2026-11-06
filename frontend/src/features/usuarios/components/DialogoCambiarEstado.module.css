@@ -1,0 +1,74 @@
+.pregunta,
+.consecuencia {
+  margin: 0;
+}
+
+.pregunta {
+  font-size: var(--texto-base);
+  line-height: var(--interlineado-base);
+  color: var(--color-texto);
+}
+
+.consecuencia {
+  font-size: var(--texto-md);
+  line-height: var(--interlineado-md);
+  color: var(--color-texto-suave);
+}
+
+/* Aviso preventivo (ámbar, GUI §1): se perderá la asignación como tutor. */
+.aviso {
+  padding: var(--espacio-3) var(--espacio-4);
+  color: var(--tono-ambar-texto);
+  background: var(--tono-ambar-fondo);
+  border: 1px solid var(--tono-ambar-borde);
+  border-radius: var(--radio-md);
+}
+
+.avisoTitulo {
+  margin: 0;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+}
+
+.lista {
+  margin: var(--espacio-2) 0 0;
+  padding-left: var(--espacio-5);
+  font-size: var(--texto-md);
+  line-height: var(--interlineado-md);
+}
+
+.errorSecciones {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espacio-1);
+  margin: var(--espacio-2) 0;
+  font-size: var(--texto-md);
+  color: var(--color-peligro-texto);
+}
+
+.errorSecciones svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.botonReintentar {
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-4);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--tono-ambar-texto);
+  background: var(--color-superficie);
+  border: 1px solid var(--tono-ambar-borde);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.botonReintentar:hover {
+  background: var(--tono-ambar-fondo);
+}
+
+.botonReintentar:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
