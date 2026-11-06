@@ -2,7 +2,6 @@ import { describe, it, expect } from 'vitest';
 
 import { iniciarSesionMock } from './autenticacionMock.js';
 import { ROLES } from '../../../../shared/auth/roles.js';
-import { MOTIVOS_RECHAZO } from '../autenticacionService.js';
 
 describe('HU-SAT-07 · Escenario 1: inicio de sesión exitoso', () => {
   it('autentica con el correo y la contraseña del Administrador', async () => {
@@ -73,14 +72,13 @@ describe('HU-SAT-07 · Escenario 5: usuario desactivado', () => {
   });
 });
 
-describe('HU-SAT-07 · §U3: rol no habilitado (alcance Sprint 1)', () => {
-  it('rechaza con 403 y el código ROL_NO_HABILITADO a una cuenta docente con credenciales correctas', async () => {
-    const resultado = await iniciarSesionMock({ correo: 'docente@sanmarcos.edu.pe', password: 'Docente2026!' });
+describe('HU-SAT-07 · rol docente habilitado para Sprint 2', () => {
+	it('permite iniciar sesión a una cuenta docente activa con credenciales correctas', async () => {
+		const resultado = await iniciarSesionMock({ correo: 'docente@sanmarcos.edu.pe', password: 'Docente2026!' });
 
-    expect(resultado.exitoso).toBe(false);
-    expect(resultado.estado).toBe(403);
-    expect(resultado.codigo).toBe(MOTIVOS_RECHAZO.ROL_NO_HABILITADO);
-  });
+		expect(resultado.exitoso).toBe(true);
+		expect(resultado.datos.usuario.rol).toBe(ROLES.DOCENTE);
+	});
 });
 
 describe('HU-SAT-07 · disparador de error no controlado (desarrollo)', () => {
