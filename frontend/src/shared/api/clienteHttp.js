@@ -77,8 +77,10 @@ export function configurarCliente({
  * @property {string} [metodo] - Método HTTP. Por defecto, `'GET'`.
  * @property {Object<string, *>} [parametros] - Parámetros de consulta (query string).
  * @property {*} [cuerpo] - Cuerpo de la solicitud; se envía como JSON si está presente.
+ * @property {FormData} [cuerpoFormulario] - Formulario multipart; el navegador asigna el boundary.
+ * @property {boolean} [respuestaArchivo] - Devuelve el cuerpo exitoso como `Blob`.
  * @property {AbortSignal} [signal] - Señal externa para cancelar la solicitud.
- * @property {boolean} [sinVersionApi] - Usa `/api` en lugar de `/api/v1`.
+ * @property {boolean} [sinVersionApi] - Usa `/api` en lugar de la ruta API versionada.
  */
 
 /**
@@ -102,9 +104,17 @@ export function configurarCliente({
  * @returns {Promise<RespuestaSolicitud>}
  */
 export async function solicitar(ruta, opciones = {}) {
-  const { metodo = 'GET', parametros, cuerpo, signal: signalExterno, sinVersionApi = false } = opciones;
+  const {
+    metodo = 'GET',
+    parametros,
+    cuerpo,
+    cuerpoFormulario,
+    respuestaArchivo = false,
+    signal: signalExterno,
+    sinVersionApi = false
+  } = opciones;
 
-  const base = sinVersionApi ? URL_BASE_API.replace(/\/v1$/, '') : URL_BASE_API;
+  const base = sinVersionApi ? URL_BASE_API.replace(/\/v\d+$/, '') : URL_BASE_API;
   const url = construirUrl(ruta, parametros).replace(URL_BASE_API, base);
   const controlador = new AbortController();
   const temporizador = setTimeout(() => controlador.abort(), TIEMPO_ESPERA_MS);
@@ -136,11 +146,12 @@ export async function solicitar(ruta, opciones = {}) {
     const respuesta = await fetch(url, {
       method: metodo,
       headers: cabeceras,
-      body: cuerpo !== undefined ? JSON.stringify(cuerpo) : undefined,
+      body: cuerpoFormulario ?? (cuerpo !== undefined ? JSON.stringify(cuerpo) : undefined),
       signal: controlador.signal
     });
 
-    const json = await analizarJson(respuesta);
+    const archivo = respuestaArchivo && respuesta.ok ? await respuesta.blob() : null;
+    const json = respuestaArchivo && respuesta.ok ? null : await analizarJson(respuesta);
 
     if (!respuesta.ok) {
       const codigo = json?.codigo ?? null;
@@ -158,7 +169,7 @@ export async function solicitar(ruta, opciones = {}) {
 
     return {
       exitoso: true,
-      datos: json?.datos ?? json?.data ?? json ?? null,
+      datos: archivo ?? json?.datos ?? json?.data ?? json ?? null,
       mensaje: json?.error ?? json?.mensaje ?? ''
     };
   } catch (error) {

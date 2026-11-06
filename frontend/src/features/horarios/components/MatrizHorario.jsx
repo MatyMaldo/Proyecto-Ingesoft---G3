@@ -52,7 +52,9 @@ export default function MatrizHorario({
   const [origenArrastre, establecerOrigenArrastre] = useState(null);
   const [claveSobre, establecerClaveSobre] = useState(null);
 
-  const asignacionPorId = new Map(asignaciones.map((asignacion) => [asignacion.id, asignacion]));
+  const asignacionPorId = new Map(
+    asignaciones.map((asignacion) => [String(asignacion.id), asignacion])
+  );
   const aulaPorId = new Map(aulas.map((aula) => [aula.id, aula.nombre]));
   const cursosOrdenados = [...new Set(asignaciones.map((asignacion) => asignacion.cursoId))].sort();
   const claseTono = (cursoId) =>
@@ -131,7 +133,9 @@ export default function MatrizHorario({
                     const clave = claveBloque(dia.id, franja.id);
                     const bloque = bloques[clave];
                     const guardado = bloquesGuardados[clave];
-                    const asignacion = bloque ? asignacionPorId.get(bloque.asignacionId) : null;
+                    const asignacion = bloque
+                      ? asignacionPorId.get(String(bloque.asignacionId))
+                      : null;
                     const cambiado =
                       bloque?.asignacionId !== guardado?.asignacionId || bloque?.aulaId !== guardado?.aulaId;
                     const etiquetaCelda = `${dia.etiqueta} ${franja.inicio}`;

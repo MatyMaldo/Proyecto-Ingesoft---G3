@@ -33,12 +33,10 @@ export function listarSecciones() {
 
 
 export function listarDocentes() {
-  return solicitar('/usuarios', {
-    parametros: {
-      tipoUsuario: 'DOCENTE',
-      page: 0,
-      size: 100
-    }
+  return Promise.resolve({
+    exitoso: false,
+    datos: null,
+    mensaje: 'El contrato del backend no incluye GET /usuarios/docentes para listar docentes.'
   });
 }
 

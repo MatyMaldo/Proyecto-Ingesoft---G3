@@ -20,7 +20,15 @@ const UMBRAL_DOS_COLUMNAS = 8;
  * @param {() => void} props.alAgregar
  * @param {(asignacion: Object) => void} props.alEliminar
  */
-export default function TablaAsignaciones({ estado, asignaciones, alReintentar, alAgregar, alEliminar }) {
+export default function TablaAsignaciones({
+  estado,
+  asignaciones,
+  soloLectura = false,
+  agregarDeshabilitado = false,
+  alReintentar,
+  alAgregar,
+  alEliminar
+}) {
   // Plegada por defecto cuando hay muchas relaciones; si la persona la abre o cierra, manda su elección.
   const [eleccion, establecerEleccion] = useState(null);
   const abierta = eleccion ?? asignaciones.length < UMBRAL_DOS_COLUMNAS;
@@ -50,18 +58,29 @@ export default function TablaAsignaciones({ estado, asignaciones, alReintentar, 
               {abierta ? 'Ocultar' : `Mostrar (${asignaciones.length})`}
             </button>
           )}
-          <button
-            type="button"
-            className={estilos.botonAgregar}
-            disabled={estado !== 'listo'}
-            onClick={alAgregar}
-          >
-            <Icono nombre="agregar" tamano={18} />
-            Agregar relación
-          </button>
+          {!soloLectura && (
+            <button
+              type="button"
+              className={estilos.botonAgregar}
+              disabled={estado !== 'listo' || agregarDeshabilitado}
+              title={agregarDeshabilitado ? 'No hay docentes activos disponibles.' : undefined}
+              onClick={alAgregar}
+            >
+              <Icono nombre="agregar" tamano={18} />
+              Agregar relación
+            </button>
+          )}
         </div>
       </div>
 
+      {soloLectura && (
+        <p className={estilos.avisoSoloLectura} role="note">
+          El contrato actual permite consultar asignaciones, pero no modificarlas.
+        </p>
+      )}
+      {!soloLectura && agregarDeshabilitado && (
+        <p role="status">No hay docentes activos disponibles para crear una asignación.</p>
+      )}
       {estado === 'cargando' && <EstadoConsulta tipo="carga" filasEsqueleto={3} />}
       {estado === 'error' && <EstadoConsulta tipo="error" alReintentar={alReintentar} />}
 
@@ -81,9 +100,11 @@ export default function TablaAsignaciones({ estado, asignaciones, alReintentar, 
                       <tr>
                         <th scope="col">Curso</th>
                         <th scope="col">Docente</th>
-                        <th scope="col" className={estilos.columnaAccion}>
-                          <span className={estilosUtil.ocultoVisualmente}>Acciones</span>
-                        </th>
+                        {!soloLectura && (
+                          <th scope="col" className={estilos.columnaAccion}>
+                            <span className={estilosUtil.ocultoVisualmente}>Acciones</span>
+                          </th>
+                        )}
                       </tr>
                     </thead>
                     <tbody>
@@ -91,16 +112,18 @@ export default function TablaAsignaciones({ estado, asignaciones, alReintentar, 
                         <tr key={asignacion.id}>
                           <td className={estilos.celdaCurso}>{asignacion.cursoNombre}</td>
                           <td>{asignacion.docenteNombre}</td>
-                          <td className={estilos.columnaAccion}>
-                            <button
-                              type="button"
-                              className={estilos.botonEliminar}
-                              aria-label={`Eliminar ${asignacion.cursoNombre} con ${asignacion.docenteNombre}`}
-                              onClick={() => alEliminar(asignacion)}
-                            >
-                              <Icono nombre="papelera" tamano={18} />
-                            </button>
-                          </td>
+                          {!soloLectura && (
+                            <td className={estilos.columnaAccion}>
+                              <button
+                                type="button"
+                                className={estilos.botonEliminar}
+                                aria-label={`Eliminar ${asignacion.cursoNombre} con ${asignacion.docenteNombre}`}
+                                onClick={() => alEliminar(asignacion)}
+                              >
+                                <Icono nombre="papelera" tamano={18} />
+                              </button>
+                            </td>
+                          )}
                         </tr>
                       ))}
                     </tbody>

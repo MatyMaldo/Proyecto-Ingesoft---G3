@@ -40,6 +40,40 @@ describe('cliente HTTP · formatos de respuesta exitosa del backend', () => {
 
     expect(respuesta).toEqual({ exitoso: true, datos: login, mensaje: '' });
   });
+
+  it('envía multipart sin fijar Content-Type y devuelve archivos como Blob', async () => {
+    const archivoCsv = new Blob(['file,fila\n']);
+    const formulario = new FormData();
+    formulario.append('file', new File(['file,fila\n'], 'horarios.csv'));
+    const fetch = vi.fn().mockResolvedValue(new Response(archivoCsv, {
+      status: 200,
+      headers: { 'Content-Type': 'text/csv' }
+    }));
+    vi.stubGlobal('fetch', fetch);
+
+    const respuesta = await solicitar('/bloques-horario/carga-masiva', {
+      metodo: 'POST',
+      cuerpoFormulario: formulario
+    });
+
+    expect(fetch.mock.calls[0][1].body).toBe(formulario);
+    expect(fetch.mock.calls[0][1].headers).toEqual({});
+    expect(respuesta.exitoso).toBe(true);
+
+    fetch.mockResolvedValueOnce(new Response(archivoCsv, { status: 200 }));
+    const descarga = await solicitar('/bloques-horario/plantilla-csv', { respuestaArchivo: true });
+    expect(descarga.datos).toBeInstanceOf(Blob);
+    expect(descarga.datos.size).toBeGreaterThan(0);
+  });
+
+  it('quita correctamente el sufijo de una versión de API de varios dígitos', async () => {
+    const fetch = vi.fn().mockResolvedValue(new Response('{}', { status: 200 }));
+    vi.stubGlobal('fetch', fetch);
+
+    await solicitar('/log-errores', { sinVersionApi: true });
+
+    expect(fetch.mock.calls[0][0]).toBe('/api/log-errores');
+  });
 });
 
 describe('cliente HTTP · 401 con código de invalidación de sesión (docs/planes/login.md §U2)', () => {

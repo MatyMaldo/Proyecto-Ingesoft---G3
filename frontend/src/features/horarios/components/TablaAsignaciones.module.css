@@ -24,6 +24,12 @@
   background: var(--color-borde);
 }
 
+.avisoSoloLectura {
+  margin: 0;
+  color: var(--color-texto-secundario);
+  font-size: var(--texto-sm);
+}
+
 .acciones {
   display: flex;
   flex-wrap: wrap;
