@@ -12,7 +12,8 @@ export const DIAS = Object.freeze([
   Object.freeze({ id: 'MARTES', etiqueta: 'Martes' }),
   Object.freeze({ id: 'MIERCOLES', etiqueta: 'Miércoles' }),
   Object.freeze({ id: 'JUEVES', etiqueta: 'Jueves' }),
-  Object.freeze({ id: 'VIERNES', etiqueta: 'Viernes' })
+  Object.freeze({ id: 'VIERNES', etiqueta: 'Viernes' }),
+  Object.freeze({ id: 'SABADO', etiqueta: 'Sábado' })
 ]);
 
 /**

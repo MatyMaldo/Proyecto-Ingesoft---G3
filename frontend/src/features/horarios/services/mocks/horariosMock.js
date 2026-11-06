@@ -14,7 +14,12 @@ const GRADOS = [
   { id: '4', nombre: '4to Secundaria' },
   { id: '5', nombre: '5to Secundaria' }
 ];
-const SECCIONES = ['A', 'B', 'C'];
+const SECCIONES = ['A', 'B', 'C'].map((nombre) => ({
+  id: nombre,
+  nombre,
+  anioAcademicoId: '1',
+  anioAcademico: 2026
+}));
 
 const CURSOS = [
   { id: 'CUR-0001', nombre: 'Matemáticas' },
@@ -131,7 +136,7 @@ export async function consultarCatalogosMock() {
   await esperar();
   return ok({
     grados: GRADOS,
-    secciones: SECCIONES.map((nombre) => ({ id: nombre, nombre })),
+    secciones: SECCIONES,
     cursos: CURSOS,
     docentes: DOCENTES,
     aulas: AULAS,
@@ -155,6 +160,17 @@ export async function crearAsignacionMock({ gradoId, seccion, cursoId, docenteId
   const nueva = { id: `ASG-${siguienteId++}`, gradoId, seccion, cursoId, docenteId };
   asignaciones = [...asignaciones, nueva];
   return ok(vista(nueva));
+}
+
+export async function actualizarAsignacionMock(idAsignacion, { cursoId, docenteId }) {
+  await esperar();
+  const actual = asignaciones.find((asignacion) => asignacion.id === idAsignacion);
+  if (!actual) return fallo('No se encontró la asignación indicada.');
+  const actualizada = { ...actual, cursoId, docenteId };
+  asignaciones = asignaciones.map((asignacion) =>
+    asignacion.id === idAsignacion ? actualizada : asignacion
+  );
+  return ok(vista(actualizada));
 }
 
 export async function eliminarAsignacionMock(idAsignacion) {
@@ -197,6 +213,7 @@ export async function guardarHorarioMock({ gradoId, seccion, bloques: nuevos }) 
 
 // Sesiones generadas: se guardan por sección y bimestre.
 const sesionesGeneradas = new Map();
+const sesionesContrato = new Map();
 const claveSesiones = ({ gradoId, seccion, bimestreId }) => `${gradoId}|${seccion}|${bimestreId}`;
 
 /** Huella de los bloques actuales de la sección; si cambia después de generar, las sesiones quedan desactualizadas. */
@@ -281,4 +298,70 @@ export async function guardarDisponibilidadSesionesMock({ cambios, ...consulta }
     });
   }
   return ok(null);
+}
+
+function fechasEntre(inicio, fin) {
+  const fechas = [];
+  const final = new Date(`${fin}T00:00:00Z`);
+  for (let fecha = new Date(`${inicio}T00:00:00Z`); fecha <= final; fecha.setUTCDate(fecha.getUTCDate() + 1)) {
+    fechas.push(new Date(fecha));
+  }
+  return fechas;
+}
+
+function crearVistaPreviaContrato({ gradoId, seccion, fechaInicio, fechaFin }) {
+  const bloquesSeccion = bloques.filter((bloque) =>
+    String(bloque.seccion) === String(seccion)
+      && (gradoId === undefined || String(bloque.gradoId) === String(gradoId))
+  );
+  const sesiones = [];
+  fechasEntre(fechaInicio, fechaFin).forEach((fecha) => {
+    const dia = DIAS[fecha.getUTCDay() - 1];
+    if (!dia) return;
+    const iso = fecha.toISOString().slice(0, 10);
+    bloquesSeccion.filter((bloque) => bloque.dia === dia.id).forEach((bloque) => {
+      const franja = FRANJAS.find((elemento) => elemento.id === bloque.franjaId);
+      const asignacion = asignaciones.find((elemento) => elemento.id === bloque.asignacionId);
+      sesiones.push({
+        fecha: iso,
+        horaInicio: franja?.inicio,
+        horaFin: franja?.fin,
+        diaSemana: dia.id,
+        cursoNombre: nombreDe(CURSOS, asignacion?.cursoId),
+        docenteNombre: nombreDe(DOCENTES, asignacion?.docenteId),
+        aulaNombre: nombreDe(AULAS, bloque.aulaId)
+      });
+    });
+  });
+  return sesiones;
+}
+
+export async function previsualizarSesionesContratoMock(datos) {
+  await esperar();
+  const sesiones = crearVistaPreviaContrato(datos);
+  return ok({ sesiones, total: sesiones.length });
+}
+
+export async function generarSesionesContratoMock(datos) {
+  await esperar();
+  const preview = crearVistaPreviaContrato(datos);
+  const omisiones = new Map((datos.sesionesOmitidas ?? []).map(({ fecha, motivo }) => [fecha, motivo]));
+  const generadas = preview
+    .filter((sesion) => !omisiones.has(sesion.fecha))
+    .map((sesion, indice) => ({
+      ...sesion,
+      id: `${sesion.fecha}-${indice + 1}`,
+      estado: 'PROGRAMADA',
+      bloqueHorarioId: null
+    }));
+  const sesionesOmitidas = preview.filter((sesion) => omisiones.has(sesion.fecha)).length;
+  const clave = `${datos.seccionId}|${datos.fechaInicio}|${datos.fechaFin}`;
+  sesionesContrato.set(clave, generadas);
+  return ok({ sesionesCreadas: generadas.length, sesionesOmitidas });
+}
+
+export async function listarSesionesContratoMock({ seccionId, fechaInicio, fechaFin }) {
+  await esperar();
+  const clave = `${seccionId}|${fechaInicio}|${fechaFin}`;
+  return ok(sesionesContrato.get(clave) ?? []);
 }

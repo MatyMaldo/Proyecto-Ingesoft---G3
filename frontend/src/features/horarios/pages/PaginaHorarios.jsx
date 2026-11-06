@@ -28,10 +28,13 @@ export default function PaginaHorarios() {
   const {
     catalogos,
     estadoCatalogos,
+    errorCatalogos,
+    errorHorario,
     reintentarCatalogos,
     filtros,
     seleccionarGrado,
     seleccionarSeccion,
+    seccionesFiltradas,
     verHorario,
     consulta,
     tituloConsulta,
@@ -90,11 +93,15 @@ export default function PaginaHorarios() {
       </header>
 
       {estadoCatalogos === 'error' ? (
-        <EstadoConsulta tipo="error" alReintentar={reintentarCatalogos} />
+        <EstadoConsulta
+          tipo="error"
+          mensaje={errorCatalogos}
+          alReintentar={reintentarCatalogos}
+        />
       ) : (
         <FiltrosHorario
           grados={catalogos.grados}
-          secciones={catalogos.secciones}
+          secciones={seccionesFiltradas}
           filtros={filtros}
           deshabilitado={estadoCatalogos === 'cargando'}
           alCambiarGrado={seleccionarGrado}
@@ -116,6 +123,8 @@ export default function PaginaHorarios() {
             key={tituloConsulta}
             estado={asignaciones.estado}
             asignaciones={asignaciones.lista}
+            soloLectura={asignaciones.soloLectura}
+            agregarDeshabilitado={asignaciones.agregarDeshabilitado}
             alReintentar={asignaciones.reintentar}
             alAgregar={() => establecerDialogoAsignacion(true)}
             alEliminar={establecerAsignacionAEliminar}
@@ -128,7 +137,11 @@ export default function PaginaHorarios() {
 
             {horario.estado === 'cargando' && <EstadoConsulta tipo="carga" filasEsqueleto={4} />}
             {horario.estado === 'error' && (
-              <EstadoConsulta tipo="error" alReintentar={asignaciones.reintentar} />
+              <EstadoConsulta
+                tipo="error"
+                mensaje={errorHorario}
+                alReintentar={asignaciones.reintentar}
+              />
             )}
             {horario.estado === 'listo' && (
               <>
@@ -236,7 +249,6 @@ export default function PaginaHorarios() {
         <DialogoSesiones
           consulta={consulta}
           tituloSeccion={tituloConsulta}
-          bimestres={catalogos.bimestres}
           alCancelar={() => establecerDialogoSesiones(false)}
           alNotificar={mostrarNotificacion}
         />

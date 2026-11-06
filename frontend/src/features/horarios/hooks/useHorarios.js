@@ -1,7 +1,7 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import { claveBloque } from '../constants/horarios.js';
+import { claveBloque, FRANJAS } from '../constants/horarios.js';
 import {
   consultarCatalogos,
   crearAsignacion,
@@ -13,22 +13,40 @@ import {
 } from '../services/horariosService.js';
 
 const MENSAJE_ERROR_GENERICO = 'Se registró un error inesperado';
-const CATALOGOS_VACIOS = { grados: [], secciones: [], cursos: [], docentes: [], aulas: [], bimestres: [] };
+const CATALOGOS_VACIOS = {
+  grados: [],
+  secciones: [],
+  cursos: [],
+  docentes: [],
+  aulas: [],
+  anios: [],
+  bimestres: []
+};
 
 /** Convierte la lista de bloques del backend en un mapa `dia|franja` → { asignacionId, aulaId }. */
-function bloquesAMapa(lista) {
-  const mapa = {};
-  lista.forEach(({ dia, franjaId, asignacionId, aulaId }) => {
-    mapa[claveBloque(dia, franjaId)] = { asignacionId, aulaId };
-  });
-  return mapa;
+function horaComparable(hora) {
+  return String(hora ?? '').slice(0, 5);
 }
 
-function mapaABloques(mapa) {
-  return Object.entries(mapa).map(([clave, { asignacionId, aulaId }]) => {
-    const [dia, franjaId] = clave.split('|');
-    return { dia, franjaId, asignacionId, aulaId };
+function bloquesAMapa(lista) {
+  const mapa = {};
+  lista.forEach((bloque) => {
+    const dia = bloque.diaSemana ?? bloque.dia;
+    const asignacionId = bloque.asignacionCursoId ?? bloque.asignacionId;
+    const franja = FRANJAS.find(
+      (elemento) => elemento.inicio === horaComparable(bloque.horaInicio)
+        && elemento.fin === horaComparable(bloque.horaFin)
+    );
+    const franjaId = bloque.franjaId ?? franja?.id;
+    if (dia && franjaId && asignacionId !== undefined && bloque.aulaId !== undefined) {
+      mapa[claveBloque(dia, franjaId)] = {
+        id: bloque.id,
+        asignacionId,
+        aulaId: bloque.aulaId
+      };
+    }
   });
+  return mapa;
 }
 
 function serializarBloques(mapa) {
@@ -48,6 +66,7 @@ function serializarBloques(mapa) {
 export default function useHorarios() {
   const [catalogos, establecerCatalogos] = useState(CATALOGOS_VACIOS);
   const [estadoCatalogos, establecerEstadoCatalogos] = useState('cargando');
+  const [errorCatalogos, establecerErrorCatalogos] = useState('');
   const [intento, establecerIntento] = useState(0);
 
   // Grado y sección consultados viajan en la URL (`?grado=4&seccion=B`) para poder recargar o compartir.
@@ -65,6 +84,7 @@ export default function useHorarios() {
   const [bloques, establecerBloques] = useState({});
   const [bloquesGuardados, establecerBloquesGuardados] = useState({});
   const [estadoHorario, establecerEstadoHorario] = useState('cargando');
+  const [errorHorario, establecerErrorHorario] = useState('');
   const [guardando, establecerGuardando] = useState(false);
 
   const hayCambios = useMemo(
@@ -82,9 +102,11 @@ export default function useHorarios() {
         return;
       }
       if (!resultado.exitoso) {
+        establecerErrorCatalogos(resultado.mensaje || 'No se pudieron cargar los catálogos de horarios.');
         establecerEstadoCatalogos('error');
         return;
       }
+      establecerErrorCatalogos('');
       establecerCatalogos({ ...CATALOGOS_VACIOS, ...resultado.datos });
       establecerEstadoCatalogos('listo');
     }
@@ -103,6 +125,7 @@ export default function useHorarios() {
 
     async function cargar() {
       establecerEstadoHorario('cargando');
+      establecerErrorHorario('');
       const [respuestaAsignaciones, respuestaHorario, respuestaOcupaciones] = await Promise.all([
         listarAsignaciones(consulta),
         obtenerHorario(consulta),
@@ -112,20 +135,33 @@ export default function useHorarios() {
         return;
       }
       if (!respuestaAsignaciones.exitoso || !respuestaHorario.exitoso || !respuestaOcupaciones.exitoso) {
+        const respuestaFallida = [respuestaAsignaciones, respuestaHorario, respuestaOcupaciones]
+          .find((respuesta) => !respuesta.exitoso);
+        establecerErrorHorario(respuestaFallida?.mensaje || 'No se pudo cargar el horario.');
+        establecerEstadoHorario('error');
+        return;
+      }
+      if (
+        !Array.isArray(respuestaAsignaciones.datos) ||
+        !Array.isArray(respuestaHorario.datos) ||
+        !Array.isArray(respuestaOcupaciones.datos)
+      ) {
+        establecerErrorHorario('El backend devolvió un listado de horarios con formato no válido.');
         establecerEstadoHorario('error');
         return;
       }
       const asignaciones = respuestaAsignaciones.datos ?? [];
-      const ids = new Set(asignaciones.map((asignacion) => asignacion.id));
+      const ids = new Set(asignaciones.map((asignacion) => String(asignacion.id)));
       establecerListaAsignaciones(asignaciones);
       establecerOcupaciones(respuestaOcupaciones.datos ?? []);
-      establecerBloquesGuardados(bloquesAMapa(respuestaHorario.datos ?? []));
+      const bloquesCargados = bloquesAMapa(respuestaHorario.datos ?? []);
+      establecerBloquesGuardados(bloquesCargados);
       // Tras agregar o quitar una relación se conserva el borrador de la matriz, descartando los
       // bloques cuya relación ya no existe. Al consultar una sección se parte de lo guardado.
       establecerBloques((anteriores) =>
         Object.fromEntries(
-          Object.entries(version === 0 ? bloquesAMapa(respuestaHorario.datos ?? []) : anteriores).filter(
-            ([, bloque]) => ids.has(bloque.asignacionId)
+          Object.entries(version === 0 ? bloquesCargados : anteriores).filter(
+            ([, bloque]) => ids.has(String(bloque.asignacionId))
           )
         )
       );
@@ -147,10 +183,20 @@ export default function useHorarios() {
     }
     urlRestaurada.current = true;
     const valido =
-      catalogos.grados.some((grado) => grado.id === gradoId) &&
-      catalogos.secciones.some((elemento) => elemento.id === seccion);
+      catalogos.grados.some((grado) => String(grado.id) === String(gradoId)) &&
+      catalogos.secciones.some((elemento) => String(elemento.id) === String(seccion));
     if (valido) {
-      establecerConsulta({ gradoId, seccion });
+      const seccionSeleccionada = catalogos.secciones.find(
+        (elemento) => String(elemento.id) === String(seccion)
+      );
+      establecerConsulta({
+        gradoId,
+        seccion,
+        seccionId: seccion,
+        anioAcademicoId: seccionSeleccionada?.anioAcademicoId ?? seccionSeleccionada?.anioId,
+        anioId: seccionSeleccionada?.anioAcademicoId ?? seccionSeleccionada?.anioId,
+        anioAcademico: seccionSeleccionada?.anioAcademico
+      });
     } else {
       establecerGradoId('');
       establecerSeccion('');
@@ -181,11 +227,21 @@ export default function useHorarios() {
     if (!filtrosCompletos) {
       return;
     }
+    const seccionSeleccionada = catalogos.secciones.find(
+      (elemento) => String(elemento.id) === String(seccion)
+    );
     establecerBloques({});
     establecerBloquesGuardados({});
     establecerVersion(0);
     establecerParametros({ grado: gradoId, seccion });
-    establecerConsulta({ gradoId, seccion });
+    establecerConsulta({
+      gradoId,
+      seccion,
+      seccionId: seccion,
+      anioAcademicoId: seccionSeleccionada?.anioAcademicoId ?? seccionSeleccionada?.anioId,
+      anioId: seccionSeleccionada?.anioAcademicoId ?? seccionSeleccionada?.anioId,
+      anioAcademico: seccionSeleccionada?.anioAcademico
+    });
   };
 
   const agregarAsignacion = useCallback(
@@ -249,29 +305,51 @@ export default function useHorarios() {
 
   const guardar = async () => {
     establecerGuardando(true);
-    const resultado = await guardarHorario({ ...consulta, bloques: mapaABloques(bloques) });
+    const resultado = await guardarHorario({
+      ...consulta,
+      bloques,
+      bloquesGuardados
+    });
     establecerGuardando(false);
-    if (resultado.exitoso) {
-      establecerBloquesGuardados(bloques);
+    const respuestaActualizada = await obtenerHorario(consulta);
+    if (respuestaActualizada.exitoso) {
+      const guardados = bloquesAMapa(respuestaActualizada.datos ?? []);
+      establecerBloquesGuardados(guardados);
+      establecerBloques(guardados);
     }
     return resultado.exitoso ? null : resultado.mensaje || MENSAJE_ERROR_GENERICO;
   };
 
-  const gradoConsultado = catalogos.grados.find((grado) => grado.id === consulta?.gradoId);
+  const gradoConsultado = catalogos.grados.find(
+    (grado) => String(grado.id) === String(consulta?.gradoId)
+  );
+  const seccionConsultada = catalogos.secciones.find(
+    (elemento) => String(elemento.id) === String(consulta?.seccionId ?? consulta?.seccion)
+  );
+  const seccionesFiltradas = catalogos.secciones.filter(
+    (elemento) => String(elemento.gradoId) === String(gradoId)
+  );
 
   return {
     catalogos,
     estadoCatalogos,
     reintentarCatalogos: () => establecerIntento((actual) => actual + 1),
+    errorCatalogos,
+    errorHorario,
     filtros: { gradoId, seccion, completos: filtrosCompletos },
+    seccionesFiltradas,
     seleccionarGrado,
     seleccionarSeccion: establecerSeccion,
     verHorario,
     consulta,
-    tituloConsulta: consulta ? `${gradoConsultado?.nombre ?? consulta.gradoId} ${consulta.seccion}` : '',
+    tituloConsulta: consulta
+      ? `${gradoConsultado?.nombre ?? consulta.gradoId} ${seccionConsultada?.nombre ?? consulta.seccion}`
+      : '',
     asignaciones: {
       lista: listaAsignaciones,
       estado: estadoHorario,
+      soloLectura: false,
+      agregarDeshabilitado: catalogos.docentes.length === 0,
       reintentar: () => establecerVersion((actual) => actual + 1),
       agregar: agregarAsignacion,
       quitar: quitarAsignacion

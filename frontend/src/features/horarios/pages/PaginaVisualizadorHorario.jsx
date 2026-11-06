@@ -235,7 +235,7 @@ const seccionesFiltradas = opciones.filter(
   return (
     <section style={{ padding: 24 }}>
       <h1>Consulta de horario semanal</h1>
-      <p>Horario de lunes a viernes del año académico activo.</p>
+      <p>Horario de lunes a sábado del año académico activo.</p>
 
       {rol === ADMIN && (
         <label>
@@ -481,4 +481,3 @@ const seccionesFiltradas = opciones.filter(
     </section>
   );
 }
-

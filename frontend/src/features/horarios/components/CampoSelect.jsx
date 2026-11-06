@@ -14,7 +14,7 @@ import estilos from './CampoSelect.module.css';
  * @param {boolean} [props.deshabilitado]
  * @param {string} [props.error]
  * @param {boolean} [props.enfoqueInicial]
- * @param {(valor: string) => void} props.alCambiar
+ * @param {(valor: string) => void} [props.alCambiar]
  */
 export default function CampoSelect({
   id,
@@ -49,7 +49,7 @@ export default function CampoSelect({
         aria-invalid={error ? 'true' : undefined}
         aria-describedby={error ? idError : undefined}
         data-enfoque-inicial={enfoqueInicial ? '' : undefined}
-        onChange={(evento) => alCambiar(evento.target.value)}
+        onChange={deshabilitado ? undefined : (evento) => alCambiar?.(evento.target.value)}
       >
         <option value="">{placeholder}</option>
         {opciones.map((opcion) => (

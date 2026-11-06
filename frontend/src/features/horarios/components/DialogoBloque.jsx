@@ -21,33 +21,40 @@ import estilos from './DialogoBloque.module.css';
  * @param {(bloque: { asignacionId: string, aulaId: string }) => void} props.alGuardar
  */
 export default function DialogoBloque({ dia, franja, asignaciones, aulas, bloque, ocupaciones, alCancelar, alGuardar }) {
-  const asignacionInicial = asignaciones.find((asignacion) => asignacion.id === bloque?.asignacionId);
-  const [cursoId, establecerCursoId] = useState(asignacionInicial?.cursoId ?? '');
-  const [docenteId, establecerDocenteId] = useState(asignacionInicial?.docenteId ?? '');
+  const asignacionInicial = asignaciones.find(
+    (asignacion) => String(asignacion.id) === String(bloque?.asignacionId)
+  );
+  const [asignacionId, establecerAsignacionId] = useState(
+    asignacionInicial ? String(asignacionInicial.id) : ''
+  );
   const [aulaId, establecerAulaId] = useState(bloque?.aulaId ?? '');
   const [errores, establecerErrores] = useState({});
 
   const sinRelaciones = asignaciones.length === 0;
-  const ocupacionDeAula = (id) => ocupaciones.find((ocupacion) => ocupacion.aulaId === id);
-  const ocupacionDe = (id) => ocupaciones.find((ocupacion) => ocupacion.docenteId === id);
+  const asignacionSeleccionada = asignaciones.find(
+    (asignacion) => String(asignacion.id) === asignacionId
+  );
+  const docenteId = asignacionSeleccionada?.docenteId;
+  const ocupacionDeAula = (id) => ocupaciones.find(
+    (ocupacion) => String(ocupacion.aulaId) === String(id)
+  );
+  const ocupacionDe = (id) => ocupaciones.find(
+    (ocupacion) => String(ocupacion.docenteId) === String(id)
+  );
 
   const cursos = useMemo(() => {
-    const vistos = new Map();
-    asignaciones.forEach(({ cursoId: id, cursoNombre }) => vistos.set(id, cursoNombre));
-    return [...vistos].map(([valor, etiqueta]) => ({ valor, etiqueta }));
+    const cantidadPorCurso = new Map();
+    asignaciones.forEach((asignacion) => {
+      const cursoId = String(asignacion.cursoId);
+      cantidadPorCurso.set(cursoId, (cantidadPorCurso.get(cursoId) ?? 0) + 1);
+    });
+    return asignaciones.map((asignacion) => ({
+      valor: String(asignacion.id),
+      etiqueta: cantidadPorCurso.get(String(asignacion.cursoId)) > 1
+        ? `${asignacion.cursoNombre} — ${asignacion.docenteNombre}`
+        : asignacion.cursoNombre
+    }));
   }, [asignaciones]);
-
-  const docentes = useMemo(
-    () =>
-      asignaciones
-        .filter((asignacion) => asignacion.cursoId === cursoId)
-        .map(({ docenteId: id, docenteNombre }) => ({
-          valor: id,
-          etiqueta: ocupacionDe(id) ? `${docenteNombre} (ocupado)` : docenteNombre
-        })),
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-    [asignaciones, cursoId, ocupaciones]
-  );
 
   function mensajeAulaOcupada(id) {
     const ocupacion = ocupacionDeAula(id);
@@ -57,7 +64,9 @@ export default function DialogoBloque({ dia, franja, asignaciones, aulas, bloque
 
   function mensajeOcupado(id) {
     const ocupacion = ocupacionDe(id);
-    const nombre = asignaciones.find((asignacion) => asignacion.docenteId === id)?.docenteNombre;
+    const nombre = asignaciones.find(
+      (asignacion) => String(asignacion.docenteId) === String(id)
+    )?.docenteNombre;
     return ocupacion ? `${nombre} ya tiene clase en ${ocupacion.seccionNombre} a esta hora.` : undefined;
   }
 
@@ -65,12 +74,9 @@ export default function DialogoBloque({ dia, franja, asignaciones, aulas, bloque
     establecerErrores((anteriores) => ({ ...anteriores, [campo]: undefined }));
   }
 
-  function cambiarCurso(valor) {
-    establecerCursoId(valor);
-    // Si el curso solo tiene un docente, queda elegido; si no, se vuelve a pedir.
-    const delCurso = asignaciones.filter((asignacion) => asignacion.cursoId === valor);
-    establecerDocenteId(delCurso.length === 1 ? delCurso[0].docenteId : '');
-    limpiarError('curso');
+  function cambiarAsignacion(valor) {
+    establecerAsignacionId(valor);
+    limpiarError('asignacion');
     limpiarError('docente');
   }
 
@@ -78,12 +84,9 @@ export default function DialogoBloque({ dia, franja, asignaciones, aulas, bloque
     evento.preventDefault();
 
     const encontrados = {};
-    if (!cursoId) {
-      encontrados.curso = 'Selecciona un curso.';
-    }
-    if (cursoId && !docenteId) {
-      encontrados.docente = 'Selecciona un docente.';
-    } else if (docenteId && ocupacionDe(docenteId)) {
+    if (!asignacionSeleccionada) {
+      encontrados.asignacion = 'Selecciona una asignación de curso.';
+    } else if (ocupacionDe(docenteId)) {
       encontrados.docente = mensajeOcupado(docenteId);
     }
     if (!aulaId) {
@@ -96,8 +99,7 @@ export default function DialogoBloque({ dia, franja, asignaciones, aulas, bloque
       return;
     }
 
-    const asignacion = asignaciones.find((a) => a.cursoId === cursoId && a.docenteId === docenteId);
-    alGuardar({ asignacionId: asignacion.id, aulaId });
+    alGuardar({ asignacionId: asignacionSeleccionada.id, aulaId });
   }
 
   return (
@@ -124,28 +126,30 @@ export default function DialogoBloque({ dia, franja, asignaciones, aulas, bloque
             <legend className={estilos.leyenda}>Selector</legend>
             <CampoSelect
               id="bloque-curso"
-              etiqueta="Curso"
+              etiqueta="Curso asignado"
               requerido
               enfoqueInicial
-              placeholder="Seleccionar curso..."
-              valor={cursoId}
+              placeholder="Seleccionar curso asignado..."
+              valor={asignacionId}
               opciones={cursos}
-              error={errores.curso}
-              alCambiar={cambiarCurso}
+              error={errores.asignacion}
+              alCambiar={cambiarAsignacion}
             />
             <CampoSelect
               id="bloque-docente"
               etiqueta="Docente"
-              requerido
-              placeholder={cursoId ? 'Seleccionar docente...' : 'Primero elige un curso'}
-              valor={docenteId}
-              opciones={docentes}
-              deshabilitado={!cursoId}
+              placeholder={asignacionSeleccionada ? 'Docente asignado' : 'Primero elige un curso'}
+              valor={docenteId == null ? '' : String(docenteId)}
+              opciones={asignacionSeleccionada
+                ? [{
+                    valor: String(docenteId),
+                    etiqueta: ocupacionDe(docenteId)
+                      ? `${asignacionSeleccionada.docenteNombre} (ocupado)`
+                      : asignacionSeleccionada.docenteNombre
+                  }]
+                : []}
+              deshabilitado
               error={errores.docente ?? mensajeOcupado(docenteId)}
-              alCambiar={(valor) => {
-                establecerDocenteId(valor);
-                limpiarError('docente');
-              }}
             />
           </fieldset>
 
