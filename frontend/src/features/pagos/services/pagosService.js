@@ -51,7 +51,7 @@ export async function obtenerAnioAcademico() {
   }
 
   const [respuestaAnios] = await Promise.all([
-    solicitar('/anios-academicos/con-periodo-matricula-vigente')
+    solicitar('/anios-academicos')
   ]);
   const error = [respuestaAnios].find((respuesta) => !respuesta.exitoso);
   if (error) return error;
@@ -64,7 +64,7 @@ export async function obtenerAnioAcademico() {
   }
   return {
     exitoso: true,
-    datos: { anios: [respuestaAnios.datos] },
+    datos: { anios: respuestaAnios.datos },
     mensaje: ''
   };
 }
