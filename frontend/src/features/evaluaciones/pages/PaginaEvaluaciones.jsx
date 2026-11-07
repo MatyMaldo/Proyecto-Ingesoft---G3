@@ -3,10 +3,13 @@ import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import useAuth from '../../../shared/auth/useAuth.js';
 import {
   crearEvaluacion,
+  guardarNotasCompetencias,
   guardarNotaEvaluacion,
+  listarBimestresCompetencias,
   listarContextoDocenteEvaluaciones,
   listarEstudiantesEvaluacion,
   listarNotasEvaluacion,
+  listarNotasCompetencias,
   listarEvaluaciones
 } from '../services/evaluacionesService.js';
 import estilos from './PaginaEvaluaciones.module.css';
@@ -39,6 +42,15 @@ export default function PaginaEvaluaciones() {
   const [guardandoNota, setGuardandoNota] = useState(false);
   const [errorNota, setErrorNota] = useState('');
   const [avisoNota, setAvisoNota] = useState('');
+  const [formCompetenciasAbierto, setFormCompetenciasAbierto] = useState(false);
+  const [bimestresFinalizados, setBimestresFinalizados] = useState([]);
+  const [bimestreCompetenciasId, setBimestreCompetenciasId] = useState('');
+  const [estudianteCompetenciasId, setEstudianteCompetenciasId] = useState('');
+  const [formNotasCompetencias, setFormNotasCompetencias] = useState([]);
+  const [cargandoCompetencias, setCargandoCompetencias] = useState(false);
+  const [guardandoCompetencias, setGuardandoCompetencias] = useState(false);
+  const [errorCompetencias, setErrorCompetencias] = useState('');
+  const [avisoCompetencias, setAvisoCompetencias] = useState('');
 
   async function cargar() {
     setEstado('cargando');
@@ -73,6 +85,8 @@ export default function PaginaEvaluaciones() {
   ), [evaluaciones, cursoId, seccionId]);
 
   const estudianteSeleccionado = estudiantes.find((item) => String(item.id) === estudianteId);
+  const estudianteCompetencias = estudiantes.find((item) => String(item.id) === estudianteCompetenciasId);
+  const bimestreBloqueado = formNotasCompetencias.some((item) => item.libretaGenerada);
   const notaExistente = notas.find((item) => String(item.estudianteId) === estudianteId);
   const anioVigente = contexto?.anioAcademico;
 
@@ -212,6 +226,89 @@ export default function PaginaEvaluaciones() {
     setAvisoNota(esModificacion ? 'La nota se actualizó correctamente.' : 'La nota se registró correctamente.');
   }
 
+  async function abrirFormularioCompetencias() {
+    setFormCompetenciasAbierto(true);
+    setErrorCompetencias('');
+    setAvisoCompetencias('');
+    setCargandoCompetencias(true);
+    const respuesta = await listarBimestresCompetencias(usuario, cursoId, seccionId);
+    setCargandoCompetencias(false);
+    if (!respuesta.exitoso) {
+      setErrorCompetencias(respuesta.mensaje || 'No se pudieron cargar los bimestres finalizados.');
+      return;
+    }
+    setBimestresFinalizados(respuesta.datos ?? []);
+    setBimestreCompetenciasId(respuesta.datos?.[0]?.id ?? '');
+    setEstudianteCompetenciasId('');
+  }
+
+  async function cargarNotasCompetencias(bimestreId, idEstudiante) {
+    if (!bimestreId || !idEstudiante || !competencias.length) {
+      setFormNotasCompetencias([]);
+      return;
+    }
+    setCargandoCompetencias(true);
+    setErrorCompetencias('');
+    const respuesta = await listarNotasCompetencias(cursoId, seccionId, bimestreId, idEstudiante);
+    setCargandoCompetencias(false);
+    if (!respuesta.exitoso) {
+      setErrorCompetencias(respuesta.mensaje || 'No se pudieron cargar las notas de competencias.');
+      return;
+    }
+    const registradas = respuesta.datos ?? [];
+    setFormNotasCompetencias(competencias.map((competencia) => {
+      const nota = registradas.find((item) => String(item.competenciaId) === String(competencia.id));
+      return {
+        competenciaId: competencia.id,
+        nombre: competencia.nombre,
+        descripcion: competencia.descripcion ?? '',
+        nota: nota?.nota ?? '',
+        conclusionDescriptiva: nota?.conclusionDescriptiva ?? ''
+      };
+    }));
+  }
+
+  async function guardarNotasCompetenciasFormulario(evento) {
+    evento.preventDefault();
+    setErrorCompetencias('');
+    setAvisoCompetencias('');
+    for (const item of formNotasCompetencias) {
+      if (!['AD', 'A', 'B', 'C'].includes(item.nota)) {
+        setErrorCompetencias(`${item.nombre}: la nota debe ser AD, A, B o C.`);
+        return;
+      }
+      if (!item.conclusionDescriptiva.trim()) {
+        setErrorCompetencias(`${item.nombre}: La conclusión descriptiva es obligatoria.`);
+        return;
+      }
+      if (item.conclusionDescriptiva.trim().length > 120) {
+        setErrorCompetencias(`${item.nombre}: La conclusión descriptiva no puede superar los 120 caracteres.`);
+        return;
+      }
+    }
+    const bimestre = bimestresFinalizados.find((item) => item.id === bimestreCompetenciasId);
+    setGuardandoCompetencias(true);
+    const respuesta = await guardarNotasCompetencias(usuario, {
+      cursoId,
+      cursoNombre: asignacion?.cursoNombre,
+      seccionId,
+      seccionNombre: seccion?.nombre,
+      estudianteId: estudianteCompetenciasId,
+      estudianteNombre: estudianteCompetencias?.nombre,
+      bimestreId: bimestreCompetenciasId,
+      bimestreNombre: bimestre?.nombre,
+      anioAcademicoId: contexto.anioAcademico.id,
+      anioAcademico: contexto.anioAcademico.anio,
+      competencias: formNotasCompetencias
+    });
+    setGuardandoCompetencias(false);
+    if (!respuesta.exitoso) {
+      setErrorCompetencias(respuesta.mensaje || 'No se pudieron guardar las notas de competencias.');
+      return;
+    }
+    setAvisoCompetencias('Las notas de competencias y conclusiones se guardaron correctamente.');
+  }
+
   return (
     <main className={estilos.pagina}>
       <header className={estilos.cabecera}>
@@ -247,6 +344,7 @@ export default function PaginaEvaluaciones() {
                   </select>
                 </label>
                 <button type="button" className={estilos.botonPrimario} onClick={abrirFormulario} disabled={!asignacion || !seccion || contexto.anioAcademico?.vigente === false}>Crear evaluación</button>
+                <button type="button" className={estilos.botonSecundario} onClick={abrirFormularioCompetencias} disabled={!asignacion || !seccion || contexto.anioAcademico?.vigente === false}>Registrar notas de competencias</button>
               </div>
             )}
           </section>
@@ -302,6 +400,63 @@ export default function PaginaEvaluaciones() {
               )}
 
               {aviso && <p className={estilos.aviso} role="status">{aviso}</p>}
+              {formCompetenciasAbierto && (
+                <section className={estilos.panelNotas} aria-labelledby="notas-competencias-titulo">
+                  <div className={estilos.panelCabecera}>
+                    <div><h2 id="notas-competencias-titulo">Registrar notas de competencias</h2><p>{asignacion?.cursoNombre} · {seccion?.gradoNombre} {seccion?.nombre} · {contexto.docente.nombre}</p></div>
+                    <button type="button" className={estilos.botonSecundario} onClick={() => setFormCompetenciasAbierto(false)}>Cerrar</button>
+                  </div>
+                  <div className={estilos.formularioNota}>
+                    <label>Bimestre finalizado
+                      <select value={bimestreCompetenciasId} onChange={(evento) => {
+                        setBimestreCompetenciasId(evento.target.value);
+                        cargarNotasCompetencias(evento.target.value, estudianteCompetenciasId);
+                      }} disabled={cargandoCompetencias || !bimestresFinalizados.length}>
+                        {bimestresFinalizados.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
+                      </select>
+                    </label>
+                    <label>Estudiante
+                      <select value={estudianteCompetenciasId} onChange={(evento) => {
+                        setEstudianteCompetenciasId(evento.target.value);
+                        cargarNotasCompetencias(bimestreCompetenciasId, evento.target.value);
+                      }} disabled={cargandoCompetencias || !estudiantes.length}>
+                        <option value="">Selecciona un estudiante</option>
+                        {estudiantes.map((item) => <option key={item.id} value={item.id}>{item.nombre} · {item.codigo}</option>)}
+                      </select>
+                    </label>
+                  </div>
+                  {cargandoCompetencias && <p className={estilos.vacio}>Cargando bimestres o notas…</p>}
+                  {!cargandoCompetencias && !bimestresFinalizados.length && <p className={estilos.alerta}>Las notas de competencias se registran una vez finalizado el bimestre</p>}
+                  {!cargandoCompetencias && !competencias.length && <p className={estilos.alerta}>Este curso aún no tiene competencias establecidas.</p>}
+                  {!cargandoCompetencias && estudianteCompetenciasId && formNotasCompetencias.length > 0 && (
+                    <form className={estilos.formularioCompetencias} onSubmit={guardarNotasCompetenciasFormulario}>
+                      {formNotasCompetencias.map((item, indice) => (
+                        <fieldset className={estilos.competenciaNota} key={item.competenciaId}>
+                          <legend>{item.nombre}</legend>
+                          {item.descripcion && <p>{item.descripcion}</p>}
+                          <label>Nota
+                            <select value={item.nota} onChange={(evento) => setFormNotasCompetencias((actuales) => actuales.map((actual, posicion) => posicion === indice ? { ...actual, nota: evento.target.value } : actual))}>
+                              <option value="">Selecciona una nota</option>
+                              {['AD', 'A', 'B', 'C'].map((nota) => <option key={nota} value={nota}>{nota}</option>)}
+                            </select>
+                          </label>
+                          <label>Conclusión descriptiva (máximo 120 caracteres)
+                            <textarea maxLength={120} rows={3} value={item.conclusionDescriptiva} onChange={(evento) => setFormNotasCompetencias((actuales) => actuales.map((actual, posicion) => posicion === indice ? { ...actual, conclusionDescriptiva: evento.target.value } : actual))} />
+                            <small>{item.conclusionDescriptiva.trim().length}/120 caracteres</small>
+                          </label>
+                        </fieldset>
+                      ))}
+                      {errorCompetencias && <p className={estilos.errorNota} role="alert">{errorCompetencias}</p>}
+                      {avisoCompetencias && <p className={estilos.aviso} role="status">{avisoCompetencias}</p>}
+                      <div className={estilos.acciones}>
+                        <button type="submit" className={estilos.botonPrimario} disabled={guardandoCompetencias || bimestreBloqueado}>{guardandoCompetencias ? 'Guardando…' : 'Guardar notas de competencias'}</button>
+                      </div>
+                    </form>
+                  )}
+                  {errorCompetencias && !formNotasCompetencias.length && <p className={estilos.errorNota} role="alert">{errorCompetencias}</p>}
+                  {!estudiantes.length && !cargandoCompetencias && <p className={estilos.vacio}>No hay estudiantes activos con matrícula confirmada en esta sección.</p>}
+                </section>
+              )}
               {evaluacionesVisibles.length === 0 ? <p className={estilos.vacio}>Todavía no hay evaluaciones registradas para esta sección.</p> : (
                 <ul className={estilos.lista}>
                   {evaluacionesVisibles.map((item) => {

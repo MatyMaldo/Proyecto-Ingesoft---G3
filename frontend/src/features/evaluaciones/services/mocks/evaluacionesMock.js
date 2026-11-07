@@ -14,6 +14,9 @@ const BIMESTRES = [
 let siguientesId = 1;
 let evaluaciones = [];
 let notas = [];
+let notasCompetencias = [];
+const BIMESTRES_FINALIZADOS = BIMESTRES.filter((item) => item.id !== 'B4');
+const LIBRETAS_GENERADAS = new Set(['EST-001:1:B1']);
 const ESCALA_NOTAS = Object.freeze(['AD', 'A', 'B', 'C']);
 const ESTUDIANTES_DEMO = [
   { id: 'EST-001', nombre: 'María López García', codigo: 'EST-001', activo: true, seccionId: 1, matriculaEstado: 'CONFIRMADA' },
@@ -91,6 +94,82 @@ export async function listarNotasEvaluacionMock(evaluacionId) {
     datos: copiar(notas.filter((nota) => String(nota.evaluacionId) === String(evaluacionId))),
     mensaje: ''
   };
+}
+
+export async function listarBimestresCompetenciasMock(usuario, cursoId, seccionId) {
+  await esperar();
+  return { exitoso: true, datos: copiar(BIMESTRES_FINALIZADOS), mensaje: '' };
+}
+
+export async function listarNotasCompetenciasMock(cursoId, seccionId, bimestreId, estudianteId) {
+  await esperar();
+  if (LIBRETAS_GENERADAS.has(`${estudianteId}:${seccionId}:${bimestreId}`)) {
+    return fallo('Las notas están bloqueadas porque la libreta ya fue generada.');
+  }
+  return {
+    exitoso: true,
+    datos: copiar(notasCompetencias.find((registro) => String(registro.cursoId) === String(cursoId)
+      && String(registro.seccionId) === String(seccionId)
+      && String(registro.bimestreId) === String(bimestreId)
+      && String(registro.estudianteId) === String(estudianteId))?.competencias ?? []),
+    mensaje: ''
+  };
+}
+
+export async function guardarNotasCompetenciasMock(usuario, datos) {
+  await esperar();
+  if (!BIMESTRES_FINALIZADOS.some((item) => item.id === datos.bimestreId)) {
+    return fallo('Las notas de competencias se registran una vez finalizado el bimestre.');
+  }
+  if (LIBRETAS_GENERADAS.has(`${datos.estudianteId}:${datos.seccionId}:${datos.bimestreId}`)) {
+    return fallo('Las notas están bloqueadas porque la libreta ya fue generada.');
+  }
+  for (const competencia of datos.competencias ?? []) {
+    if (!ESCALA_NOTAS.includes(competencia.nota)) return fallo(`${competencia.nombre}: la nota debe ser AD, A, B o C.`);
+    const conclusion = String(competencia.conclusionDescriptiva ?? '').trim();
+    if (!conclusion) return fallo(`${competencia.nombre}: La conclusión descriptiva es obligatoria.`);
+    if (conclusion.length > 120) return fallo(`${competencia.nombre}: La conclusión descriptiva no puede superar los 120 caracteres.`);
+  }
+  const clave = (item) => String(item.cursoId) === String(datos.cursoId)
+    && String(item.seccionId) === String(datos.seccionId)
+    && String(item.bimestreId) === String(datos.bimestreId)
+    && String(item.estudianteId) === String(datos.estudianteId);
+  const anterior = notasCompetencias.find(clave);
+  const registro = {
+    ...datos,
+    competencias: datos.competencias.map((item) => ({ ...item, conclusionDescriptiva: item.conclusionDescriptiva.trim() })),
+    docenteId: usuario?.id,
+    docenteNombre: usuario?.nombre ?? 'Docente',
+    auditoria: [...(anterior?.auditoria ?? []), {
+      accion: anterior ? 'MODIFICACION' : 'REGISTRO',
+      usuarioId: usuario?.id,
+      usuarioNombre: usuario?.nombre ?? 'Docente',
+      fechaHora: new Date().toISOString()
+    }]
+  };
+  notasCompetencias = anterior
+    ? notasCompetencias.map((item) => clave(item) ? registro : item)
+    : [...notasCompetencias, registro];
+  for (const competencia of registro.competencias) {
+    registrarRegistroAuditoriaMock({
+      idElemento: `COMP-${datos.cursoId}-${datos.seccionId}-${datos.bimestreId}-${datos.estudianteId}-${competencia.competenciaId}`,
+      fechaHora: new Date().toISOString(),
+      usuario: { nombre: registro.docenteNombre, rol: 'DOCENTE' },
+      categoria: 'EVALUACIONES',
+      tipoAccion: anterior ? 'ACTUALIZAR' : 'CREAR',
+      tipoTransaccion: anterior ? 'Modificación de nota de competencia' : 'Registro de nota de competencia',
+      valoresAntes: null,
+      valoresDespues: [
+        { campo: 'Estudiante', valor: datos.estudianteNombre },
+        { campo: 'Curso', valor: datos.cursoNombre },
+        { campo: 'Competencia', valor: competencia.nombre },
+        { campo: 'Bimestre', valor: datos.bimestreId },
+        { campo: 'Nota', valor: competencia.nota },
+        { campo: 'Conclusión descriptiva', valor: competencia.conclusionDescriptiva }
+      ]
+    });
+  }
+  return { exitoso: true, datos: copiar(registro), mensaje: '' };
 }
 
 export async function guardarNotaEvaluacionMock(evaluacion, estudiante, valor, usuario) {
