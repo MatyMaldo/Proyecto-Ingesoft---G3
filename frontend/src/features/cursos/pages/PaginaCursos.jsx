@@ -6,6 +6,8 @@ import DialogoEliminarCurso from '../components/DialogoEliminarCurso.jsx';
 import DialogoVerCompetencias from '../components/DialogoVerCompetencias.jsx';
 import TarjetaCurso from '../components/TarjetaCurso.jsx';
 import useAuth from '../../../shared/auth/useAuth.js';
+import { ROLES } from '../../../shared/auth/roles.js';
+import ConsultaNotasFamilia from '../../evaluaciones/components/ConsultaNotasFamilia.jsx';
 import { puedeGestionarCursos } from '../constants/permisosCursos.js';
 import useCursos from '../hooks/useCursos.js';
 import estilos from './PaginaCursos.module.css';
@@ -17,8 +19,17 @@ const ID_TITULO_LISTA = 'cursos-titulo-lista';
  * El breadcrumb lo pinta el shell a partir de `migas` en `routes.jsx`.
  */
 export default function PaginaCursos() {
-  const { cursos, estado, reintentar, dialogoCurso, dialogoCompetencia } = useCursos();
   const { usuario } = useAuth();
+
+  if (usuario?.rol === ROLES.ESTUDIANTE || usuario?.rol === ROLES.APODERADO) {
+    return <ConsultaNotasFamilia />;
+  }
+
+  return <ContenidoCursos usuario={usuario} />;
+}
+
+function ContenidoCursos({ usuario }) {
+  const { cursos, estado, reintentar, dialogoCurso, dialogoCompetencia } = useCursos();
   const puedeGestionar = puedeGestionarCursos(usuario?.rol);
 
   const textoCantidad = cursos.length === 1 ? '1 curso' : `${cursos.length} cursos`;

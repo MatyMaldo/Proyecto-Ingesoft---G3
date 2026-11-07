@@ -1,0 +1,48 @@
+.pagina { display: grid; gap: 1.2rem; width: min(100%, 1120px); margin: 0 auto; padding: 1.5rem; color: #172033; }
+.cabecera { display: grid; gap: .35rem; }
+.sobretitulo { margin: 0; color: #0b63ce; font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.titulo { margin: 0; font-size: clamp(1.7rem, 4vw, 2.2rem); }
+.descripcion { margin: 0; color: #64748b; }
+.selectorEstudiante { display: grid; grid-template-columns: auto minmax(220px, 440px); align-items: center; gap: .8rem; padding: 1rem 1.2rem; border: 1px solid #e2e8f0; border-radius: 12px; background: #fff; }
+.selectorEstudiante label { color: #334155; font-weight: 700; }
+.selectorEstudiante select { min-height: 42px; border: 1px solid #cbd5e1; border-radius: 8px; background: white; padding: .6rem .7rem; color: #172033; font: inherit; }
+.estudianteActual { margin: 0; color: #475569; }
+.seccion { display: grid; gap: 1rem; padding: 1.2rem; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; box-shadow: 0 3px 12px #0f172a0a; }
+.encabezadoSeccion { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.encabezadoSeccion h2 { margin: 0; font-size: 1.15rem; }
+.encabezadoSeccion p { margin: .35rem 0 0; color: #64748b; }
+.listaCursos, .listaEvaluaciones { display: grid; gap: .65rem; margin: 0; padding: 0; list-style: none; }
+.listaCursos > li { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: .9rem; border: 1px solid #e2e8f0; border-radius: 9px; }
+.listaCursos h3 { margin: 0; font-size: 1rem; }
+.listaCursos p { margin: .3rem 0 0; color: #64748b; }
+.boton, .botonCerrar { min-height: 40px; border: 0; border-radius: 8px; padding: .6rem .9rem; font: inherit; font-weight: 700; cursor: pointer; }
+.boton { background: #075fc8; color: #fff; }
+.boton:hover { background: #034da6; }
+.botonCerrar { border: 1px solid #cbd5e1; background: #fff; color: #334155; }
+.datosCurso, .datosEvaluacion { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: .65rem; margin: 0; }
+.datosCurso > div, .datosEvaluacion > div { display: grid; gap: .2rem; padding: .65rem; border-radius: 8px; background: #f8fafc; }
+.datosCurso dt, .datosEvaluacion dt { color: #64748b; font-size: .78rem; }
+.datosCurso dd, .datosEvaluacion dd { margin: 0; color: #172033; font-weight: 600; overflow-wrap: anywhere; }
+.subseccion { display: grid; gap: .75rem; }
+.subseccion h3 { margin: 0; font-size: 1rem; }
+.listaEvaluaciones > li { display: grid; gap: .7rem; padding: .85rem; border: 1px solid #e2e8f0; border-radius: 9px; }
+.resumenEvaluacion { display: flex; justify-content: space-between; gap: 1rem; color: #334155; }
+.resumenEvaluacion span { flex: none; color: #64748b; font-size: .85rem; }
+.listaEvaluaciones summary { width: fit-content; color: #075fc8; font-weight: 700; cursor: pointer; }
+.listaEvaluaciones details[open] summary { margin-bottom: .7rem; }
+.sinNota { color: #64748b; font-style: italic; font-weight: 400; }
+.tablaDesbordable { overflow-x: auto; border: 1px solid #e2e8f0; border-radius: 9px; }
+.tablaDesbordable table { width: 100%; min-width: 640px; border-collapse: collapse; }
+.tablaDesbordable th, .tablaDesbordable td { padding: .75rem; border-bottom: 1px solid #e2e8f0; text-align: left; vertical-align: top; }
+.tablaDesbordable thead th { background: #f8fafc; color: #475569; font-size: .85rem; }
+.tablaDesbordable tbody th { min-width: 240px; font-weight: 600; }
+.tablaDesbordable tr:last-child th, .tablaDesbordable tr:last-child td { border-bottom: 0; }
+.vacio, .estado { margin: 0; border-radius: 8px; background: #f8fafc; padding: 1rem; color: #64748b; }
+.error { margin: 0; border: 1px solid #fecaca; border-radius: 8px; background: #fef2f2; padding: .8rem; color: #b91c1c; }
+
+@media (max-width: 640px) {
+  .pagina { padding: 1rem; }
+  .selectorEstudiante { grid-template-columns: 1fr; }
+  .encabezadoSeccion, .listaCursos > li, .resumenEvaluacion { flex-direction: column; align-items: flex-start; }
+  .datosCurso, .datosEvaluacion { grid-template-columns: 1fr; }
+}

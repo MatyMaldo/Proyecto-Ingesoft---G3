@@ -75,7 +75,9 @@ function adaptarFilaError(registro) {
     endpoint: registro.endpoint ?? '',
     metodoHttp: registro.metodoHttp ?? '',
     modulo: registro.modulo ?? '',
-    moduloEtiqueta: registro.modulo ? (ETIQUETAS_MODULO[registro.modulo] ?? registro.modulo) : '',
+    moduloEtiqueta: registro.modulo
+      ? (ETIQUETAS_MODULO[registro.modulo] ?? registro.moduloEtiqueta ?? registro.modulo)
+      : '',
     // El módulo es neutro: solo el tipo de error y el código HTTP grave llevan color.
     moduloTono: 'gris',
     operacion: registro.operacion ?? '',

@@ -77,7 +77,7 @@ const CURSOS_INICIALES = congelarProfundo([
         nombre: 'Resuelve problemas de gestión de datos e incertidumbre'
       }
     ],
-    competenciasAsignadas: []
+    competenciasAsignadas: ['COM-0001']
   },
   {
     id: 'CUR-0002',
@@ -98,7 +98,7 @@ const CURSOS_INICIALES = congelarProfundo([
         nombre: 'Se comunica oralmente en lengua materna'
       }
     ],
-    competenciasAsignadas: []
+    competenciasAsignadas: ['COM-0005']
   },
   {
     id: 'CUR-0003',
@@ -823,6 +823,7 @@ export async function listarCursosMock() {
     id: curso.id,
     nombre: curso.nombre,
     descripcion: curso.descripcion,
+    grado: curso.grado,
     competencias: curso.competenciasDisponibles
       .filter((competencia) => curso.competenciasAsignadas.includes(competencia.id))
       .map((competencia) => ({ ...competencia, descripcion: '' }))

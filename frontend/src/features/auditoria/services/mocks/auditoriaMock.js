@@ -510,6 +510,24 @@ const REGISTROS = congelarProfundo([
   }
 ]);
 
+// Las operaciones del mock local pueden añadir eventos que se ven en la pantalla de Auditorías.
+let registrosDeSesion = [];
+let siguienteRegistroDeSesion = 1;
+
+function obtenerTodosLosRegistros() {
+  return [...REGISTROS, ...registrosDeSesion];
+}
+
+/** Añade un evento generado por otra feature durante la sesión de demostración. */
+export function registrarRegistroAuditoriaMock(datos) {
+  const registro = {
+    id: `AUD-LOCAL-${String(siguienteRegistroDeSesion++).padStart(4, '0')}`,
+    ...datos
+  };
+  registrosDeSesion = [...registrosDeSesion, registro];
+  return structuredClone(registro);
+}
+
 /**
  * Simula la latencia de red de una llamada a la API.
  *
@@ -547,7 +565,8 @@ export function listarRegistrosAuditoriaMock(filtros = {}) {
     const tipoAccion = filtros?.tipoAccion || '';
     const pagina = filtros?.pagina ?? 0;
 
-    const filtrados = REGISTROS.filter((registro) => {
+    const registros = obtenerTodosLosRegistros();
+    const filtrados = registros.filter((registro) => {
       const coincideCategoria = !categoria || categoria === 'TODOS' || registro.categoria === categoria;
       if (!coincideCategoria) {
         return false;
@@ -601,12 +620,13 @@ export function listarRegistrosAuditoriaMock(filtros = {}) {
  */
 export function obtenerResumenAuditoriaMock() {
   return simularLatencia(() => {
-    const categorias = new Set(REGISTROS.map((registro) => registro.categoria));
-    const usuarios = new Set(REGISTROS.map((registro) => registro.usuario.nombre));
-    const fechas = [...REGISTROS.map((registro) => registro.fechaHora)].sort();
+    const registros = obtenerTodosLosRegistros();
+    const categorias = new Set(registros.map((registro) => registro.categoria));
+    const usuarios = new Set(registros.map((registro) => registro.usuario.nombre));
+    const fechas = [...registros.map((registro) => registro.fechaHora)].sort();
 
     return {
-      totalAcciones: REGISTROS.length,
+      totalAcciones: registros.length,
       modulosActivos: categorias.size,
       usuariosUnicos: usuarios.size,
       fechaPrimerRegistro: fechas[0] ?? null,
@@ -625,7 +645,7 @@ export function obtenerResumenAuditoriaMock() {
  */
 export function obtenerHistorialElementoMock(idElemento) {
   return simularLatencia(() => {
-    const historial = REGISTROS.filter((registro) => registro.idElemento === idElemento);
+    const historial = obtenerTodosLosRegistros().filter((registro) => registro.idElemento === idElemento);
     const ordenado = [...historial].sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora));
     return clonar(ordenado);
   });
@@ -639,7 +659,7 @@ export function obtenerHistorialElementoMock(idElemento) {
  */
 export function obtenerRegistroAuditoriaMock(id) {
   return simularLatencia(() => {
-    const registro = REGISTROS.find((item) => String(item.id) === String(id));
+    const registro = obtenerTodosLosRegistros().find((item) => String(item.id) === String(id));
     if (!registro) {
       throw new Error('No se encontró el registro de auditoría.');
     }

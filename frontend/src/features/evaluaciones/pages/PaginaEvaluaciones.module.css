@@ -1,0 +1,78 @@
+.pagina { display: grid; gap: 1.25rem; width: min(100%, 1120px); margin: 0 auto; padding: 1.5rem; color: #172033; }
+.cabecera { display: grid; gap: .35rem; }
+.sobretitulo { margin: 0; color: #0b63ce; font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.titulo { margin: 0; font-size: clamp(1.7rem, 4vw, 2.2rem); }
+.descripcion { margin: 0; color: #64748b; }
+.panel { display: grid; gap: 1rem; padding: 1.25rem; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; box-shadow: 0 3px 12px #0f172a0a; }
+.panelCabecera { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+.panelCabecera h2 { margin: 0; font-size: 1.12rem; }
+.panelCabecera p { margin: .3rem 0 0; color: #64748b; font-size: .92rem; }
+.etiquetaAnio { flex: none; padding: .38rem .65rem; border-radius: 99px; background: #eaf3ff; color: #075bb7; font-size: .78rem; font-weight: 700; }
+.selectores { display: grid; grid-template-columns: minmax(180px, 1fr) minmax(180px, .7fr) auto; align-items: end; gap: .8rem; }
+.selectores label, .campos label { display: grid; gap: .4rem; color: #334155; font-size: .9rem; font-weight: 600; }
+.selectores select, .campos input, .campos select, .campos textarea { width: 100%; min-height: 42px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; padding: .6rem .7rem; color: #172033; font: inherit; }
+.campos textarea { resize: vertical; }
+.selectores select:focus, .campos input:focus, .campos select:focus, .campos textarea:focus { outline: 3px solid #bfdbfe; border-color: #1971d4; }
+.botonPrimario, .botonSecundario { min-height: 42px; border: 0; border-radius: 8px; padding: .65rem 1rem; font: inherit; font-weight: 700; cursor: pointer; }
+.botonPrimario { background: #075fc8; color: #fff; }
+.botonPrimario:hover:not(:disabled) { background: #034da6; }
+.botonPrimario:disabled { opacity: .55; cursor: not-allowed; }
+.botonSecundario { border: 1px solid #cbd5e1; background: #fff; color: #334155; }
+.contador { display: grid; min-width: 2rem; height: 2rem; place-items: center; border-radius: 99px; background: #f1f5f9; color: #334155; font-weight: 700; }
+.vacio { margin: 0; border-radius: 8px; background: #f8fafc; padding: 1rem; color: #64748b; }
+.formulario { display: grid; gap: 1rem; padding: 1rem; border: 1px solid #bfdbfe; border-radius: 11px; background: #f8fbff; }
+.formulario h3 { margin: 0; font-size: 1.05rem; }
+.datosRelacionados { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: .7rem; }
+.datosRelacionados span { display: grid; gap: .2rem; padding: .65rem; border: 1px solid #e2e8f0; border-radius: 8px; background: #fff; font-weight: 600; }
+.datosRelacionados small { color: #64748b; font-size: .75rem; font-weight: 500; }
+.campos { display: grid; grid-template-columns: 1fr 1fr; gap: .9rem; }
+.anchoCompleto { grid-column: 1 / -1; }
+.campos label > span { color: #dc2626; }
+.campos label > small { color: #64748b; font-size: .78rem; font-weight: 400; }
+.campos label > .error { color: #b91c1c; }
+.campos [aria-invalid="true"] { border-color: #dc2626; }
+.campoBimestre { display: grid; align-content: center; gap: .3rem; padding: .65rem; border: 1px dashed #93c5fd; border-radius: 8px; color: #475569; }
+.campoBimestre strong { color: #075bb7; }
+.acciones { display: flex; justify-content: flex-end; gap: .6rem; }
+.alerta { border: 1px solid #fcd34d; border-radius: 8px; background: #fffbeb; padding: .85rem; color: #92400e; }
+.aviso { margin: 0; color: #166534; font-weight: 600; }
+.lista { display: grid; gap: .65rem; margin: 0; padding: 0; list-style: none; }
+.lista li { display: block; padding: .9rem; border: 1px solid #e2e8f0; border-radius: 9px; }
+.evaluacionResumen { display: grid; width: 100%; grid-template-columns: minmax(0, 1fr) auto auto; align-items: center; gap: 1rem; }
+.lista h3 { margin: 0; font-size: 1rem; }
+.lista p { margin: .3rem 0; color: #64748b; }
+.lista small { color: #075bb7; }
+.detalleEvaluacion { display: grid; justify-items: end; gap: .3rem; color: #475569; font-size: .85rem; white-space: nowrap; }
+.mensajeAnio { display: block; width: 100%; margin-top: .55rem; color: #9a3412; }
+.panelNotas { display: grid; gap: 1rem; border-top: 1px solid #e2e8f0; padding-top: 1.1rem; }
+.formularioNota { display: grid; grid-template-columns: minmax(220px, 1fr) minmax(160px, .5fr) auto; align-items: end; gap: .8rem; }
+.formularioNota label { display: grid; gap: .4rem; color: #334155; font-size: .9rem; font-weight: 600; }
+.formularioNota select { width: 100%; min-height: 42px; border: 1px solid #cbd5e1; border-radius: 8px; background: #fff; padding: .6rem .7rem; color: #172033; font: inherit; }
+.notaActual { grid-column: 1 / -1; margin: 0; color: #475569; }
+.errorNota { margin: 0; color: #b91c1c; }
+.tablaNotas { display: grid; gap: .5rem; }
+.tablaNotas h3 { margin: 0; font-size: .95rem; }
+.tablaNotas ul { display: grid; gap: .4rem; margin: 0; padding: 0; list-style: none; }
+.tablaNotas li { display: flex; justify-content: space-between; padding: .6rem .75rem; border: 1px solid #e2e8f0; border-radius: 7px; }
+.tablaNotas strong { color: #075bb7; }
+.estado { padding: 1rem; }
+.estado > p { color: #b91c1c; }
+
+@media (max-width: 760px) {
+  .pagina { padding: 1rem; }
+  .selectores { grid-template-columns: 1fr; }
+  .datosRelacionados { grid-template-columns: 1fr 1fr; }
+  .campos { grid-template-columns: 1fr; }
+  .evaluacionResumen { grid-template-columns: 1fr; align-items: start; }
+  .detalleEvaluacion { justify-items: start; }
+  .formularioNota { grid-template-columns: 1fr; }
+  .anchoCompleto { grid-column: auto; }
+}
+
+@media (max-width: 480px) {
+  .panel { padding: .9rem; }
+  .panelCabecera { flex-direction: column; }
+  .datosRelacionados { grid-template-columns: 1fr; }
+  .detalleEvaluacion { justify-items: start; }
+  .acciones { flex-direction: column-reverse; }
+}
