@@ -130,7 +130,7 @@ describe('servicio de horarios · contrato API v1', () => {
   it('crea, obtiene, actualiza y elimina asignaciones usando los DTO del contrato', async () => {
     await crearAsignacion({ cursoId: '4', docenteId: '9', seccionId: '7' });
     await obtenerAsignacion(23);
-    await actualizarAsignacion(23, { cursoId: '5', docenteId: '10' });
+    await actualizarAsignacion(23, { cursoId: '5', docenteId: '10', seccionId: '7' });
     await eliminarAsignacion(23);
 
     expect(solicitar.mock.calls).toEqual([
@@ -141,7 +141,7 @@ describe('servicio de horarios · contrato API v1', () => {
       ['/asignaciones-curso/23'],
       ['/asignaciones-curso/23', {
         metodo: 'PUT',
-        cuerpo: { cursoId: 5, docenteId: 10 }
+        cuerpo: { cursoId: 5, docenteId: 10, seccionId: 7 }
       }],
       ['/asignaciones-curso/23', { metodo: 'DELETE' }]
     ]);
@@ -180,6 +180,7 @@ describe('servicio de horarios · contrato API v1', () => {
     const [ruta, opciones] = solicitar.mock.calls[1];
     expect(ruta).toBe('/bloques-horario/carga-masiva');
     expect(opciones.metodo).toBe('POST');
+    expect(opciones.tiempoEsperaMs).toBe(60000);
     expect(opciones.cuerpoFormulario.get('file')).toBe(archivo);
     expect(opciones.cuerpoFormulario.get('anioAcademicoId')).toBe('2026');
   });
@@ -192,14 +193,21 @@ describe('servicio de horarios · contrato API v1', () => {
       fechaFin: '2026-12-31'
     };
     await previsualizarSesiones(rango);
-    await generarSesiones({ ...rango, sesionesOmitidas: [{ fecha: '2026-01-15', motivo: 'Feriado' }] });
+    await generarSesiones({
+      ...rango,
+      sesionesOmitidas: [{ bloqueHorarioId: 100, fecha: '2026-01-15' }]
+    });
     await listarSesiones({ seccionId: 3, fechaInicio: rango.fechaInicio, fechaFin: rango.fechaFin });
 
     expect(solicitar.mock.calls).toEqual([
-      ['/sesiones-clase/preview', { metodo: 'POST', cuerpo: rango }],
+      ['/sesiones-clase/preview', { metodo: 'POST', cuerpo: rango, tiempoEsperaMs: 60000 }],
       ['/sesiones-clase/generar', {
         metodo: 'POST',
-        cuerpo: { ...rango, sesionesOmitidas: [{ fecha: '2026-01-15', motivo: 'Feriado' }] }
+        cuerpo: {
+          ...rango,
+          sesionesOmitidas: [{ bloqueHorarioId: 100, fecha: '2026-01-15' }]
+        },
+        tiempoEsperaMs: 60000
       }],
       ['/sesiones-clase', {
         parametros: { seccionId: 3, fechaInicio: rango.fechaInicio, fechaFin: rango.fechaFin }
@@ -207,41 +215,66 @@ describe('servicio de horarios · contrato API v1', () => {
     ]);
   });
 
-  it('guarda los cambios de matriz usando CRUD por bloque', async () => {
+  it('guarda la grilla con el endpoint masivo usando el estado final completo', async () => {
     await guardarHorario({
-      seccion: 3,
-      bloquesGuardados: {
-        'LUNES|F1': { id: 11, asignacionId: 21, aulaId: 31 },
-        'MARTES|F1': { id: 12, asignacionId: 22, aulaId: 32 }
-      },
-      bloques: {
-        'LUNES|F1': { id: 11, asignacionId: 21, aulaId: 33 },
-        'MIERCOLES|F2': { asignacionId: 23, aulaId: 34 }
-      }
+      seccionId: 3,
+      anioAcademicoId: 2,
+      bloques: [
+        { id: 11, dia: 'LUNES', horaInicio: '08:00', horaFin: '09:00', asignacionId: 21, aulaId: 33 },
+        { dia: 'MIERCOLES', horaInicio: '09:00', horaFin: '10:00', asignacionId: 23, aulaId: 34 }
+      ]
     });
 
-    expect(solicitar.mock.calls).toEqual([
-      ['/bloques-horario/11', {
-        metodo: 'PUT',
-        cuerpo: {
+    expect(solicitar).toHaveBeenCalledWith('/bloques-horario/seccion/3', {
+      metodo: 'PUT',
+      cuerpo: {
+        anioAcademicoId: 2,
+        bloques: [
+          {
+            id: 11,
+            asignacionCursoId: 21,
+            aulaId: 33,
+            diaSemana: 'LUNES',
+            horaInicio: '08:00',
+            horaFin: '09:00'
+          },
+          {
+            asignacionCursoId: 23,
+            aulaId: 34,
+            diaSemana: 'MIERCOLES',
+            horaInicio: '09:00',
+            horaFin: '10:00'
+          }
+        ]
+      },
+      tiempoEsperaMs: 60000
+    });
+  });
+
+  it('prepara el reemplazo completo de bloques para el endpoint masivo', async () => {
+    const { guardarBloquesHorarioLote } = await import('./horariosService.js');
+    await guardarBloquesHorarioLote({
+      seccionId: 3,
+      anioAcademicoId: 2,
+      bloques: [
+        { id: 11, dia: 'LUNES', horaInicio: '08:00', horaFin: '10:00', asignacionId: 21, aulaId: 31 }
+      ]
+    });
+
+    expect(solicitar).toHaveBeenCalledWith('/bloques-horario/seccion/3', {
+      metodo: 'PUT',
+      cuerpo: {
+        anioAcademicoId: 2,
+        bloques: [{
+          id: 11,
           asignacionCursoId: 21,
-          aulaId: 33,
+          aulaId: 31,
           diaSemana: 'LUNES',
           horaInicio: '08:00',
-          horaFin: '09:00'
-        }
-      }],
-      ['/bloques-horario/12', { metodo: 'DELETE' }],
-      ['/bloques-horario', {
-        metodo: 'POST',
-        cuerpo: {
-          asignacionCursoId: 23,
-          aulaId: 34,
-          diaSemana: 'MIERCOLES',
-          horaInicio: '09:00',
           horaFin: '10:00'
-        }
-      }]
-    ]);
+        }]
+      },
+      tiempoEsperaMs: 60000
+    });
   });
 });

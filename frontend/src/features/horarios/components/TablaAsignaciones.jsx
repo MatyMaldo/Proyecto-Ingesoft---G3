@@ -27,6 +27,7 @@ export default function TablaAsignaciones({
   agregarDeshabilitado = false,
   alReintentar,
   alAgregar,
+  alEditar,
   alEliminar
 }) {
   // Plegada por defecto cuando hay muchas relaciones; si la persona la abre o cierra, manda su elección.
@@ -75,7 +76,7 @@ export default function TablaAsignaciones({
 
       {soloLectura && (
         <p className={estilos.avisoSoloLectura} role="note">
-          El contrato actual permite consultar asignaciones, pero no modificarlas.
+          El periodo actual no permite modificar las relaciones curso-docente.
         </p>
       )}
       {!soloLectura && agregarDeshabilitado && (
@@ -114,6 +115,14 @@ export default function TablaAsignaciones({
                           <td>{asignacion.docenteNombre}</td>
                           {!soloLectura && (
                             <td className={estilos.columnaAccion}>
+                              <button
+                                type="button"
+                                className={estilos.botonEditar}
+                                aria-label={`Editar ${asignacion.cursoNombre} con ${asignacion.docenteNombre}`}
+                                onClick={() => alEditar?.(asignacion)}
+                              >
+                                <Icono nombre="editar" tamano={18} />
+                              </button>
                               <button
                                 type="button"
                                 className={estilos.botonEliminar}

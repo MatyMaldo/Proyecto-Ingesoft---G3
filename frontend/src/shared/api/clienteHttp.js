@@ -81,6 +81,7 @@ export function configurarCliente({
  * @property {boolean} [respuestaArchivo] - Devuelve el cuerpo exitoso como `Blob`.
  * @property {AbortSignal} [signal] - Señal externa para cancelar la solicitud.
  * @property {boolean} [sinVersionApi] - Usa `/api` en lugar de la ruta API versionada.
+ * @property {number} [tiempoEsperaMs] - Tiempo máximo de espera para esta solicitud.
  */
 
 /**
@@ -111,13 +112,14 @@ export async function solicitar(ruta, opciones = {}) {
     cuerpoFormulario,
     respuestaArchivo = false,
     signal: signalExterno,
-    sinVersionApi = false
+    sinVersionApi = false,
+    tiempoEsperaMs = TIEMPO_ESPERA_MS
   } = opciones;
 
   const base = sinVersionApi ? URL_BASE_API.replace(/\/v\d+$/, '') : URL_BASE_API;
   const url = construirUrl(ruta, parametros).replace(URL_BASE_API, base);
   const controlador = new AbortController();
-  const temporizador = setTimeout(() => controlador.abort(), TIEMPO_ESPERA_MS);
+  const temporizador = setTimeout(() => controlador.abort(), tiempoEsperaMs);
 
   let canceladaPorExterno = false;
   const manejarAbortExterno = () => {

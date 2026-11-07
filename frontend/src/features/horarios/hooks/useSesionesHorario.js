@@ -8,6 +8,10 @@ import {
 
 const MENSAJE_ERROR_GENERICO = 'Se registró un error inesperado';
 
+function claveSesion(sesion) {
+  return `${sesion.bloqueHorarioId}|${sesion.fecha}`;
+}
+
 export default function useSesionesHorario(consulta) {
   const anio = consulta?.anioAcademico ?? new Date().getFullYear();
   const [fechaInicio, establecerFechaInicio] = useState(`${anio}-01-01`);
@@ -59,20 +63,41 @@ export default function useSesionesHorario(consulta) {
     return null;
   };
 
-  const alternarOmitida = (fecha, motivo = '') => {
+  const alternarOmitida = (sesion) => {
+    const clave = claveSesion(sesion);
     establecerSesionesOmitidas((actuales) => {
       const siguientes = { ...actuales };
-      if (Object.hasOwn(siguientes, fecha)) {
-        delete siguientes[fecha];
+      if (Object.hasOwn(siguientes, clave)) {
+        delete siguientes[clave];
       } else {
-        siguientes[fecha] = motivo;
+        siguientes[clave] = { bloqueHorarioId: sesion.bloqueHorarioId, fecha: sesion.fecha };
       }
       return siguientes;
     });
   };
 
-  const actualizarMotivo = (fecha, motivo) => {
-    establecerSesionesOmitidas((actuales) => ({ ...actuales, [fecha]: motivo }));
+  const omitirTodasDeFecha = (fecha) => {
+    establecerSesionesOmitidas((actuales) => {
+      const siguientes = { ...actuales };
+      const sesionesDeFecha = sesionesPreview.filter((sesion) => sesion.fecha === fecha);
+      const todasOmitidas = sesionesDeFecha.every((sesion) => Object.hasOwn(siguientes, claveSesion(sesion)));
+      sesionesDeFecha.forEach((sesion) => {
+        const clave = claveSesion(sesion);
+        if (todasOmitidas) {
+          delete siguientes[clave];
+        } else {
+          siguientes[clave] = { bloqueHorarioId: sesion.bloqueHorarioId, fecha: sesion.fecha };
+        }
+      });
+      return siguientes;
+    });
+  };
+
+  const reiniciarPreview = () => {
+    establecerSesionesPreview([]);
+    establecerTotalPreview(0);
+    establecerEstadoPreview('inactivo');
+    establecerSesionesOmitidas({});
   };
 
   const generar = async () => {
@@ -80,15 +105,16 @@ export default function useSesionesHorario(consulta) {
     if (!Number.isSafeInteger(Number(datos.anioAcademicoId)) || !Number.isSafeInteger(Number(datos.seccionId))) {
       return 'Falta el identificador de año académico o sección.';
     }
-    if (Object.values(sesionesOmitidas).some((motivo) => !motivo.trim())) {
-      return 'Escribe un motivo para cada fecha omitida.';
+    if (!fechaInicio || !fechaFin || fechaFin < fechaInicio) {
+      return 'Selecciona un rango de fechas válido.';
     }
+
     establecerGenerando(true);
     const resultado = await generarSesiones({
       ...datos,
       gradoId: consulta.gradoId,
       seccion: consulta.seccion,
-      sesionesOmitidas: Object.entries(sesionesOmitidas).map(([fecha, motivo]) => ({ fecha, motivo }))
+      sesionesOmitidas: Object.values(sesionesOmitidas)
     });
     establecerGenerando(false);
     if (!resultado.exitoso) return resultado.mensaje || MENSAJE_ERROR_GENERICO;
@@ -120,7 +146,8 @@ export default function useSesionesHorario(consulta) {
     estadoPreview,
     sesionesOmitidas,
     alternarOmitida,
-    actualizarMotivo,
+    omitirTodasDeFecha,
+    reiniciarPreview,
     generando,
     previsualizar,
     generar

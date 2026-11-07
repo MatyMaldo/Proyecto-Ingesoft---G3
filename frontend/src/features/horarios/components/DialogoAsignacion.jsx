@@ -15,12 +15,17 @@ import CampoSelect from './CampoSelect.jsx';
  * @param {(datos: { cursoId: string, docenteId: string }) => Promise<string|null>} props.alGuardar
  *   Devuelve el mensaje de error, o `null` si se guardó.
  */
-export default function DialogoAsignacion({ tituloSeccion, cursos, docentes, alCancelar, alGuardar }) {
-  const [cursoId, establecerCursoId] = useState('');
-  const [docenteId, establecerDocenteId] = useState('');
+export default function DialogoAsignacion({ tituloSeccion, cursos, docentes, asignacion, alCancelar, alGuardar }) {
+  const [cursoId, establecerCursoId] = useState(
+    asignacion?.cursoId == null ? '' : String(asignacion.cursoId)
+  );
+  const [docenteId, establecerDocenteId] = useState(
+    asignacion?.docenteId == null ? '' : String(asignacion.docenteId)
+  );
   const [errores, establecerErrores] = useState({});
   const [errorServicio, establecerErrorServicio] = useState(null);
   const [enviando, establecerEnviando] = useState(false);
+  const editando = Boolean(asignacion);
 
   async function manejarEnvio(evento) {
     evento.preventDefault();
@@ -51,9 +56,9 @@ export default function DialogoAsignacion({ tituloSeccion, cursos, docentes, alC
   return (
     <DialogoBase
       idTitulo="dialogo-asignacion-titulo"
-      titulo="Agregar curso y docente"
+      titulo={editando ? 'Editar curso y docente' : 'Agregar curso y docente'}
       subtitulo={tituloSeccion}
-      textoConfirmar="Agregar"
+      textoConfirmar={editando ? 'Guardar cambios' : 'Agregar'}
       textoEnviando="Guardando…"
       enviando={enviando}
       error={errorServicio}

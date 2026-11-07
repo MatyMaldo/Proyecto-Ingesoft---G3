@@ -28,13 +28,16 @@ const COLUMNAS = [
  *
  * @param {Object} props
  * @param {Array<{ id: string|number, anio: string|number }>} props.anios Años académicos disponibles.
+ * @param {string|number} [props.anioIdInicial] Año preseleccionado (normalmente el año actual).
  * @param {(resultado: { filasProcesadas: number, bloquesCreados: number }) => void} props.alCompletar
  *   Se llama cuando la carga termina sin errores; quien lo usa decide si cierra el diálogo.
  * @param {() => void} props.alCancelar
  */
-export default function DialogoCargaMasiva({ anios, alCompletar, alCancelar }) {
+export default function DialogoCargaMasiva({ anios, anioIdInicial, alCompletar, alCancelar }) {
   const [archivo, establecerArchivo] = useState(null);
-  const [anioId, establecerAnioId] = useState('');
+  const [anioId, establecerAnioId] = useState(
+    anioIdInicial == null ? '' : String(anioIdInicial)
+  );
   const [estadoPlantilla, establecerEstadoPlantilla] = useState('inactivo');
   const [errorPlantilla, establecerErrorPlantilla] = useState('');
   const [errorArchivo, establecerErrorArchivo] = useState('');

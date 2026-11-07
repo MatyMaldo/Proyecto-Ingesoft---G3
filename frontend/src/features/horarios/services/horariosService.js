@@ -1,6 +1,5 @@
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import { solicitar } from '../../../shared/api/clienteHttp.js';
-import { FRANJAS } from '../constants/horarios.js';
 import {
   consultarCatalogosMock,
   listarAsignacionesMock,
@@ -12,7 +11,9 @@ import {
   generarSesionesContratoMock,
   listarSesionesContratoMock,
   previsualizarSesionesContratoMock,
-  guardarHorarioMock
+  guardarHorarioMock,
+  guardarBloquesLoteMock,
+  obtenerPeriodoMatriculaMock
 } from './mocks/horariosMock.js';
 
 const BASE_BLOQUES = '/bloques-horario';
@@ -30,14 +31,34 @@ function identificadorLong(valor) {
   return /^\d+$/.test(String(valor)) ? Number(valor) : valor;
 }
 
-function cuerpoBloque({ dia, franjaId, asignacionId, aulaId }) {
-  const franja = FRANJAS.find((elemento) => elemento.id === franjaId);
+function horaCorta(hora) {
+  return String(hora ?? '').slice(0, 5);
+}
+
+function nombreDocente(docente) {
+  if (docente.nombreCompleto) return docente.nombreCompleto;
+  return [docente.nombre, docente.apellidoPaterno, docente.apellidoMaterno]
+    .filter(Boolean)
+    .join(' ')
+    .trim();
+}
+
+/** Body de un bloque para el CRUD individual. */
+function cuerpoBloque({ dia, horaInicio, horaFin, asignacionId, aulaId }) {
   return {
     asignacionCursoId: identificadorLong(asignacionId),
     aulaId: identificadorLong(aulaId),
     diaSemana: dia,
-    horaInicio: franja?.inicio,
-    horaFin: franja?.fin
+    horaInicio: horaCorta(horaInicio),
+    horaFin: horaCorta(horaFin)
+  };
+}
+
+/** Body de un bloque para el reemplazo masivo. */
+function cuerpoBloqueLote(bloque) {
+  return {
+    ...(bloque.id != null ? { id: identificadorLong(bloque.id) } : {}),
+    ...cuerpoBloque(bloque)
   };
 }
 
@@ -78,7 +99,7 @@ export async function consultarCatalogos() {
     .filter((docente) => docente.activo !== false)
     .map((docente) => ({
       ...docente,
-      nombre: docente.nombreCompleto ?? docente.nombre ?? ''
+      nombre: nombreDocente(docente)
     }));
   if (docentesNormalizados.some((docente) => docente.id == null || !docente.nombre)) {
     return falloFormato('la lista de docentes');
@@ -133,8 +154,8 @@ export async function listarSeccionesHorario({ gradoId, anioId, anio }) {
     ...seccion,
     nombre: seccion.nombre ?? seccion.nombreSeccion,
     gradoId: seccion.gradoId ?? seccion.grado?.id,
-    anioAcademicoId: seccion.anioAcademicoId ?? seccion.anioId,
-    anioAcademico: seccion.anioAcademico ?? seccion.anio
+    anioAcademicoId: seccion.anioAcademicoId ?? seccion.anioId ?? anioId,
+    anioAcademico: seccion.anioAcademico ?? seccion.anio ?? anio
   }));
   if (secciones.some((seccion) =>
     seccion.id == null || !seccion.nombre || seccion.gradoId == null
@@ -182,13 +203,14 @@ export async function crearAsignacion(datos) {
   });
 }
 
-export async function actualizarAsignacion(id, { cursoId, docenteId }) {
+export async function actualizarAsignacion(id, { cursoId, docenteId, seccionId, seccion }) {
   if (USAR_MOCK) return actualizarAsignacionMock(id, { cursoId, docenteId });
   return solicitar(`/asignaciones-curso/${encodeURIComponent(id)}`, {
     metodo: 'PUT',
     cuerpo: {
       cursoId: identificadorLong(cursoId),
-      docenteId: identificadorLong(docenteId)
+      docenteId: identificadorLong(docenteId),
+      seccionId: identificadorLong(seccionId ?? seccion)
     }
   });
 }
@@ -225,12 +247,13 @@ export async function descargarPlantillaBloquesCsv() {
 export async function cargarBloquesCsv(archivo, anioAcademicoId) {
   const formulario = new FormData();
   formulario.append('file', archivo);
-  if (anioAcademicoId !== undefined && anioAcademicoId !== null) {
+  if (anioAcademicoId !== undefined && anioAcademicoId !== null && anioAcademicoId !== '') {
     formulario.append('anioAcademicoId', String(anioAcademicoId));
   }
   return solicitar(`${BASE_BLOQUES}/carga-masiva`, {
     metodo: 'POST',
-    cuerpoFormulario: formulario
+    cuerpoFormulario: formulario,
+    tiempoEsperaMs: 60000
   });
 }
 
@@ -243,7 +266,7 @@ export async function obtenerHorario({ gradoId, seccion, seccionId, anioId, anio
   });
 }
 
-export async function listarOcupaciones({ gradoId, seccion, anioId, anioAcademicoId }) {
+export async function listarOcupaciones({ gradoId, seccion, seccionId, anioId, anioAcademicoId }) {
   if (USAR_MOCK) return listarOcupacionesMock({ gradoId, seccion });
 
   const respuesta = await listarBloquesHorario({
@@ -254,14 +277,12 @@ export async function listarOcupaciones({ gradoId, seccion, anioId, anioAcademic
   if (!Array.isArray(respuesta.datos)) return falloFormato('los bloques horarios');
   return {
     ...respuesta,
-    datos: (respuesta.datos ?? [])
-      .filter((bloque) => String(bloque.seccionId) !== String(seccion))
+    datos: respuesta.datos
+      .filter((bloque) => String(bloque.seccionId) !== String(seccionId ?? seccion))
       .map((bloque) => ({
         dia: bloque.diaSemana,
-        franjaId: FRANJAS.find(
-          (franja) => franja.inicio === bloque.horaInicio?.slice(0, 5)
-            && franja.fin === bloque.horaFin?.slice(0, 5)
-        )?.id,
+        horaInicio: horaCorta(bloque.horaInicio),
+        horaFin: horaCorta(bloque.horaFin),
         docenteId: bloque.docenteId,
         aulaId: bloque.aulaId,
         seccionNombre: bloque.seccionNombre
@@ -270,46 +291,58 @@ export async function listarOcupaciones({ gradoId, seccion, anioId, anioAcademic
 }
 
 /**
- * Guarda el diferencial entre el horario actual y el último cargado usando las operaciones CRUD
- * individuales del contrato. Si una operación falla, se detiene y la pantalla vuelve a consultar
- * el estado persistido antes de permitir otro intento.
+ * Reemplaza el horario completo de una sección.
+ *
+ * El front deja esta llamada preparada; el backend debe implementar
+ * `PUT /api/v1/bloques-horario/seccion/{seccionId}` con semántica de estado final.
  */
-export async function guardarHorario({ gradoId, seccion, bloques, bloquesGuardados }) {
+export async function guardarBloquesHorarioLote({ seccionId, anioAcademicoId, bloques }) {
   if (USAR_MOCK) {
-    const serializados = Object.entries(bloques).map(([clave, bloque]) => {
-      const [dia, franjaId] = clave.split('|');
-      return { dia, franjaId, asignacionId: bloque.asignacionId, aulaId: bloque.aulaId };
+    return guardarBloquesLoteMock({ seccionId, anioAcademicoId, bloques });
+  }
+  return solicitar(`${BASE_BLOQUES}/seccion/${encodeURIComponent(seccionId)}`, {
+    metodo: 'PUT',
+    cuerpo: {
+      anioAcademicoId: identificadorLong(anioAcademicoId),
+      bloques: (bloques ?? []).map(cuerpoBloqueLote)
+    },
+    tiempoEsperaMs: 60000
+  });
+}
+
+/**
+ * Guarda el estado final completo del horario de la sección usando el endpoint
+ * masivo. Los bloques existentes conservan su `id`; los nuevos van sin `id`; los
+ * que no se envían se eliminan en el backend.
+ */
+export async function guardarHorario({
+  gradoId,
+  seccion,
+  seccionId,
+  anioId,
+  anioAcademicoId,
+  bloques
+}) {
+  const listaBloques = Array.isArray(bloques) ? bloques : Object.values(bloques ?? {});
+
+  if (USAR_MOCK) {
+    return guardarHorarioMock({
+      gradoId,
+      seccion,
+      bloques: listaBloques
     });
-    return guardarHorarioMock({ gradoId, seccion, bloques: serializados });
   }
 
-  const operaciones = [];
-  for (const [clave, guardado] of Object.entries(bloquesGuardados)) {
-    const actual = bloques[clave];
-    if (!actual) {
-      operaciones.push(() => eliminarBloqueHorario(guardado.id));
-    } else if (
-      actual.asignacionId !== guardado.asignacionId ||
-      actual.aulaId !== guardado.aulaId
-    ) {
-      const [dia, franjaId] = clave.split('|');
-      operaciones.push(() => actualizarBloqueHorario(guardado.id, cuerpoBloque({
-        dia, franjaId, ...actual
-      })));
-    }
-  }
+  return guardarBloquesHorarioLote({
+    seccionId: seccionId ?? seccion,
+    anioAcademicoId: anioAcademicoId ?? anioId,
+    bloques: listaBloques
+  });
+}
 
-  for (const [clave, actual] of Object.entries(bloques)) {
-    if (bloquesGuardados[clave]) continue;
-    const [dia, franjaId] = clave.split('|');
-    operaciones.push(() => crearBloqueHorario(cuerpoBloque({ dia, franjaId, ...actual })));
-  }
-
-  for (const ejecutar of operaciones) {
-    const resultado = await ejecutar();
-    if (!resultado.exitoso) return resultado;
-  }
-  return { exitoso: true, datos: null, mensaje: '' };
+export async function obtenerPeriodoMatricula(anioId) {
+  if (USAR_MOCK) return obtenerPeriodoMatriculaMock(anioId);
+  return solicitar(`/anios-academicos/${encodeURIComponent(anioId)}/periodo-matricula`);
 }
 
 export async function listarSesiones({ seccionId, fechaInicio, fechaFin }) {
@@ -332,12 +365,19 @@ export async function previsualizarSesiones(datos) {
       fechaFin: datos.fechaFin,
       anioAcademicoId: identificadorLong(datos.anioAcademicoId),
       seccionId: identificadorLong(datos.seccionId)
-    }
+    },
+    tiempoEsperaMs: 60000
   });
 }
 
 export async function generarSesiones(datos) {
-  if (USAR_MOCK) return generarSesionesContratoMock(datos);
+  const sesionesOmitidas = (datos.sesionesOmitidas ?? []).map((omitida) => ({
+    bloqueHorarioId: identificadorLong(omitida.bloqueHorarioId),
+    fecha: omitida.fecha
+  }));
+  if (USAR_MOCK) {
+    return generarSesionesContratoMock({ ...datos, sesionesOmitidas });
+  }
   return solicitar(`${BASE_SESIONES}/generar`, {
     metodo: 'POST',
     cuerpo: {
@@ -345,8 +385,9 @@ export async function generarSesiones(datos) {
       fechaFin: datos.fechaFin,
       anioAcademicoId: identificadorLong(datos.anioAcademicoId),
       seccionId: identificadorLong(datos.seccionId),
-      sesionesOmitidas: datos.sesionesOmitidas ?? []
-    }
+      sesionesOmitidas
+    },
+    tiempoEsperaMs: 60000
   });
 }
 

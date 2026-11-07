@@ -10,19 +10,17 @@ const escenario = vi.hoisted(() => ({
 
 vi.mock('../../../shared/auth/useAuth.js', () => ({
   default: () => ({
-    usuario: { rol: escenario.rol }
+    usuario: { rol: escenario.rol, nombre: 'Alumno' }
   })
 }));
 
 vi.mock('../services/visualizadoresService.js', () => {
-  const consultar = vi.fn(async () => ({
-    exitoso: true,
-    datos: {
-      estado: escenario.estado,
-      mensaje: escenario.mensaje,
-      bloques: []
+  const consultar = vi.fn(async () => {
+    if (escenario.estado === 'SIN_MATRICULA') {
+      return { exitoso: false, datos: null, mensaje: escenario.mensaje };
     }
-  }));
+    return { exitoso: true, datos: [] };
+  });
 
   return {
     horarioSeccion: vi.fn(),
@@ -35,17 +33,19 @@ vi.mock('../services/visualizadoresService.js', () => {
     listarMisEstudiantes: vi.fn(async () => ({
       exitoso: true,
       datos: [{ id: 5, nombreCompleto: 'Luis Perez' }]
-    }))
+    })),
+    listarAniosAcademicos: vi.fn(async () => ({
+      exitoso: true,
+      datos: [{ id: 2, anio: new Date().getFullYear() }]
+    })),
+    obtenerPeriodo: vi.fn()
   };
 });
 
 import PaginaVisualizadorHorario from './PaginaVisualizadorHorario.jsx';
 
-const SIN_MATRICULA =
-  'No tiene una matrícula confirmada en el año académico activo';
-
-const SIN_BLOQUES =
-  'Aún no se le ha asignado un horario programado';
+const SIN_MATRICULA = 'No tiene una matrícula confirmada en el año académico activo';
+const SIN_SESIONES = 'No hay sesiones en esta semana.';
 
 beforeEach(() => {
   escenario.rol = 'ESTUDIANTE';
@@ -53,61 +53,30 @@ beforeEach(() => {
   escenario.mensaje = SIN_MATRICULA;
 });
 
-describe('Estados vacios del visualizador', () => {
+describe('Estados vacíos del visualizador', () => {
   it('estudiante sin matrícula confirmada', async () => {
     render(<PaginaVisualizadorHorario />);
 
-    expect(
-      await screen.findByText(SIN_MATRICULA)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(SIN_MATRICULA)).toBeInTheDocument();
   });
 
-  it('estudiante matriculado sin bloques', async () => {
-    escenario.estado = 'SIN_BLOQUES';
-    escenario.mensaje = SIN_BLOQUES;
+  it('estudiante matriculado sin sesiones', async () => {
+    escenario.estado = 'SIN_SESIONES';
 
     render(<PaginaVisualizadorHorario />);
 
-    expect(
-      await screen.findByText(SIN_BLOQUES)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(SIN_SESIONES)).toBeInTheDocument();
   });
 
-  it('apoderado consulta estudiante sin matrícula', async () => {
+  it('apoderado consulta el horario del estudiante seleccionado', async () => {
     escenario.rol = 'APODERADO';
+    escenario.estado = 'SIN_SESIONES';
 
     render(<PaginaVisualizadorHorario />);
 
-    const selector = await screen.findByLabelText(
-      /Seleccionar estudiante a cargo/i
-    );
+    const selector = await screen.findByLabelText(/Estudiante a cargo/i);
+    fireEvent.change(selector, { target: { value: '5' } });
 
-    fireEvent.change(selector, {
-      target: { value: '5' }
-    });
-
-    expect(
-      await screen.findByText(SIN_MATRICULA)
-    ).toBeInTheDocument();
-  });
-
-  it('apoderado consulta estudiante sin bloques', async () => {
-    escenario.rol = 'APODERADO';
-    escenario.estado = 'SIN_BLOQUES';
-    escenario.mensaje = SIN_BLOQUES;
-
-    render(<PaginaVisualizadorHorario />);
-
-    const selector = await screen.findByLabelText(
-      /Seleccionar estudiante a cargo/i
-    );
-
-    fireEvent.change(selector, {
-      target: { value: '5' }
-    });
-
-    expect(
-      await screen.findByText(SIN_BLOQUES)
-    ).toBeInTheDocument();
+    expect(await screen.findByText(SIN_SESIONES)).toBeInTheDocument();
   });
 });

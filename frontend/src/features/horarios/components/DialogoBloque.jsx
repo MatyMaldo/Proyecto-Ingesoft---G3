@@ -2,25 +2,32 @@ import { useMemo, useState } from 'react';
 
 import DialogoBase from '../../cursos/components/DialogoBase.jsx';
 import { obtenerEtiquetaDia } from '../constants/horarios.js';
+import {
+  bloqueCruzaReceso,
+  HORA_FIN_JORNADA,
+  HORA_INICIO_JORNADA,
+  rangoHorarioValido,
+  seSolapan
+} from '../utils/tiempo.js';
 import CampoSelect from './CampoSelect.jsx';
 import estilos from './DialogoBloque.module.css';
 
 /**
- * Minipantalla para asignar un bloque de la matriz: selector en cascada Curso → Docente
- * (sale de las relaciones curso-docente de la sección) y aula.
- *
- * @param {Object} props
- * @param {string} props.dia
- * @param {{ id: string, inicio: string, fin: string }} props.franja Se muestra como "Lunes · 09:00 – 10:00".
- * @param {Array<{ id: string, cursoId: string, cursoNombre: string, docenteId: string, docenteNombre: string }>} props.asignaciones
- * @param {Array<{ id: string, nombre: string }>} props.aulas
- * @param {{ asignacionId: string, aulaId: string }|undefined} props.bloque Bloque actual, si ya tenía uno.
- * @param {Array<{ docenteId: string, aulaId: string, seccionNombre: string }>} props.ocupaciones Docentes y
- *   aulas usados por otra sección a este mismo día y hora; no se pueden elegir.
- * @param {() => void} props.alCancelar
- * @param {(bloque: { asignacionId: string, aulaId: string }) => void} props.alGuardar
+ * Modal para asignar o editar un bloque: curso, docente, aula y rango de horas.
+ * El bloque puede durar una o varias horas.
  */
-export default function DialogoBloque({ dia, franja, asignaciones, aulas, bloque, ocupaciones, alCancelar, alGuardar }) {
+export default function DialogoBloque({
+  dia,
+  horaInicioInicial,
+  horaFinInicial,
+  asignaciones,
+  aulas,
+  bloque,
+  bloquesSeccion = [],
+  ocupaciones = [],
+  alCancelar,
+  alGuardar
+}) {
   const asignacionInicial = asignaciones.find(
     (asignacion) => String(asignacion.id) === String(bloque?.asignacionId)
   );
@@ -28,6 +35,12 @@ export default function DialogoBloque({ dia, franja, asignaciones, aulas, bloque
     asignacionInicial ? String(asignacionInicial.id) : ''
   );
   const [aulaId, establecerAulaId] = useState(bloque?.aulaId ?? '');
+  const [horaInicio, establecerHoraInicio] = useState(
+    bloque?.horaInicio ?? horaInicioInicial ?? HORA_INICIO_JORNADA
+  );
+  const [horaFin, establecerHoraFin] = useState(
+    bloque?.horaFin ?? horaFinInicial ?? HORA_FIN_JORNADA
+  );
   const [errores, establecerErrores] = useState({});
 
   const sinRelaciones = asignaciones.length === 0;
@@ -35,11 +48,26 @@ export default function DialogoBloque({ dia, franja, asignaciones, aulas, bloque
     (asignacion) => String(asignacion.id) === asignacionId
   );
   const docenteId = asignacionSeleccionada?.docenteId;
-  const ocupacionDeAula = (id) => ocupaciones.find(
-    (ocupacion) => String(ocupacion.aulaId) === String(id)
+
+  const ocupacionesDelDia = useMemo(
+    () => ocupaciones.filter((ocupacion) => ocupacion.dia === dia),
+    [ocupaciones, dia]
   );
-  const ocupacionDe = (id) => ocupaciones.find(
+  const bloquesDelDia = useMemo(
+    () => bloquesSeccion.filter((elemento) => elemento.dia === dia),
+    [bloquesSeccion, dia]
+  );
+
+  const ocupacionDeAula = (id) => ocupacionesDelDia.find(
+    (ocupacion) => String(ocupacion.aulaId) === String(id)
+      && seSolapan(horaInicio, horaFin, ocupacion.horaInicio, ocupacion.horaFin)
+  );
+  const ocupacionDe = (id) => ocupacionesDelDia.find(
     (ocupacion) => String(ocupacion.docenteId) === String(id)
+      && seSolapan(horaInicio, horaFin, ocupacion.horaInicio, ocupacion.horaFin)
+  );
+  const solapeSeccion = bloquesDelDia.find(
+    (elemento) => seSolapan(horaInicio, horaFin, elemento.horaInicio, elemento.horaFin)
   );
 
   const cursos = useMemo(() => {
@@ -58,8 +86,10 @@ export default function DialogoBloque({ dia, franja, asignaciones, aulas, bloque
 
   function mensajeAulaOcupada(id) {
     const ocupacion = ocupacionDeAula(id);
-    const nombre = aulas.find((aula) => aula.id === id)?.nombre;
-    return ocupacion ? `${nombre} ya está ocupada por ${ocupacion.seccionNombre} a esta hora.` : undefined;
+    const nombre = aulas.find((aula) => String(aula.id) === String(id))?.nombre;
+    return ocupacion
+      ? `${nombre} ya está ocupada por ${ocupacion.seccionNombre} en ese horario.`
+      : undefined;
   }
 
   function mensajeOcupado(id) {
@@ -67,7 +97,9 @@ export default function DialogoBloque({ dia, franja, asignaciones, aulas, bloque
     const nombre = asignaciones.find(
       (asignacion) => String(asignacion.docenteId) === String(id)
     )?.docenteNombre;
-    return ocupacion ? `${nombre} ya tiene clase en ${ocupacion.seccionNombre} a esta hora.` : undefined;
+    return ocupacion
+      ? `${nombre} ya tiene clase en ${ocupacion.seccionNombre} en ese horario.`
+      : undefined;
   }
 
   function limpiarError(campo) {
@@ -89,25 +121,41 @@ export default function DialogoBloque({ dia, franja, asignaciones, aulas, bloque
     } else if (ocupacionDe(docenteId)) {
       encontrados.docente = mensajeOcupado(docenteId);
     }
+
     if (!aulaId) {
       encontrados.aula = 'Selecciona un aula.';
     } else if (ocupacionDeAula(aulaId)) {
       encontrados.aula = mensajeAulaOcupada(aulaId);
     }
+
+    if (!horaInicio || !horaFin || !rangoHorarioValido(horaInicio, horaFin)) {
+      encontrados.horaFin = `La hora de fin debe ser posterior al inicio y estar entre ${HORA_INICIO_JORNADA} y ${HORA_FIN_JORNADA}.`;
+    } else if (bloqueCruzaReceso({ horaInicio, horaFin })) {
+      encontrados.horaFin = 'El bloque no puede ocupar el recreo de 11:00 a 11:30.';
+    } else if (solapeSeccion) {
+      encontrados.horaFin = 'El bloque se solapa con otro bloque de esta sección.';
+    }
+
     establecerErrores(encontrados);
     if (Object.keys(encontrados).length > 0) {
       return;
     }
 
-    alGuardar({ asignacionId: asignacionSeleccionada.id, aulaId });
+    alGuardar({
+      dia,
+      asignacionId: asignacionSeleccionada.id,
+      aulaId,
+      horaInicio,
+      horaFin
+    });
   }
 
   return (
     <DialogoBase
       idTitulo="dialogo-bloque-titulo"
-      titulo="Asignar horario"
-      subtitulo={`${obtenerEtiquetaDia(dia)} · ${franja.inicio} – ${franja.fin}`}
-      textoConfirmar="Guardar cambios"
+      titulo={bloque ? 'Editar horario' : 'Asignar horario'}
+      subtitulo={`${obtenerEtiquetaDia(dia)} · ${horaInicio} – ${horaFin}`}
+      textoConfirmar={bloque ? 'Guardar cambios' : 'Agregar bloque'}
       textoEnviando="Guardando…"
       cerrarAlClicFuera={false}
       sinConfirmar={sinRelaciones}
@@ -153,6 +201,40 @@ export default function DialogoBloque({ dia, franja, asignaciones, aulas, bloque
             />
           </fieldset>
 
+          <div className={estilos.fila}>
+            <label className={estilos.campo}>
+              Hora de inicio
+              <input
+                type="time"
+                className={estilos.entrada}
+                value={horaInicio}
+                min={HORA_INICIO_JORNADA}
+                max={HORA_FIN_JORNADA}
+                step="300"
+                onChange={(evento) => {
+                  establecerHoraInicio(evento.target.value);
+                  limpiarError('horaFin');
+                }}
+              />
+            </label>
+            <label className={estilos.campo}>
+              Hora de fin
+              <input
+                type="time"
+                className={estilos.entrada}
+                value={horaFin}
+                min={HORA_INICIO_JORNADA}
+                max={HORA_FIN_JORNADA}
+                step="300"
+                onChange={(evento) => {
+                  establecerHoraFin(evento.target.value);
+                  limpiarError('horaFin');
+                }}
+              />
+            </label>
+          </div>
+          {errores.horaFin && <p className={estilos.mensajeError}>{errores.horaFin}</p>}
+
           <CampoSelect
             id="bloque-aula"
             etiqueta="Aula"
@@ -169,6 +251,11 @@ export default function DialogoBloque({ dia, franja, asignaciones, aulas, bloque
               limpiarError('aula');
             }}
           />
+          {solapeSeccion && !errores.horaFin && (
+            <p className={estilos.nota} role="note">
+              Hay otro bloque de esta sección en ese rango de horas.
+            </p>
+          )}
         </>
       )}
     </DialogoBase>

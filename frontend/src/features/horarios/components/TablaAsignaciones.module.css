@@ -153,14 +153,14 @@
   white-space: nowrap;
 }
 
-.botonEliminar {
+.botonEliminar,
+.botonEditar {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   width: var(--tactil-min);
   height: var(--tactil-min);
   padding: 0;
-  color: var(--color-peligro-texto);
   background: none;
   border: 0;
   border-radius: var(--radio-md);
@@ -168,8 +168,20 @@
   transition: background var(--transicion);
 }
 
+.botonEliminar {
+  color: var(--color-peligro-texto);
+}
+
+.botonEditar {
+  color: var(--color-accion);
+}
+
 .botonEliminar:hover {
   background: var(--color-peligro-fondo);
+}
+
+.botonEditar:hover {
+  background: var(--color-accion-suave);
 }
 
 @media (max-width: 1023px) {
