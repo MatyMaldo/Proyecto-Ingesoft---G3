@@ -38,6 +38,22 @@ const USUARIOS = Object.freeze([
     contrasena: 'Docente2026!'
   }),
   Object.freeze({
+    id: 'EST-001',
+    nombre: 'María López García',
+    rol: ROLES.ESTUDIANTE,
+    activo: true,
+    correo: 'estudiante@sanmarcos.edu.pe',
+    contrasena: 'Estudiante2026!'
+  }),
+  Object.freeze({
+    id: 'APO-001',
+    nombre: 'Apoderado de demostración',
+    rol: ROLES.APODERADO,
+    activo: true,
+    correo: 'apoderado@sanmarcos.edu.pe',
+    contrasena: 'Apoderado2026!'
+  }),
+  Object.freeze({
     id: 5,
     nombre: 'Cuenta Nueva',
     rol: ROLES.ADMIN,
