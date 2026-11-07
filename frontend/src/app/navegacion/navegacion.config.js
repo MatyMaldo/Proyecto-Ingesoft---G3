@@ -25,6 +25,13 @@ export const SECCIONES_NAVEGACION = Object.freeze([
       }),
       Object.freeze({ id: 'cursos', etiqueta: 'Cursos', ruta: '/cursos', icono: 'libro' }),
       Object.freeze({
+        id: 'libreta-notas',
+        etiqueta: 'Libreta de notas',
+        ruta: '/libreta-notas',
+        icono: 'archivo',
+        roles: Object.freeze([ROLES.ESTUDIANTE, ROLES.APODERADO])
+      }),
+      Object.freeze({
         id: 'evaluaciones',
         etiqueta: 'Evaluaciones',
         ruta: '/evaluaciones',
@@ -114,6 +121,6 @@ export function obtenerItemsNavegacion() {
 export const RUTA_INICIO_POR_ROL = Object.freeze({
   [ROLES.ADMIN]: '/administracion/auditorias',
   [ROLES.DOCENTE]: '/evaluaciones',
-  [ROLES.ESTUDIANTE]: '/cursos',
+  [ROLES.ESTUDIANTE]: '/libreta-notas',
   [ROLES.APODERADO]: '/cursos'
 });

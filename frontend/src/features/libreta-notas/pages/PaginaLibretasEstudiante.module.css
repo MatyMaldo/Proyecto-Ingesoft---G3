@@ -1,0 +1,38 @@
+.pagina { display: grid; gap: 1.2rem; width: min(100%, 1120px); margin: 0 auto; padding: 1.5rem; color: #172033; }
+.cabecera { display: grid; gap: .35rem; }
+.sobretitulo { margin: 0; color: #0b63ce; font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
+.titulo { margin: 0; font-size: clamp(1.7rem, 4vw, 2.2rem); }
+.descripcion { margin: 0; color: #64748b; }
+.lista { display: grid; gap: 1rem; }
+.libreta { display: grid; gap: 1rem; padding: 1.2rem; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; box-shadow: 0 3px 12px #0f172a0a; }
+.encabezadoLibreta { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; padding-bottom: .8rem; border-bottom: 1px solid #e2e8f0; }
+.encabezadoLibreta h2 { margin: .15rem 0; font-size: 1.15rem; }
+.encabezadoLibreta p { margin: .2rem 0; color: #64748b; font-size: .9rem; }
+.periodo { color: #075fc8 !important; font-weight: 700; }
+.botonDescarga { min-height: 42px; flex: none; border: 0; border-radius: 8px; padding: .65rem 1rem; background: #075fc8; color: white; font: inherit; font-weight: 700; cursor: pointer; }
+.botonDescarga:hover { background: #034da6; }
+.cursos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr)); gap: .8rem; }
+.curso { display: grid; align-content: start; gap: .5rem; padding: .9rem; border: 1px solid #e2e8f0; border-radius: 10px; }
+.encabezadoCurso { display: flex; justify-content: space-between; align-items: baseline; gap: .6rem; }
+.encabezadoCurso h3, .pieLibreta h3 { margin: 0; font-size: .98rem; }
+.encabezadoCurso span, .docente { color: #64748b; font-size: .82rem; }
+.docente { margin: 0; }
+.curso ul { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; }
+.curso li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: .7rem; padding-top: .55rem; border-top: 1px solid #f1f5f9; }
+.curso li strong { font-size: .88rem; }
+.curso li p { margin: .25rem 0 0; color: #64748b; font-size: .84rem; line-height: 1.45; }
+.nota { display: grid; min-width: 2.2rem; min-height: 2.2rem; place-items: center; border-radius: 8px; background: #eaf3ff; color: #075bb7; font-weight: 800; }
+.pieLibreta { display: grid; grid-template-columns: minmax(180px, .55fr) minmax(0, 1fr); gap: .8rem; }
+.pieLibreta section { display: grid; align-content: start; gap: .4rem; padding: .8rem; border-radius: 9px; background: #f8fafc; }
+.pieLibreta p { margin: 0; color: #475569; line-height: 1.5; }
+.vacio, .error { margin: 0; padding: 1rem; border-radius: 9px; }
+.vacio { background: #f8fafc; color: #64748b; }
+.error { border: 1px solid #fecaca; background: #fef2f2; color: #b91c1c; }
+.estado { padding: 1rem; }
+
+@media (max-width: 640px) {
+  .pagina { padding: 1rem; }
+  .encabezadoLibreta, .encabezadoCurso { flex-direction: column; align-items: flex-start; }
+  .pieLibreta { grid-template-columns: 1fr; }
+  .botonDescarga { width: 100%; }
+}

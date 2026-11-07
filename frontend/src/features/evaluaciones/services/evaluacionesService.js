@@ -6,10 +6,14 @@ import {
   listarContextoDocenteMock,
   listarEstudiantesEvaluacionMock,
   listarNotasEvaluacionMock,
+  listarBimestresCompetenciasMock,
+  listarNotasCompetenciasMock,
+  guardarNotasCompetenciasMock,
   listarEvaluacionesMock
 } from './mocks/evaluacionesMock.js';
 
 export const ESCALA_NOTAS_EVALUACION = Object.freeze(['AD', 'A', 'B', 'C']);
+export const LONGITUD_MAXIMA_CONCLUSION_COMPETENCIA = 120;
 
 const fallo = (mensaje) => ({ exitoso: false, datos: null, mensaje });
 
@@ -25,6 +29,49 @@ export function listarContextoDocenteEvaluaciones(usuario) {
 
 export function listarEvaluaciones() {
   return USAR_MOCK ? listarEvaluacionesMock() : solicitar('/evaluaciones');
+}
+
+export function listarBimestresCompetencias(usuario, cursoId, seccionId) {
+  return USAR_MOCK
+    ? listarBimestresCompetenciasMock(usuario, cursoId, seccionId)
+    : solicitar('/evaluaciones/notas-competencias/bimestres-disponibles', {
+      parametros: { cursoId, seccionId }
+    });
+}
+
+export function listarEstudiantesSeccionCompetencias(usuario, cursoId, seccionId) {
+  return USAR_MOCK
+    ? listarEstudiantesEvaluacionMock({ cursoId, seccionId })
+    : solicitar('/evaluaciones/notas-competencias/estudiantes', {
+      parametros: { cursoId, seccionId, activo: true, estadoMatricula: 'CONFIRMADA' }
+    });
+}
+
+export function listarNotasCompetencias(usuario, cursoId, seccionId, bimestreId, estudianteId) {
+  return USAR_MOCK
+    ? listarNotasCompetenciasMock(cursoId, seccionId, bimestreId, estudianteId)
+    : solicitar('/evaluaciones/notas-competencias', {
+      parametros: { cursoId, seccionId, bimestreId, estudianteId }
+    });
+}
+
+export function guardarNotasCompetencias(usuario, datos) {
+  const competencias = Array.isArray(datos?.competencias) ? datos.competencias : [];
+  for (const competencia of competencias) {
+    if (!ESCALA_NOTAS_EVALUACION.includes(competencia.nota)) {
+      return Promise.resolve(fallo(`La nota de "${competencia.nombre}" debe ser AD, A, B o C.`));
+    }
+    const conclusion = String(competencia.conclusionDescriptiva ?? '').trim();
+    if (!conclusion) {
+      return Promise.resolve(fallo(`${competencia.nombre}: La conclusión descriptiva es obligatoria.`));
+    }
+    if (conclusion.length > LONGITUD_MAXIMA_CONCLUSION_COMPETENCIA) {
+      return Promise.resolve(fallo(`${competencia.nombre}: La conclusión descriptiva no puede superar los 120 caracteres.`));
+    }
+  }
+  return USAR_MOCK
+    ? guardarNotasCompetenciasMock(usuario, { ...datos, competencias: competencias.map((item) => ({ ...item, conclusionDescriptiva: item.conclusionDescriptiva.trim() })) })
+    : solicitar('/evaluaciones/notas-competencias', { metodo: 'PUT', cuerpo: datos });
 }
 
 /** Solo devuelve alumnos activos cuya matrícula confirmada corresponde a la sección evaluada. */
