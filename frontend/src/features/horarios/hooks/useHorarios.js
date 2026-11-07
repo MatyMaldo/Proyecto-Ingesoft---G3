@@ -1,16 +1,24 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import { claveBloque, FRANJAS } from '../constants/horarios.js';
 import {
+  aHora,
+  aMinutos,
+  HORA_FIN_JORNADA,
+  bloqueCruzaReceso,
+  seSolapan
+} from '../utils/tiempo.js';
+import {
+  actualizarAsignacion,
   consultarCatalogos,
   crearAsignacion,
   eliminarAsignacion,
   guardarHorario,
   listarAsignaciones,
-  listarSeccionesHorario,
   listarOcupaciones,
-  obtenerHorario
+  listarSeccionesHorario,
+  obtenerHorario,
+  obtenerPeriodoMatricula
 } from '../services/horariosService.js';
 
 const MENSAJE_ERROR_GENERICO = 'Se registró un error inesperado';
@@ -28,45 +36,67 @@ export function buscarAnioAcademicoVigente(anios, anioVigente = new Date().getFu
   return anios.find((anio) => Number(anio.anio) === Number(anioVigente));
 }
 
-/** Convierte la lista de bloques del backend en un mapa `dia|franja` → { asignacionId, aulaId }. */
 function horaComparable(hora) {
   return String(hora ?? '').slice(0, 5);
 }
 
+function bloqueNormalizado(bloque) {
+  const dia = bloque.diaSemana ?? bloque.dia;
+  const horaInicio = horaComparable(bloque.horaInicio);
+  const horaFin = horaComparable(bloque.horaFin);
+  const asignacionId = bloque.asignacionCursoId ?? bloque.asignacionId;
+  if (!dia || !horaInicio || !horaFin || asignacionId == null || bloque.aulaId == null) {
+    return null;
+  }
+  return {
+    id: bloque.id,
+    dia,
+    horaInicio,
+    horaFin,
+    asignacionId,
+    aulaId: bloque.aulaId
+  };
+}
+
+/** Convierte la lista de bloques del backend en un mapa con clave estable. */
 function bloquesAMapa(lista) {
   const mapa = {};
-  lista.forEach((bloque) => {
-    const dia = bloque.diaSemana ?? bloque.dia;
-    const asignacionId = bloque.asignacionCursoId ?? bloque.asignacionId;
-    const franja = FRANJAS.find(
-      (elemento) => elemento.inicio === horaComparable(bloque.horaInicio)
-        && elemento.fin === horaComparable(bloque.horaFin)
-    );
-    const franjaId = bloque.franjaId ?? franja?.id;
-    if (dia && franjaId && asignacionId !== undefined && bloque.aulaId !== undefined) {
-      mapa[claveBloque(dia, franjaId)] = {
-        id: bloque.id,
-        asignacionId,
-        aulaId: bloque.aulaId
-      };
-    }
+  (lista ?? []).forEach((bloque) => {
+    const normalizado = bloqueNormalizado(bloque);
+    if (!normalizado) return;
+    const clave = normalizado.id != null ? `bloque-${normalizado.id}` : bloque.clave;
+    if (clave) mapa[clave] = normalizado;
   });
   return mapa;
 }
 
 function serializarBloques(mapa) {
   return JSON.stringify(
-    Object.entries(mapa)
-      .map(([clave, { asignacionId, aulaId }]) => [clave, asignacionId, aulaId])
-      .sort(([a], [b]) => a.localeCompare(b))
+    Object.values(mapa)
+      .map((bloque) => [
+        bloque.id ?? '',
+        bloque.dia,
+        bloque.horaInicio,
+        bloque.horaFin,
+        bloque.asignacionId,
+        bloque.aulaId
+      ].join('|'))
+      .sort()
   );
 }
 
+function mismoBloque(a, b) {
+  if (!a || !b) return false;
+  return String(a.dia) === String(b.dia)
+    && horaComparable(a.horaInicio) === horaComparable(b.horaInicio)
+    && horaComparable(a.horaFin) === horaComparable(b.horaFin)
+    && String(a.asignacionId) === String(b.asignacionId)
+    && String(a.aulaId) === String(b.aulaId);
+}
+
 /**
- * Estado de la pantalla de Horarios: filtros obligatorios (grado y sección), relaciones
- * curso-docente y matriz semanal editable.
- *
- * @returns {Object}
+ * Estado de la pantalla de Horarios: filtros obligatorios (grado y sección),
+ * relaciones curso-docente, estado del periodo y matriz semanal editable.
  */
 export default function useHorarios() {
   const [catalogos, establecerCatalogos] = useState(CATALOGOS_VACIOS);
@@ -76,13 +106,11 @@ export default function useHorarios() {
   const [errorSecciones, establecerErrorSecciones] = useState('');
   const [intento, establecerIntento] = useState(0);
 
-  // Grado y sección consultados viajan en la URL (`?grado=4&seccion=B`) para poder recargar o compartir.
   const [parametros, establecerParametros] = useSearchParams();
   const [gradoId, establecerGradoId] = useState(parametros.get('grado') ?? '');
   const [seccion, establecerSeccion] = useState(parametros.get('seccion') ?? '');
   const urlRestaurada = useRef(false);
   const seccionDeUrl = useRef(Boolean(parametros.get('seccion')));
-  // Sección consultada con "Ver horario"; los filtros del formulario no la cambian hasta pulsarlo.
   const [consulta, establecerConsulta] = useState(null);
   const [version, establecerVersion] = useState(0);
 
@@ -94,6 +122,11 @@ export default function useHorarios() {
   const [estadoHorario, establecerEstadoHorario] = useState('cargando');
   const [errorHorario, establecerErrorHorario] = useState('');
   const [guardando, establecerGuardando] = useState(false);
+  const contadorNuevos = useRef(0);
+
+  const [periodo, establecerPeriodo] = useState(null);
+  const [estadoPeriodo, establecerEstadoPeriodo] = useState('inactivo');
+  const [errorPeriodo, establecerErrorPeriodo] = useState('');
 
   const hayCambios = useMemo(
     () => serializarBloques(bloques) !== serializarBloques(bloquesGuardados),
@@ -106,9 +139,7 @@ export default function useHorarios() {
     async function cargar() {
       establecerEstadoCatalogos('cargando');
       const resultado = await consultarCatalogos();
-      if (cancelado) {
-        return;
-      }
+      if (cancelado) return;
       if (!resultado.exitoso) {
         establecerErrorCatalogos(resultado.mensaje || 'No se pudieron cargar los catálogos de horarios.');
         establecerEstadoCatalogos('error');
@@ -124,6 +155,43 @@ export default function useHorarios() {
       cancelado = true;
     };
   }, [intento]);
+
+  // Estado del periodo del año académico actual. Solo afecta a la pantalla de horarios.
+  useEffect(() => {
+    if (estadoCatalogos !== 'listo') return undefined;
+    const anioVigente = buscarAnioAcademicoVigente(catalogos.anios);
+    if (!anioVigente?.id) {
+      establecerPeriodo(null);
+      establecerErrorPeriodo(
+        `No se encontró el año académico vigente (${new Date().getFullYear()}).`
+      );
+      establecerEstadoPeriodo('error');
+      return undefined;
+    }
+
+    let cancelado = false;
+    async function cargarPeriodo() {
+      establecerEstadoPeriodo('cargando');
+      establecerErrorPeriodo('');
+      const resultado = await obtenerPeriodoMatricula(anioVigente.id);
+      if (cancelado) return;
+      if (!resultado.exitoso) {
+        establecerPeriodo(null);
+        establecerErrorPeriodo(
+          resultado.mensaje || 'No se pudo consultar el periodo de matrícula.'
+        );
+        establecerEstadoPeriodo('error');
+        return;
+      }
+      establecerPeriodo(resultado.datos ?? null);
+      establecerEstadoPeriodo('listo');
+    }
+
+    cargarPeriodo();
+    return () => {
+      cancelado = true;
+    };
+  }, [estadoCatalogos, catalogos.anios]);
 
   useEffect(() => {
     if (estadoCatalogos !== 'listo') return undefined;
@@ -176,9 +244,7 @@ export default function useHorarios() {
   }, [estadoCatalogos, gradoId, catalogos.anios]);
 
   useEffect(() => {
-    if (!consulta) {
-      return undefined;
-    }
+    if (!consulta) return undefined;
     let cancelado = false;
 
     async function cargar() {
@@ -189,9 +255,7 @@ export default function useHorarios() {
         obtenerHorario(consulta),
         listarOcupaciones(consulta)
       ]);
-      if (cancelado) {
-        return;
-      }
+      if (cancelado) return;
       if (!respuestaAsignaciones.exitoso || !respuestaHorario.exitoso || !respuestaOcupaciones.exitoso) {
         const respuestaFallida = [respuestaAsignaciones, respuestaHorario, respuestaOcupaciones]
           .find((respuesta) => !respuesta.exitoso);
@@ -214,8 +278,8 @@ export default function useHorarios() {
       establecerOcupaciones(respuestaOcupaciones.datos ?? []);
       const bloquesCargados = bloquesAMapa(respuestaHorario.datos ?? []);
       establecerBloquesGuardados(bloquesCargados);
-      // Tras agregar o quitar una relación se conserva el borrador de la matriz, descartando los
-      // bloques cuya relación ya no existe. Al consultar una sección se parte de lo guardado.
+      // Tras agregar o quitar una relación se conserva el borrador de la matriz,
+      // descartando los bloques cuya relación ya no existe.
       establecerBloques((anteriores) =>
         Object.fromEntries(
           Object.entries(version === 0 ? bloquesCargados : anteriores).filter(
@@ -234,7 +298,6 @@ export default function useHorarios() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [consulta, version]);
 
-  // Restaura primero el grado de la URL; la sección se valida cuando el backend responde el filtro.
   useEffect(() => {
     if (estadoCatalogos !== 'listo' || urlRestaurada.current) {
       return;
@@ -272,11 +335,8 @@ export default function useHorarios() {
     });
   }, [estadoSecciones, catalogos.secciones, gradoId, seccion]);
 
-  // Con cambios sin guardar, el navegador pide confirmar antes de recargar o cerrar la pestaña.
   useEffect(() => {
-    if (!hayCambios) {
-      return undefined;
-    }
+    if (!hayCambios) return undefined;
     const avisar = (evento) => {
       evento.preventDefault();
       evento.returnValue = '';
@@ -284,6 +344,11 @@ export default function useHorarios() {
     window.addEventListener('beforeunload', avisar);
     return () => window.removeEventListener('beforeunload', avisar);
   }, [hayCambios]);
+
+  const anioVigente = buscarAnioAcademicoVigente(catalogos.anios);
+  const puedeEditarAsignaciones = periodo?.asignacionCursoDocenteAbierta === true;
+  const puedeEditarBloques = periodo?.crudBloquesHorarioAbierta === true;
+  const puedeGenerarSesiones = periodo?.generacionSesionesAbierta === true;
 
   const filtrosCompletos = gradoId !== '' && seccion !== '';
 
@@ -294,9 +359,7 @@ export default function useHorarios() {
   };
 
   const verHorario = () => {
-    if (!filtrosCompletos) {
-      return;
-    }
+    if (!filtrosCompletos) return;
     const seccionSeleccionada = catalogos.secciones.find(
       (elemento) => String(elemento.id) === String(seccion)
     );
@@ -314,11 +377,8 @@ export default function useHorarios() {
     });
   };
 
-  /** Vuelve a consultar la sección actual partiendo de lo guardado (p. ej. tras una carga masiva). */
   const recargarConsulta = () => {
-    if (!consulta) {
-      return;
-    }
+    if (!consulta) return;
     establecerBloques({});
     establecerBloquesGuardados({});
     establecerVersion(0);
@@ -336,60 +396,139 @@ export default function useHorarios() {
     [consulta]
   );
 
+  const editarAsignacion = useCallback(
+    async (idAsignacion, { cursoId, docenteId }) => {
+      const resultado = await actualizarAsignacion(idAsignacion, {
+        cursoId,
+        docenteId,
+        seccionId: consulta?.seccionId ?? consulta?.seccion
+      });
+      if (resultado.exitoso) {
+        establecerVersion((actual) => actual + 1);
+      }
+      return resultado.exitoso ? null : resultado.mensaje || MENSAJE_ERROR_GENERICO;
+    },
+    [consulta]
+  );
+
   const quitarAsignacion = useCallback(async (idAsignacion) => {
     const resultado = await eliminarAsignacion(idAsignacion);
     if (resultado.exitoso) {
-      // El backend borra también los bloques de esa relación: se reflejan en el estado guardado.
       establecerBloquesGuardados((anteriores) =>
-        Object.fromEntries(Object.entries(anteriores).filter(([, b]) => b.asignacionId !== idAsignacion))
+        Object.fromEntries(
+          Object.entries(anteriores).filter(([, bloque]) => String(bloque.asignacionId) !== String(idAsignacion))
+        )
       );
       establecerVersion((actual) => actual + 1);
     }
     return resultado.exitoso ? null : resultado.mensaje || MENSAJE_ERROR_GENERICO;
   }, []);
 
-  const asignarBloque = (dia, franjaId, bloque) => {
-    establecerBloques((anteriores) => ({ ...anteriores, [claveBloque(dia, franjaId)]: bloque }));
-  };
+  const guardarBloque = useCallback(({ clave, bloque }) => {
+    establecerBloques((anteriores) => {
+      const claveFinal = clave ?? `nuevo-${++contadorNuevos.current}`;
+      const anterior = anteriores[claveFinal];
+      return {
+        ...anteriores,
+        [claveFinal]: {
+          ...anterior,
+          ...bloque,
+          horaInicio: horaComparable(bloque.horaInicio),
+          horaFin: horaComparable(bloque.horaFin),
+          id: anterior?.id
+        }
+      };
+    });
+  }, []);
 
-  const quitarBloque = (dia, franjaId) => {
+  const quitarBloque = useCallback((clave) => {
     establecerBloques((anteriores) => {
       const siguientes = { ...anteriores };
-      delete siguientes[claveBloque(dia, franjaId)];
+      delete siguientes[clave];
       return siguientes;
     });
-  };
+  }, []);
+
+  /**
+   * Mueve un bloque a otro día/hora conservando su duración. Si el destino es el
+   * inicio de otro bloque de la misma duración, se intercambian.
+   */
+  const moverBloque = useCallback((clave, destino) => {
+    const origen = bloques[clave];
+    if (!origen) return 'No se encontró el bloque.';
+    if (origen.dia === destino.dia && origen.horaInicio === destino.horaInicio) {
+      return null;
+    }
+
+    const duracion = aMinutos(origen.horaFin) - aMinutos(origen.horaInicio);
+    const horaFin = aHora(aMinutos(destino.horaInicio) + duracion);
+    const bloqueMovido = {
+      ...origen,
+      dia: destino.dia,
+      horaInicio: destino.horaInicio,
+      horaFin
+    };
+    if (aMinutos(horaFin) > aMinutos(HORA_FIN_JORNADA)) {
+      return 'El bloque se saldría de la jornada.';
+    }
+    if (bloqueCruzaReceso(bloqueMovido)) {
+      return 'El bloque no puede ocupar el recreo de 11:00 a 11:30.';
+    }
+
+    const claveDestino = Object.keys(bloques).find(
+      (otraClave) => otraClave !== clave
+        && bloques[otraClave].dia === destino.dia
+        && bloques[otraClave].horaInicio === destino.horaInicio
+    );
+
+    if (claveDestino) {
+      const destinoBloque = bloques[claveDestino];
+      const duracionDestino = aMinutos(destinoBloque.horaFin) - aMinutos(destinoBloque.horaInicio);
+      if (duracionDestino !== duracion) {
+        return 'Solo se pueden intercambiar bloques de la misma duración.';
+      }
+      const destinoMovido = {
+        ...destinoBloque,
+        dia: origen.dia,
+        horaInicio: origen.horaInicio,
+        horaFin: origen.horaFin
+      };
+      const colision = Object.entries(bloques).some(([otraClave, otroBloque]) =>
+        otraClave !== clave
+        && otraClave !== claveDestino
+        && otroBloque.dia === destino.dia
+        && seSolapan(bloqueMovido.horaInicio, bloqueMovido.horaFin, otroBloque.horaInicio, otroBloque.horaFin)
+      );
+      if (colision) return 'El bloque se solapa con otro de la misma sección.';
+      establecerBloques({
+        ...bloques,
+        [clave]: bloqueMovido,
+        [claveDestino]: destinoMovido
+      });
+      return null;
+    }
+
+    const colision = Object.entries(bloques).some(([otraClave, otroBloque]) =>
+      otraClave !== clave
+      && otroBloque.dia === destino.dia
+      && seSolapan(bloqueMovido.horaInicio, bloqueMovido.horaFin, otroBloque.horaInicio, otroBloque.horaFin)
+    );
+    if (colision) return 'El bloque se solapa con otro de la misma sección.';
+
+    establecerBloques({ ...bloques, [clave]: bloqueMovido });
+    return null;
+  }, [bloques]);
 
   const descartarCambios = () => establecerBloques(bloquesGuardados);
 
-  /** Mueve un bloque a otra celda; si la celda destino está ocupada, ambos bloques se intercambian. */
-  const moverBloque = (origen, destino) => {
-    const claveOrigen = claveBloque(origen.dia, origen.franjaId);
-    const claveDestino = claveBloque(destino.dia, destino.franjaId);
-    if (claveOrigen === claveDestino) {
-      return;
-    }
-    establecerBloques((anteriores) => {
-      const bloqueOrigen = anteriores[claveOrigen];
-      if (!bloqueOrigen) {
-        return anteriores;
-      }
-      const siguientes = { ...anteriores, [claveDestino]: bloqueOrigen };
-      if (anteriores[claveDestino]) {
-        siguientes[claveOrigen] = anteriores[claveDestino];
-      } else {
-        delete siguientes[claveOrigen];
-      }
-      return siguientes;
-    });
-  };
-
   const guardar = async () => {
+    if (!puedeEditarBloques) {
+      return { error: 'El periodo actual no permite modificar bloques horarios.', resumen: null };
+    }
     establecerGuardando(true);
     const resultado = await guardarHorario({
       ...consulta,
-      bloques,
-      bloquesGuardados
+      bloques: Object.values(bloques)
     });
     establecerGuardando(false);
     const respuestaActualizada = await obtenerHorario(consulta);
@@ -398,7 +537,10 @@ export default function useHorarios() {
       establecerBloquesGuardados(guardados);
       establecerBloques(guardados);
     }
-    return resultado.exitoso ? null : resultado.mensaje || MENSAJE_ERROR_GENERICO;
+    if (!resultado.exitoso) {
+      return { error: resultado.mensaje || MENSAJE_ERROR_GENERICO, resumen: null };
+    }
+    return { error: null, resumen: resultado.datos ?? null };
   };
 
   const gradoConsultado = catalogos.grados.find(
@@ -407,7 +549,6 @@ export default function useHorarios() {
   const seccionConsultada = catalogos.secciones.find(
     (elemento) => String(elemento.id) === String(consulta?.seccionId ?? consulta?.seccion)
   );
-  const seccionesFiltradas = catalogos.secciones;
 
   return {
     catalogos,
@@ -417,8 +558,15 @@ export default function useHorarios() {
     estadoSecciones,
     errorSecciones,
     errorHorario,
+    periodo,
+    estadoPeriodo,
+    errorPeriodo,
+    anioVigente,
+    puedeEditarAsignaciones,
+    puedeEditarBloques,
+    puedeGenerarSesiones,
     filtros: { gradoId, seccion, completos: filtrosCompletos },
-    seccionesFiltradas,
+    seccionesFiltradas: catalogos.secciones,
     seleccionarGrado,
     seleccionarSeccion: establecerSeccion,
     verHorario,
@@ -430,10 +578,11 @@ export default function useHorarios() {
     asignaciones: {
       lista: listaAsignaciones,
       estado: estadoHorario,
-      soloLectura: false,
-      agregarDeshabilitado: catalogos.docentes.length === 0,
+      soloLectura: !puedeEditarAsignaciones,
+      agregarDeshabilitado: catalogos.docentes.length === 0 || !puedeEditarAsignaciones,
       reintentar: () => establecerVersion((actual) => actual + 1),
       agregar: agregarAsignacion,
+      editar: editarAsignacion,
       quitar: quitarAsignacion
     },
     horario: {
@@ -443,7 +592,9 @@ export default function useHorarios() {
       ocupaciones,
       hayCambios,
       guardando,
-      asignarBloque,
+      soloLectura: !puedeEditarBloques,
+      asignarBloque: guardarBloque,
+      guardarBloque,
       quitarBloque,
       moverBloque,
       descartarCambios,

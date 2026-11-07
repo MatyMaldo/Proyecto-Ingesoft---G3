@@ -13,7 +13,6 @@ import DialogoEliminarAsignacion from '../components/DialogoEliminarAsignacion.j
 import FiltrosHorario from '../components/FiltrosHorario.jsx';
 import MatrizHorario from '../components/MatrizHorario.jsx';
 import TablaAsignaciones from '../components/TablaAsignaciones.jsx';
-import { FRANJAS } from '../constants/horarios.js';
 import useHorarios from '../hooks/useHorarios.js';
 import estilos from './PaginaHorarios.module.css';
 
@@ -34,6 +33,13 @@ export default function PaginaHorarios() {
     estadoSecciones,
     errorSecciones,
     reintentarCatalogos,
+    periodo,
+    estadoPeriodo,
+    errorPeriodo,
+    anioVigente,
+    puedeEditarAsignaciones,
+    puedeEditarBloques,
+    puedeGenerarSesiones,
     filtros,
     seleccionarGrado,
     seleccionarSeccion,
@@ -47,6 +53,7 @@ export default function PaginaHorarios() {
   } = useHorarios();
 
   const [dialogoAsignacion, establecerDialogoAsignacion] = useState(false);
+  const [asignacionAEditar, establecerAsignacionAEditar] = useState(null);
   const [asignacionAEliminar, establecerAsignacionAEliminar] = useState(null);
   const [bloqueElegido, establecerBloqueElegido] = useState(null);
   // 'cambiar' (otra sección) o 'descartar' (volver a lo guardado), cuando hay cambios sin guardar.
@@ -56,7 +63,6 @@ export default function PaginaHorarios() {
 
   const sinRelaciones = asignaciones.lista.length === 0;
   const sinBloquesGuardados = Object.keys(horario.bloquesGuardados).length === 0;
-  const franjaElegida = FRANJAS.find((franja) => franja.id === bloqueElegido?.franjaId);
 
   function solicitarVerHorario() {
     if (consulta && horario.hayCambios) {
@@ -67,8 +73,20 @@ export default function PaginaHorarios() {
   }
 
   async function guardarHorario() {
-    const error = await horario.guardar();
-    mostrarNotificacion(error ?? 'Horario guardado correctamente.', Boolean(error));
+    const { error, resumen } = await horario.guardar();
+    if (error) {
+      mostrarNotificacion(error, true);
+      return;
+    }
+    if (!resumen) {
+      mostrarNotificacion('Horario guardado correctamente.');
+      return;
+    }
+    mostrarNotificacion(
+      `Horario guardado. ${resumen.creados ?? 0} creados, `
+      + `${resumen.actualizados ?? 0} actualizados, `
+      + `${resumen.eliminados ?? 0} eliminados.`
+    );
   }
 
   function completarCargaMasiva({ bloquesCreados }) {
@@ -87,9 +105,26 @@ export default function PaginaHorarios() {
   async function agregarAsignacion(datos) {
     const error = await asignaciones.agregar(datos);
     if (!error) {
+      establecerDialogoAsignacion(false);
       mostrarNotificacion('Relación curso-docente agregada.');
     }
     return error;
+  }
+
+  async function editarAsignacion(datos) {
+    const error = await asignaciones.editar(asignacionAEditar.id, datos);
+    if (!error) {
+      establecerAsignacionAEditar(null);
+      mostrarNotificacion('Relación curso-docente actualizada.');
+    }
+    return error;
+  }
+
+  function moverBloque(origen, destino) {
+    const error = horario.moverBloque(origen, destino);
+    if (error) {
+      mostrarNotificacion(error, true);
+    }
   }
 
   async function eliminarAsignacion() {
@@ -109,6 +144,28 @@ export default function PaginaHorarios() {
           Elige el grado y la sección para definir sus cursos y docentes, y armar el horario semanal.
         </p>
       </header>
+
+      {estadoPeriodo === 'cargando' && (
+        <p className={estilos.periodoCargando}>Consultando el estado del periodo de matrícula…</p>
+      )}
+      {estadoPeriodo === 'error' && (
+        <p className={estilos.periodoError} role="alert">
+          {errorPeriodo} Las acciones de horario quedan deshabilitadas.
+        </p>
+      )}
+      {estadoPeriodo === 'listo' && periodo && (
+        <section className={estilos.periodo} aria-label="Estado del periodo de matrícula">
+          <div>
+            <p className={estilos.periodoEtiqueta}>Periodo de matrícula</p>
+            <p className={estilos.periodoEstado}>{periodo.estado}</p>
+          </div>
+          <p className={estilos.periodoDetalle}>
+            Asignaciones {puedeEditarAsignaciones ? 'abiertas' : 'cerradas'} ·{' '}
+            Bloques {puedeEditarBloques ? 'abiertos' : 'cerrados'} ·{' '}
+            Sesiones {puedeGenerarSesiones ? 'abiertas' : 'cerradas'}
+          </p>
+        </section>
+      )}
 
       {estadoCatalogos === 'error' ? (
         <EstadoConsulta
@@ -130,7 +187,12 @@ export default function PaginaHorarios() {
             <button
               type="button"
               className={estilos.botonCargaMasiva}
-              disabled={estadoCatalogos !== 'listo'}
+              disabled={estadoCatalogos !== 'listo' || !puedeEditarBloques}
+              title={
+                !puedeEditarBloques
+                  ? 'La carga masiva solo está disponible con el periodo en VIGENTE.'
+                  : undefined
+              }
               onClick={() => establecerDialogoCargaMasiva(true)}
             >
               <Icono nombre="subir" tamano={18} />
@@ -164,6 +226,7 @@ export default function PaginaHorarios() {
             agregarDeshabilitado={asignaciones.agregarDeshabilitado}
             alReintentar={asignaciones.reintentar}
             alAgregar={() => establecerDialogoAsignacion(true)}
+            alEditar={establecerAsignacionAEditar}
             alEliminar={establecerAsignacionAEliminar}
           />
 
@@ -197,22 +260,25 @@ export default function PaginaHorarios() {
                   aulas={catalogos.aulas}
                   ocupaciones={horario.ocupaciones}
                   deshabilitada={sinRelaciones}
-                  alElegirBloque={(dia, franjaId) => establecerBloqueElegido({ dia, franjaId })}
+                  soloLectura={horario.soloLectura}
+                  alElegirBloque={establecerBloqueElegido}
                   alQuitarBloque={horario.quitarBloque}
-                  alMoverBloque={horario.moverBloque}
+                  alMoverBloque={moverBloque}
                 />
 
                 <div className={estilos.pieMatriz}>
                   <button
                     type="button"
                     className={estilos.botonSesiones}
-                    disabled={sinBloquesGuardados || horario.hayCambios}
+                    disabled={sinBloquesGuardados || horario.hayCambios || !puedeGenerarSesiones}
                     title={
-                      horario.hayCambios
-                        ? 'Guarda el horario antes de generar sesiones.'
-                        : sinBloquesGuardados
-                          ? 'Asigna y guarda al menos un bloque para generar sesiones.'
-                          : undefined
+                      !puedeGenerarSesiones
+                        ? 'La generación de sesiones solo está disponible con el periodo FINALIZADO.'
+                        : horario.hayCambios
+                          ? 'Guarda el horario antes de generar sesiones.'
+                          : sinBloquesGuardados
+                            ? 'Asigna y guarda al menos un bloque para generar sesiones.'
+                            : undefined
                     }
                     onClick={() => establecerDialogoSesiones(true)}
                   >
@@ -233,7 +299,7 @@ export default function PaginaHorarios() {
                   <button
                     type="button"
                     className={estilos.botonGuardar}
-                    disabled={!horario.hayCambios || horario.guardando}
+                    disabled={!horario.hayCambios || horario.guardando || !puedeEditarBloques}
                     onClick={guardarHorario}
                   >
                     {horario.guardando ? 'Guardando…' : 'Guardar'}
@@ -245,13 +311,18 @@ export default function PaginaHorarios() {
         </>
       )}
 
-      {dialogoAsignacion && (
+      {(dialogoAsignacion || asignacionAEditar) && (
         <DialogoAsignacion
+          key={asignacionAEditar?.id ?? 'nueva-asignacion'}
           tituloSeccion={tituloConsulta}
           cursos={catalogos.cursos}
           docentes={catalogos.docentes}
-          alCancelar={() => establecerDialogoAsignacion(false)}
-          alGuardar={agregarAsignacion}
+          asignacion={asignacionAEditar}
+          alCancelar={() => {
+            establecerDialogoAsignacion(false);
+            establecerAsignacionAEditar(null);
+          }}
+          alGuardar={asignacionAEditar ? editarAsignacion : agregarAsignacion}
         />
       )}
 
@@ -263,20 +334,22 @@ export default function PaginaHorarios() {
         />
       )}
 
-      {bloqueElegido && franjaElegida && (
+      {bloqueElegido && (
         <DialogoBloque
-          key={`${bloqueElegido.dia}-${bloqueElegido.franjaId}`}
+          key={bloqueElegido.clave ?? `${bloqueElegido.dia}-${bloqueElegido.horaInicio}`}
           dia={bloqueElegido.dia}
-          franja={franjaElegida}
+          horaInicioInicial={bloqueElegido.horaInicio}
+          horaFinInicial={bloqueElegido.horaFin}
           asignaciones={asignaciones.lista}
           aulas={catalogos.aulas}
-          ocupaciones={horario.ocupaciones.filter(
-            (ocupacion) => ocupacion.dia === bloqueElegido.dia && ocupacion.franjaId === bloqueElegido.franjaId
-          )}
-          bloque={horario.bloques[`${bloqueElegido.dia}|${bloqueElegido.franjaId}`]}
+          ocupaciones={horario.ocupaciones}
+          bloque={bloqueElegido.bloque}
+          bloquesSeccion={Object.entries(horario.bloques)
+            .filter(([clave]) => clave !== bloqueElegido.clave)
+            .map(([, bloque]) => bloque)}
           alCancelar={() => establecerBloqueElegido(null)}
           alGuardar={(bloque) => {
-            horario.asignarBloque(bloqueElegido.dia, bloqueElegido.franjaId, bloque);
+            horario.guardarBloque({ clave: bloqueElegido.clave, bloque });
             establecerBloqueElegido(null);
           }}
         />
@@ -294,6 +367,7 @@ export default function PaginaHorarios() {
       {dialogoCargaMasiva && (
         <DialogoCargaMasiva
           anios={catalogos.anios}
+          anioIdInicial={anioVigente?.id}
           alCompletar={completarCargaMasiva}
           alCancelar={() => establecerDialogoCargaMasiva(false)}
         />

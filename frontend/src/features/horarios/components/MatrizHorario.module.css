@@ -92,17 +92,44 @@
   white-space: nowrap;
 }
 
+.etiquetaReceso {
+  display: block;
+  margin-top: var(--espacio-1);
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  color: var(--tono-ambar-texto);
+  text-transform: uppercase;
+  letter-spacing: var(--espaciado-letra-ancho);
+}
+
 .celda {
-  height: 6rem;
-  padding: var(--espacio-2);
+  position: relative;
+  height: 5.5rem;
+  padding: var(--espacio-1) var(--espacio-2);
   vertical-align: top;
   border-bottom: 1px solid var(--color-borde);
   border-left: 1px solid var(--color-borde);
 }
 
+.recessoCelda {
+  height: 2rem;
+  background: var(--tono-ambar-fondo);
+  vertical-align: middle;
+}
+
+.recessoTexto {
+  display: block;
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-align: center;
+  text-transform: uppercase;
+  color: var(--tono-ambar-texto);
+}
+
 .envoltura {
-  position: relative;
-  height: 100%;
+  position: absolute;
+  inset: var(--espacio-1) var(--espacio-2);
 }
 
 .vacio,
@@ -111,7 +138,7 @@
   flex-direction: column;
   width: 100%;
   height: 100%;
-  min-height: 5rem;
+  min-height: 3.5rem;
   border-radius: var(--radio-md);
 }
 
@@ -147,13 +174,15 @@
   text-align: left;
   color: var(--tono-texto);
   background: var(--tono-fondo);
-  border: 1px solid var(--tono-borde);
+  border: 2px solid var(--tono-borde);
+  box-shadow: inset 5px 0 0 var(--tono-borde), var(--sombra-sm);
   cursor: pointer;
-  transition: filter var(--transicion);
+  transition: filter var(--transicion), transform var(--transicion);
 }
 
 .bloque:hover {
-  filter: brightness(0.96);
+  filter: brightness(0.98);
+  transform: translateY(-1px);
 }
 
 .vacio:focus-visible,
@@ -226,8 +255,8 @@
   -webkit-line-clamp: 2;
   line-clamp: 2;
   font-size: var(--texto-md);
-  font-weight: var(--peso-seminegrita);
-  color: var(--color-texto);
+  font-weight: var(--peso-negrita);
+  color: var(--tono-texto);
   overflow-wrap: anywhere;
 }
 
@@ -240,7 +269,52 @@
   text-overflow: ellipsis;
   white-space: nowrap;
   font-size: var(--texto-xs);
-  color: var(--color-texto-secundario);
+  color: var(--tono-texto);
+  opacity: 0.88;
+}
+
+.estadoSesion {
+  display: inline-flex;
+  align-self: flex-start;
+  max-width: 100%;
+  padding: 2px var(--espacio-2);
+  overflow-wrap: anywhere;
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  line-height: 1.35;
+  white-space: normal;
+  border: 1px solid transparent;
+  border-radius: var(--radio-pildora);
+}
+
+.estadoProgramada {
+  color: var(--tono-azul-texto);
+  background: var(--tono-azul-fondo);
+  border-color: var(--tono-azul-borde);
+}
+
+.estadoRealizada {
+  color: var(--tono-verde-texto);
+  background: var(--tono-verde-fondo);
+  border-color: var(--tono-verde-borde);
+}
+
+.estadoCancelada {
+  color: var(--tono-rojo-texto);
+  background: var(--tono-rojo-fondo);
+  border-color: var(--tono-rojo-borde);
+}
+
+.estadoOmitida {
+  color: var(--tono-ambar-texto);
+  background: var(--tono-ambar-fondo);
+  border-color: var(--tono-ambar-borde);
+}
+
+.estadoNeutro {
+  color: var(--tono-gris-texto);
+  background: var(--tono-gris-fondo);
+  border-color: var(--tono-gris-borde);
 }
 
 /* Celda sobre la que se suelta un bloque arrastrado. */
@@ -266,15 +340,15 @@
   border-bottom: 1px solid var(--color-borde);
 }
 
-/* Tono por curso. */
-.tonoMarino { --tono-fondo: var(--tono-marino-fondo); --tono-borde: var(--tono-marino-borde); --tono-texto: var(--tono-marino-texto); }
-.tonoAcero { --tono-fondo: var(--tono-acero-fondo); --tono-borde: var(--tono-acero-borde); --tono-texto: var(--tono-acero-texto); }
-.tonoCiruela { --tono-fondo: var(--tono-ciruela-fondo); --tono-borde: var(--tono-ciruela-borde); --tono-texto: var(--tono-ciruela-texto); }
-.tonoTurquesa { --tono-fondo: var(--tono-turquesa-fondo); --tono-borde: var(--tono-turquesa-borde); --tono-texto: var(--tono-turquesa-texto); }
-.tonoIndigo { --tono-fondo: var(--tono-indigo-fondo); --tono-borde: var(--tono-indigo-borde); --tono-texto: var(--tono-indigo-texto); }
-.tonoCian { --tono-fondo: var(--tono-cian-fondo); --tono-borde: var(--tono-cian-borde); --tono-texto: var(--tono-cian-texto); }
-.tonoRosa { --tono-fondo: var(--tono-rosa-fondo); --tono-borde: var(--tono-rosa-borde); --tono-texto: var(--tono-rosa-texto); }
-.tonoVioleta { --tono-fondo: var(--tono-violeta-fondo); --tono-borde: var(--tono-violeta-borde); --tono-texto: var(--tono-violeta-texto); }
+/* Tono por curso: colores más contrastados para distinguir cada materia. */
+.tonoMarino { --tono-fondo: #DCE7FF; --tono-borde: #6E8FE8; --tono-texto: #14327A; }
+.tonoAcero { --tono-fondo: #DFF3FF; --tono-borde: #5BB8E8; --tono-texto: #0B4F6C; }
+.tonoCiruela { --tono-fondo: #F1E3FF; --tono-borde: #B57BEA; --tono-texto: #5B1C8A; }
+.tonoTurquesa { --tono-fondo: #D5FAF2; --tono-borde: #38C7AC; --tono-texto: #0C5F54; }
+.tonoIndigo { --tono-fondo: #E4E7FF; --tono-borde: #7C86E8; --tono-texto: #2F3A9E; }
+.tonoCian { --tono-fondo: #D8F8FD; --tono-borde: #35C2D9; --tono-texto: #0B5D6E; }
+.tonoRosa { --tono-fondo: #FFE2F1; --tono-borde: #EA72B4; --tono-texto: #8D1455; }
+.tonoVioleta { --tono-fondo: #EDE2FF; --tono-borde: #9C6BE0; --tono-texto: #4C1D95; }
 
 @media (max-width: 767px) {
   .pestanas {

@@ -2,33 +2,36 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, waitFor, fireEvent } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 
+import { fechaISO, lunesDeFecha } from '../utils/tiempo.js';
+
 const escenario = vi.hoisted(() => ({
-  abierta: false,
-  conBloques: false
+  abierta: false
 }));
+
+const lunes = fechaISO(lunesDeFecha(fechaISO(new Date())));
 
 vi.mock('../../../shared/auth/useAuth.js', () => ({
   default: () => ({
-    usuario: { rol: 'ADMINISTRADOR' }
+    usuario: { rol: 'ADMINISTRADOR', nombre: 'Admin' }
   })
 }));
 
 vi.mock('../services/visualizadoresService.js', () => ({
   horarioSeccion: vi.fn(async () => ({
     exitoso: true,
-    datos: {
-      estado: 'SIN_BLOQUES',
-      mensaje: 'Aún no se ha registrado un horario para esta sección',
-      bloques: escenario.conBloques ? [{
-        id: 1,
-        diaSemana: 'LUNES',
-        horaInicio: '08:00:00',
-        horaFin: '10:00:00',
-        cursoNombre: 'Matematicas',
-        docenteNombre: 'Juan Perez',
-        aulaNombre: 'Aula 101'
-      }] : []
-    }
+    datos: [{
+      id: 1,
+      fecha: lunes,
+      diaSemana: 'LUNES',
+      horaInicio: '08:00',
+      horaFin: '09:00',
+      cursoNombre: 'Matematicas',
+      docenteNombre: 'Juan Perez',
+      aulaNombre: 'Aula 101',
+      seccionNombre: 'A',
+      gradoNombre: 'Primer grado',
+      estado: 'PROGRAMADA'
+    }]
   })),
   horarioDocente: vi.fn(),
   miHorarioDocente: vi.fn(),
@@ -41,102 +44,67 @@ vi.mock('../services/visualizadoresService.js', () => ({
       gradoId: 1,
       gradoNombre: 'Primer grado',
       nombre: 'A',
+      anioAcademicoId: 2,
       anioAcademico: new Date().getFullYear()
     }]
   })),
+  listarDocentes: vi.fn(async () => ({ exitoso: true, datos: [] })),
+  listarMisEstudiantes: vi.fn(),
   listarAniosAcademicos: vi.fn(async () => ({
     exitoso: true,
-    datos: [{
-      anio: new Date().getFullYear(),
-      fechaInicio: '2000-01-01',
-      fechaFin: '2100-12-31'
-    }]
+    datos: [{ id: 2, anio: new Date().getFullYear() }]
   })),
-  listarDocentes: vi.fn(),
-  listarMisEstudiantes: vi.fn(),
-  consultarEstadoProgramacion: vi.fn(async () => ({
+  obtenerPeriodo: vi.fn(async () => ({
     exitoso: true,
     datos: {
-      seccionId: 3,
-      anioAcademico: new Date().getFullYear(),
-      programacionAbierta: escenario.abierta
+      anioAcademicoId: 2,
+      estado: escenario.abierta ? 'VIGENTE' : 'SIN_INICIAR',
+      asignacionCursoDocenteAbierta: false,
+      crudBloquesHorarioAbierta: escenario.abierta,
+      generacionSesionesAbierta: false
     }
   }))
 }));
 
 import PaginaVisualizadorHorario from './PaginaVisualizadorHorario.jsx';
-import { consultarEstadoProgramacion } from '../services/visualizadoresService.js';
+import { obtenerPeriodo } from '../services/visualizadoresService.js';
 
 async function seleccionarSeccion() {
-  const grado = await screen.findByLabelText(/Seleccionar grado/i);
+  await screen.findByRole('option', { name: 'Primer grado' });
+  const grado = screen.getByLabelText(/Grado/i);
   fireEvent.change(grado, { target: { value: '1' } });
 
-  const seccion = screen.getByLabelText(/Seleccionar sección/i);
+  await screen.findByRole('option', { name: /A \(/ });
+  const seccion = screen.getByLabelText(/Sección/i);
   fireEvent.change(seccion, { target: { value: '3' } });
 
   await waitFor(() => {
-    expect(consultarEstadoProgramacion).toHaveBeenCalledWith('3');
+    expect(obtenerPeriodo).toHaveBeenCalledWith(2);
   });
 }
 
 beforeEach(() => {
   escenario.abierta = false;
-  escenario.conBloques = false;
   vi.clearAllMocks();
 });
 
-describe('HU-GEMIH-03 - Navegacion al editor', () => {
-  it('oculta editar horario cuando la programacion esta cerrada', async () => {
+describe('HU-GEMIH-03 - Navegación al editor', () => {
+  it('oculta editar horario cuando la programación está cerrada', async () => {
     render(<PaginaVisualizadorHorario />);
     await seleccionarSeccion();
 
-    await screen.findByText(
-      'Aún no se ha registrado un horario para esta sección'
-    );
+    await screen.findByText('Matematicas');
 
-    expect(
-      screen.queryByRole('link', { name: 'Editar horario' })
-    ).not.toBeInTheDocument();
+    expect(screen.queryByRole('link', { name: 'Editar horario' })).not.toBeInTheDocument();
   });
 
-  it('muestra editar horario cuando la programacion esta abierta', async () => {
+  it('muestra editar horario cuando la programación está abierta', async () => {
     escenario.abierta = true;
 
     render(<PaginaVisualizadorHorario />);
     await seleccionarSeccion();
 
-    const enlace = await screen.findByRole('link', {
-      name: 'Editar horario'
-    });
-
-    expect(enlace).toHaveAttribute('href', '/horarios?grado=1&seccion=A');
-  });
-
-  it('permite navegar desde un bloque con programacion abierta', async () => {
-    escenario.abierta = true;
-    escenario.conBloques = true;
-
-    render(<PaginaVisualizadorHorario />);
-    await seleccionarSeccion();
-
-    const curso = await screen.findByText('Matematicas');
-
-    await waitFor(() => {
-      expect(curso.closest('a')).toHaveAttribute(
-        'href', '/horarios?grado=1&seccion=A'
-      );
-    });
-  });
-
-  it('mantiene los bloques en solo lectura cuando esta cerrada', async () => {
-    escenario.abierta = false;
-    escenario.conBloques = true;
-
-    render(<PaginaVisualizadorHorario />);
-    await seleccionarSeccion();
-
-    const curso = await screen.findByText('Matematicas');
-
-    expect(curso.closest('a')).toBeNull();
+    const enlace = await screen.findByRole('link', { name: 'Editar horario' });
+    expect(enlace).toHaveAttribute('href', '/horarios?anio=2&grado=1&seccion=3');
   });
 });

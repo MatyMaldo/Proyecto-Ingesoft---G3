@@ -1,9 +1,9 @@
-import { DIAS, FRANJAS } from '../../constants/horarios.js';
+import { DIAS } from '../../constants/horarios.js';
 
 // TODO(backend): datos ficticios. Eliminar al integrar los endpoints de horarios.
 //
 // Una "asignación" es la relación Curso–Docente–Sección (en el backend, AsignacionCurso).
-// Un bloque del horario referencia una asignación, un día, una franja y un aula.
+// Un bloque del horario referencia una asignación, un día, un rango de horas y un aula.
 
 const LATENCIA_MS = 300;
 
@@ -14,11 +14,12 @@ const GRADOS = [
   { id: '4', nombre: '4to Secundaria' },
   { id: '5', nombre: '5to Secundaria' }
 ];
+
 const SECCIONES = ['A', 'B', 'C'].map((nombre) => ({
   id: nombre,
   nombre,
   gradoId: '4',
-  anioAcademicoId: '1',
+  anioAcademicoId: '2',
   anioAcademico: 2026
 }));
 
@@ -50,14 +51,7 @@ const AULAS = [
   { id: 'AUL-GIM', nombre: 'Gimnasio' }
 ];
 
-const BIMESTRES = [
-  { id: 'B1', nombre: 'I Bimestre', inicio: '2026-03-09', fin: '2026-05-08' },
-  { id: 'B2', nombre: 'II Bimestre', inicio: '2026-05-18', fin: '2026-07-17' },
-  { id: 'B3', nombre: 'III Bimestre', inicio: '2026-08-03', fin: '2026-10-02' },
-  { id: 'B4', nombre: 'IV Bimestre', inicio: '2026-10-12', fin: '2026-12-18' }
-];
-
-const nombreDe = (lista, id) => lista.find((elemento) => elemento.id === id)?.nombre ?? id;
+const ANIO = { id: '2', anio: 2026, fechaInicio: '2026-03-02', fechaFin: '2026-12-18' };
 
 let siguienteId = 100;
 
@@ -78,34 +72,24 @@ let asignaciones = [
   docenteId
 }));
 
-// Otra sección (4to A) que ya ocupa a dos docentes de 4to B en ciertos bloques.
 asignaciones.push(
   { id: 'ASG-A1', gradoId: '4', seccion: 'A', cursoId: 'CUR-0001', docenteId: 'DOC-01' },
   { id: 'ASG-A2', gradoId: '4', seccion: 'A', cursoId: 'CUR-0003', docenteId: 'DOC-03' }
 );
 
 let bloques = [
-  ['LUNES', 'F1', 'ASG-1', 'AUL-201'],
-  ['MIERCOLES', 'F1', 'ASG-3', 'AUL-LAB'],
-  ['VIERNES', 'F1', 'ASG-7', 'AUL-GIM'],
-  ['MARTES', 'F2', 'ASG-2', 'AUL-202'],
-  ['JUEVES', 'F2', 'ASG-6', 'AUL-TAL'],
-  ['LUNES', 'F3', 'ASG-4', 'AUL-202'],
-  ['MIERCOLES', 'F3', 'ASG-1', 'AUL-201'],
-  ['MARTES', 'F4', 'ASG-5', 'AUL-TAL'],
-  ['VIERNES', 'F4', 'ASG-8', 'AUL-202']
-].map(([dia, franjaId, asignacionId, aulaId]) => ({
-  gradoId: '4',
-  seccion: 'B',
-  dia,
-  franjaId,
-  asignacionId,
-  aulaId
-}));
+  // Bloque de dos horas: la matriz debe mostrarlo completo.
+  { id: 'BLQ-1', gradoId: '4', seccion: 'B', dia: 'LUNES', horaInicio: '08:00', horaFin: '10:00', asignacionId: 'ASG-1', aulaId: 'AUL-201' },
+  { id: 'BLQ-2', gradoId: '4', seccion: 'B', dia: 'LUNES', horaInicio: '10:00', horaFin: '11:00', asignacionId: 'ASG-2', aulaId: 'AUL-202' },
+  { id: 'BLQ-3', gradoId: '4', seccion: 'B', dia: 'MARTES', horaInicio: '09:00', horaFin: '10:00', asignacionId: 'ASG-3', aulaId: 'AUL-LAB' },
+  { id: 'BLQ-4', gradoId: '4', seccion: 'B', dia: 'MIERCOLES', horaInicio: '11:30', horaFin: '13:30', asignacionId: 'ASG-4', aulaId: 'AUL-TAL' },
+  { id: 'BLQ-5', gradoId: '4', seccion: 'B', dia: 'JUEVES', horaInicio: '08:00', horaFin: '09:00', asignacionId: 'ASG-5', aulaId: 'AUL-202' },
+  { id: 'BLQ-6', gradoId: '4', seccion: 'B', dia: 'VIERNES', horaInicio: '12:30', horaFin: '13:30', asignacionId: 'ASG-6', aulaId: 'AUL-201' }
+];
 
 bloques.push(
-  { gradoId: '4', seccion: 'A', dia: 'LUNES', franjaId: 'F2', asignacionId: 'ASG-A1', aulaId: 'AUL-201' },
-  { gradoId: '4', seccion: 'A', dia: 'MARTES', franjaId: 'F1', asignacionId: 'ASG-A2', aulaId: 'AUL-LAB' }
+  { id: 'BLQ-A1', gradoId: '4', seccion: 'A', dia: 'LUNES', horaInicio: '10:00', horaFin: '11:00', asignacionId: 'ASG-A1', aulaId: 'AUL-201' },
+  { id: 'BLQ-A2', gradoId: '4', seccion: 'A', dia: 'MARTES', horaInicio: '08:00', horaFin: '09:00', asignacionId: 'ASG-A2', aulaId: 'AUL-LAB' }
 );
 
 function esperar() {
@@ -122,11 +106,23 @@ function fallo(mensaje) {
   return { exitoso: false, datos: null, mensaje };
 }
 
+function nombreDe(lista, id) {
+  return lista.find((elemento) => elemento.id === id)?.nombre ?? id;
+}
+
 function vista(asignacion) {
   return {
     ...asignacion,
     cursoNombre: nombreDe(CURSOS, asignacion.cursoId),
     docenteNombre: nombreDe(DOCENTES, asignacion.docenteId)
+  };
+}
+
+function bloqueVista(bloque) {
+  return {
+    ...bloque,
+    asignacionCursoId: bloque.asignacionId,
+    diaSemana: bloque.dia
   };
 }
 
@@ -141,8 +137,8 @@ export async function consultarCatalogosMock() {
     cursos: CURSOS,
     docentes: DOCENTES,
     aulas: AULAS,
-    anios: [{ id: '1', anio: 2026, fechaInicio: '2026-01-01', fechaFin: '2026-12-31' }],
-    bimestres: BIMESTRES
+    anios: [ANIO],
+    bimestres: []
   });
 }
 
@@ -154,7 +150,9 @@ export async function listarAsignacionesMock({ gradoId, seccion }) {
 export async function crearAsignacionMock({ gradoId, seccion, cursoId, docenteId }) {
   await esperar();
   const repetida = asignaciones.some(
-    (a) => delSeccion(gradoId, seccion)(a) && a.cursoId === cursoId && a.docenteId === docenteId
+    (asignacion) => delSeccion(gradoId, seccion)(asignacion)
+      && asignacion.cursoId === cursoId
+      && asignacion.docenteId === docenteId
   );
   if (repetida) {
     return fallo('Esa relación curso-docente ya existe en esta sección.');
@@ -177,28 +175,29 @@ export async function actualizarAsignacionMock(idAsignacion, { cursoId, docenteI
 
 export async function eliminarAsignacionMock(idAsignacion) {
   await esperar();
-  asignaciones = asignaciones.filter((a) => a.id !== idAsignacion);
-  bloques = bloques.filter((b) => b.asignacionId !== idAsignacion);
+  asignaciones = asignaciones.filter((asignacion) => asignacion.id !== idAsignacion);
+  bloques = bloques.filter((bloque) => bloque.asignacionId !== idAsignacion);
   return ok(null);
 }
 
 export async function obtenerHorarioMock({ gradoId, seccion }) {
   await esperar();
-  return ok(bloques.filter(delSeccion(gradoId, seccion)));
+  return ok(bloques.filter(delSeccion(gradoId, seccion)).map(bloqueVista));
 }
 
 export async function listarOcupacionesMock({ gradoId, seccion }) {
   await esperar();
-  const otras = bloques.filter((b) => !delSeccion(gradoId, seccion)(b));
+  const otras = bloques.filter((bloque) => !delSeccion(gradoId, seccion)(bloque));
   return ok(
-    otras.map((b) => {
-      const asignacion = asignaciones.find((a) => a.id === b.asignacionId);
+    otras.map((bloque) => {
+      const asignacion = asignaciones.find((elemento) => elemento.id === bloque.asignacionId);
       return {
-        dia: b.dia,
-        franjaId: b.franjaId,
+        dia: bloque.dia,
+        horaInicio: bloque.horaInicio,
+        horaFin: bloque.horaFin,
         docenteId: asignacion?.docenteId,
-        aulaId: b.aulaId,
-        seccionNombre: `${nombreDe(GRADOS, b.gradoId)} ${b.seccion}`
+        aulaId: bloque.aulaId,
+        seccionNombre: `${nombreDe(GRADOS, bloque.gradoId)} ${bloque.seccion}`
       };
     })
   );
@@ -206,100 +205,66 @@ export async function listarOcupacionesMock({ gradoId, seccion }) {
 
 export async function guardarHorarioMock({ gradoId, seccion, bloques: nuevos }) {
   await esperar();
-  bloques = [
-    ...bloques.filter((b) => !delSeccion(gradoId, seccion)(b)),
-    ...nuevos.map((b) => ({ ...b, gradoId, seccion }))
-  ];
-  return ok(nuevos);
-}
-
-// Sesiones generadas: se guardan por sección y bimestre.
-const sesionesGeneradas = new Map();
-const sesionesContrato = new Map();
-const claveSesiones = ({ gradoId, seccion, bimestreId }) => `${gradoId}|${seccion}|${bimestreId}`;
-
-/** Huella de los bloques actuales de la sección; si cambia después de generar, las sesiones quedan desactualizadas. */
-function firmaBloques({ gradoId, seccion }) {
-  return JSON.stringify(
-    bloques
-      .filter(delSeccion(gradoId, seccion))
-      .map((b) => `${b.dia}|${b.franjaId}|${b.asignacionId}|${b.aulaId}`)
-      .sort()
+  const previos = bloques.filter(delSeccion(gradoId, seccion));
+  const idsPrevios = new Set(previos.map((bloque) => String(bloque.id)));
+  const idsNuevos = new Set(
+    nuevos.filter((bloque) => bloque.id != null).map((bloque) => String(bloque.id))
   );
-}
+  const creados = nuevos.filter(
+    (bloque) => bloque.id == null || !idsPrevios.has(String(bloque.id))
+  ).length;
+  const actualizados = nuevos.filter(
+    (bloque) => bloque.id != null && idsPrevios.has(String(bloque.id))
+  ).length;
+  const eliminados = previos.filter(
+    (bloque) => !idsNuevos.has(String(bloque.id))
+  ).length;
 
-function respuestaSesiones(consulta) {
-  const guardado = sesionesGeneradas.get(claveSesiones(consulta));
+  const guardados = nuevos.map((bloque) => ({
+    ...bloque,
+    id: bloque.id ?? `BLQ-${siguienteId++}`,
+    gradoId,
+    seccion
+  }));
+  bloques = [
+    ...bloques.filter((bloque) => !delSeccion(gradoId, seccion)(bloque)),
+    ...guardados
+  ];
+
   return ok({
-    sesiones: guardado?.sesiones ?? [],
-    desactualizada: guardado ? guardado.firma !== firmaBloques(consulta) : false
+    bloques: guardados.map(bloqueVista),
+    creados,
+    actualizados,
+    eliminados
   });
 }
 
-export async function listarSesionesMock(consulta) {
+export async function guardarBloquesLoteMock({ seccionId, bloques: nuevos }) {
   await esperar();
-  return respuestaSesiones(consulta);
-}
-
-/** Crea una sesión por cada bloque guardado y cada fecha del bimestre que cae en su día de la semana. */
-export async function generarSesionesMock(consulta) {
-  await esperar();
-  const bimestre = BIMESTRES.find((b) => b.id === consulta.bimestreId);
-  if (!bimestre) {
-    return fallo('El bimestre indicado no existe.');
-  }
-  const delaSeccion = bloques.filter(delSeccion(consulta.gradoId, consulta.seccion));
-  if (delaSeccion.length === 0) {
-    return fallo('La sección no tiene bloques guardados en el horario.');
-  }
-
-  // Lo ya marcado como no disponible se conserva al regenerar.
-  const previas = sesionesGeneradas.get(claveSesiones(consulta))?.sesiones ?? [];
-  const noDisponibles = new Set(previas.filter((s) => !s.disponible).map((s) => `${s.fecha}|${s.franjaId}`));
-
-  const nuevas = [];
-  const fin = new Date(`${bimestre.fin}T00:00:00Z`);
-  for (let fecha = new Date(`${bimestre.inicio}T00:00:00Z`); fecha <= fin; fecha.setUTCDate(fecha.getUTCDate() + 1)) {
-    const dia = DIAS[fecha.getUTCDay() - 1];
-    if (!dia) {
-      continue;
-    }
-    const iso = fecha.toISOString().slice(0, 10);
-    delaSeccion
-      .filter((bloque) => bloque.dia === dia.id)
-      .forEach((bloque) => {
-        const franja = FRANJAS.find((f) => f.id === bloque.franjaId);
-        const asignacion = asignaciones.find((a) => a.id === bloque.asignacionId);
-        nuevas.push({
-          id: `SES-${iso}-${bloque.franjaId}`,
-          fecha: iso,
-          dia: dia.id,
-          franjaId: bloque.franjaId,
-          inicio: franja.inicio,
-          fin: franja.fin,
-          cursoNombre: nombreDe(CURSOS, asignacion.cursoId),
-          docenteNombre: nombreDe(DOCENTES, asignacion.docenteId),
-          aulaNombre: nombreDe(AULAS, bloque.aulaId),
-          disponible: !noDisponibles.has(`${iso}|${bloque.franjaId}`)
-        });
-      });
-  }
-  nuevas.sort((a, b) => a.fecha.localeCompare(b.fecha) || a.inicio.localeCompare(b.inicio));
-  sesionesGeneradas.set(claveSesiones(consulta), { sesiones: nuevas, firma: firmaBloques(consulta) });
-  return respuestaSesiones(consulta);
-}
-
-export async function guardarDisponibilidadSesionesMock({ cambios, ...consulta }) {
-  await esperar();
-  const actuales = sesionesGeneradas.get(claveSesiones(consulta));
-  const porId = new Map(cambios.map((c) => [c.id, c.disponible]));
-  if (actuales) {
-    sesionesGeneradas.set(claveSesiones(consulta), {
-      ...actuales,
-      sesiones: actuales.sesiones.map((s) => (porId.has(s.id) ? { ...s, disponible: porId.get(s.id) } : s))
-    });
-  }
+  bloques = [
+    ...bloques.filter((bloque) => String(bloque.seccion) !== String(seccionId)),
+    ...nuevos.map((bloque) => ({
+      ...bloque,
+      id: bloque.id ?? `BLQ-${siguienteId++}`,
+      seccion: seccionId
+    }))
+  ];
   return ok(null);
+}
+
+export async function obtenerPeriodoMatriculaMock(anioId) {
+  await esperar();
+  return ok({
+    periodoId: 1,
+    anioAcademicoId: anioId,
+    anio: 2026,
+    fechaInicio: '2026-10-01',
+    fechaFin: '2027-03-01',
+    estado: 'VIGENTE',
+    asignacionCursoDocenteAbierta: false,
+    crudBloquesHorarioAbierta: true,
+    generacionSesionesAbierta: false
+  });
 }
 
 function fechasEntre(inicio, fin) {
@@ -322,16 +287,20 @@ function crearVistaPreviaContrato({ gradoId, seccion, fechaInicio, fechaFin }) {
     if (!dia) return;
     const iso = fecha.toISOString().slice(0, 10);
     bloquesSeccion.filter((bloque) => bloque.dia === dia.id).forEach((bloque) => {
-      const franja = FRANJAS.find((elemento) => elemento.id === bloque.franjaId);
       const asignacion = asignaciones.find((elemento) => elemento.id === bloque.asignacionId);
       sesiones.push({
+        bloqueHorarioId: bloque.id,
         fecha: iso,
-        horaInicio: franja?.inicio,
-        horaFin: franja?.fin,
+        horaInicio: bloque.horaInicio,
+        horaFin: bloque.horaFin,
         diaSemana: dia.id,
+        aulaId: bloque.aulaId,
+        aulaNombre: nombreDe(AULAS, bloque.aulaId),
+        cursoId: asignacion?.cursoId,
         cursoNombre: nombreDe(CURSOS, asignacion?.cursoId),
+        docenteId: asignacion?.docenteId,
         docenteNombre: nombreDe(DOCENTES, asignacion?.docenteId),
-        aulaNombre: nombreDe(AULAS, bloque.aulaId)
+        yaExiste: false
       });
     });
   });
@@ -344,19 +313,22 @@ export async function previsualizarSesionesContratoMock(datos) {
   return ok({ sesiones, total: sesiones.length });
 }
 
+const sesionesContrato = new Map();
+
 export async function generarSesionesContratoMock(datos) {
   await esperar();
   const preview = crearVistaPreviaContrato(datos);
-  const omisiones = new Map((datos.sesionesOmitidas ?? []).map(({ fecha, motivo }) => [fecha, motivo]));
+  const omisiones = new Set(
+    (datos.sesionesOmitidas ?? []).map(({ bloqueHorarioId, fecha }) => `${bloqueHorarioId}|${fecha}`)
+  );
   const generadas = preview
-    .filter((sesion) => !omisiones.has(sesion.fecha))
+    .filter((sesion) => !omisiones.has(`${sesion.bloqueHorarioId}|${sesion.fecha}`))
     .map((sesion, indice) => ({
       ...sesion,
       id: `${sesion.fecha}-${indice + 1}`,
-      estado: 'PROGRAMADA',
-      bloqueHorarioId: null
+      estado: 'PROGRAMADA'
     }));
-  const sesionesOmitidas = preview.filter((sesion) => omisiones.has(sesion.fecha)).length;
+  const sesionesOmitidas = preview.length - generadas.length;
   const clave = `${datos.seccionId}|${datos.fechaInicio}|${datos.fechaFin}`;
   sesionesContrato.set(clave, generadas);
   return ok({ sesionesCreadas: generadas.length, sesionesOmitidas });

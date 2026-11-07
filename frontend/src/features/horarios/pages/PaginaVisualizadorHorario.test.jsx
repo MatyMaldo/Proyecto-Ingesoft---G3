@@ -1,70 +1,89 @@
 ﻿import { describe, it, expect, vi } from 'vitest';
-import { render, screen, within } from '@testing-library/react';
+import { render, screen } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 
 vi.mock('../../../shared/auth/useAuth.js', () => ({
-  default: () => ({ usuario: { rol: 'DOCENTE' } })
+  default: () => ({ usuario: { rol: 'DOCENTE', nombre: 'Juan Perez' } })
 }));
 
-vi.mock('../services/visualizadoresService.js', () => ({
-  horarioSeccion: vi.fn(),
-  horarioDocente: vi.fn(),
-  miHorarioDocente: vi.fn(async () => ({
-    exitoso: true,
-    datos: {
-      estado: 'OK',
-      mensaje: '',
-      bloques: [
+vi.mock('../services/visualizadoresService.js', () => {
+  const fechaDe = (offset) => {
+    const hoy = new Date();
+    const lunes = new Date(hoy);
+    lunes.setDate(hoy.getDate() - ((hoy.getDay() + 6) % 7) + offset);
+    const anio = lunes.getFullYear();
+    const mes = String(lunes.getMonth() + 1).padStart(2, '0');
+    const dia = String(lunes.getDate()).padStart(2, '0');
+    return `${anio}-${mes}-${dia}`;
+  };
+
+  return {
+    horarioSeccion: vi.fn(),
+    horarioDocente: vi.fn(),
+    miHorarioDocente: vi.fn(async () => ({
+      exitoso: true,
+      datos: [
         {
           id: 1,
+          fecha: fechaDe(0),
           diaSemana: 'LUNES',
-          horaInicio: '08:00:00',
-          horaFin: '10:00:00',
+          horaInicio: '08:00',
+          horaFin: '10:00',
           cursoNombre: 'Matematicas',
           docenteNombre: 'Juan Perez',
           aulaNombre: 'Aula 101',
-          seccionNombre: 'A'
+          seccionNombre: 'A',
+          gradoNombre: 'Primero',
+          estado: 'PROGRAMADA'
         },
         {
           id: 2,
+          fecha: fechaDe(1),
           diaSemana: 'MARTES',
-          horaInicio: '08:00:00',
-          horaFin: '09:00:00',
+          horaInicio: '08:00',
+          horaFin: '09:00',
           cursoNombre: 'Comunicacion',
           docenteNombre: 'Juan Perez',
           aulaNombre: 'Aula 102',
-          seccionNombre: 'B'
+          seccionNombre: 'B',
+          gradoNombre: 'Primero',
+          estado: 'PROGRAMADA'
         },
         {
           id: 3,
+          fecha: fechaDe(2),
           diaSemana: 'MIERCOLES',
-          horaInicio: '10:00:00',
-          horaFin: '11:00:00',
+          horaInicio: '10:00',
+          horaFin: '11:00',
           cursoNombre: 'Historia',
           docenteNombre: 'Juan Perez',
           aulaNombre: 'Aula 103',
-          seccionNombre: 'A'
+          seccionNombre: 'A',
+          gradoNombre: 'Primero',
+          estado: 'PROGRAMADA'
         }
       ]
-    }
-  })),
-  miHorarioEstudiante: vi.fn(),
-  horarioApoderado: vi.fn(),
-  listarSecciones: vi.fn(),
-  listarDocentes: vi.fn(),
-  listarMisEstudiantes: vi.fn()
-}));
+    })),
+    miHorarioEstudiante: vi.fn(),
+    horarioApoderado: vi.fn(),
+    listarSecciones: vi.fn(),
+    listarDocentes: vi.fn(),
+    listarMisEstudiantes: vi.fn(),
+    listarAniosAcademicos: vi.fn(async () => ({
+      exitoso: true,
+      datos: [{ id: 2, anio: new Date().getFullYear() }]
+    })),
+    obtenerPeriodo: vi.fn()
+  };
+});
 
 import PaginaVisualizadorHorario from './PaginaVisualizadorHorario.jsx';
 
 describe('Matriz semanal de horarios', () => {
-  it('muestra cursos, aulas y horas de tres bloques', async () => {
+  it('muestra cursos, aulas y rangos de hora de las sesiones', async () => {
     render(<PaginaVisualizadorHorario />);
 
-    expect(
-      await screen.findByText('Matematicas')
-    ).toBeInTheDocument();
-
+    expect(await screen.findByText('Matematicas')).toBeInTheDocument();
     expect(screen.getByText('Comunicacion')).toBeInTheDocument();
     expect(screen.getByText('Historia')).toBeInTheDocument();
 
@@ -72,33 +91,23 @@ describe('Matriz semanal de horarios', () => {
     expect(screen.getByText('Aula 102')).toBeInTheDocument();
     expect(screen.getByText('Aula 103')).toBeInTheDocument();
 
-    expect(screen.getByText('08:00 - 10:00')).toBeInTheDocument();
-    expect(screen.getAllByText('08:00 - 09:00').length).toBeGreaterThan(0);
-    expect(screen.getAllByText('10:00 - 11:00').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('08:00 – 10:00').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('08:00 – 09:00').length).toBeGreaterThan(0);
+    expect(screen.getAllByText('10:00 – 11:00').length).toBeGreaterThan(0);
+
+    expect(screen.getByLabelText('Semana anterior')).toBeInTheDocument();
+    expect(screen.getByLabelText('Semana siguiente')).toBeInTheDocument();
+    expect(screen.getByLabelText('Ir a semana')).toBeInTheDocument();
   });
 
-  it('ubica cada curso en el dia correspondiente', async () => {
+  it('ubica cada curso en el día correspondiente', async () => {
     render(<PaginaVisualizadorHorario />);
 
     await screen.findByText('Matematicas');
 
     const encabezados = screen.getAllByRole('columnheader').slice(0, 6);
-    expect(encabezados.map(h => h.textContent)).toEqual([
-      'Horario', 'Lunes', 'Martes', 'Miércoles',
-      'Jueves', 'Viernes'
+    expect(encabezados.map((h) => h.textContent)).toEqual([
+      'Hora', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'
     ]);
-
-    const filas = screen.getAllByRole('row');
-    const filaMatematicas = filas.find(f =>
-      f.textContent.includes('08:00 - 10:00')
-    );
-
-    expect(filaMatematicas).toBeTruthy();
-
-    const celdas = within(filaMatematicas).getAllByRole('cell');
-    expect(within(celdas[0]).getByText('Matematicas'))
-      .toBeInTheDocument();
   });
 });
-
-

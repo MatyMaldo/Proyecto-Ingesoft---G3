@@ -326,3 +326,177 @@
   outline: 2px solid var(--color-foco);
   outline-offset: 2px;
 }
+
+.accionesMeses {
+  display: flex;
+  flex: 0 0 auto;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+}
+
+.ayudaOmitir {
+  margin: 0;
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}
+
+.botonesMeses {
+  display: flex;
+  gap: var(--espacio-2);
+}
+
+.grupoMes {
+  flex: 0 0 auto;
+  overflow: hidden;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+}
+
+.cabeceraMes {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  min-height: var(--tactil-min);
+  padding: var(--espacio-3) var(--espacio-4);
+  font: inherit;
+  text-align: left;
+  color: var(--color-texto);
+  background: var(--color-superficie-suave);
+  border: 0;
+  cursor: pointer;
+}
+
+.cabeceraMes:hover {
+  background: var(--color-superficie);
+}
+
+.cabeceraMes:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: -2px;
+}
+
+.tituloMes {
+  font-size: var(--texto-lg);
+  font-weight: var(--peso-seminegrita);
+  text-transform: capitalize;
+}
+
+.metaMes {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}
+
+.contenidoMes {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: var(--espacio-4);
+  padding: var(--espacio-4);
+}
+
+.grupoSemana {
+  display: flex;
+  flex: 0 0 auto;
+  flex-direction: column;
+  gap: var(--espacio-2);
+}
+
+.cabeceraSemana {
+  margin: 0;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto-secundario);
+}
+
+.grupoFecha {
+  flex: 0 0 auto;
+  padding: var(--espacio-3);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+}
+
+.cabeceraFecha {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  margin-bottom: var(--espacio-2);
+}
+
+.fecha {
+  margin: 0;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+}
+
+.botonOmitirFecha {
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-4);
+  font: inherit;
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-seminegrita);
+  color: var(--tono-ambar-texto);
+  background: var(--tono-ambar-fondo);
+  border: 1px solid var(--tono-ambar-borde);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.botonOmitirFecha:hover {
+  filter: brightness(0.97);
+}
+
+.botonOmitirFecha:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.columnaOmitir {
+  width: 1%;
+  text-align: right;
+  white-space: nowrap;
+}
+
+.omitirEtiqueta {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  padding: 4px var(--espacio-3);
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-seminegrita);
+  color: var(--tono-ambar-texto);
+  background: var(--tono-ambar-fondo);
+  border: 1px solid var(--tono-ambar-borde);
+  border-radius: var(--radio-pildora);
+  cursor: pointer;
+}
+
+.omitirEtiqueta:focus-within {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.casillaOmitir {
+  width: 1.1rem;
+  height: 1.1rem;
+  margin: 0;
+  accent-color: var(--tono-ambar-texto);
+  cursor: pointer;
+}
+
+.filaOmitida td {
+  background: var(--tono-ambar-fondo);
+}
+
+.estadoOmitida {
+  font-weight: var(--peso-seminegrita);
+  color: var(--tono-ambar-texto);
+}

@@ -32,6 +32,56 @@
   color: var(--color-texto-suave);
 }
 
+.periodo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  padding: var(--espacio-3) var(--espacio-4);
+  background: var(--color-superficie-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+}
+
+.periodoEtiqueta {
+  margin: 0;
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+.periodoEstado {
+  margin: var(--espacio-1) 0 0;
+  font-size: var(--texto-lg);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+}
+
+.periodoDetalle {
+  margin: 0;
+  font-size: var(--texto-md);
+  color: var(--color-texto-secundario);
+}
+
+.periodoCargando {
+  margin: 0;
+  font-size: var(--texto-md);
+  color: var(--color-texto-suave);
+}
+
+.periodoError {
+  margin: 0;
+  padding: var(--espacio-3) var(--espacio-4);
+  font-size: var(--texto-md);
+  color: var(--color-peligro-texto);
+  background: var(--color-peligro-fondo);
+  border: 1px solid var(--color-peligro-texto);
+  border-radius: var(--radio-md);
+}
+
 .seccionMatriz {
   display: flex;
   flex-direction: column;

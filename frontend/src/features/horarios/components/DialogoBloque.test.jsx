@@ -26,7 +26,8 @@ function renderDialogo(props = {}) {
   render(
     <DialogoBloque
       dia="LUNES"
-      franja={{ id: 'F1', inicio: '08:00', fin: '09:00' }}
+      horaInicioInicial="08:00"
+      horaFinInicial="10:00"
       asignaciones={asignaciones}
       aulas={[{ id: 31, nombre: 'Aula 101' }]}
       ocupaciones={[]}
@@ -39,7 +40,7 @@ function renderDialogo(props = {}) {
 }
 
 describe('DialogoBloque · asignación curso-docente', () => {
-  it('rellena el docente y guarda la asignación existente al elegir el curso', () => {
+  it('rellena el docente y guarda el rango de horas del bloque', () => {
     const alGuardar = renderDialogo();
 
     fireEvent.change(screen.getByLabelText(/Curso asignado/), { target: { value: '22' } });
@@ -50,17 +51,43 @@ describe('DialogoBloque · asignación curso-docente', () => {
     expect(screen.getByRole('option', { name: 'Prof. Quispe' })).toBeInTheDocument();
 
     fireEvent.change(screen.getByLabelText(/Aula/), { target: { value: '31' } });
-    fireEvent.click(screen.getByRole('button', { name: 'Guardar cambios' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar bloque' }));
 
-    expect(alGuardar).toHaveBeenCalledWith({ asignacionId: 22, aulaId: '31' });
+    expect(alGuardar).toHaveBeenCalledWith({
+      dia: 'LUNES',
+      asignacionId: 22,
+      aulaId: '31',
+      horaInicio: '08:00',
+      horaFin: '10:00'
+    });
   });
 
   it('recupera la asignación actual aunque los IDs lleguen con tipos distintos', () => {
     renderDialogo({
-      bloque: { asignacionId: '21', aulaId: '31' }
+      bloque: {
+        id: 5,
+        asignacionId: '21',
+        aulaId: '31',
+        horaInicio: '08:00',
+        horaFin: '09:00'
+      }
     });
 
     expect(screen.getByLabelText(/Curso asignado/)).toHaveValue('21');
     expect(screen.getByLabelText('Docente')).toHaveValue('9');
+    expect(screen.getByRole('button', { name: 'Guardar cambios' })).toBeInTheDocument();
+  });
+
+  it('rechaza un bloque que cruza el recreo', () => {
+    const alGuardar = renderDialogo({ horaFinInicial: '11:30' });
+
+    fireEvent.change(screen.getByLabelText(/Curso asignado/), { target: { value: '21' } });
+    fireEvent.change(screen.getByLabelText(/Aula/), { target: { value: '31' } });
+    fireEvent.change(screen.getByLabelText('Hora de inicio'), { target: { value: '10:30' } });
+    fireEvent.change(screen.getByLabelText('Hora de fin'), { target: { value: '11:30' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Agregar bloque' }));
+
+    expect(screen.getByText(/no puede ocupar el recreo/i)).toBeInTheDocument();
+    expect(alGuardar).not.toHaveBeenCalled();
   });
 });

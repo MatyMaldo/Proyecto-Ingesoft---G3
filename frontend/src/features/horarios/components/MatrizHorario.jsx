@@ -1,7 +1,14 @@
 import { useState } from 'react';
 
 import Icono from '../../../shared/components/Icono.jsx';
-import { DIAS, FRANJAS, claveBloque } from '../constants/horarios.js';
+import { DIAS } from '../constants/horarios.js';
+import {
+  aMinutos,
+  bloqueCruzaReceso,
+  construirEjeTemporal,
+  finSugerido,
+  seSolapan
+} from '../utils/tiempo.js';
 import estilos from './MatrizHorario.module.css';
 
 /** Tonos neutros de módulo (verde, ámbar y rojo quedan reservados para estados de negocio). */
@@ -16,25 +23,27 @@ const CLASES_TONO_CURSO = [
   estilos.tonoVioleta
 ];
 
+function indiceTono(valor) {
+  const texto = String(valor ?? '');
+  let hash = 0;
+  for (let indice = 0; indice < texto.length; indice += 1) {
+    hash = (hash * 31 + texto.charCodeAt(indice)) | 0;
+  }
+  return Math.abs(hash) % CLASES_TONO_CURSO.length;
+}
+
+function mismoBloque(a, b) {
+  if (!a || !b) return false;
+  return String(a.dia) === String(b.dia)
+    && String(a.horaInicio).slice(0, 5) === String(b.horaInicio).slice(0, 5)
+    && String(a.horaFin).slice(0, 5) === String(b.horaFin).slice(0, 5)
+    && String(a.asignacionId) === String(b.asignacionId)
+    && String(a.aulaId) === String(b.aulaId);
+}
+
 /**
- * Matriz semanal: días en columnas, bloques horarios en filas (EAC-16). Cada celda muestra curso,
- * aula y docente; las vacías ofrecen "Asignar". Cada curso tiene su propio tono, los bloques sin
- * guardar se marcan y un docente o aula ocupados en otra sección a la misma hora se señalan en rojo.
- * Los bloques se pueden arrastrar a otra celda (si está ocupada, se intercambian). En pantallas
- * angostas se muestra un día a la vez, con pestañas.
- *
- * @param {Object} props
- * @param {string} props.titulo Por ejemplo "4to Secundaria B".
- * @param {Object<string, { asignacionId: string, aulaId: string }>} props.bloques Borrador actual.
- * @param {Object<string, { asignacionId: string, aulaId: string }>} props.bloquesGuardados
- * @param {Array<Object>} props.asignaciones
- * @param {Array<{ id: string, nombre: string }>} props.aulas
- * @param {Array<{ dia: string, franjaId: string, docenteId: string, aulaId: string, seccionNombre: string }>} props.ocupaciones
- *   Bloques de las demás secciones.
- * @param {boolean} props.deshabilitada Sin relaciones curso-docente no se puede asignar nada.
- * @param {(dia: string, franjaId: string) => void} props.alElegirBloque
- * @param {(dia: string, franjaId: string) => void} props.alQuitarBloque
- * @param {(origen: { dia: string, franjaId: string }, destino: { dia: string, franjaId: string }) => void} props.alMoverBloque
+ * Matriz semanal con filas dinámicas según las horas reales de los bloques.
+ * Soporta bloques de una o varias horas y marca el recreo de 11:00 a 11:30.
  */
 export default function MatrizHorario({
   titulo,
@@ -44,6 +53,7 @@ export default function MatrizHorario({
   aulas,
   ocupaciones,
   deshabilitada,
+  soloLectura = false,
   alElegirBloque,
   alQuitarBloque,
   alMoverBloque
@@ -52,38 +62,65 @@ export default function MatrizHorario({
   const [origenArrastre, establecerOrigenArrastre] = useState(null);
   const [claveSobre, establecerClaveSobre] = useState(null);
 
+  const puedeEditar = !deshabilitada && !soloLectura;
+  const listaBloques = Object.entries(bloques).map(([clave, bloque]) => ({ ...bloque, clave }));
+  const eje = construirEjeTemporal(listaBloques);
   const asignacionPorId = new Map(
     asignaciones.map((asignacion) => [String(asignacion.id), asignacion])
   );
-  const aulaPorId = new Map(aulas.map((aula) => [aula.id, aula.nombre]));
-  const cursosOrdenados = [...new Set(asignaciones.map((asignacion) => asignacion.cursoId))].sort();
-  const claseTono = (cursoId) =>
-    CLASES_TONO_CURSO[cursosOrdenados.indexOf(cursoId) % CLASES_TONO_CURSO.length];
+  const aulaPorId = new Map(aulas.map((aula) => [String(aula.id), aula.nombre]));
+  const claseTono = (cursoId) => CLASES_TONO_CURSO[indiceTono(cursoId)];
 
   const claseDia = (diaId) =>
     `${estilos.dia} ${diaId === diaActivo ? estilos.diaActivo : ''}`;
 
-  /** Eventos de una celda como destino de un bloque arrastrado. */
-  const propsDestino = (dia, franjaId) => {
-    const clave = claveBloque(dia, franjaId);
+  const bloquesDelDia = (diaId) => listaBloques.filter((bloque) => bloque.dia === diaId);
+
+  const propsDestino = (dia, horaInicio) => {
+    if (!puedeEditar) return {};
     return {
       onDragOver: (evento) => {
         if (origenArrastre) {
           evento.preventDefault();
-          establecerClaveSobre(clave);
+          establecerClaveSobre(`${dia}|${horaInicio}`);
         }
       },
-      onDragLeave: () => establecerClaveSobre((actual) => (actual === clave ? null : actual)),
+      onDragLeave: () => establecerClaveSobre((actual) =>
+        actual === `${dia}|${horaInicio}` ? null : actual
+      ),
       onDrop: (evento) => {
         evento.preventDefault();
         if (origenArrastre) {
-          alMoverBloque(origenArrastre, { dia, franjaId });
+          alMoverBloque(origenArrastre, { dia, horaInicio });
         }
         establecerOrigenArrastre(null);
         establecerClaveSobre(null);
       }
     };
   };
+
+  function bloqueQueEmpiezaEn(dia, segmento) {
+    return bloquesDelDia(dia).find(
+      (bloque) => aMinutos(bloque.horaInicio) === aMinutos(segmento.inicio)
+    );
+  }
+
+  function bloqueCubreSegmento(dia, segmento) {
+    return bloquesDelDia(dia).some((bloque) =>
+      aMinutos(bloque.horaInicio) < aMinutos(segmento.inicio)
+      && aMinutos(bloque.horaFin) > aMinutos(segmento.inicio)
+    );
+  }
+
+  function filasQueOcupa(bloque) {
+    const inicio = aMinutos(bloque.horaInicio);
+    const fin = aMinutos(bloque.horaFin);
+    if (inicio === null || fin === null || fin <= inicio) return 1;
+    const cantidad = eje.filter((segmento) =>
+      aMinutos(segmento.inicio) >= inicio && aMinutos(segmento.fin) <= fin
+    ).length;
+    return cantidad > 0 ? cantidad : 1;
+  }
 
   return (
     <div className={estilos.envoltorio}>
@@ -114,124 +151,155 @@ export default function MatrizHorario({
             </tr>
           </thead>
           <tbody>
-            {FRANJAS.map((franja) =>
-              franja.tipo === 'recreo' ? (
-                <tr key={franja.id}>
-                  <th scope="row" className={estilos.hora}>
-                    <span className={estilos.horaRango}>{franja.inicio} – {franja.fin}</span>
-                  </th>
-                  <td colSpan={DIAS.length} className={estilos.recreo}>
-                    Recreo
-                  </td>
-                </tr>
-              ) : (
-                <tr key={franja.id}>
-                  <th scope="row" className={estilos.hora}>
-                    <span className={estilos.horaRango}>{franja.inicio} – {franja.fin}</span>
-                  </th>
-                  {DIAS.map((dia) => {
-                    const clave = claveBloque(dia.id, franja.id);
-                    const bloque = bloques[clave];
-                    const guardado = bloquesGuardados[clave];
-                    const asignacion = bloque
-                      ? asignacionPorId.get(String(bloque.asignacionId))
-                      : null;
-                    const cambiado =
-                      bloque?.asignacionId !== guardado?.asignacionId || bloque?.aulaId !== guardado?.aulaId;
-                    const etiquetaCelda = `${dia.etiqueta} ${franja.inicio}`;
+            {eje.map((segmento) => (
+              <tr key={segmento.inicio}>
+                <th scope="row" className={estilos.hora}>
+                  <span className={estilos.horaRango}>{segmento.inicio} – {segmento.fin}</span>
+                  {segmento.esReceso && <span className={estilos.etiquetaReceso}>Receso</span>}
+                </th>
+                {DIAS.map((dia) => {
+                  const bloque = bloqueQueEmpiezaEn(dia.id, segmento);
+                  const cubierto = bloqueCubreSegmento(dia.id, segmento);
+                  const clave = bloque?.clave;
+                  const claveCelda = `${dia.id}|${segmento.inicio}`;
+                  const props = propsDestino(dia.id, segmento.inicio);
 
-                    if (asignacion) {
-                      const enEstaHora = ocupaciones.filter(
-                        (ocupacion) => ocupacion.dia === dia.id && ocupacion.franjaId === franja.id
-                      );
-                      const choqueDocente = enEstaHora.find((o) => o.docenteId === asignacion.docenteId);
-                      const choqueAula = enEstaHora.find((o) => o.aulaId === bloque.aulaId);
-                      const choque = choqueDocente ?? choqueAula;
-                      const textoChoque = choqueDocente
-                        ? `Docente ocupado en ${choqueDocente.seccionNombre}`
-                        : choqueAula
-                          ? `Aula ocupada en ${choqueAula.seccionNombre}`
-                          : '';
-                      const clases = [
-                        estilos.bloque,
-                        claseTono(asignacion.cursoId),
-                        choque ? estilos.choque : '',
-                        cambiado ? estilos.cambiado : ''
-                      ].join(' ');
-
-                      return (
-                        <td
-                          key={dia.id}
-                          className={`${estilos.celda} ${claseDia(dia.id)} ${clave === claveSobre ? estilos.destino : ''}`}
-                          {...propsDestino(dia.id, franja.id)}
-                        >
-                          <div className={estilos.envoltura}>
-                            <button
-                              type="button"
-                              className={clases}
-                              draggable
-                              title={`${asignacion.cursoNombre} · ${aulaPorId.get(bloque.aulaId) ?? bloque.aulaId} · ${asignacion.docenteNombre}`}
-                              onDragStart={(evento) => {
-                                evento.dataTransfer.effectAllowed = 'move';
-                                establecerOrigenArrastre({ dia: dia.id, franjaId: franja.id });
-                              }}
-                              onDragEnd={() => {
-                                establecerOrigenArrastre(null);
-                                establecerClaveSobre(null);
-                              }}
-                              aria-label={`Editar ${etiquetaCelda}: ${asignacion.cursoNombre}${
-                                cambiado ? ' (sin guardar)' : ''
-                              }${choque ? `. ${textoChoque}` : ''}`}
-                              onClick={() => alElegirBloque(dia.id, franja.id)}
-                            >
-                              <span className={estilos.curso}>{asignacion.cursoNombre}</span>
-                              <span className={estilos.detalle}>{aulaPorId.get(bloque.aulaId) ?? bloque.aulaId}</span>
-                              <span className={estilos.detalle}>
-                                <Icono nombre="usuario" tamano={12} />
-                                {asignacion.docenteNombre}
-                              </span>
-                              {choque && (
-                                <span className={estilos.avisoChoque}>
-                                  <Icono nombre="alerta" tamano={12} />
-                                  {textoChoque}
-                                </span>
-                              )}
-                            </button>
-                            <button
-                              type="button"
-                              className={estilos.botonQuitar}
-                              aria-label={`Quitar ${asignacion.cursoNombre} de ${etiquetaCelda}`}
-                              onClick={() => alQuitarBloque(dia.id, franja.id)}
-                            >
-                              <Icono nombre="papelera" tamano={14} />
-                            </button>
-                          </div>
-                        </td>
-                      );
-                    }
+                  if (bloque) {
+                    const asignacion = asignacionPorId.get(String(bloque.asignacionId));
+                    const cambiado = !mismoBloque(bloque, bloquesGuardados[clave]);
+                    const enEstaHora = ocupaciones.filter((ocupacion) =>
+                      ocupacion.dia === dia.id
+                      && seSolapan(segmento.inicio, segmento.fin, ocupacion.horaInicio, ocupacion.horaFin)
+                    );
+                    const choqueDocente = enEstaHora.find(
+                      (ocupacion) => String(ocupacion.docenteId) === String(asignacion?.docenteId)
+                    );
+                    const choqueAula = enEstaHora.find(
+                      (ocupacion) => String(ocupacion.aulaId) === String(bloque.aulaId)
+                    );
+                    const choque = choqueDocente ?? choqueAula;
+                    const textoChoque = choqueDocente
+                      ? `Docente ocupado en ${choqueDocente.seccionNombre}`
+                      : choqueAula
+                        ? `Aula ocupada en ${choqueAula.seccionNombre}`
+                        : '';
+                    const clases = [
+                      estilos.bloque,
+                      claseTono(asignacion?.cursoId),
+                      choque ? estilos.choque : '',
+                      cambiado ? estilos.cambiado : '',
+                      bloqueCruzaReceso(bloque) ? estilos.choque : ''
+                    ].join(' ');
 
                     return (
                       <td
-                        key={dia.id}
-                        className={`${estilos.celda} ${claseDia(dia.id)} ${clave === claveSobre ? estilos.destino : ''}`}
-                        {...propsDestino(dia.id, franja.id)}
+                        key={claveCelda}
+                        rowSpan={filasQueOcupa(bloque)}
+                        className={`${estilos.celda} ${claseDia(dia.id)} ${claveSobre === claveCelda ? estilos.destino : ''}`}
+                        {...props}
                       >
-                        <button
-                          type="button"
-                          className={estilos.vacio}
-                          disabled={deshabilitada}
-                          aria-label={`Asignar ${etiquetaCelda}`}
-                          onClick={() => alElegirBloque(dia.id, franja.id)}
-                        >
-                          <Icono nombre="agregar" tamano={18} />
-                          Asignar
-                        </button>
+                        <div className={estilos.envoltura}>
+                          <button
+                            type="button"
+                            className={clases}
+                            draggable={puedeEditar}
+                            title={`${asignacion?.cursoNombre ?? ''} · ${aulaPorId.get(String(bloque.aulaId)) ?? bloque.aulaId} · ${asignacion?.docenteNombre ?? ''}`}
+                            onDragStart={(evento) => {
+                              if (!puedeEditar) return;
+                              evento.dataTransfer.effectAllowed = 'move';
+                              establecerOrigenArrastre(clave);
+                            }}
+                            onDragEnd={() => {
+                              establecerOrigenArrastre(null);
+                              establecerClaveSobre(null);
+                            }}
+                            aria-label={`Editar ${dia.etiqueta} ${bloque.horaInicio} a ${bloque.horaFin}: ${asignacion?.cursoNombre ?? ''}${
+                              cambiado ? ' (sin guardar)' : ''
+                            }${choque ? `. ${textoChoque}` : ''}`}
+                            onClick={() => {
+                              if (!puedeEditar) return;
+                              alElegirBloque({
+                                clave,
+                                dia: dia.id,
+                                horaInicio: bloque.horaInicio,
+                                horaFin: bloque.horaFin,
+                                bloque
+                              });
+                            }}
+                          >
+                            <span className={estilos.curso}>{asignacion?.cursoNombre ?? 'Curso'}</span>
+                            <span className={estilos.detalle}>
+                              {aulaPorId.get(String(bloque.aulaId)) ?? bloque.aulaId}
+                            </span>
+                            <span className={estilos.detalle}>
+                              <Icono nombre="usuario" tamano={12} />
+                              {asignacion?.docenteNombre ?? ''}
+                            </span>
+                            <span className={estilos.detalle}>
+                              {bloque.horaInicio} – {bloque.horaFin}
+                            </span>
+                            {choque && (
+                              <span className={estilos.avisoChoque}>
+                                <Icono nombre="alerta" tamano={12} />
+                                {textoChoque}
+                              </span>
+                            )}
+                          </button>
+                          {puedeEditar && (
+                            <button
+                              type="button"
+                              className={estilos.botonQuitar}
+                              aria-label={`Quitar ${asignacion?.cursoNombre ?? 'bloque'} de ${dia.etiqueta} ${bloque.horaInicio}`}
+                              onClick={() => alQuitarBloque(clave)}
+                            >
+                              <Icono nombre="papelera" tamano={14} />
+                            </button>
+                          )}
+                        </div>
                       </td>
                     );
-                  })}
-                </tr>
-              )
-            )}
+                  }
+
+                  if (cubierto) return null;
+
+                  if (segmento.esReceso) {
+                    return (
+                      <td
+                        key={claveCelda}
+                        className={`${estilos.celda} ${estilos.recessoCelda} ${claseDia(dia.id)}`}
+                        aria-label="Receso"
+                      >
+                        <span className={estilos.recessoTexto}>Receso</span>
+                      </td>
+                    );
+                  }
+
+                  return (
+                    <td
+                      key={claveCelda}
+                      className={`${estilos.celda} ${claseDia(dia.id)} ${claveSobre === claveCelda ? estilos.destino : ''}`}
+                      {...props}
+                    >
+                      <button
+                        type="button"
+                        className={estilos.vacio}
+                        disabled={!puedeEditar}
+                        aria-label={`Asignar ${dia.etiqueta} ${segmento.inicio}`}
+                        onClick={() => alElegirBloque({
+                          clave: null,
+                          dia: dia.id,
+                          horaInicio: segmento.inicio,
+                          horaFin: finSugerido(segmento.inicio, segmento.fin)
+                        })}
+                      >
+                        <Icono nombre="agregar" tamano={18} />
+                        Asignar
+                      </button>
+                    </td>
+                  );
+                })}
+              </tr>
+            ))}
           </tbody>
         </table>
       </div>

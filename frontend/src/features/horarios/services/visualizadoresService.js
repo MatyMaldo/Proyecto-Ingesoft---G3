@@ -1,54 +1,91 @@
 import { solicitar } from '../../../shared/api/clienteHttp.js';
+import {
+  listarSesiones,
+  listarSesionesDocente,
+  listarSesionesApoderado,
+  miHorarioSesionesDocente,
+  miHorarioSesionesEstudiante,
+  obtenerPeriodoMatricula
+} from './horariosService.js';
 
-const BASE = '/visualizadores-horario';
+/**
+ * Adaptador de la pantalla de consulta. Los horarios se leen siempre desde
+ * `/sesiones-clase/**`; los visualizadores antiguos quedaron deprecados.
+ */
 
-// HU-GEMIH-03: Administrador - sección
-export function horarioSeccion(seccionId) {
-  return solicitar(`${BASE}/secciones/${seccionId}`);
+export function horarioSeccion(seccionId, parametros) {
+  return listarSesiones({ ...parametros, seccionId });
 }
 
-// HU-GEMIH-04: Administrador - docente
-export function horarioDocente(docenteId) {
-  return solicitar(`${BASE}/docentes/${docenteId}`);
+export function horarioDocente(docenteId, parametros) {
+  return listarSesionesDocente(docenteId, parametros);
 }
 
-// HU-GEMIH-05: Docente autenticado
-export function miHorarioDocente() {
-  return solicitar(`${BASE}/mi-horario/docente`);
+export function miHorarioDocente(parametros) {
+  return miHorarioSesionesDocente(parametros);
 }
 
-// HU-GEMIH-06: Estudiante autenticado
-export function miHorarioEstudiante() {
-  return solicitar(`${BASE}/mi-horario/estudiante`);
+export function miHorarioEstudiante(parametros) {
+  return miHorarioSesionesEstudiante(parametros);
 }
 
-// HU-GEMIH-07: Apoderado - estudiante vinculado
-export function horarioApoderado(estudianteId) {
-  return solicitar(`${BASE}/apoderado/${estudianteId}`);
-}
-// Listas para los selectores del administrador
-export function listarSecciones() {
-  return solicitar('/secciones');
+export function horarioApoderado(estudianteId, parametros) {
+  return listarSesionesApoderado(estudianteId, parametros);
 }
 
-
-export function listarDocentes() {
-  return Promise.resolve({
-    exitoso: false,
-    datos: null,
-    mensaje: 'El contrato del backend no incluye GET /usuarios/docentes para listar docentes.'
-  });
+export function obtenerPeriodo(anioId) {
+  return obtenerPeriodoMatricula(anioId);
 }
-
-
 
 export function listarMisEstudiantes() {
   return solicitar('/visualizadores-horario/apoderado/mis-estudiantes');
 }
 
-export function consultarEstadoProgramacion(seccionId) {
-  return solicitar(`${BASE}/estado-programacion/${seccionId}`);
+export async function listarDocentes() {
+  const respuesta = await solicitar('/usuarios', {
+    parametros: { tipoUsuario: 'DOCENTE', activo: true, page: 0, size: 100 }
+  });
+  if (!respuesta.exitoso) return respuesta;
+  const docentes = respuesta.datos?.content;
+  if (!Array.isArray(docentes)) {
+    return {
+      exitoso: false,
+      datos: null,
+      mensaje: 'El backend devolvió un formato de docentes no válido.'
+    };
+  }
+  return {
+    ...respuesta,
+    datos: docentes.map((docente) => ({
+      id: docente.id,
+      nombre: docente.nombreCompleto
+        ?? [docente.nombre, docente.apellidoPaterno, docente.apellidoMaterno]
+          .filter(Boolean)
+          .join(' ')
+          .trim(),
+      activo: docente.activo
+    }))
+  };
 }
+
+export async function listarSecciones(anioId) {
+  const respuesta = await solicitar('/secciones', {
+    parametros: anioId == null ? undefined : { anioId }
+  });
+  if (!respuesta.exitoso || !Array.isArray(respuesta.datos)) return respuesta;
+  return {
+    ...respuesta,
+    datos: respuesta.datos.map((seccion) => ({
+      ...seccion,
+      nombre: seccion.nombre ?? seccion.nombreSeccion,
+      gradoId: seccion.gradoId ?? seccion.grado?.id,
+      gradoNombre: seccion.gradoNombre ?? seccion.grado?.nombre,
+      anioAcademicoId: seccion.anioAcademicoId ?? anioId,
+      anioAcademico: seccion.anioAcademico ?? seccion.anio
+    }))
+  };
+}
+
 export function listarAniosAcademicos() {
   return solicitar('/anios-academicos');
 }
