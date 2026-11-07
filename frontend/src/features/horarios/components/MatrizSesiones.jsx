@@ -1,8 +1,13 @@
+import { useState } from 'react';
+
+import Insignia from '../../../shared/components/Insignia.jsx';
 import { DIAS } from '../constants/horarios.js';
 import {
   aMinutos,
   construirEjeTemporal,
-  formatearFecha
+  fechaISO,
+  formatearFecha,
+  sumarDias
 } from '../utils/tiempo.js';
 import estilos from './MatrizHorario.module.css';
 
@@ -46,26 +51,42 @@ function etiquetaEstado(estado) {
     .replace(/^./, (letra) => letra.toUpperCase());
 }
 
-function claseEstado(estado) {
+function tonoEstado(estado) {
   const normalizado = String(estado ?? '').toUpperCase();
-  if (normalizado === 'CANCELADA' || normalizado === 'SUSPENDIDA') {
-    return estilos.estadoCancelada;
-  }
-  if (normalizado === 'OMITIDA') return estilos.estadoOmitida;
-  if (['REALIZADA', 'COMPLETADA', 'DICTADA'].includes(normalizado)) {
-    return estilos.estadoRealizada;
-  }
-  if (normalizado === 'PROGRAMADA' || normalizado === 'EN_CURSO') {
-    return estilos.estadoProgramada;
-  }
-  return estilos.estadoNeutro;
+  if (normalizado === 'CANCELADA' || normalizado === 'SUSPENDIDA') return 'rojo';
+  if (normalizado === 'OMITIDA') return 'ambar';
+  if (['REALIZADA', 'COMPLETADA', 'DICTADA'].includes(normalizado)) return 'verde';
+  if (normalizado === 'PROGRAMADA' || normalizado === 'EN_CURSO') return 'azul';
+  return 'gris';
+}
+
+/** Día y mes de una fecha `YYYY-MM-DD`: "02/11". */
+function diaYMes(fecha) {
+  return `${fecha.slice(8)}/${fecha.slice(5, 7)}`;
 }
 
 /**
  * Matriz de solo lectura para las sesiones generadas. Se usa una matriz por
  * semana; las filas se construyen con las horas reales de las sesiones.
+ * En pantallas angostas muestra un solo día a la vez, con pestañas por día.
+ *
+ * @param {Object} props
+ * @param {string} props.titulo
+ * @param {Array} props.sesiones Sesiones de la semana.
+ * @param {boolean} [props.mostrarSeccion] Muestra grado y sección en cada bloque.
+ * @param {string} [props.lunes] Fecha `YYYY-MM-DD` del lunes de la semana: pone la fecha en cada columna y
+ *   marca la de hoy. Si cambia la semana, quien la usa debe darle otra `key` para reiniciar el día activo.
  */
-export default function MatrizSesiones({ titulo, sesiones, mostrarSeccion = false }) {
+export default function MatrizSesiones({ titulo, sesiones, mostrarSeccion = false, lunes }) {
+  const hoy = fechaISO(new Date());
+  const fechaDeDia = (indice) => (lunes ? sumarDias(lunes, indice) : null);
+  const [diaActivo, establecerDiaActivo] = useState(() => {
+    const dia = DIAS.find((_, indice) => fechaDeDia(indice) === hoy)
+      ?? DIAS.find((elemento) => sesiones.some((sesion) => sesion.diaSemana === elemento.id));
+    return (dia ?? DIAS[0]).id;
+  });
+  const claseDia = (diaId) => `${estilos.dia} ${diaId === diaActivo ? estilos.diaActivo : ''}`;
+
   const eje = construirEjeTemporal(sesiones);
   const claseTono = (sesion) => CLASES_TONO_CURSO[
     indiceTono(sesion.cursoId ?? sesion.cursoNombre)
@@ -91,18 +112,55 @@ export default function MatrizSesiones({ titulo, sesiones, mostrarSeccion = fals
     return cantidad > 0 ? cantidad : 1;
   }
 
+  // La hora del bloque solo se repite si no coincide con una única fila (la fila ya la muestra).
+  function coincideConFila(sesion, segmento) {
+    return filasQueOcupa(sesion) === 1
+      && String(sesion.horaInicio).slice(0, 5) === segmento.inicio
+      && String(sesion.horaFin).slice(0, 5) === segmento.fin;
+  }
+
   return (
     <div className={estilos.envoltorio}>
+      <div className={estilos.pestanas} role="group" aria-label="Día de la semana">
+        {DIAS.map((dia, indice) => {
+          const fecha = fechaDeDia(indice);
+          return (
+            <button
+              key={dia.id}
+              type="button"
+              className={estilos.pestana}
+              aria-pressed={dia.id === diaActivo}
+              aria-label={fecha ? `${dia.etiqueta} ${formatearFecha(fecha)}` : dia.etiqueta}
+              onClick={() => establecerDiaActivo(dia.id)}
+            >
+              {dia.etiqueta.slice(0, 3)}{fecha && ` ${fecha.slice(8)}`}
+            </button>
+          );
+        })}
+      </div>
+
       <div className={estilos.contenedor} tabIndex={0} role="region" aria-label={`Matriz de sesiones de ${titulo}`}>
         <table className={estilos.tabla}>
           <thead>
             <tr>
               <th scope="col" className={estilos.cabeceraHora}>Hora</th>
-              {DIAS.map((dia) => (
-                <th key={dia.id} scope="col" className={estilos.cabeceraDia}>
-                  {dia.etiqueta}
-                </th>
-              ))}
+              {DIAS.map((dia, indice) => {
+                const fecha = fechaDeDia(indice);
+                const esHoy = fecha === hoy;
+                return (
+                  <th
+                    key={dia.id}
+                    scope="col"
+                    className={`${estilos.cabeceraDia} ${claseDia(dia.id)} ${esHoy ? estilos.cabeceraHoy : ''}`}
+                    aria-current={esHoy ? 'date' : undefined}
+                  >
+                    {dia.etiqueta}
+                    {fecha && (
+                      <span className={estilos.fechaDia}>{esHoy ? `Hoy · ${diaYMes(fecha)}` : diaYMes(fecha)}</span>
+                    )}
+                  </th>
+                );
+              })}
             </tr>
           </thead>
           <tbody>
@@ -122,7 +180,7 @@ export default function MatrizSesiones({ titulo, sesiones, mostrarSeccion = fals
                       <td
                         key={clave}
                         rowSpan={filasQueOcupa(sesion)}
-                        className={estilos.celda}
+                        className={`${estilos.celda} ${claseDia(dia.id)}`}
                       >
                         <div className={estilos.envoltura}>
                           <div className={`${estilos.bloque} ${claseTono(sesion)}`}>
@@ -134,16 +192,15 @@ export default function MatrizSesiones({ titulo, sesiones, mostrarSeccion = fals
                                 {sesion.gradoNombre} {sesion.seccionNombre}
                               </span>
                             )}
-                            <span className={estilos.detalle}>
-                              {String(sesion.horaInicio).slice(0, 5)} – {String(sesion.horaFin).slice(0, 5)}
-                            </span>
-                            <span className={estilos.detalle}>
-                              {formatearFecha(sesion.fecha)}
-                            </span>
-                            {sesion.estado && (
-                              <span className={`${estilos.estadoSesion} ${claseEstado(sesion.estado)}`}>
-                                {etiquetaEstado(sesion.estado)}
+                            {!coincideConFila(sesion, segmento) && (
+                              <span className={estilos.detalle}>
+                                {String(sesion.horaInicio).slice(0, 5)} – {String(sesion.horaFin).slice(0, 5)}
                               </span>
+                            )}
+                            {sesion.estado && (
+                              <Insignia tono={tonoEstado(sesion.estado)} className={estilos.estadoSesion}>
+                                {etiquetaEstado(sesion.estado)}
+                              </Insignia>
                             )}
                           </div>
                         </div>
@@ -155,13 +212,13 @@ export default function MatrizSesiones({ titulo, sesiones, mostrarSeccion = fals
 
                   if (segmento.esReceso) {
                     return (
-                      <td key={clave} className={`${estilos.celda} ${estilos.recessoCelda}`} aria-label="Receso">
+                      <td key={clave} className={`${estilos.celda} ${estilos.recessoCelda} ${claseDia(dia.id)}`} aria-label="Receso">
                         <span className={estilos.recessoTexto}>Receso</span>
                       </td>
                     );
                   }
 
-                  return <td key={clave} className={estilos.celda} />;
+                  return <td key={clave} className={`${estilos.celda} ${claseDia(dia.id)}`} />;
                 })}
               </tr>
             ))}

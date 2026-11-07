@@ -89,13 +89,19 @@
     flex: 0 0 auto;
     max-width: none;
   }
+
+  /* Más específico que `.campoModulo`, que se declara más abajo en el archivo. */
+  .filaUno .campoModulo {
+    width: auto;
+  }
 }
 
 .campoModulo {
   display: flex;
   flex-direction: column;
   gap: var(--espacio-1);
-  min-width: calc(var(--espacio-10) * 5);
+  width: var(--ancho-selector-filtro);
+  max-width: 100%;
 }
 
 .etiquetaModulo {
@@ -105,6 +111,7 @@
 }
 
 .selectorModulo {
+  width: 100%;
   min-height: var(--tactil-min);
   max-width: 100%;
   padding: 10px var(--espacio-10) 10px var(--espacio-3);

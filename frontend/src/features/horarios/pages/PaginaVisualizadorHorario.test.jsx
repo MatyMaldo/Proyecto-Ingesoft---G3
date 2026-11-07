@@ -1,5 +1,5 @@
 ﻿import { describe, it, expect, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 
 vi.mock('../../../shared/auth/useAuth.js', () => ({
@@ -106,8 +106,57 @@ describe('Matriz semanal de horarios', () => {
     await screen.findByText('Matematicas');
 
     const encabezados = screen.getAllByRole('columnheader').slice(0, 6);
+    // Cada columna lleva el día y, debajo, su fecha (la de hoy dice "Hoy").
     expect(encabezados.map((h) => h.textContent)).toEqual([
-      'Hora', 'Lunes', 'Martes', 'Miércoles', 'Jueves', 'Viernes'
+      'Hora',
+      expect.stringMatching(/^Lunes(Hoy · )?\d{2}\/\d{2}$/),
+      expect.stringMatching(/^Martes(Hoy · )?\d{2}\/\d{2}$/),
+      expect.stringMatching(/^Miércoles(Hoy · )?\d{2}\/\d{2}$/),
+      expect.stringMatching(/^Jueves(Hoy · )?\d{2}\/\d{2}$/),
+      expect.stringMatching(/^Viernes(Hoy · )?\d{2}\/\d{2}$/)
     ]);
+  });
+});
+
+describe('Navegación de semanas', () => {
+  it('ofrece mes, semanas del mes con aviso de sesiones y salto a hoy', async () => {
+    render(<PaginaVisualizadorHorario />);
+
+    await screen.findByText('Matematicas');
+
+    expect(screen.getByLabelText('Mes')).toBeInTheDocument();
+    const semanas = screen.getByRole('group', { name: 'Ir a semana' });
+    const activa = within(semanas).getAllByRole('button').find(
+      (boton) => boton.getAttribute('aria-pressed') === 'true'
+    );
+    expect(activa).toHaveAccessibleName(/, con sesiones$/);
+    expect(screen.getByRole('button', { name: 'Ir a hoy' })).toBeDisabled();
+  });
+});
+
+describe('Bloques y días de la matriz', () => {
+  it('no repite la fecha dentro del bloque y muestra la hora solo si abarca varias filas', async () => {
+    render(<PaginaVisualizadorHorario />);
+
+    await screen.findByText('Matematicas');
+
+    const bloque = screen.getByText('Matematicas').parentElement;
+    expect(bloque).not.toHaveTextContent(/\d{2}\/\d{2}\/\d{4}/);
+    // Matemáticas dura 2 horas (2 filas): conserva su rango; Comunicación ocupa 1 fila y no lo repite.
+    expect(bloque).toHaveTextContent('08:00 – 10:00');
+    expect(screen.getByText('Comunicacion').parentElement).not.toHaveTextContent('08:00 – 09:00');
+  });
+
+  it('ofrece pestañas por día con su fecha para la vista móvil', async () => {
+    render(<PaginaVisualizadorHorario />);
+
+    await screen.findByText('Matematicas');
+
+    const dias = screen.getByRole('group', { name: 'Día de la semana' });
+    expect(within(dias).getAllByRole('button')).toHaveLength(5);
+    expect(within(dias).getByRole('button', { name: /^Lunes \d{2}\/\d{2}\/\d{4}$/ })).toBeInTheDocument();
+    expect(within(dias).getAllByRole('button').filter(
+      (boton) => boton.getAttribute('aria-pressed') === 'true'
+    )).toHaveLength(1);
   });
 });

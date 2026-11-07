@@ -274,47 +274,11 @@
 }
 
 .estadoSesion {
-  display: inline-flex;
   align-self: flex-start;
   max-width: 100%;
-  padding: 2px var(--espacio-2);
   overflow-wrap: anywhere;
   font-size: var(--texto-xs);
-  font-weight: var(--peso-seminegrita);
-  line-height: 1.35;
   white-space: normal;
-  border: 1px solid transparent;
-  border-radius: var(--radio-pildora);
-}
-
-.estadoProgramada {
-  color: var(--tono-azul-texto);
-  background: var(--tono-azul-fondo);
-  border-color: var(--tono-azul-borde);
-}
-
-.estadoRealizada {
-  color: var(--tono-verde-texto);
-  background: var(--tono-verde-fondo);
-  border-color: var(--tono-verde-borde);
-}
-
-.estadoCancelada {
-  color: var(--tono-rojo-texto);
-  background: var(--tono-rojo-fondo);
-  border-color: var(--tono-rojo-borde);
-}
-
-.estadoOmitida {
-  color: var(--tono-ambar-texto);
-  background: var(--tono-ambar-fondo);
-  border-color: var(--tono-ambar-borde);
-}
-
-.estadoNeutro {
-  color: var(--tono-gris-texto);
-  background: var(--tono-gris-fondo);
-  border-color: var(--tono-gris-borde);
 }
 
 /* Celda sobre la que se suelta un bloque arrastrado. */
@@ -338,6 +302,20 @@
   color: var(--tono-ambar-texto);
   background: var(--tono-ambar-fondo);
   border-bottom: 1px solid var(--color-borde);
+}
+
+/* Columna de hoy en la consulta: se distingue del resto sin cambiar el tono de cabecera. */
+.cabeceraHoy {
+  color: var(--color-accion);
+  background: var(--color-accion-suave);
+  box-shadow: inset 0 -3px 0 var(--color-accion);
+}
+
+.fechaDia {
+  display: block;
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-medio);
+  text-transform: none;
 }
 
 /* Tono por curso: colores más contrastados para distinguir cada materia. */

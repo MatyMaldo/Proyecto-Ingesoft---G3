@@ -113,7 +113,7 @@ export default function SelectorFecha({ id, etiqueta, valor, min, max, alCambiar
         }}
       >
         <span>{valor ? formatearFecha(valor) : 'dd/mm/aaaa'}</span>
-        <Icono nombre="chevron-abajo" tamano={16} />
+        <Icono nombre="calendario" tamano={18} />
       </button>
 
       {abierto && (

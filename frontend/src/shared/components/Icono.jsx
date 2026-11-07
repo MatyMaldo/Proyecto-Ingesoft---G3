@@ -29,6 +29,12 @@ const CATALOGO_ICONOS = {
     { tag: 'rect', props: { width: 20, height: 14, x: 2, y: 5, rx: 2 } },
     { tag: 'line', props: { x1: 2, x2: 22, y1: 10, y2: 10 } }
   ],
+  calendario: [
+    { tag: 'rect', props: { x: 3, y: 4, width: 18, height: 18, rx: 2 } },
+    { tag: 'path', props: { d: 'M16 2v4' } },
+    { tag: 'path', props: { d: 'M8 2v4' } },
+    { tag: 'path', props: { d: 'M3 10h18' } }
+  ],
   reloj: [
     { tag: 'circle', props: { cx: 12, cy: 12, r: 10 } },
     { tag: 'polyline', props: { points: '12 6 12 12 16 14' } }

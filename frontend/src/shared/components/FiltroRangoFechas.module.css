@@ -13,7 +13,7 @@
   display: flex;
   flex-direction: column;
   gap: var(--espacio-1);
-  width: calc(var(--espacio-10) * 4);
+  width: var(--ancho-selector-filtro);
 }
 
 .etiqueta {
@@ -23,6 +23,7 @@
 }
 
 .input {
+  width: 100%;
   min-height: var(--tactil-min);
   padding: 10px var(--espacio-3);
   font-size: var(--texto-base);

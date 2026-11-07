@@ -10,10 +10,11 @@ import estilos from './SelectFiltro.module.css';
  * @param {string} props.valor Valor seleccionado.
  * @param {Array<{ valor: string, etiqueta: string }>} props.opciones
  * @param {(valor: string) => void} props.alCambiar Recibe el valor elegido.
+ * @param {boolean} [props.apilado] Pone la etiqueta encima del selector en lugar de a su izquierda.
  */
-export default function SelectFiltro({ id, etiqueta, valor, opciones, alCambiar }) {
+export default function SelectFiltro({ id, etiqueta, valor, opciones, alCambiar, apilado = false }) {
   return (
-    <div className={estilos.campo}>
+    <div className={apilado ? `${estilos.campo} ${estilos.apilado}` : estilos.campo}>
       <label htmlFor={id} className={estilos.etiqueta}>
         {etiqueta}
       </label>
