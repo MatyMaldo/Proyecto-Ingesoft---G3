@@ -97,5 +97,7 @@ export function obtenerItemsNavegacion() {
  */
 export const RUTA_INICIO_POR_ROL = Object.freeze({
   [ROLES.ADMIN]: '/administracion/auditorias',
-  [ROLES.DOCENTE]: '/evaluaciones'
+  [ROLES.DOCENTE]: '/evaluaciones',
+  [ROLES.ESTUDIANTE]: '/cursos',
+  [ROLES.APODERADO]: '/cursos'
 });
