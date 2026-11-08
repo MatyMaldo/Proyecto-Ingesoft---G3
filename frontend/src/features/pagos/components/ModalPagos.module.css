@@ -1,0 +1,248 @@
+.cajaAncha {
+  max-width: 980px;
+}
+
+.metaAlumno {
+  margin: 4px 0 0;
+  font-size: 12px;
+  color: #5b6784;
+}
+
+.listaCompromisos {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.compromisoCard {
+  overflow: hidden;
+  border: 1px solid #dce3f0;
+  border-radius: 10px;
+  background: #ffffff;
+}
+
+.compromisoCabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  background: #f6f7fc;
+  border-bottom: 1px solid #e3e7f2;
+}
+
+.compromisoEtiqueta {
+  margin: 0 0 2px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+  color: #8a94ad;
+}
+
+.compromisoTitulo {
+  margin: 0;
+  font-size: 15px;
+  font-weight: 700;
+  color: #1a2238;
+}
+
+.compromisoMeta {
+  margin: 3px 0 0;
+  font-size: 12px;
+  color: #5b6784;
+}
+
+.compromisoCuerpo {
+  padding: 12px 14px;
+}
+
+.sinPagos {
+  margin: 0;
+  padding: 8px 0;
+  font-size: 13px;
+  color: #8a94ad;
+}
+
+.tablaContenedor {
+  overflow-x: auto;
+  border: 1px solid #e3e7f2;
+  border-radius: 8px;
+}
+
+.tabla {
+  width: 100%;
+  min-width: 760px;
+  border-collapse: collapse;
+  font-size: 13px;
+}
+
+.tabla th {
+  padding: 10px 12px;
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+  text-align: left;
+  text-transform: uppercase;
+  color: #8a94ad;
+  background: #f6f7fc;
+  border-bottom: 1px solid #e3e7f2;
+}
+
+.tabla td {
+  padding: 10px 12px;
+  color: #4a5470;
+  vertical-align: middle;
+  border-bottom: 1px solid #eef0f7;
+}
+
+.tabla tr:last-child td {
+  border-bottom: 0;
+}
+
+.monto {
+  font-weight: 700;
+  color: #1a2238;
+  white-space: nowrap;
+}
+
+.compromiso {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.compromisoTipo {
+  font-weight: 600;
+  color: #2b3350;
+}
+
+.compromisoId {
+  font-size: 11px;
+  color: #8a94ad;
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 6px;
+}
+
+.botonAccion,
+.botonDetalle {
+  min-height: 32px;
+  padding: 0 10px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  border-radius: 7px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.botonValidar {
+  color: #15803d;
+  background: #ecfdf3;
+  border: 1px solid #bbefcf;
+}
+
+.botonRechazar {
+  color: #b91c1c;
+  background: #fef2f2;
+  border: 1px solid #fcc9c9;
+}
+
+.botonDetalle {
+  color: #0b57d0;
+  background: #ffffff;
+  border: 1px solid #c9d8f5;
+}
+
+.botonAccion:hover:not(:disabled),
+.botonDetalle:hover:not(:disabled) {
+  filter: brightness(0.97);
+}
+
+.botonAccion:disabled {
+  color: #9aa8bd;
+  background: #f6f7fc;
+  border-color: #e3e7f2;
+  cursor: not-allowed;
+}
+
+.evidencia {
+  color: #0b57d0;
+  font-weight: 600;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.evidencia:hover {
+  text-decoration: underline;
+}
+
+.paginacion {
+  display: flex;
+  justify-content: flex-end;
+}
+
+.detalle {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12rem) 1fr;
+  gap: 8px 16px;
+  margin: 0;
+  font-size: 13px;
+}
+
+.detalle dt {
+  color: #8a94ad;
+  font-weight: 600;
+}
+
+.detalle dd {
+  margin: 0;
+  color: #1a2238;
+  overflow-wrap: anywhere;
+}
+
+.textarea {
+  width: 100%;
+  min-height: 90px;
+  box-sizing: border-box;
+  padding: 10px 12px;
+  font: inherit;
+  font-size: 14px;
+  color: #1a2238;
+  background: #f6f7fc;
+  border: 1px solid #e3e7f2;
+  border-radius: 8px;
+  resize: vertical;
+}
+
+.textarea:focus {
+  border-color: #3b6fd8;
+  outline: none;
+}
+
+.errorCampo {
+  margin: 0;
+  font-size: 12px;
+  color: #b42318;
+}
+
+.aviso {
+  margin: 0;
+  font-size: 12px;
+  color: #8a94ad;
+}
+
+@media (max-width: 767px) {
+  .tabla {
+    min-width: 620px;
+  }
+
+  .detalle {
+    grid-template-columns: 1fr;
+  }
+}

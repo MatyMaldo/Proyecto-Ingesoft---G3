@@ -38,6 +38,12 @@
   background: var(--color-superficie-suave);
 }
 
+.accionesFila {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+}
+
 .tiempo {
   display: flex;
   flex-direction: column;

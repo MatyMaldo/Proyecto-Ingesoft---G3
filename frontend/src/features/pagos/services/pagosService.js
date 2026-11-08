@@ -44,6 +44,46 @@ export async function obtenerAlumnos(filtros = {}) {
   };
 }
 
+/**
+ * Alumnos con matrícula confirmada del año. Se usan para la tabla porque
+ * `/pagos/admin` exige el grado y la sección de cada estudiante.
+ */
+export async function obtenerAlumnosMatriculados(anioId) {
+  if (USAR_MOCK) return { exitoso: true, datos: { estudiantes: [] }, mensaje: '' };
+
+  const respuesta = await solicitar('/matriculas', {
+    parametros: {
+      anioId: Number(anioId),
+      estado: 'CONFIRMADA',
+      page: 0,
+      size: 100
+    }
+  });
+  if (!respuesta.exitoso) return respuesta;
+  if (!Array.isArray(respuesta.datos?.content)) {
+    return falloFormato('los alumnos matriculados');
+  }
+
+  return {
+    exitoso: true,
+    datos: {
+      estudiantes: respuesta.datos.content.map((matricula) => ({
+        id: matricula.estudianteId,
+        matriculaId: matricula.id,
+        nombre: matricula.nombreCompletoEstudiante,
+        codigo: matricula.codigoEstudiante,
+        anioAcademicoId: matricula.anioAcademicoId,
+        anioAcademico: matricula.anioAcademico,
+        gradoId: matricula.gradoId,
+        gradoNombre: matricula.gradoNombre,
+        seccionId: matricula.seccionId,
+        seccionNombre: matricula.seccionNombre
+      }))
+    },
+    mensaje: ''
+  };
+}
+
 // Obtener anio académico
 export async function obtenerAnioAcademico() {
   if (USAR_MOCK) {
@@ -85,6 +125,107 @@ export async function emitirCompromisoPension({estudianteId,anioId,mes}) {
       mes: mes
     }
   });
-  if(!respuesta) return { exitoso: false, datos, mensaje: '' };
+  if(!respuesta) return { exitoso: false, datos: null, mensaje: '' };
   return respuesta;
+}
+
+const validarPaginaPagos = (respuesta) => {
+  if (!respuesta.exitoso) return respuesta;
+  const datos = respuesta.datos;
+  if (
+    !datos ||
+    !Array.isArray(datos.content) ||
+    typeof datos.totalElements !== 'number' ||
+    typeof datos.totalPages !== 'number' ||
+    typeof datos.number !== 'number'
+  ) {
+    return falloFormato('el listado de pagos');
+  }
+  return respuesta;
+};
+
+export async function listarPagosAdmin({
+  anioAcademicoId,
+  gradoId,
+  seccionId,
+  estudianteId,
+  estado,
+  tipoCompromiso,
+  page = 0,
+  size = 10
+}) {
+  const respuesta = await solicitar('/pagos/admin', {
+    parametros: {
+      anioAcademicoId: Number(anioAcademicoId),
+      gradoId: Number(gradoId),
+      seccionId: Number(seccionId),
+      estudianteId: estudianteId == null ? undefined : Number(estudianteId),
+      estado: estado || undefined,
+      tipoCompromiso: tipoCompromiso || undefined,
+      page,
+      size,
+      sortBy: 'fechaRegistro'
+    }
+  });
+  return validarPaginaPagos(respuesta);
+}
+
+export async function listarPagosAgrupados({
+  anioAcademicoId,
+  gradoId,
+  seccionId,
+  estudianteId,
+  estadoCompromiso,
+  tipoCompromiso,
+  page = 0,
+  size = 10
+}) {
+  const respuesta = await solicitar('/pagos/admin/agrupados', {
+    parametros: {
+      anioAcademicoId: Number(anioAcademicoId),
+      gradoId: Number(gradoId),
+      seccionId: Number(seccionId),
+      estudianteId: estudianteId == null ? undefined : Number(estudianteId),
+      estadoCompromiso: estadoCompromiso || undefined,
+      tipoCompromiso: tipoCompromiso || undefined,
+      page,
+      size
+    }
+  });
+  if (!respuesta.exitoso) return respuesta;
+
+  const datos = respuesta.datos;
+  if (
+    !datos ||
+    !Array.isArray(datos.content) ||
+    typeof datos.totalElements !== 'number' ||
+    typeof datos.totalPages !== 'number' ||
+    typeof datos.number !== 'number'
+  ) {
+    return falloFormato('los pagos agrupados por compromiso');
+  }
+  if (datos.content.some((compromiso) =>
+    compromiso.compromisoId == null || !Array.isArray(compromiso.pagos)
+  )) {
+    return falloFormato('los pagos agrupados por compromiso');
+  }
+  return respuesta;
+}
+
+export async function obtenerPagoAdmin(pagoId) {
+  return solicitar(`/pagos/admin/${encodeURIComponent(pagoId)}`);
+}
+
+export async function validarPagoAdmin(pagoId) {
+  return solicitar(`/pagos/admin/${encodeURIComponent(pagoId)}/validar`, {
+    metodo: 'PUT',
+    cuerpo: {}
+  });
+}
+
+export async function rechazarPagoAdmin(pagoId, motivo) {
+  return solicitar(`/pagos/admin/${encodeURIComponent(pagoId)}/rechazar`, {
+    metodo: 'PUT',
+    cuerpo: { motivo: motivo.trim() }
+  });
 }

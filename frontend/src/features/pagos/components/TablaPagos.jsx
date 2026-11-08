@@ -8,6 +8,7 @@ import estilos from './TablaPagos.module.css';
 import estilosBoton from '../../../shared/components/Boton.module.css'
 import Boton from '../../../shared/components/Boton.jsx';
 import ModalEmitirPension from './ModalEmitirPension.jsx';
+import ModalPagosEstudiante from './ModalPagosEstudiante.jsx';
 import Notificacion from '../../../shared/components/Notificacion.jsx';
 import useNotificacion from '../../../shared/hooks/useNotificacion.js';
 import { emitirCompromisoPension } from '../services/pagosService.js';
@@ -27,6 +28,9 @@ export default function TablaPagos({ alumnos, ocupado = false }) {
   const [alumnoSeleccionado, establecerAlumnoSeleccionado] = useState(null);
   const [enviando, establecerEnviando] = useState(false);
 
+  const [modalPagosAbierto, establecerModalPagosAbierto] = useState(false);
+  const [alumnoPagos, establecerAlumnoPagos] = useState(null);
+
   // Funciones para abrir y cerrar modales
   const abrirModalEmitirPension = (alumno) => {
     establecerModalEmitirPensionAbierto(true);
@@ -37,6 +41,16 @@ export default function TablaPagos({ alumnos, ocupado = false }) {
     establecerModalEmitirPensionAbierto(false);
     establecerAlumnoSeleccionado(null);
     establecerEnviando(false);
+  };
+
+  const abrirModalPagos = (alumno) => {
+    establecerAlumnoPagos(alumno);
+    establecerModalPagosAbierto(true);
+  };
+
+  const cerrarModalPagos = () => {
+    establecerModalPagosAbierto(false);
+    establecerAlumnoPagos(null);
   };
 
   // Función para emitir notificación
@@ -77,16 +91,23 @@ export default function TablaPagos({ alumnos, ocupado = false }) {
               <tr key={alumno.id} className={estilos.fila}>
                 <td>
                   <p className={estilos.mensaje}>{alumno.nombre}</p>
-                  <p className={estilos.dni}>{alumno.dni}</p>
+                  <p className={estilos.dni}>{alumno.codigo ?? alumno.dni ?? '—'}</p>
                 </td>
                 <td>
-                  {<Boton icono="archivo" span="Emitir compromiso de pensión" estilo={estilosBoton.btn_secundario} onClick={ ()=>{abrirModalEmitirPension(alumno)} }></Boton>}
-                </td>
-                <td>
-                  {<Boton icono="verificar" span="Ver pagos realizados" estilo={estilosBoton.btn_activo} onClick={()=>{}}  ></Boton>}
-                </td>
-                <td>
-                  {<Boton icono="reloj" span="Ver pagos pendientes" estilo={estilosBoton.btn_pendiente} onClick={()=>{}}  ></Boton>}
+                  <div className={estilos.accionesFila}>
+                    <Boton
+                      icono="archivo"
+                      span="Emitir compromiso de pensión"
+                      estilo={estilosBoton.btn_secundario}
+                      onClick={() => abrirModalEmitirPension(alumno)}
+                    />
+                    <Boton
+                      icono="tarjeta"
+                      span="Ver pagos"
+                      estilo={estilosBoton.btn_activo}
+                      onClick={() => abrirModalPagos(alumno)}
+                    />
+                  </div>
                 </td>
               </tr>
             ))}
@@ -94,7 +115,20 @@ export default function TablaPagos({ alumnos, ocupado = false }) {
         </table>
       </div>
       {modalEmitirPensionAbierto && (
-        <ModalEmitirPension onCerrar={cerrarModalEmitirPension} onAceptar={confirmarComprobante} alumno={alumnoSeleccionado} enviando={enviando}></ModalEmitirPension>
+        <ModalEmitirPension
+          onCerrar={cerrarModalEmitirPension}
+          onAceptar={confirmarComprobante}
+          alumno={alumnoSeleccionado}
+          enviando={enviando}
+        />
+      )}
+
+      {modalPagosAbierto && alumnoPagos && (
+        <ModalPagosEstudiante
+          alumno={alumnoPagos}
+          onCerrar={cerrarModalPagos}
+          alNotificar={mostrarNotificacion}
+        />
       )}
     </div>
   );

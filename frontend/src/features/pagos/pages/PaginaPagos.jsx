@@ -1,16 +1,19 @@
-import { useEffect, useId, useState } from 'react';
-
-import estilos from './PaginaPagos.module.css'
-import usePagos from '../hooks/usePagos.js'
+import estilos from './PaginaPagos.module.css';
+import usePagos from '../hooks/usePagos.js';
 import TablaPagos from '../components/TablaPagos.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 
-export default function PaginaPagos() {
+const MENSAJE_VACIO = 'No hay alumnos con matrícula confirmada en el año académico actual.';
 
+export default function PaginaPagos() {
   const {
     alumnos,
     estado,
-    recargando  
+    error,
+    recargando,
+    estadoEstructura,
+    errorEstructura,
+    reintentar
   } = usePagos();
 
   let mensajeRegion = '';
@@ -29,15 +32,31 @@ export default function PaginaPagos() {
       </header>    
 
       <section aria-busy={estado === 'cargando' || undefined}>
-        {estado === 'cargando' && <EstadoConsulta tipo="carga" filasEsqueleto={5} />}
+        {estadoEstructura === 'error' && (
+          <EstadoConsulta
+            tipo="error"
+            mensaje={errorEstructura}
+            alReintentar={reintentar}
+          />
+        )}
 
-        {estado === 'error' && <EstadoConsulta tipo="error" alReintentar={reintentar} />}
+        {estadoEstructura !== 'error' && estado === 'cargando' && (
+          <EstadoConsulta tipo="carga" filasEsqueleto={5} />
+        )}
 
-        {estado === 'listo' && alumnos.length === 0 && (
+        {estadoEstructura !== 'error' && estado === 'error' && (
+          <EstadoConsulta
+            tipo="error"
+            mensaje={error}
+            alReintentar={reintentar}
+          />
+        )}
+
+        {estadoEstructura !== 'error' && estado === 'listo' && alumnos.length === 0 && (
           <EstadoConsulta tipo="vacio" mensaje={MENSAJE_VACIO} />
         )}
 
-        {estado === 'listo' && alumnos.length > 0 && (
+        {estadoEstructura !== 'error' && estado === 'listo' && alumnos.length > 0 && (
           <>
             {recargando && <p>Actualizando resultados…</p>}
             <TablaPagos alumnos={alumnos} ocupado={recargando} />

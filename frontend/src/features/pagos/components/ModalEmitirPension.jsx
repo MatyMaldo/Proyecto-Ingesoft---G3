@@ -56,7 +56,9 @@ export default function ModalEmitirPension({ onCerrar, onAceptar,alumno,enviando
               <div>
                 <p className={estilosModal.tarjetaEtiqueta}>Alumno seleccionado</p>
                 <p className={estilosModal.tarjetaNombre}>{alumno.nombre}</p>
-                <p className={estilosModal.tarjetaDni}>DNI: {alumno.dni}</p>
+                <p className={estilosModal.tarjetaDni}>
+                  {alumno.dni ? `DNI: ${alumno.dni}` : `Código: ${alumno.codigo ?? '—'}`}
+                </p>
               </div>
             </div>
           )}
