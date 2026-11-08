@@ -19,79 +19,260 @@
   color: var(--color-texto-suave);
 }
 
-/* Aviso preventivo (ámbar, GUI §1) con ícono y texto. */
-.aviso {
+/* Aviso informativo (azul): reglas que conviene conocer antes de subir el archivo. */
+.info {
   display: flex;
   align-items: flex-start;
   gap: var(--espacio-2);
   padding: var(--espacio-3);
   font-size: var(--texto-md);
   line-height: var(--interlineado-md);
-  color: var(--tono-ambar-texto);
-  background: var(--tono-ambar-fondo);
-  border: 1px solid var(--tono-ambar-borde);
+  color: var(--tono-azul-texto);
+  background: var(--tono-azul-fondo);
+  border: 1px solid var(--tono-azul-borde);
   border-radius: var(--radio-md);
 }
 
-.aviso svg {
+.info svg {
   flex-shrink: 0;
   margin-top: 2px;
 }
 
-.acciones {
-  display: flex;
-  flex-wrap: wrap;
+/* Pasos 1 (plantilla) y 2 (archivo): dos tarjetas iguales que explican el orden del flujo. */
+.pasos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: var(--espacio-3);
 }
 
-.botonPrimario,
-.botonSecundario {
+.paso {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  min-width: 0;
+  padding: var(--espacio-4);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+}
+
+.cabeceraPaso {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espacio-3);
+}
+
+.numeroPaso {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  height: 1.5rem;
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-marca-texto);
+  background: var(--color-marca);
+  border-radius: var(--radio-pildora);
+}
+
+.tituloPaso {
+  margin: 0;
+  font-size: var(--texto-md);
+  line-height: var(--interlineado-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+}
+
+.ayudaPaso {
+  margin: 2px 0 0;
+  font-size: var(--texto-xs);
+  line-height: var(--interlineado-xs);
+  color: var(--color-texto-suave);
+}
+
+/* Fila de control de cada paso: el botón y la zona de carga miden lo mismo y quedan alineados abajo. */
+.controlPaso {
   position: relative;
+  display: flex;
+  align-items: stretch;
+  gap: var(--espacio-2);
+  min-height: 3.5rem;
+  margin-top: auto;
+}
+
+/* "Quitar archivo": una X en la esquina superior derecha de la ficha del archivo (no un botón aparte).
+   El área táctil se amplía con un pseudo-elemento para cumplir el mínimo de la GUI sin agrandar la X. */
+.botonQuitar {
+  position: absolute;
+  top: var(--espacio-2);
+  right: var(--espacio-2);
+  z-index: 1;
   display: inline-flex;
   align-items: center;
+  justify-content: center;
+  width: 1.5rem;
+  min-width: 0;
+  height: 1.5rem;
+  /* Anula el min-height táctil global: el área de toque se amplía con ::after, no con el tamaño visible. */
+  min-height: 0;
+  padding: 0;
+  color: var(--color-texto-suave);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radio-pildora);
+  cursor: pointer;
+  transition: background-color var(--transicion), color var(--transicion);
+}
+
+.botonQuitar::after {
+  content: '';
+  position: absolute;
+  inset: -10px;
+}
+
+.botonQuitar:hover {
+  color: var(--color-texto);
+  background: var(--color-borde);
+}
+
+.botonQuitar:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.iconoGirando {
+  animation: girar 800ms linear infinite;
+}
+
+@keyframes girar {
+  from {
+    transform: rotate(0deg);
+  }
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .iconoGirando {
+    animation: none;
+  }
+}
+
+.botonSecundario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 1 1 auto;
   gap: var(--espacio-2);
   min-height: var(--tactil-min);
   padding: 0 var(--espacio-4);
   font: inherit;
   font-size: var(--texto-md);
   font-weight: var(--peso-seminegrita);
-  border-radius: var(--radio-md);
-  cursor: pointer;
-  transition: background-color var(--transicion);
-}
-
-.botonPrimario {
-  color: var(--color-marca-texto);
-  background: var(--color-primario);
-  border: 1px solid var(--color-primario);
-}
-
-.botonPrimario:hover {
-  background: var(--color-primario-hover);
-}
-
-.botonSecundario {
   color: var(--color-accion);
   background: var(--color-superficie);
   border: 1px solid var(--color-accion);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+  transition: background-color var(--transicion);
 }
 
 .botonSecundario:hover {
   background: var(--color-accion-suave);
 }
 
-.botonSecundario:focus-visible,
-.botonPrimario:focus-within {
+.botonSecundario:focus-visible {
   outline: 2px solid var(--color-foco);
   outline-offset: 2px;
 }
 
-.botonInactivo {
+/* Zona para elegir o soltar el archivo. El <input type="file"> cubre toda la zona, queda invisible
+   pero conserva el foco y la accesibilidad del control nativo. */
+.zona {
+  position: relative;
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+  flex: 1 1 auto;
+  min-height: var(--tactil-min);
+  padding: var(--espacio-3);
+  color: var(--color-texto);
+  background: var(--color-fondo);
+  border: 1px dashed var(--color-borde-fuerte);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+  transition: background-color var(--transicion), border-color var(--transicion);
+}
+
+.zona:hover,
+.zonaActiva {
+  background: var(--color-accion-suave);
+  border-color: var(--color-accion);
+}
+
+.iconoZona {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  color: var(--color-accion);
+  background: var(--color-accion-suave);
+  border-radius: var(--radio-pildora);
+}
+
+.zona:focus-within {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+/* Con archivo elegido la zona deja de ser "suelta aquí" y pasa a ser una ficha del archivo. */
+.zonaConArchivo {
+  /* Deja libre la esquina derecha para la X de "Quitar archivo". */
+  padding-right: var(--espacio-8);
+  background: var(--color-superficie-suave);
+  border-style: solid;
+  border-color: var(--color-borde);
+}
+
+.zonaInactiva {
   opacity: var(--opacidad-deshabilitado);
   cursor: not-allowed;
 }
 
-/* El <input type="file"> sigue en la página y recibe el foco, pero queda oculto detrás de la etiqueta-botón. */
+.zona svg {
+  flex-shrink: 0;
+}
+
+.zonaTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.zonaTitulo,
+.nombreArchivo {
+  font-size: var(--texto-md);
+  line-height: var(--interlineado-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+}
+
+.nombreArchivo {
+  overflow-wrap: anywhere;
+}
+
+.zonaAyuda {
+  font-size: var(--texto-xs);
+  line-height: var(--interlineado-xs);
+  font-weight: var(--peso-normal);
+  color: var(--color-texto-suave);
+}
+
 .archivo {
   position: absolute;
   inset: 0;
@@ -101,11 +282,34 @@
   cursor: pointer;
 }
 
-.columnas {
-  padding: var(--espacio-3);
+.archivo:disabled {
+  cursor: not-allowed;
+}
+
+/* Formato del archivo: plegado por defecto para que la carga y la revisión queden a la vista. */
+.formato {
   background: var(--color-fondo);
   border: 1px solid var(--color-borde);
   border-radius: var(--radio-md);
+}
+
+.formato summary {
+  padding: var(--espacio-3);
+  font-size: var(--texto-md);
+  line-height: var(--interlineado-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-accion);
+  cursor: pointer;
+}
+
+.formato summary:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: -2px;
+  border-radius: var(--radio-md);
+}
+
+.formatoCuerpo {
+  padding: 0 var(--espacio-3) var(--espacio-3);
 }
 
 .rotulo {
@@ -135,54 +339,193 @@
   margin-top: var(--espacio-1);
 }
 
-.errores,
-.resumenAviso,
-.resumenExito {
+/* Errores que impiden usar el archivo (extensión, tamaño, encabezados). */
+.errores {
   padding: var(--espacio-3);
   font-size: var(--texto-xs);
   line-height: var(--interlineado-xs);
   border-radius: var(--radio-md);
 }
 
-.errores ul,
-.resumenAviso ul {
+.errores ul {
   margin: var(--espacio-2) 0 0;
   padding-left: var(--espacio-4);
 }
 
-.errores p {
-  margin: var(--espacio-1) 0 0;
-}
-
 .errores {
-  max-height: 10rem;
-  overflow-y: auto;
   color: var(--color-peligro-texto);
   background: var(--color-peligro-fondo);
   border: 1px solid var(--color-peligro-borde);
 }
 
-.resumenAviso {
-  color: var(--tono-ambar-texto);
-  background: var(--tono-ambar-fondo);
-  border: 1px solid var(--tono-ambar-borde);
+/* Revisión del archivo: resumen, filtro y tabla con el estado de cada fila. */
+.revision {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  min-width: 0;
 }
 
-.resumenAviso ul {
-  max-height: 8rem;
-  overflow-y: auto;
-}
-
-.resumenExito {
-  color: var(--color-exito-texto);
-  background: var(--color-exito-fondo);
-  border: 1px solid var(--color-exito-borde);
-}
-
-.vistaPrevia {
-  overflow-x: auto;
+/* Resumen: el total como cifra destacada y, al lado, los grupos rotulados (por tipo y por estado). */
+.resumen {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: center;
+  gap: var(--espacio-4);
+  padding: var(--espacio-3) var(--espacio-4);
+  background: var(--color-superficie-suave);
   border: 1px solid var(--color-borde);
   border-radius: var(--radio-md);
+}
+
+.resumenTotal {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  min-width: 5rem;
+  padding-right: var(--espacio-4);
+  border-right: 1px solid var(--color-borde);
+}
+
+.cifra {
+  font-size: var(--texto-xl);
+  line-height: 2rem;
+  font-weight: var(--peso-negrita);
+  color: var(--color-marca);
+}
+
+.rotuloCifra {
+  font-size: var(--texto-xs);
+  line-height: var(--interlineado-xs);
+  text-align: center;
+  color: var(--color-texto-suave);
+}
+
+.grupos {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  margin: 0;
+  min-width: 0;
+}
+
+.grupo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-2) var(--espacio-3);
+}
+
+.etiquetaGrupo {
+  width: 4.5rem;
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+.chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+  margin: 0;
+}
+
+/* Avance de la importación. */
+.progreso {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  padding: var(--espacio-5) var(--espacio-4);
+  background: var(--color-superficie-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+}
+
+.progresoTexto {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.barra {
+  width: 100%;
+  height: 0.5rem;
+  overflow: hidden;
+  appearance: none;
+  background: var(--color-borde);
+  border: 0;
+  border-radius: var(--radio-pildora);
+}
+
+.barra::-webkit-progress-bar {
+  background: var(--color-borde);
+  border-radius: var(--radio-pildora);
+}
+
+.barra::-webkit-progress-value {
+  background: var(--color-accion);
+  border-radius: var(--radio-pildora);
+  transition: width var(--transicion);
+}
+
+.barra::-moz-progress-bar {
+  background: var(--color-accion);
+  border-radius: var(--radio-pildora);
+}
+
+.accionesResultado {
+  display: flex;
+  justify-content: flex-start;
+}
+
+.accionesResultado .botonSecundario {
+  flex: 0 0 auto;
+}
+
+.insigniaIcono {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-1);
+}
+
+.filtro {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  min-height: var(--tactil-min);
+  font-size: var(--texto-md);
+  color: var(--color-texto-secundario);
+  cursor: pointer;
+}
+
+.filtro input {
+  /* Anula el min-height táctil global de los input: un checkbox no debe medir 44 px de alto. */
+  flex-shrink: 0;
+  width: 1rem;
+  min-height: 0;
+  height: 1rem;
+  margin: 0;
+  accent-color: var(--color-accion);
+}
+
+.vistaPrevia,
+.contenedorFormato {
+  overflow: hidden;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+}
+
+/* Todas las filas, con desplazamiento dentro de la tabla y el encabezado siempre visible. */
+.desplazable {
+  max-height: 22rem;
+  overflow: auto;
+}
+
+.contenedorFormato {
+  overflow-x: auto;
+  background: var(--color-superficie);
 }
 
 .tabla {
@@ -202,17 +545,63 @@
 }
 
 .tabla th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   padding: var(--espacio-2);
   text-align: left;
   white-space: nowrap;
   color: var(--color-texto-secundario);
   background: var(--color-superficie-suave);
+  box-shadow: inset 0 -1px 0 var(--color-borde);
+}
+
+.tablaFormato td {
+  vertical-align: top;
+}
+
+.tablaFormato .codigo {
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+  overflow-wrap: normal;
+  white-space: nowrap;
+}
+
+/* Columna, Requerido y Ejemplo son cortos y no se parten; el ancho sobrante lo absorbe "Formato". */
+.tablaFormato td:nth-child(2),
+.celdaEjemplo {
+  white-space: nowrap;
+}
+
+.celdaEjemplo {
+  color: var(--color-texto-suave);
 }
 
 .tabla td {
   padding: var(--espacio-2);
   border-top: 1px solid var(--color-borde);
   color: var(--color-texto);
+  vertical-align: middle;
+}
+
+.filaConErrores td {
+  background: var(--color-peligro-fondo);
+}
+
+/* Los problemas de una fila van justo debajo de ella, con el campo afectado en cada línea. */
+.filaProblemas td {
+  padding: 0 var(--espacio-2) var(--espacio-2);
+  border-top: 0;
+  background: var(--color-peligro-fondo);
+}
+
+.problemas {
+  margin: 0;
+  padding: var(--espacio-2) var(--espacio-3) var(--espacio-1) var(--espacio-5);
+  font-size: var(--texto-xs);
+  line-height: var(--interlineado-xs);
+  color: var(--color-peligro-texto);
+  border-left: 3px solid var(--color-peligro-acento);
 }
 
 .pieVistaPrevia {
@@ -220,4 +609,113 @@
   padding: var(--espacio-2);
   font-size: var(--texto-xs);
   color: var(--color-texto-suave);
+  border-top: 1px solid var(--color-borde);
+}
+
+.botonEnlace {
+  padding: 0;
+  font: inherit;
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-accion);
+  text-decoration: underline;
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.botonEnlace:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+/* Compacta (< 768 px): la tabla se convierte en tarjetas, sin scroll horizontal (GUI §11). */
+@media (max-width: 767px) {
+  .pasos {
+    grid-template-columns: 1fr;
+  }
+
+  .resumen {
+    grid-template-columns: 1fr;
+  }
+
+  .resumenTotal {
+    flex-direction: row;
+    gap: var(--espacio-2);
+    align-items: baseline;
+    justify-content: flex-start;
+    padding: 0 0 var(--espacio-3);
+    border-right: 0;
+    border-bottom: 1px solid var(--color-borde);
+  }
+
+  .vistaPrevia,
+  .contenedorFormato {
+    overflow: visible;
+    border: 0;
+  }
+
+  .desplazable {
+    max-height: none;
+    overflow: visible;
+  }
+
+  /* El ejemplo es secundario: en tarjetas se omite para no alargarlas. */
+  .tabla td.celdaEjemplo {
+    display: none;
+  }
+
+  .tabla,
+  .tabla tbody,
+  .tabla tr,
+  .tabla td {
+    display: block;
+  }
+
+  .tabla thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
+  }
+
+  .tabla tr {
+    margin-bottom: var(--espacio-3);
+    background: var(--color-superficie);
+    border: 1px solid var(--color-borde);
+    border-radius: var(--radio-md);
+    overflow: hidden;
+  }
+
+  .tabla tr.filaConErrores {
+    margin-bottom: 0;
+    border-bottom: 0;
+    border-bottom-right-radius: 0;
+    border-bottom-left-radius: 0;
+  }
+
+  .tabla tr.filaProblemas {
+    border-top: 0;
+    border-top-left-radius: 0;
+    border-top-right-radius: 0;
+  }
+
+  .tabla td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--espacio-3);
+    border-top: 0;
+  }
+
+  .tabla td[data-label]::before {
+    content: attr(data-label);
+    font-weight: var(--peso-seminegrita);
+    color: var(--color-texto-suave);
+  }
+
+  .pieVistaPrevia {
+    border-top: 0;
+    padding-left: 0;
+  }
 }

@@ -5,8 +5,12 @@ export const CSV_USUARIOS_COLUMNAS = [
     'telefono', 'correo', 'password', 'edad', 'fechaNacimiento', 'dniApoderado'
 ];
 
+/** Límites por carga, los mismos que aplica el backend a sus cargas masivas (2 MB y 1000 filas). */
+export const LIMITE_TAMANO_BYTES = 2 * 1024 * 1024;
+export const LIMITE_FILAS = 1000;
+
 function normalizarCsv(valor) {
-    return String(valor ?? '').normalize('NFD').replace(/[\u0300-\u036f]/g, '').trim().toLocaleLowerCase('es');
+    return String(valor ?? '').normalize('NFD').replace(/[̀-ͯ]/g, '').trim().toLocaleLowerCase('es');
 }
 
 /**
@@ -18,7 +22,7 @@ export function leerCsv(texto) {
     let fila = [];
     let campo = '';
     let entreComillas = false;
-    const contenido = String(texto ?? '').replace(/^\uFEFF/, '');
+    const contenido = String(texto ?? '').replace(/^﻿/, '');
     let comillasEncabezado = false;
     let comas = 0;
     let puntoYComa = 0;
@@ -72,7 +76,7 @@ export function leerCsv(texto) {
         }
         const tipo = normalizarCsv(datos.tipousuario);
         const tipoUsuario = ({ apoderado: 'apoderado', docente: 'docente', estudiante: 'estudiante' })[tipo];
-        if (!tipoUsuario) return { linea: indice + 2, error: 'tipoUsuario debe ser APODERADO, DOCENTE o ESTUDIANTE.' };
+        if (!tipoUsuario) return { linea: indice + 2, error: 'Tipo de usuario debe ser APODERADO, DOCENTE o ESTUDIANTE.' };
         return {
             linea: indice + 2,
             tipoUsuario,
@@ -94,9 +98,32 @@ export function leerCsv(texto) {
     });
 }
 
-/** Valida las filas leídas y las ordena (apoderados, docentes, estudiantes). Devuelve `{ errores, filasOrdenadas }`. */
+/** Un problema de una fila: `campo` es la etiqueta legible de la columna (o `null` si afecta a toda la fila). */
+function problema(campo, mensaje) {
+    return { campo, mensaje };
+}
+
+/** Texto de un problema para listas y reportes, p. ej. "Teléfono: debe tener exactamente 9 dígitos". */
+export function textoProblema({ campo, mensaje }) {
+    return campo ? `${campo}: ${mensaje}` : mensaje;
+}
+
+/**
+ * Valida las filas leídas y las ordena (apoderados, docentes, estudiantes).
+ *
+ * Devuelve:
+ * - `errores`: una cadena por fila con problemas (`"Fila 3: ..."`); vacío si todo está en orden.
+ * - `filasOrdenadas`: filas sin error de estructura, en el orden de registro.
+ * - `detalleFilas`: todas las filas del archivo, en el orden original, con sus `problemas` ya redactados
+ *   para mostrarlos junto a cada fila.
+ */
 export function validarFilasCsv(filas, usuarios, usarMock) {
-    const errores = filas.filter(fila => fila.error).map(fila => `Fila ${fila.linea}: ${fila.error}`);
+    const problemasPorLinea = new Map();
+    const errores = [];
+    for (const fila of filas.filter(fila => fila.error)) {
+        problemasPorLinea.set(fila.linea, [problema(null, fila.error)]);
+        errores.push(`Fila ${fila.linea}: ${fila.error}`);
+    }
     const correos = new Set(usuarios.map(usuario => normalizarCsv(usuario.correo)).filter(Boolean));
     const dniPorRol = new Set(usuarios.map(usuario => `${normalizarCsv(usuario.rol)}:${usuario.dni}`));
     const dniApoderados = new Set(usuarios.filter(usuario => usuario.rol === 'Apoderado' && usuario.activo).map(usuario => usuario.dni));
@@ -105,45 +132,98 @@ export function validarFilasCsv(filas, usuarios, usarMock) {
     const filasOrdenadas = filas.filter(fila => !fila.error).slice().sort((a, b) => prioridad[a.tipoUsuario] - prioridad[b.tipoUsuario] || a.linea - b.linea);
 
     for (const fila of filasOrdenadas) {
-        const erroresFila = [];
+        const problemasFila = [];
         const rol = ROL_POR_TIPO_REGISTRO[fila.tipoUsuario];
-        const etiqueta = `Fila ${fila.linea}`;
-        if (!fila.nombre || fila.nombre.length > 80) erroresFila.push('nombre es obligatorio y admite hasta 80 caracteres');
-        if (!fila.apellidoPaterno || fila.apellidoPaterno.length > 80) erroresFila.push('apellidoPaterno es obligatorio y admite hasta 80 caracteres');
-        if (fila.apellidoMaterno.length > 80) erroresFila.push('apellidoMaterno admite hasta 80 caracteres');
+        if (!fila.nombre || fila.nombre.length > 80) problemasFila.push(problema('Nombre', 'es obligatorio (máximo 80 caracteres)'));
+        if (!fila.apellidoPaterno || fila.apellidoPaterno.length > 80) problemasFila.push(problema('Apellido paterno', 'es obligatorio (máximo 80 caracteres)'));
+        if (fila.apellidoMaterno.length > 80) problemasFila.push(problema('Apellido materno', 'admite hasta 80 caracteres'));
         const dniValido = usarMock && fila.tipoUsuario === 'apoderado' ? /^(?:\d{8}|\d{9})$/.test(fila.dni) : /^\d{8}$/.test(fila.dni);
-        if (!dniValido) erroresFila.push('DNI debe tener 8 dígitos (el apoderado admite 9 en el modo de demostración)');
+        if (!dniValido) problemasFila.push(problema('DNI', usarMock && fila.tipoUsuario === 'apoderado' ? 'debe tener 8 o 9 dígitos' : 'debe tener 8 dígitos'));
         const dniClave = `${normalizarCsv(rol)}:${fila.dni}`;
-        if (dniPorRol.has(dniClave)) erroresFila.push('ya existe un usuario con ese DNI y rol');
+        if (dniPorRol.has(dniClave)) problemasFila.push(problema('DNI', 'ya existe un usuario con ese DNI y rol (en el sistema o repetido en el archivo)'));
         dniPorRol.add(dniClave);
-        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fila.correo) || fila.correo.length > 160) erroresFila.push('correo debe tener un formato válido');
+        if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(fila.correo) || fila.correo.length > 160) problemasFila.push(problema('Correo', 'no tiene un formato válido'));
         const correoClave = normalizarCsv(fila.correo);
-        if (correoClave && correos.has(correoClave)) erroresFila.push('el correo ya está registrado');
+        if (correoClave && correos.has(correoClave)) problemasFila.push(problema('Correo', 'ya está registrado (en el sistema o repetido en el archivo)'));
         if (correoClave) correos.add(correoClave);
         const telefonoIngresado = fila.telefonoTexto.trim() !== '';
-        if (telefonoIngresado && (!/^[+\d\s().-]+$/.test(fila.telefonoTexto) || !/^\d{9}$/.test(fila.telefono))) erroresFila.push('telefono debe tener exactamente 9 dígitos peruanos');
-        if ((fila.tipoUsuario === 'estudiante' || (usarMock && fila.tipoUsuario === 'docente')) && !telefonoIngresado) erroresFila.push('telefono es obligatorio');
-        if (!fila.password || fila.password.length < 8 || fila.password.length > 40) erroresFila.push('password es obligatorio y debe tener entre 8 y 40 caracteres');
+        if (telefonoIngresado && (!/^[+\d\s().-]+$/.test(fila.telefonoTexto) || !/^\d{9}$/.test(fila.telefono))) problemasFila.push(problema('Teléfono', 'debe tener exactamente 9 dígitos'));
+        if ((fila.tipoUsuario === 'estudiante' || (usarMock && fila.tipoUsuario === 'docente')) && !telefonoIngresado) problemasFila.push(problema('Teléfono', 'es obligatorio'));
+        if (!fila.password || fila.password.length < 8 || fila.password.length > 40) problemasFila.push(problema('Contraseña', 'es obligatoria y debe tener entre 8 y 40 caracteres'));
         if (fila.tipoUsuario === 'apoderado' || (usarMock && fila.tipoUsuario === 'docente')) {
             const edad = Number(fila.edad);
             const edadMinima = usarMock ? 18 : 1;
-            if (!/^\d+$/.test(fila.edad) || !Number.isSafeInteger(edad) || edad < edadMinima) erroresFila.push(`edad debe ser un entero de ${edadMinima} o más`);
+            if (!/^\d+$/.test(fila.edad) || !Number.isSafeInteger(edad) || edad < edadMinima) problemasFila.push(problema('Edad', `debe ser un número entero de ${edadMinima} o más`));
         }
         if (fila.tipoUsuario === 'estudiante') {
             const fecha = new Date(`${fila.fechaNacimiento}T00:00:00`);
             const hoy = new Date();
             hoy.setHours(23, 59, 59, 999);
-            if (!/^\d{4}-\d{2}-\d{2}$/.test(fila.fechaNacimiento) || Number.isNaN(fecha.getTime()) || fecha.toISOString().slice(0, 10) !== fila.fechaNacimiento || fecha > hoy) erroresFila.push('fechaNacimiento debe ser válida y no posterior a hoy');
-            if (!fila.dniApoderado || (!dniApoderados.has(fila.dniApoderado) && !dniApoderadosCsv.has(fila.dniApoderado))) erroresFila.push('dniApoderado debe identificar a un apoderado activo existente o incluido en este CSV');
+            if (!/^\d{4}-\d{2}-\d{2}$/.test(fila.fechaNacimiento) || Number.isNaN(fecha.getTime()) || fecha.toISOString().slice(0, 10) !== fila.fechaNacimiento || fecha > hoy) problemasFila.push(problema('Fecha de nacimiento', 'debe tener formato AAAA-MM-DD, ser una fecha válida y no posterior a hoy'));
+            if (!fila.dniApoderado || (!dniApoderados.has(fila.dniApoderado) && !dniApoderadosCsv.has(fila.dniApoderado))) problemasFila.push(problema('DNI del apoderado', 'debe ser el de un apoderado activo ya registrado o incluido en este archivo'));
         }
-        if (erroresFila.length) errores.push(`${etiqueta}: ${erroresFila.join('; ')}.`);
+        if (problemasFila.length) {
+            problemasPorLinea.set(fila.linea, problemasFila);
+            errores.push(`Fila ${fila.linea}: ${problemasFila.map(textoProblema).join('; ')}.`);
+        }
     }
-    return { errores, filasOrdenadas };
+
+    const detalleFilas = filas
+        .map(fila => ({
+            linea: fila.linea,
+            tipoUsuario: fila.tipoUsuario ?? null,
+            nombre: [fila.nombre, fila.apellidoPaterno].filter(Boolean).join(' '),
+            dni: fila.dni ?? '',
+            correo: fila.correo ?? '',
+            dniApoderado: fila.dniApoderado ?? '',
+            problemas: problemasPorLinea.get(fila.linea) ?? []
+        }))
+        .sort((a, b) => a.linea - b.linea);
+
+    return { errores, filasOrdenadas, detalleFilas };
+}
+
+/**
+ * Describe cada columna del CSV para mostrarla como tabla de ayuda: a quién aplica, la regla y un ejemplo.
+ * Las reglas dependen del modo (el mock exige además teléfono y edad a los docentes).
+ *
+ * @param {boolean} usarMock
+ * @returns {Array<{ campo: string, obligatorio: string, regla: string, ejemplo: string }>}
+ */
+export function describirColumnasCsv(usarMock) {
+    return [
+        { campo: 'tipoUsuario', obligatorio: 'Todos', regla: 'APODERADO, DOCENTE o ESTUDIANTE', ejemplo: 'ESTUDIANTE' },
+        { campo: 'nombre', obligatorio: 'Todos', regla: 'Hasta 80 caracteres', ejemplo: 'Diego' },
+        { campo: 'apellidoPaterno', obligatorio: 'Todos', regla: 'Hasta 80 caracteres', ejemplo: 'Soto' },
+        { campo: 'apellidoMaterno', obligatorio: 'Opcional', regla: 'Hasta 80 caracteres', ejemplo: 'Ramos' },
+        { campo: 'dni', obligatorio: 'Todos', regla: '8 dígitos; no puede repetirse para un mismo rol', ejemplo: '10000013' },
+        {
+            campo: 'telefono',
+            obligatorio: usarMock ? 'Estudiantes y docentes' : 'Estudiantes',
+            regla: '9 dígitos (opcional para los demás tipos)',
+            ejemplo: '900000013'
+        },
+        { campo: 'correo', obligatorio: 'Todos', regla: 'Correo válido; no puede repetirse', ejemplo: 'diego@mail.com' },
+        { campo: 'password', obligatorio: 'Todos', regla: 'De 8 a 40 caracteres', ejemplo: 'Clave2026!' },
+        {
+            campo: 'edad',
+            obligatorio: usarMock ? 'Apoderados y docentes' : 'Apoderados',
+            regla: `Número entero de ${usarMock ? 18 : 1} o más`,
+            ejemplo: '40'
+        },
+        { campo: 'fechaNacimiento', obligatorio: 'Estudiantes', regla: 'AAAA-MM-DD, no posterior a hoy', ejemplo: '2012-03-15' },
+        {
+            campo: 'dniApoderado',
+            obligatorio: 'Estudiantes',
+            regla: 'DNI de un apoderado ya registrado o incluido en el archivo',
+            ejemplo: '10000011'
+        }
+    ];
 }
 
 /** Descarga la plantilla vacía con los encabezados esperados. */
 export function descargarPlantillaCsv() {
-    const contenido = `\uFEFF${CSV_USUARIOS_COLUMNAS.join(',')}\r\n`;
+    const contenido = `﻿${CSV_USUARIOS_COLUMNAS.join(',')}\r\n`;
     const archivo = new Blob([contenido], { type: 'text/csv;charset=utf-8' });
     const url = URL.createObjectURL(archivo);
     const enlace = document.createElement('a');

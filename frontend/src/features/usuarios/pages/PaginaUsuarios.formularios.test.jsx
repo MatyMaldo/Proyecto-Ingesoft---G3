@@ -192,6 +192,12 @@ describe('Usuarios · formularios en diálogo', () => {
     const archivo = new File(['no,es,un,csv'], 'usuarios.csv', { type: 'text/csv' });
     await userEvent.upload(within(dialogo).getByLabelText(/Seleccionar archivo CSV/), archivo);
     await userEvent.keyboard('{Escape}');
-    expect(screen.getByRole('dialog', { name: '¿Descartar los cambios?' })).toBeInTheDocument();
+    // El aviso habla del archivo, no de un formulario: dice qué se pierde y que no se crea ningún usuario.
+    const confirmacion = screen.getByRole('dialog', { name: '¿Descartar la importación?' });
+    expect(within(confirmacion).getByText('Se perderá el archivo «usuarios.csv» y su revisión. No se creará ningún usuario.')).toBeInTheDocument();
+
+    await userEvent.click(within(confirmacion).getByRole('button', { name: 'Seguir con la carga' }));
+    expect(screen.queryByRole('dialog', { name: '¿Descartar la importación?' })).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Carga masiva de usuarios' })).toBeInTheDocument();
   });
 });

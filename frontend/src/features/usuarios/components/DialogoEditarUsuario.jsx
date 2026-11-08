@@ -139,7 +139,8 @@ export default function DialogoEditarUsuario({ usuario, usuarios, alGuardado, al
     if (dni !== (usuario.dni ?? '')) datosActualizados.dni = dni;
     if (correo !== (usuario.correo ?? '')) datosActualizados.email = correo;
     if (telefonoCompacto !== telefonoPeru(usuario.telefono)) {
-      datosActualizados.telefono = telefonoCompacto || null;
+      // El backend (ActualizarUsuarioRequest) exige 9 dígitos sin prefijo +51.
+      datosActualizados.telefono = separarTelefono(telefonoIngresado) || null;
     }
     if (esEstudiante && String(form.apoderadoId) !== String(usuario.apoderadoId ?? '')) {
       datosActualizados.apoderadoId = form.apoderadoSeleccionado.id;
