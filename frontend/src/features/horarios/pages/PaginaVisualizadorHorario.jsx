@@ -1,471 +1,161 @@
-import { useEffect, useMemo, useState } from 'react';
-
 import useAuth from '../../../shared/auth/useAuth.js';
+import ControlSegmentado from '../../../shared/components/ControlSegmentado.jsx';
+import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
+import FiltrosActivos from '../../../shared/components/FiltrosActivos.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
+import SelectFiltro from '../../../shared/components/SelectFiltro.jsx';
 import MatrizSesiones from '../components/MatrizSesiones.jsx';
 import SelectorFecha from '../components/SelectorFecha.jsx';
-import {
-  fechaISO,
-  formatearFecha,
-  lunesDeFecha,
-  semanasDelRango
-} from '../utils/tiempo.js';
-import {
-  horarioApoderado,
-  horarioDocente,
-  horarioSeccion,
-  listarAniosAcademicos,
-  listarDocentes,
-  listarMisEstudiantes,
-  listarSecciones,
-  miHorarioDocente,
-  miHorarioEstudiante,
-  obtenerPeriodo
-} from '../services/visualizadoresService.js';
+import useConsultaHorario, { ADMIN, APODERADO } from '../hooks/useConsultaHorario.js';
+import { formatearFecha } from '../utils/tiempo.js';
+import estilos from './PaginaVisualizadorHorario.module.css';
 
-const ADMIN = 'ADMINISTRADOR';
-const DOCENTE = 'DOCENTE';
-const ESTUDIANTE = 'ESTUDIANTE';
-const APODERADO = 'APODERADO';
+const OPCIONES_TIPO = [
+  { valor: 'seccion', etiqueta: 'Ver por sección' },
+  { valor: 'docente', etiqueta: 'Ver por docente' }
+];
 
-function inicioSemanaActual() {
-  return fechaISO(lunesDeFecha(fechaISO(new Date())));
+/** Rango de días de una semana para el botón: "02 – 06". */
+function etiquetaDias(semana) {
+  return semana.inicio === semana.fin
+    ? semana.inicio.slice(8)
+    : `${semana.inicio.slice(8)} – ${semana.fin.slice(8)}`;
 }
 
-function finSemanaActual() {
-  const lunes = lunesDeFecha(fechaISO(new Date()));
-  const viernes = new Date(lunes);
-  viernes.setDate(lunes.getDate() + 4);
-  return fechaISO(viernes);
+const MENSAJE_SIN_SESIONES_RANGO = 'Aún no hay sesiones programadas en el rango seleccionado.';
+const MENSAJE_SIN_SESIONES_SEMANA = 'No hay sesiones en esta semana.';
+
+function mensajeSinSeleccion(rol, tipo) {
+  if (rol === APODERADO) return 'Selecciona un estudiante para consultar su horario.';
+  return tipo === 'seccion'
+    ? 'Selecciona un grado y una sección para consultar su horario.'
+    : 'Selecciona un docente para consultar su horario.';
 }
 
-const estiloCampo = {
-  display: 'flex',
-  flexDirection: 'column',
-  gap: 6,
-  fontSize: 14,
-  fontWeight: 600
-};
-
-const estiloEntrada = {
-  minHeight: 48,
-  padding: '0 14px',
-  font: 'inherit',
-  fontSize: 16,
-  color: 'var(--color-texto)',
-  background: 'var(--color-superficie)',
-  border: '1px solid var(--color-borde-fuerte)',
-  borderRadius: 8
-};
-
-const estiloFlecha = {
-  display: 'inline-flex',
-  alignItems: 'center',
-  justifyContent: 'center',
-  flex: '0 0 auto',
-  width: 32,
-  height: 32,
-  padding: 0,
-  color: 'var(--color-accion)',
-  background: 'var(--color-superficie)',
-  border: '1px solid var(--color-borde-fuerte)',
-  borderRadius: 8,
-  cursor: 'pointer'
-};
-
+/**
+ * Página "Consulta de horario" (solo lectura). Compone la pantalla a partir de `useConsultaHorario`; no
+ * llama a servicios ni calcula semanas por su cuenta. El administrador elige sección o docente, el
+ * apoderado a un estudiante a su cargo; docente y estudiante ven su propio horario.
+ */
 export default function PaginaVisualizadorHorario() {
   const { usuario } = useAuth();
   const rol = usuario?.rol;
+  const esAdmin = rol === ADMIN;
+  const esApoderado = rol === APODERADO;
 
-  const [tipo, setTipo] = useState('seccion');
-  const [anio, setAnio] = useState(null);
-  const [gradoId, setGradoId] = useState('');
-  const [id, setId] = useState('');
-  const [opciones, setOpciones] = useState([]);
-  const [estudiantes, setEstudiantes] = useState([]);
-  const [periodo, setPeriodo] = useState(null);
-  const [cargandoOpciones, setCargandoOpciones] = useState(false);
-  const [errorOpciones, setErrorOpciones] = useState('');
+  const {
+    tipo,
+    anio,
+    gradoId,
+    id,
+    grados,
+    opciones,
+    seccionesFiltradas,
+    estudiantes,
+    cargandoOpciones,
+    errorOpciones,
+    fechaInicio,
+    fechaFin,
+    cargando,
+    error,
+    tituloConsulta,
+    programacionAbierta,
+    rutaEdicion,
+    semanas,
+    meses,
+    semanaActual,
+    indiceSemana,
+    seccionSeleccionada,
+    claveMesActual,
+    esSemanaDeHoy,
+    irSemanaDeHoy,
+    seleccionarMes,
+    establecerId,
+    establecerFechaInicio,
+    establecerFechaFin,
+    establecerSemanaSeleccionada,
+    seleccionarTipo,
+    seleccionarGrado,
+    irSemanaAnterior,
+    irSemanaSiguiente,
+    rangoPersonalizado,
+    restablecerRango,
+    limpiarFiltros,
+    recargar
+  } = useConsultaHorario(rol, usuario?.nombre);
 
-  const [fechaInicio, setFechaInicio] = useState(inicioSemanaActual);
-  const [fechaFin, setFechaFin] = useState(finSemanaActual);
-  const [datos, setDatos] = useState([]);
-  const [cargando, setCargando] = useState(false);
-  const [error, setError] = useState('');
-  const [recarga, setRecarga] = useState(0);
-  const [semanaSeleccionada, setSemanaSeleccionada] = useState(null);
+  const necesitaSeleccion = (esAdmin || esApoderado) && !id;
+  const consultaPorSeccion = esAdmin && tipo === 'seccion';
+  const hayFiltros = rangoPersonalizado || Boolean(id) || Boolean(gradoId);
 
-  useEffect(() => {
-    let activo = true;
-    listarAniosAcademicos().then((respuesta) => {
-      if (!activo) return;
-      if (!respuesta.exitoso || !Array.isArray(respuesta.datos)) {
-        setErrorOpciones(respuesta.mensaje || 'No se pudieron cargar los años académicos.');
-        return;
-      }
-      const actual = respuesta.datos.find(
-        (elemento) => Number(elemento.anio) === new Date().getFullYear()
-      ) ?? respuesta.datos.at(-1) ?? null;
-      if (!actual) {
-        setErrorOpciones('No hay años académicos configurados.');
-        return;
-      }
+  const etiquetaConsulta = esApoderado ? 'Estudiante' : tipo === 'seccion' ? 'Sección' : 'Docente';
+  const valorConsulta = consultaPorSeccion ? seccionSeleccionada?.nombre : tituloConsulta;
+  const nombreGrado = grados.find((grado) => String(grado.id) === String(gradoId))?.nombre;
 
-      const inicio = actual.fechaInicio ?? `${actual.anio}-01-01`;
-      const fin = actual.fechaFin ?? `${actual.anio}-12-31`;
-      setAnio(actual);
-      setFechaInicio(String(inicio).slice(0, 10));
-      setFechaFin(String(fin).slice(0, 10));
-    });
-    return () => { activo = false; };
-  }, []);
+  const chipsActivos = [
+    ...(consultaPorSeccion && gradoId && nombreGrado
+      ? [{ id: 'grado', etiqueta: `Grado: ${nombreGrado}`, alQuitar: () => seleccionarGrado('') }]
+      : []),
+    ...(id && valorConsulta
+      ? [{ id: 'consulta', etiqueta: `${etiquetaConsulta}: ${valorConsulta}`, alQuitar: () => establecerId('') }]
+      : []),
+    ...(rangoPersonalizado
+      ? [{
+        id: 'fechas',
+        etiqueta: `Del ${formatearFecha(fechaInicio)} al ${formatearFecha(fechaFin)}`,
+        alQuitar: restablecerRango
+      }]
+      : [])
+  ];
 
-  useEffect(() => {
-    if (rol !== ADMIN) return undefined;
-    if (tipo === 'seccion' && !anio?.id) return undefined;
+  const opcionesGrado = [
+    { valor: '', etiqueta: 'Seleccione un grado' },
+    ...grados.map((grado) => ({ valor: String(grado.id), etiqueta: grado.nombre }))
+  ];
 
-    let activo = true;
-    setOpciones([]);
-    setId('');
-    setCargandoOpciones(true);
-    setErrorOpciones('');
+  const opcionesSeccion = [
+    { valor: '', etiqueta: 'Seleccione una opción' },
+    ...(tipo === 'seccion' ? seccionesFiltradas : opciones).map((opcion) => ({
+      valor: String(opcion.id),
+      etiqueta: tipo === 'seccion'
+        ? `${opcion.nombre} (${opcion.anioAcademico ?? anio?.anio ?? ''})`
+        : opcion.nombre
+    }))
+  ];
 
-    const consulta = tipo === 'seccion'
-      ? listarSecciones(anio.id)
-      : listarDocentes();
+  const opcionesEstudiante = [
+    { valor: '', etiqueta: 'Seleccione un estudiante' },
+    ...estudiantes.map((estudiante) => ({
+      valor: String(estudiante.id),
+      etiqueta: estudiante.nombreCompleto
+    }))
+  ];
 
-    consulta.then((respuesta) => {
-      if (!activo) return;
-      if (!respuesta.exitoso || !Array.isArray(respuesta.datos)) {
-        setErrorOpciones(respuesta.mensaje || 'No se pudieron cargar las opciones.');
-        setCargandoOpciones(false);
-        return;
-      }
-      setOpciones(respuesta.datos);
-      setCargandoOpciones(false);
-    });
+  const cuerpoSemana = () => (
+    <div className={estilos.semanas}>
+      <h2 className={estilos.tituloSemana} aria-live="polite">
+        {tituloConsulta ? `${tituloConsulta} · ` : ''}
+        {semanaActual.inicio === semanaActual.fin
+          ? `Día ${formatearFecha(semanaActual.inicio)}`
+          : `Semana del ${formatearFecha(semanaActual.inicio)} al ${formatearFecha(semanaActual.fin)}`}
+      </h2>
 
-    return () => { activo = false; };
-  }, [rol, tipo, anio?.id]);
+      <div className={estilos.selectorSemana}>
+        <SelectFiltro
+          id="consulta-horario-mes"
+          etiqueta="Mes"
+          valor={claveMesActual}
+          opciones={meses.map((mes) => ({ valor: mes.clave, etiqueta: mes.etiqueta }))}
+          alCambiar={seleccionarMes}
+          apilado
+        />
 
-  useEffect(() => {
-    if (rol !== APODERADO) return undefined;
-    let activo = true;
-    setCargandoOpciones(true);
-    setErrorOpciones('');
-    listarMisEstudiantes().then((respuesta) => {
-      if (!activo) return;
-      if (!respuesta.exitoso || !Array.isArray(respuesta.datos)) {
-        setErrorOpciones(respuesta.mensaje || 'No se pudieron cargar los estudiantes.');
-        setCargandoOpciones(false);
-        return;
-      }
-      setEstudiantes(respuesta.datos);
-      setCargandoOpciones(false);
-    });
-    return () => { activo = false; };
-  }, [rol]);
-
-  const seccionSeleccionada = useMemo(
-    () => opciones.find((opcion) => String(opcion.id) === String(id)),
-    [opciones, id]
-  );
-
-  useEffect(() => {
-    if (rol !== ADMIN || tipo !== 'seccion' || !id) {
-      setPeriodo(null);
-      return undefined;
-    }
-    const anioId = seccionSeleccionada?.anioAcademicoId ?? anio?.id;
-    if (!anioId) return undefined;
-
-    let activo = true;
-    obtenerPeriodo(anioId).then((respuesta) => {
-      if (!activo) return;
-      setPeriodo(respuesta.exitoso ? respuesta.datos : null);
-    });
-    return () => { activo = false; };
-  }, [rol, tipo, id, seccionSeleccionada, anio?.id]);
-
-  useEffect(() => {
-    let activo = true;
-
-    if (!anio) {
-      setDatos([]);
-      setError('');
-      setCargando(false);
-      return () => { activo = false; };
-    }
-    if ((rol === ADMIN || rol === APODERADO) && !id) {
-      setDatos([]);
-      setError('');
-      setCargando(false);
-      return () => { activo = false; };
-    }
-    if (!fechaInicio || !fechaFin || fechaFin < fechaInicio) {
-      setDatos([]);
-      setError('Selecciona un rango de fechas válido.');
-      setCargando(false);
-      return () => { activo = false; };
-    }
-
-    setCargando(true);
-    setError('');
-
-    let consulta;
-    if (rol === ADMIN) {
-      consulta = tipo === 'seccion'
-        ? horarioSeccion(id, { fechaInicio, fechaFin })
-        : horarioDocente(id, { fechaInicio, fechaFin });
-    } else if (rol === DOCENTE) {
-      consulta = miHorarioDocente({ fechaInicio, fechaFin });
-    } else if (rol === ESTUDIANTE) {
-      consulta = miHorarioEstudiante({ fechaInicio, fechaFin });
-    } else if (rol === APODERADO) {
-      consulta = horarioApoderado(id, { fechaInicio, fechaFin });
-    } else {
-      setCargando(false);
-      return () => { activo = false; };
-    }
-
-    consulta.then((respuesta) => {
-      if (!activo) return;
-      if (respuesta.exitoso) {
-        setDatos(Array.isArray(respuesta.datos) ? respuesta.datos : []);
-      } else if (!respuesta.cancelada) {
-        setDatos([]);
-        setError(respuesta.mensaje || 'No se pudo consultar el horario.');
-      }
-      setCargando(false);
-    });
-
-    return () => { activo = false; };
-  }, [rol, tipo, id, fechaInicio, fechaFin, recarga, anio?.id]);
-
-  const grados = [...new Map(
-    opciones.map((seccion) => [
-      String(seccion.gradoId),
-      { id: seccion.gradoId, nombre: seccion.gradoNombre ?? String(seccion.gradoId) }
-    ])
-  ).values()];
-
-  const seccionesFiltradas = opciones.filter(
-    (seccion) => String(seccion.gradoId) === String(gradoId)
-  );
-
-  const programacionAbierta = Boolean(
-    periodo?.crudBloquesHorarioAbierta || periodo?.asignacionCursoDocenteAbierta
-  );
-
-  const rutaEdicion = seccionSeleccionada
-    ? `/horarios?anio=${encodeURIComponent(seccionSeleccionada.anioAcademicoId ?? anio?.id ?? '')}`
-      + `&grado=${encodeURIComponent(String(seccionSeleccionada.gradoId))}`
-      + `&seccion=${encodeURIComponent(String(seccionSeleccionada.id))}`
-    : '/horarios';
-
-  const estudianteSeleccionado = estudiantes.find(
-    (estudiante) => String(estudiante.id) === String(id)
-  );
-  const tituloConsulta = rol === ADMIN
-    ? tipo === 'seccion'
-      ? seccionSeleccionada?.nombre
-        ? `${seccionSeleccionada.gradoNombre ?? ''} ${seccionSeleccionada.nombre}`.trim()
-        : ''
-      : opciones.find((docente) => String(docente.id) === String(id))?.nombre ?? ''
-    : rol === APODERADO
-      ? estudianteSeleccionado?.nombreCompleto ?? ''
-      : usuario?.nombre ?? '';
-
-  const semanas = useMemo(
-    () => semanasDelRango(fechaInicio, fechaFin).map((semana) => ({
-      ...semana,
-      sesiones: datos.filter((sesion) => sesion.fecha >= semana.inicio && sesion.fecha <= semana.fin)
-    })),
-    [fechaInicio, fechaFin, datos]
-  );
-
-  const meses = useMemo(() => {
-    const mapa = new Map();
-    semanas.forEach((semana) => {
-      const clave = semana.inicio.slice(0, 7);
-      if (!mapa.has(clave)) {
-        const fecha = new Date(`${clave}-01T00:00:00`);
-        const etiqueta = fecha.toLocaleDateString('es-PE', { month: 'long', year: 'numeric' });
-        mapa.set(clave, {
-          clave,
-          etiqueta: etiqueta.charAt(0).toUpperCase() + etiqueta.slice(1),
-          semanas: []
-        });
-      }
-      mapa.get(clave).semanas.push(semana);
-    });
-    return [...mapa.values()];
-  }, [semanas]);
-
-  // Al cambiar el rango se vuelve a elegir una semana útil; no se conserva la
-  // última semana visitada de la consulta anterior.
-  useEffect(() => {
-    setSemanaSeleccionada(null);
-  }, [fechaInicio, fechaFin]);
-
-  useEffect(() => {
-    if (semanas.length === 0) {
-      setSemanaSeleccionada(null);
-      return;
-    }
-    if (semanas.some((semana) => semana.inicio === semanaSeleccionada)) return;
-    const hoy = fechaISO(new Date());
-    const semanaDeHoy = semanas.find((semana) => semana.inicio <= hoy && hoy <= semana.fin);
-    setSemanaSeleccionada((semanaDeHoy ?? semanas[0]).inicio);
-  }, [semanas, semanaSeleccionada]);
-
-  const indiceSemana = semanas.findIndex((semana) => semana.inicio === semanaSeleccionada);
-  const semanaActual = semanas[indiceSemana] ?? semanas[0] ?? null;
-
-  const cambiarSemana = (inicio) => setSemanaSeleccionada(inicio);
-  const irSemanaAnterior = () => {
-    if (indiceSemana > 0) setSemanaSeleccionada(semanas[indiceSemana - 1].inicio);
-  };
-  const irSemanaSiguiente = () => {
-    if (indiceSemana >= 0 && indiceSemana < semanas.length - 1) {
-      setSemanaSeleccionada(semanas[indiceSemana + 1].inicio);
-    }
-  };
-
-  return (
-    <section style={{ padding: 24 }}>
-      <h1>Consulta de horario</h1>
-      <p>Selecciona un rango de fechas para consultar las sesiones programadas.</p>
-
-      {rol === ADMIN && (
-        <label style={{ display: 'block', marginTop: 12 }}>
-          Consultar por{' '}
-          <select
-            value={tipo}
-            onChange={(evento) => {
-              setTipo(evento.target.value);
-              setId('');
-              setGradoId('');
-            }}
-          >
-            <option value="seccion">Sección</option>
-            <option value="docente">Docente</option>
-          </select>
-        </label>
-      )}
-
-      {rol === ADMIN && (
-        <div style={{ display: 'flex', flexWrap: 'wrap', gap: 16, marginTop: 12 }}>
-          {tipo === 'seccion' && (
-            <label style={estiloCampo}>
-              Grado
-              <select
-                style={estiloEntrada}
-                value={gradoId}
-                onChange={(evento) => {
-                  setGradoId(evento.target.value);
-                  setId('');
-                }}
-                disabled={cargandoOpciones}
-              >
-                <option value="">Seleccione un grado</option>
-                {grados.map((grado) => (
-                  <option key={grado.id} value={grado.id}>{grado.nombre}</option>
-                ))}
-              </select>
-            </label>
-          )}
-
-          <label style={estiloCampo}>
-            {tipo === 'seccion' ? 'Sección' : 'Docente'}
-            <select
-              style={estiloEntrada}
-              value={id}
-              onChange={(evento) => setId(evento.target.value)}
-              disabled={cargandoOpciones || (tipo === 'seccion' && !gradoId)}
-            >
-              <option value="">Seleccione una opción</option>
-              {(tipo === 'seccion' ? seccionesFiltradas : opciones).map((opcion) => (
-                <option key={opcion.id} value={opcion.id}>
-                  {tipo === 'seccion'
-                    ? `${opcion.nombre} (${opcion.anioAcademico ?? anio?.anio ?? ''})`
-                    : opcion.nombre}
-                </option>
-              ))}
-            </select>
-          </label>
-        </div>
-      )}
-
-      {rol === APODERADO && (
-        <label style={{ ...estiloCampo, marginTop: 12 }}>
-          Estudiante a cargo
-          <select
-            style={estiloEntrada}
-            value={id}
-            onChange={(evento) => setId(evento.target.value)}
-            disabled={cargandoOpciones}
-          >
-            <option value="">Seleccione un estudiante</option>
-            {estudiantes.map((estudiante) => (
-              <option key={estudiante.id} value={estudiante.id}>
-                {estudiante.nombreCompleto}
-              </option>
-            ))}
-          </select>
-        </label>
-      )}
-
-      <div style={{ display: 'flex', flexWrap: 'wrap', alignItems: 'flex-end', gap: 16, marginTop: 16 }}>
-        <label style={estiloCampo}>
-          Desde
-          <SelectorFecha
-            id="consulta-horario-desde"
-            etiqueta="Desde"
-            valor={fechaInicio}
-            max={fechaFin}
-            alCambiar={setFechaInicio}
-          />
-        </label>
-        <label style={estiloCampo}>
-          Hasta
-          <SelectorFecha
-            id="consulta-horario-hasta"
-            etiqueta="Hasta"
-            valor={fechaFin}
-            min={fechaInicio}
-            alCambiar={setFechaFin}
-          />
-        </label>
-        <button
-          type="button"
-          style={{ ...estiloEntrada, cursor: 'pointer' }}
-          onClick={() => setRecarga((actual) => actual + 1)}
-          disabled={cargando}
-        >
-          Actualizar horario
-        </button>
-      </div>
-
-      {cargandoOpciones && <p>Cargando opciones…</p>}
-      {errorOpciones && <p role="alert">{errorOpciones}</p>}
-      {cargando && <p>Cargando horario…</p>}
-      {error && <p role="alert">{error}</p>}
-
-      {rol === ADMIN && tipo === 'seccion' && programacionAbierta && (
-        <p><a href={rutaEdicion}>Editar horario</a></p>
-      )}
-
-      {!cargando && !error && semanas.length === 0 && (
-        <p>Aún no hay sesiones programadas en el rango seleccionado.</p>
-      )}
-
-      {!cargando && !error && semanaActual && (
-        <section style={{ marginTop: 24 }}>
-          <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+        <div className={estilos.campoFiltro}>
+          <span id="consulta-horario-semanas-etiqueta" className={estilos.etiquetaFiltro}>Semana</span>
+          <div className={estilos.semanasConFlechas}>
             <button
               type="button"
-              style={{ ...estiloFlecha, opacity: indiceSemana <= 0 ? 0.45 : 1 }}
+              className={estilos.flecha}
               aria-label="Semana anterior"
               disabled={indiceSemana <= 0}
               onClick={irSemanaAnterior}
@@ -473,14 +163,39 @@ export default function PaginaVisualizadorHorario() {
               <Icono nombre="flecha-izquierda" tamano={16} />
             </button>
 
-            <h2 style={{ flex: '1 1 auto', margin: 0, fontSize: 18 }}>
-              {tituloConsulta ? `${tituloConsulta} · ` : ''}
-              Semana del {formatearFecha(semanaActual.inicio)} al {formatearFecha(semanaActual.fin)}
-            </h2>
+            <div
+              className={estilos.semanasDelMes}
+              role="group"
+              aria-label="Ir a semana"
+            >
+              {(meses.find((mes) => mes.clave === claveMesActual)?.semanas ?? []).map((semana) => {
+                const activa = semana.inicio === semanaActual.inicio;
+                const conSesiones = semana.sesiones.length > 0;
+                return (
+                  <button
+                    key={semana.inicio}
+                    type="button"
+                    className={estilos.semanaBoton}
+                    aria-pressed={activa}
+                    aria-label={
+                      `Semana del ${formatearFecha(semana.inicio)} al ${formatearFecha(semana.fin)}`
+                      + (conSesiones ? ', con sesiones' : ', sin sesiones')
+                    }
+                    onClick={() => establecerSemanaSeleccionada(semana.inicio)}
+                  >
+                    {etiquetaDias(semana)}
+                    <span
+                      className={conSesiones ? estilos.puntoConSesiones : estilos.puntoSinSesiones}
+                      aria-hidden="true"
+                    />
+                  </button>
+                );
+              })}
+            </div>
 
             <button
               type="button"
-              style={{ ...estiloFlecha, opacity: indiceSemana >= semanas.length - 1 ? 0.45 : 1 }}
+              className={estilos.flecha}
               aria-label="Semana siguiente"
               disabled={indiceSemana >= semanas.length - 1}
               onClick={irSemanaSiguiente}
@@ -488,37 +203,161 @@ export default function PaginaVisualizadorHorario() {
               <Icono nombre="flecha-derecha" tamano={16} />
             </button>
           </div>
+        </div>
 
-          <label style={{ ...estiloCampo, maxWidth: 360, marginTop: 10 }}>
-            Ir a semana
-            <select
-              style={estiloEntrada}
-              value={semanaActual.inicio}
-              onChange={(evento) => cambiarSemana(evento.target.value)}
-            >
-              {meses.map((mes) => (
-                <optgroup key={mes.clave} label={mes.etiqueta}>
-                  {mes.semanas.map((semana) => (
-                    <option key={semana.inicio} value={semana.inicio}>
-                      {formatearFecha(semana.inicio)} al {formatearFecha(semana.fin)}
-                    </option>
-                  ))}
-                </optgroup>
-              ))}
-            </select>
-          </label>
+        <button
+          type="button"
+          className={estilos.botonSecundario}
+          onClick={irSemanaDeHoy}
+          disabled={esSemanaDeHoy}
+        >
+          Ir a hoy
+        </button>
+      </div>
 
-          {semanaActual.sesiones.length === 0 ? (
-            <p>No hay sesiones en esta semana.</p>
-          ) : (
-            <MatrizSesiones
-              titulo={`${tituloConsulta} ${formatearFecha(semanaActual.inicio)}`}
-              sesiones={semanaActual.sesiones}
-              mostrarSeccion={rol !== ADMIN || tipo === 'docente'}
+      {semanaActual.sesiones.length === 0 ? (
+        <div className={estilos.sinSesiones}>
+          <EstadoConsulta tipo="vacio" mensaje={MENSAJE_SIN_SESIONES_SEMANA} />
+        </div>
+      ) : (
+        <MatrizSesiones
+          key={semanaActual.inicio}
+          lunes={semanaActual.lunes}
+          titulo={`${tituloConsulta} ${formatearFecha(semanaActual.inicio)}`}
+          sesiones={semanaActual.sesiones}
+          mostrarSeccion={!esAdmin || tipo === 'docente'}
+        />
+      )}
+    </div>
+  );
+
+  let contenido;
+  if (errorOpciones || error) {
+    contenido = (
+      <EstadoConsulta
+        tipo="error"
+        mensaje={errorOpciones || error}
+        alReintentar={errorOpciones ? undefined : recargar}
+      />
+    );
+  } else if (cargando || (cargandoOpciones && necesitaSeleccion)) {
+    contenido = <EstadoConsulta tipo="carga" filasEsqueleto={5} />;
+  } else if (necesitaSeleccion) {
+    contenido = <EstadoConsulta tipo="vacio" mensaje={mensajeSinSeleccion(rol, tipo)} />;
+  } else if (semanas.length === 0) {
+    contenido = <EstadoConsulta tipo="vacio" mensaje={MENSAJE_SIN_SESIONES_RANGO} />;
+  } else if (semanaActual) {
+    contenido = cuerpoSemana();
+  }
+
+  return (
+    <div className={estilos.pagina}>
+      <header className={estilos.cabecera}>
+        <h1 className={estilos.titulo}>Consulta de horario</h1>
+        <p className={estilos.descripcion}>
+          <Icono nombre="candado" tamano={16} />
+          <span>
+            Consulta de solo lectura. Selecciona un rango de fechas para consultar las sesiones programadas.
+          </span>
+        </p>
+      </header>
+
+      <section className={estilos.filtros} aria-label="Filtros de consulta de horario">
+        <div className={estilos.areaModo}>
+          {esAdmin && (
+            <ControlSegmentado
+              id="consulta-horario-tipo"
+              etiqueta="Consultar por"
+              valor={tipo}
+              opciones={OPCIONES_TIPO}
+              alCambiar={seleccionarTipo}
             />
           )}
-        </section>
-      )}
-    </section>
+        </div>
+
+        <div className={estilos.areaAccion}>
+          <button
+            type="button"
+            className={estilos.botonSecundario}
+            onClick={recargar}
+            disabled={cargando}
+          >
+            <Icono nombre="reintentar" tamano={16} />
+            Actualizar horario
+          </button>
+        </div>
+
+        <div className={estilos.filaFiltros}>
+          {consultaPorSeccion && (
+            <SelectFiltro
+              id="consulta-horario-grado"
+              etiqueta="Grado"
+              valor={gradoId}
+              opciones={opcionesGrado}
+              alCambiar={seleccionarGrado}
+              apilado
+            />
+          )}
+
+          {esAdmin && (
+            <SelectFiltro
+              id="consulta-horario-opcion"
+              etiqueta={tipo === 'seccion' ? 'Sección' : 'Docente'}
+              valor={id}
+              opciones={opcionesSeccion}
+              alCambiar={establecerId}
+              apilado
+            />
+          )}
+
+          {esApoderado && (
+            <SelectFiltro
+              id="consulta-horario-estudiante"
+              etiqueta="Estudiante a cargo"
+              valor={id}
+              opciones={opcionesEstudiante}
+              alCambiar={establecerId}
+              apilado
+            />
+          )}
+
+          <div className={`${estilos.campoFiltro} ${estilos.campoFecha}`}>
+            <span className={estilos.etiquetaFiltro}>Desde</span>
+            <SelectorFecha
+              id="consulta-horario-desde"
+              etiqueta="Desde"
+              valor={fechaInicio}
+              max={fechaFin}
+              alCambiar={establecerFechaInicio}
+            />
+          </div>
+
+          <div className={`${estilos.campoFiltro} ${estilos.campoFecha}`}>
+            <span className={estilos.etiquetaFiltro}>Hasta</span>
+            <SelectorFecha
+              id="consulta-horario-hasta"
+              etiqueta="Hasta"
+              valor={fechaFin}
+              min={fechaInicio}
+              alCambiar={establecerFechaFin}
+            />
+          </div>
+        </div>
+
+        <div className={estilos.areaChips}>
+          <FiltrosActivos filtros={chipsActivos} hayFiltros={hayFiltros} alLimpiar={limpiarFiltros} />
+        </div>
+
+        {consultaPorSeccion && programacionAbierta && (
+          <div className={estilos.areaEnlace}>
+            <a className={estilos.enlaceEdicion} href={rutaEdicion}>Editar horario</a>
+          </div>
+        )}
+      </section>
+
+      <section className={estilos.tarjetaResultados} aria-label="Horario" aria-busy={cargando || undefined}>
+        {contenido}
+      </section>
+    </div>
   );
 }

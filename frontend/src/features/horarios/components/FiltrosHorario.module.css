@@ -10,13 +10,10 @@
   box-shadow: var(--sombra-sm);
 }
 
-.campoGrado {
-  flex: 1 1 14rem;
-  max-width: 18rem;
-}
-
+.campoGrado,
 .campoSeccion {
-  flex: 0 1 8rem;
+  flex: 0 0 var(--ancho-selector-filtro);
+  min-width: 0;
 }
 
 .acciones {

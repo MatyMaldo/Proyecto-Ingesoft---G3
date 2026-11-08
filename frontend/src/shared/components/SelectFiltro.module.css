@@ -14,6 +14,7 @@
 
 /* Misma altura que los chips (36 px en escritorio, 44 px en móvil). */
 .selector {
+  width: var(--ancho-selector-filtro);
   height: calc(var(--tactil-min) - var(--espacio-2));
   max-width: 100%;
   padding: 0 var(--espacio-10) 0 var(--espacio-4);
@@ -43,6 +44,37 @@
   outline-offset: 2px;
 }
 
+/* Etiqueta encima del selector (formularios de filtros con varias filas). Etiqueta y selector se ven
+   igual que en Auditorías y Log de errores: etiqueta en minúsculas y selector rectangular de 44 px. */
+.apilado {
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--espacio-1);
+}
+
+.apilado .etiqueta {
+  font-size: var(--texto-md);
+  font-weight: var(--peso-medio);
+  letter-spacing: normal;
+  text-transform: none;
+  color: var(--color-texto-secundario);
+}
+
+.apilado .selector {
+  height: auto;
+  min-height: var(--tactil-min);
+  padding: 10px var(--espacio-10) 10px var(--espacio-3);
+  font-weight: var(--peso-normal);
+  color: var(--color-texto);
+  background-position: right var(--espacio-3) center;
+  border-radius: var(--radio-md);
+}
+
+.apilado .selector:hover {
+  background-color: var(--color-superficie);
+  border-color: var(--color-borde-fuerte);
+}
+
 @media (max-width: 767px) {
   .campo {
     flex-direction: column;
@@ -51,6 +83,7 @@
   }
 
   .selector {
+    width: 100%;
     height: var(--tactil-min);
   }
 }

@@ -8,7 +8,7 @@ import {
   registrarDocente,
   registrarEstudiante
 } from '../services/usuariosService.js';
-import { telefonoPeru } from '../utils/telefono.js';
+import { separarTelefono, telefonoPeru } from '../utils/telefono.js';
 import CampoApoderado from './CampoApoderado.jsx';
 import CampoTelefono from './CampoTelefono.jsx';
 import CampoUsuario from './CampoUsuario.jsx';
@@ -165,13 +165,15 @@ export default function DialogoRegistroUsuario({ tipo, usuarios, alRegistrado, a
     try {
       const telefono = telefonoPeru(form.telefono);
       if (!USAR_MOCK) {
+        // El backend exige exactamente 9 dígitos (sin prefijo +51).
+        const telefonoApi = separarTelefono(form.telefono);
         const datosBase = {
           nombre: form.nombre.trim(),
           apellidoPaterno: form.apellidoPaterno.trim(),
           ...(form.apellidoMaterno.trim() ? { apellidoMaterno: form.apellidoMaterno.trim() } : {}),
           dni: form.dni.trim(),
           email: form.correo.trim(),
-          ...(telefono ? { telefono } : {}),
+          ...(telefonoApi ? { telefono: telefonoApi } : {}),
           password: form.password
         };
         const enviar = {

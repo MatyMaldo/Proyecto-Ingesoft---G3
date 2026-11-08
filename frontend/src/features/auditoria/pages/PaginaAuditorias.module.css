@@ -128,8 +128,7 @@
   }
 
   .campoFiltro {
-    width: auto;
-    min-width: calc(var(--espacio-10) * 5);
+    width: var(--ancho-selector-filtro);
   }
 }
 

@@ -153,6 +153,13 @@ export function fechaISO(fecha) {
   return `${anio}-${mes}-${dia}`;
 }
 
+/** Suma días (puede ser negativo) a una fecha `YYYY-MM-DD` y devuelve `YYYY-MM-DD`. */
+export function sumarDias(fecha, dias) {
+  const resultado = new Date(`${fecha}T00:00:00`);
+  resultado.setDate(resultado.getDate() + dias);
+  return fechaISO(resultado);
+}
+
 /** Formatea `YYYY-MM-DD` como `DD/MM/YYYY`. */
 export function formatearFecha(fecha) {
   if (!fecha) return '';
@@ -160,7 +167,15 @@ export function formatearFecha(fecha) {
   return `${dia}/${mes}/${anio}`;
 }
 
-/** Devuelve las semanas (lunes a domingo) que cubre un rango. */
+/**
+ * Devuelve las semanas lectivas (lunes a viernes) que cubre un rango. La primera y la última se recortan
+ * al rango (`inicio`/`fin`); `lunes` y `viernes` conservan la semana completa. Las semanas sin ningún día
+ * hábil dentro del rango (p. ej. un rango que empieza en domingo) no se incluyen.
+ *
+ * @param {string} fechaInicio `YYYY-MM-DD`
+ * @param {string} fechaFin `YYYY-MM-DD`
+ * @returns {Array<{ inicio: string, fin: string, lunes: string, viernes: string }>}
+ */
 export function semanasDelRango(fechaInicio, fechaFin) {
   if (!fechaInicio || !fechaFin) return [];
   const inicio = new Date(`${fechaInicio}T00:00:00`);
@@ -174,14 +189,33 @@ export function semanasDelRango(fechaInicio, fechaFin) {
   while (lunes <= fin) {
     const viernes = new Date(lunes);
     viernes.setDate(lunes.getDate() + 4);
-    semanas.push({
-      inicio: fechaISO(lunes),
-      fin: fechaISO(viernes),
-      lunes: fechaISO(lunes),
-      viernes: fechaISO(viernes)
-    });
+    const inicioRecortado = fechaISO(lunes) < fechaInicio ? fechaInicio : fechaISO(lunes);
+    const finRecortado = fechaISO(viernes) > fechaFin ? fechaFin : fechaISO(viernes);
+    if (inicioRecortado <= finRecortado) {
+      semanas.push({
+        inicio: inicioRecortado,
+        fin: finRecortado,
+        lunes: fechaISO(lunes),
+        viernes: fechaISO(viernes)
+      });
+    }
     lunes = new Date(lunes);
     lunes.setDate(lunes.getDate() + 7);
   }
   return semanas;
+}
+
+/**
+ * Elige la semana que se muestra por defecto: la de la fecha dada; si cae en fin de semana o entre dos
+ * semanas, la más reciente que ya empezó; si la fecha es anterior al rango, la primera; si es posterior,
+ * la última.
+ *
+ * @param {Array<{ inicio: string, fin: string, lunes: string }>} semanas Resultado de `semanasDelRango`.
+ * @param {string} hoy `YYYY-MM-DD`
+ * @returns {{ inicio: string, fin: string, lunes: string }|null}
+ */
+export function semanaMasCercana(semanas, hoy) {
+  if (!Array.isArray(semanas) || semanas.length === 0) return null;
+  const empezadas = semanas.filter((semana) => semana.lunes <= hoy);
+  return empezadas.at(-1) ?? semanas[0];
 }

@@ -28,6 +28,7 @@ let overflowOriginal = '';
  * @param {string} [props.anchoMaximo] Ancho máximo del diálogo (por ejemplo `'56rem'`); por defecto 30 rem.
  * @param {boolean} [props.cerrarAlClicFuera] Si es `false`, pulsar en el velo no cierra el diálogo (por defecto `true`).
  * @param {boolean} [props.sinConfirmar] Oculta el botón de confirmar (diálogos informativos).
+ * @param {boolean} [props.sinCancelar] Oculta el botón de cancelar (diálogos que solo se confirman, p. ej. un resultado).
  * @param {string} [props.textoCancelar]
  * @param {string} [props.notaPie] Texto auxiliar a la izquierda de los botones.
  * @param {boolean} [props.confirmarPeligro] Pinta el botón de confirmar como acción crítica (rojo, GUI §4).
@@ -51,6 +52,7 @@ export default function DialogoBase({
   anchoMaximo,
   cerrarAlClicFuera = true,
   sinConfirmar = false,
+  sinCancelar = false,
   confirmarPeligro = false,
   enfocarCancelar = false,
   textoCancelar = 'Cancelar',
@@ -180,15 +182,17 @@ export default function DialogoBase({
 
         <div className={estilos.pie}>
           {notaPie && <span className={estilos.notaPie}>{notaPie}</span>}
-          <button
-            type="button"
-            className={estilos.botonSecundario}
-            disabled={enviando}
-            onClick={cerrar}
-            data-enfoque-inicial={enfocarCancelar ? '' : undefined}
-          >
-            {textoCancelar}
-          </button>
+          {!sinCancelar && (
+            <button
+              type="button"
+              className={estilos.botonSecundario}
+              disabled={enviando}
+              onClick={cerrar}
+              data-enfoque-inicial={enfocarCancelar ? '' : undefined}
+            >
+              {textoCancelar}
+            </button>
+          )}
           {!sinConfirmar && (
             <button
               type="submit"

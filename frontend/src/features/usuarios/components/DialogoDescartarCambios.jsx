@@ -1,20 +1,30 @@
 import DialogoBase from '../../cursos/components/DialogoBase.jsx';
 
 /**
- * Confirmación antes de cerrar un formulario de usuarios con datos escritos.
+ * Confirmación antes de cerrar un diálogo de usuarios con trabajo sin guardar. Por defecto habla de un formulario;
+ * cada diálogo puede indicar qué se perderá con `titulo`, `mensaje` y `textoSeguir`.
  *
  * @param {Object} props
- * @param {() => void} props.alDescartar Cierra el formulario y pierde lo escrito.
+ * @param {() => void} props.alDescartar Cierra el diálogo y pierde lo pendiente.
  * @param {() => void} props.alSeguirEditando Cierra solo esta confirmación.
+ * @param {string} [props.titulo]
+ * @param {import('react').ReactNode} [props.mensaje] Qué se perderá si se descarta.
+ * @param {string} [props.textoSeguir] Texto del botón que vuelve al diálogo.
  */
-export default function DialogoDescartarCambios({ alDescartar, alSeguirEditando }) {
+export default function DialogoDescartarCambios({
+  alDescartar,
+  alSeguirEditando,
+  titulo = '¿Descartar los cambios?',
+  mensaje = 'Lo que escribió se perderá si cierra el formulario.',
+  textoSeguir = 'Seguir editando'
+}) {
   return (
     <DialogoBase
       idTitulo="dialogo-descartar-usuarios"
-      titulo="¿Descartar los cambios?"
+      titulo={titulo}
       textoConfirmar="Descartar"
       textoEnviando="Descartando..."
-      textoCancelar="Seguir editando"
+      textoCancelar={textoSeguir}
       confirmarPeligro
       enfocarCancelar
       cerrarAlClicFuera={false}
@@ -24,7 +34,7 @@ export default function DialogoDescartarCambios({ alDescartar, alSeguirEditando 
         alDescartar();
       }}
     >
-      <p>Lo que escribió se perderá si cierra el formulario.</p>
+      <p>{mensaje}</p>
     </DialogoBase>
   );
 }

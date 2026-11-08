@@ -248,7 +248,9 @@ function PaginaUsuarios() {
           alImportar={setUsuarios}
           alImportacionCompleta={importados => {
             closeModal();
-            mostrarNotificacion(`Se importaron correctamente ${importados} usuarios.`);
+            mostrarNotificacion(importados === 1
+                ? 'Se importó correctamente 1 usuario.'
+                : `Se importaron correctamente ${importados} usuarios.`);
           }}
           alCerrar={closeModal}
         />
