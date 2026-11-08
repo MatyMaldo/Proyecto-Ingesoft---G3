@@ -12,6 +12,8 @@ vi.mock('../../grados-secciones/services/gradosSeccionesService.js', () => ({ co
 import {
   obtenerAlumnos,
   obtenerEstructuraMatricula,
+  obtenerEstructuraListadoMatriculas,
+  listarMatriculas,
   obtenerSeccionesMatricula,
   crearMatricula,
   emitirCompromisoMatricula
@@ -78,6 +80,72 @@ describe('matriculasService', () => {
     });
   });
 
+  it('obtiene la estructura completa para el listado administrativo', async () => {
+    solicitar
+      .mockResolvedValueOnce({ exitoso: true, datos: [{ id: 1, anio: 2026 }] })
+      .mockResolvedValueOnce({ exitoso: true, datos: [{ id: 2, nombre: 'Primero' }] });
+
+    const resultado = await obtenerEstructuraListadoMatriculas();
+
+    expect(solicitar).toHaveBeenNthCalledWith(1, '/anios-academicos');
+    expect(solicitar).toHaveBeenNthCalledWith(2, '/grados');
+    expect(resultado.datos).toEqual({
+      anios: [{ id: 1, anio: 2026 }],
+      grados: [{ id: 2, nombre: 'Primero' }]
+    });
+  });
+
+  it('lista matrículas con filtros y paginación', async () => {
+    solicitar.mockResolvedValue({
+      exitoso: true,
+      datos: {
+        content: [{
+          id: 12,
+          estado: 'CONFIRMADA',
+          nombreCompletoEstudiante: 'Luis Ramirez'
+        }],
+        totalElements: 1,
+        totalPages: 1,
+        number: 0,
+        size: 15
+      }
+    });
+
+    const resultado = await listarMatriculas({
+      anioId: '1',
+      gradoId: '',
+      seccionId: '2',
+      estado: 'CONFIRMADA',
+      page: 0,
+      size: 15
+    });
+
+    expect(solicitar).toHaveBeenCalledWith('/matriculas', {
+      parametros: {
+        anioId: 1,
+        gradoId: undefined,
+        seccionId: 2,
+        estado: 'CONFIRMADA',
+        estudianteId: undefined,
+        page: 0,
+        size: 15
+      }
+    });
+    expect(resultado.datos.content[0].id).toBe(12);
+  });
+
+  it('rechaza un listado de matrículas con formato inválido', async () => {
+    solicitar.mockResolvedValue({
+      exitoso: true,
+      datos: { content: [], totalElements: 0 }
+    });
+
+    const resultado = await listarMatriculas();
+
+    expect(resultado.exitoso).toBe(false);
+    expect(resultado.mensaje).toMatch(/listado de matrículas/);
+  });
+
   it('consulta secciones por grado y año académico', async () => {
     solicitar.mockResolvedValue({ exitoso: true, datos: [{ id: 3, nombre: 'A' }] });
 
@@ -103,6 +171,17 @@ describe('matriculasService', () => {
     expect(solicitar).toHaveBeenNthCalledWith(2, '/compromisos-pago/matricula', {
       metodo: 'POST',
       cuerpo: { matriculaId: 9 }
+    });
+  });
+
+  it('emite el compromiso directamente desde el id de una matrícula existente', async () => {
+    solicitar.mockResolvedValue({ exitoso: true, datos: { id: 10, matriculaId: 12 } });
+
+    await emitirCompromisoMatricula({ matriculaId: '12' });
+
+    expect(solicitar).toHaveBeenCalledWith('/compromisos-pago/matricula', {
+      metodo: 'POST',
+      cuerpo: { matriculaId: 12 }
     });
   });
 

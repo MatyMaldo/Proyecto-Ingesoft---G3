@@ -61,3 +61,39 @@ export const obtenerAlumnosMock = (filtros = {}) => esperar(() => {
 
   return exito(coincidencias);
 });
+
+const MATRICULAS_MOCK = ALUMNOS.map((alumno, indice) => ({
+  id: 100 + indice,
+  fechaAsignacion: `2026-10-${String(15 + indice).padStart(2, '0')}`,
+  estado: indice === 1 ? 'CONFIRMADA' : indice === 2 ? 'CANCELADA' : 'PENDIENTE',
+  estudianteId: alumno.id,
+  nombreCompletoEstudiante: alumno.nombre,
+  codigoEstudiante: alumno.codigo,
+  gradoId: 1,
+  gradoNombre: '1er Grado de Secundaria',
+  seccionId: indice % 2 === 0 ? 1 : 2,
+  seccionNombre: indice % 2 === 0 ? 'A' : 'B',
+  anioAcademicoId: 1,
+  anioAcademico: 2026
+}));
+
+export const listarMatriculasMock = (filtros = {}) => esperar(() => {
+  const filtradas = MATRICULAS_MOCK.filter((matricula) => (
+    (!filtros.anioId || String(matricula.anioAcademicoId) === String(filtros.anioId))
+    && (!filtros.gradoId || String(matricula.gradoId) === String(filtros.gradoId))
+    && (!filtros.seccionId || String(matricula.seccionId) === String(filtros.seccionId))
+    && (!filtros.estado || matricula.estado === filtros.estado)
+    && (!filtros.estudianteId || String(matricula.estudianteId) === String(filtros.estudianteId))
+  ));
+  const page = Number(filtros.page ?? 0);
+  const size = Number(filtros.size ?? 15);
+  const inicio = page * size;
+
+  return exito({
+    content: filtradas.slice(inicio, inicio + size),
+    totalElements: filtradas.length,
+    totalPages: Math.max(1, Math.ceil(filtradas.length / size)),
+    number: page,
+    size
+  });
+});

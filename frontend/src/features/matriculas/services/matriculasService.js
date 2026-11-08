@@ -1,6 +1,9 @@
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import { solicitar } from '../../../shared/api/clienteHttp.js';
-import { obtenerAlumnosMock } from './mocks/matriculasMock.js';
+import {
+  listarMatriculasMock,
+  obtenerAlumnosMock
+} from './mocks/matriculasMock.js';
 import { consultarEstructura } from '../../grados-secciones/services/gradosSeccionesService.js';
 
 const matriculasCreadasEnSesion = new Map();
@@ -83,6 +86,81 @@ export async function obtenerEstructuraMatricula() {
   };
 }
 
+function numeroOpcional(valor) {
+  if (valor === '' || valor === undefined || valor === null) return undefined;
+  return Number(valor);
+}
+
+/** Estructura completa para los filtros del listado administrativo. */
+export async function obtenerEstructuraListadoMatriculas() {
+  if (USAR_MOCK) {
+    const respuesta = await consultarEstructura();
+    if (!respuesta.exitoso) return respuesta;
+    return {
+      ...respuesta,
+      datos: { anios: respuesta.datos.anios, grados: respuesta.datos.grados }
+    };
+  }
+
+  const [respuestaAnios, respuestaGrados] = await Promise.all([
+    solicitar('/anios-academicos'),
+    solicitar('/grados')
+  ]);
+  const error = [respuestaAnios, respuestaGrados].find((respuesta) => !respuesta.exitoso);
+  if (error) return error;
+  if (!Array.isArray(respuestaAnios.datos) || !Array.isArray(respuestaGrados.datos)) {
+    return falloFormato('la estructura del listado de matrículas');
+  }
+  return {
+    exitoso: true,
+    datos: { anios: respuestaAnios.datos, grados: respuestaGrados.datos },
+    mensaje: ''
+  };
+}
+
+/**
+ * Listado administrativo paginado de matrículas.
+ * El backend ordena por fechaAsignacion DESC e id DESC.
+ */
+export async function listarMatriculas({
+  anioId,
+  gradoId,
+  seccionId,
+  estado,
+  estudianteId,
+  page = 0,
+  size = 15
+} = {}) {
+  if (USAR_MOCK) {
+    return listarMatriculasMock({ anioId, gradoId, seccionId, estado, estudianteId, page, size });
+  }
+
+  const respuesta = await solicitar('/matriculas', {
+    parametros: {
+      anioId: numeroOpcional(anioId),
+      gradoId: numeroOpcional(gradoId),
+      seccionId: numeroOpcional(seccionId),
+      estado: estado || undefined,
+      estudianteId: numeroOpcional(estudianteId),
+      page,
+      size
+    }
+  });
+  if (!respuesta.exitoso) return respuesta;
+
+  const datos = respuesta.datos;
+  if (
+    !datos ||
+    !Array.isArray(datos.content) ||
+    typeof datos.totalElements !== 'number' ||
+    typeof datos.totalPages !== 'number' ||
+    typeof datos.number !== 'number'
+  ) {
+    return falloFormato('el listado de matrículas');
+  }
+  return respuesta;
+}
+
 export async function obtenerSeccionesMatricula(gradoId, anioId) {
   if (USAR_MOCK) {
     const respuesta = await consultarEstructura();
@@ -132,12 +210,28 @@ export async function crearMatricula(asignacion) {
   return respuesta;
 }
 
-export async function emitirCompromisoMatricula(estudianteId) {
+/**
+ * Emite el compromiso de una matrícula.
+ *
+ * Acepta `{ matriculaId }` (flujo nuevo desde el listado) o el `estudianteId`
+ * de una matrícula creada durante la sesión (flujo anterior).
+ */
+export async function emitirCompromisoMatricula(entrada) {
+  const esObjeto = entrada !== null && typeof entrada === 'object';
+  const matriculaSesion = esObjeto ? null : matriculasCreadasEnSesion.get(String(entrada));
+  const matriculaId = esObjeto
+    ? entrada.matriculaId ?? entrada.id
+    : matriculaSesion?.id;
+
+  if (matriculaId === undefined || matriculaId === null || matriculaId === '') {
+    return {
+      exitoso: false,
+      datos: null,
+      mensaje: 'No hay una matrícula creada en esta sesión para este estudiante.'
+    };
+  }
+
   if (USAR_MOCK) {
-    const matricula = matriculasCreadasEnSesion.get(String(estudianteId));
-    if (!matricula) {
-      return { exitoso: false, datos: null, mensaje: 'No hay matrícula pendiente para este estudiante en esta sesión.' };
-    }
     const datos = {
       id: siguienteCompromisoMock++,
       tipoCompromiso: 'MATRICULA',
@@ -146,28 +240,23 @@ export async function emitirCompromisoMatricula(estudianteId) {
       montoMora: 0,
       montoTotal: 350,
       estado: 'PENDIENTE',
-      matriculaId: matricula.id,
-      estudianteId: matricula.estudianteId,
-      nombreCompletoEstudiante: matricula.nombreCompletoEstudiante,
+      matriculaId: Number(matriculaId),
+      estudianteId: esObjeto ? entrada.estudianteId ?? null : matriculaSesion?.estudianteId ?? null,
+      nombreCompletoEstudiante: esObjeto
+        ? entrada.nombreCompletoEstudiante ?? ''
+        : matriculaSesion?.nombreCompletoEstudiante ?? '',
       nombreCompletoApoderado: ''
     };
-    matriculasCreadasEnSesion.delete(String(estudianteId));
+    if (!esObjeto) matriculasCreadasEnSesion.delete(String(entrada));
     return { exitoso: true, datos, mensaje: '' };
-  }
-
-  const matricula = matriculasCreadasEnSesion.get(String(estudianteId));
-  if (!matricula) {
-    return {
-      exitoso: false,
-      datos: null,
-      mensaje: 'No hay una matrícula creada en esta sesión para este estudiante. El backend aún no permite consultar matrículas existentes.'
-    };
   }
 
   const respuesta = await solicitar('/compromisos-pago/matricula', {
     metodo: 'POST',
-    cuerpo: { matriculaId: Number(matricula.id) }
+    cuerpo: { matriculaId: Number(matriculaId) }
   });
-  if (respuesta.exitoso) matriculasCreadasEnSesion.delete(String(estudianteId));
+  if (respuesta.exitoso && !esObjeto) {
+    matriculasCreadasEnSesion.delete(String(entrada));
+  }
   return respuesta;
 }
