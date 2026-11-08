@@ -84,6 +84,7 @@ export default function useConsultaHorario(rol, nombreUsuario) {
 
   const [tipo, establecerTipoConsulta] = useState(rol === ADMIN && inicial.por ? inicial.por : 'seccion');
   const [anio, establecerAnio] = useState(null);
+  const [anios, establecerAnios] = useState([]);
   const [gradoId, establecerGradoId] = useState(rol === ADMIN ? (inicial.grado ?? '') : '');
   const [id, establecerId] = useState('');
   const [opciones, establecerOpciones] = useState([]);
@@ -124,6 +125,7 @@ export default function useConsultaHorario(rol, nombreUsuario) {
 
       const inicio = actual.fechaInicio ?? `${actual.anio}-01-01`;
       const fin = actual.fechaFin ?? `${actual.anio}-12-31`;
+      establecerAnios(respuesta.datos);
       establecerAnio(actual);
       establecerFechaInicio(inicial.desde ?? String(inicio).slice(0, 10));
       establecerFechaFin(inicial.hasta ?? String(fin).slice(0, 10));
@@ -171,13 +173,17 @@ export default function useConsultaHorario(rol, nombreUsuario) {
     return () => { activo = false; };
   }, [rol, tipo, anio]);
 
-  // Apoderado: estudiantes a su cargo.
+  // Apoderado: estudiantes a su cargo para el año seleccionado.
   useEffect(() => {
     if (rol !== APODERADO) return undefined;
+    if (!anio?.id) return undefined;
+
     let activo = true;
     establecerCargandoOpciones(true);
     establecerErrorOpciones('');
-    listarMisEstudiantes().then((respuesta) => {
+    establecerEstudiantes([]);
+
+    listarMisEstudiantes(anio.id).then((respuesta) => {
       if (!activo) return;
       if (!respuesta.exitoso || !Array.isArray(respuesta.datos)) {
         establecerErrorOpciones(respuesta.mensaje || 'No se pudieron cargar los estudiantes.');
@@ -194,7 +200,7 @@ export default function useConsultaHorario(rol, nombreUsuario) {
       }
     });
     return () => { activo = false; };
-  }, [rol]);
+  }, [rol, anio?.id]);
 
   const seccionSeleccionada = useMemo(
     () => opciones.find((opcion) => String(opcion.id) === String(id)),
@@ -397,6 +403,18 @@ export default function useConsultaHorario(rol, nombreUsuario) {
     establecerId('');
   };
 
+  const seleccionarAnio = (valor) => {
+    const nuevoAnio = anios.find((elemento) => String(elemento.id) === String(valor));
+    if (!nuevoAnio) return;
+    pendientes.current.id = null;
+    establecerAnio(nuevoAnio);
+    establecerFechaInicio(String(nuevoAnio.fechaInicio ?? `${nuevoAnio.anio}-01-01`).slice(0, 10));
+    establecerFechaFin(String(nuevoAnio.fechaFin ?? `${nuevoAnio.anio}-12-31`).slice(0, 10));
+    establecerEstudiantes([]);
+    establecerId('');
+    establecerSemanaSeleccionada(null);
+  };
+
   /** Rango completo del año académico: es el que se aplica al entrar y al restablecer. */
   const rangoAnio = useMemo(() => (anio
     ? {
@@ -446,6 +464,7 @@ export default function useConsultaHorario(rol, nombreUsuario) {
   return {
     tipo,
     anio,
+    anios,
     gradoId,
     id,
     grados,
@@ -472,6 +491,7 @@ export default function useConsultaHorario(rol, nombreUsuario) {
     establecerSemanaSeleccionada,
     seleccionarTipo,
     seleccionarGrado,
+    seleccionarAnio,
     irSemanaAnterior,
     irSemanaSiguiente,
     claveMesActual,

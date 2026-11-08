@@ -37,8 +37,10 @@ export function obtenerPeriodo(anioId) {
   return obtenerPeriodoMatricula(anioId);
 }
 
-export function listarMisEstudiantes() {
-  return solicitar('/visualizadores-horario/apoderado/mis-estudiantes');
+export function listarMisEstudiantes(anioId) {
+  return solicitar('/usuarios/apoderados/me/estudiantes', {
+    parametros: anioId == null ? undefined : { anioId }
+  });
 }
 
 export async function listarDocentes() {

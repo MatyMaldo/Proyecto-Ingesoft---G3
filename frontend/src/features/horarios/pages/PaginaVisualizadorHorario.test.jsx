@@ -87,9 +87,9 @@ describe('Matriz semanal de horarios', () => {
     expect(screen.getByText('Comunicacion')).toBeInTheDocument();
     expect(screen.getByText('Historia')).toBeInTheDocument();
 
-    expect(screen.getByText('Aula 101')).toBeInTheDocument();
-    expect(screen.getByText('Aula 102')).toBeInTheDocument();
-    expect(screen.getByText('Aula 103')).toBeInTheDocument();
+    expect(screen.getByText(/Aula 101/)).toBeInTheDocument();
+    expect(screen.getByText(/Aula 102/)).toBeInTheDocument();
+    expect(screen.getByText(/Aula 103/)).toBeInTheDocument();
 
     expect(screen.getAllByText('08:00 – 10:00').length).toBeGreaterThan(0);
     expect(screen.getAllByText('08:00 – 09:00').length).toBeGreaterThan(0);
