@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import Icono from '../../../shared/components/Icono.jsx';
 import { validarCurso, LONGITUD_MAXIMA_NOMBRE, LONGITUD_MAXIMA_DESCRIPCION } from '../utils/validacionCurso.js';
-import DialogoBase from './DialogoBase.jsx';
+import DialogoBase from '../../../shared/components/DialogoBase.jsx';
 import estilos from './DialogoCrearCurso.module.css';
 
 const ID_NOMBRE = 'crear-curso-nombre';

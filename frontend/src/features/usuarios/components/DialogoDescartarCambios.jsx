@@ -1,4 +1,4 @@
-import DialogoBase from '../../cursos/components/DialogoBase.jsx';
+import DialogoBase from '../../../shared/components/DialogoBase.jsx';
 
 /**
  * Confirmación antes de cerrar un diálogo de usuarios con trabajo sin guardar. Por defecto habla de un formulario;

@@ -44,6 +44,13 @@
   outline-offset: 2px;
 }
 
+.selector:disabled {
+  color: var(--color-texto-suave);
+  background-color: var(--color-superficie-suave);
+  border-color: var(--color-borde);
+  cursor: not-allowed;
+}
+
 /* Etiqueta encima del selector (formularios de filtros con varias filas). Etiqueta y selector se ven
    igual que en Auditorías y Log de errores: etiqueta en minúsculas y selector rectangular de 44 px. */
 .apilado {

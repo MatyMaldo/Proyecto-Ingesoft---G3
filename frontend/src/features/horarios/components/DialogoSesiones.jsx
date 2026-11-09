@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react';
 
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
-import DialogoBase from '../../cursos/components/DialogoBase.jsx';
+import DialogoBase from '../../../shared/components/DialogoBase.jsx';
 import useSesionesHorario from '../hooks/useSesionesHorario.js';
 import { fechaISO, formatearFecha, lunesDeFecha } from '../utils/tiempo.js';
 import SelectorFecha from './SelectorFecha.jsx';

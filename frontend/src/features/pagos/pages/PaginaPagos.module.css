@@ -4,15 +4,146 @@
   gap: var(--espacio-6);
 }
 
+/* Barra de título (GUI §6): título y descripción a la izquierda, acción global a la derecha. */
 .cabecera {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+}
+
+.textoCabecera {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1);
+  min-width: 0;
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--texto-titulo);
+  font-weight: var(--peso-negrita);
+  color: var(--color-texto);
+}
+
+.descripcion {
+  margin: 0;
+  font-size: var(--texto-md);
+  color: var(--color-texto-suave);
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--espacio-3);
 }
 
-.sobretitulo {
-  margin: 0 0 var(--espacio-1);
+.boton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-4);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  white-space: nowrap;
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.boton:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.boton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.botonPrimario {
+  color: #fff;
+  background: var(--color-primario);
+  border: 1px solid var(--color-primario);
+}
+
+.botonPrimario:hover:not(:disabled) {
+  background: var(--color-primario-hover);
+}
+
+.botonPrimario:active:not(:disabled) {
+  background: var(--color-primario-activo);
+}
+
+/* Filtros: selectores y buscador en una fila; debajo, los chips de la matrícula con su subtítulo. */
+.filtros {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+  /* Sin esto, los chips (que no se parten) ensanchan la sección en pantallas angostas. */
+  min-width: 0;
+}
+
+.filaFiltros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espacio-3) var(--espacio-4);
+  min-width: 0;
+}
+
+/* Buscador y "Limpiar filtros" en su propia línea, encima de los selectores. */
+.filaBusqueda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-3) var(--espacio-4);
+  min-width: 0;
+}
+
+.campoBusqueda {
+  flex: 1 1 15rem;
+  max-width: 24rem;
+}
+
+.limpiarFiltros {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-1);
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-3);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  white-space: nowrap;
+  color: var(--color-accion);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.limpiarFiltros:hover {
+  background: var(--color-accion-suave);
+}
+
+.limpiarFiltros:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.grupoFiltro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  min-width: 0;
+}
+
+/* Subtítulo del grupo de chips: mismo estilo que en Usuarios y Matrículas. */
+.rotuloFiltro {
   font-size: var(--texto-xs);
   font-weight: var(--peso-seminegrita);
   letter-spacing: var(--espaciado-letra-ancho);
@@ -20,157 +151,59 @@
   color: var(--color-texto-suave);
 }
 
-.subtitulo {
-  margin: 0 0 var(--espacio-1);
-  font-size: var(--texto-xs);
-  font-weight: var(--peso-seminegrita);
-  letter-spacing: var(--espaciado-letra-ancho);
-  color: var(--color-texto-suave);
+.barraPaginacion {
+  /* Deja un poco de aire entre los filtros y el listado; la barra se alinea a la derecha como en Usuarios. */
+  margin-bottom: calc(var(--espacio-3) * -1);
 }
 
-.titulo {
-  margin: 0;
-  font-size: var(--texto-titulo);
-  font-weight: var(--peso-seminegrita);
-  color: var(--color-texto);
-}
-
-.botonPensiones {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: var(--tactil-min);
-  padding: 0 var(--espacio-4);
-  font: inherit;
-  font-size: var(--texto-md);
-  font-weight: var(--peso-seminegrita);
-  color: var(--color-accion);
-  background: var(--color-superficie);
-  border: 1px solid var(--color-accion);
-  border-radius: var(--radio-md);
-  cursor: pointer;
-}
-
-.botonPensiones:hover:not(:disabled) {
-  background: var(--color-accion-suave);
-}
-
-.botonPensiones:disabled {
-  color: var(--color-texto-suave);
-  background: var(--color-superficie-suave);
-  border-color: var(--color-borde);
-  cursor: not-allowed;
-}
-
-.barraHerramientas {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-3);
-}
-
-.filtros {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: var(--espacio-4);
-  padding: var(--espacio-4);
+.tarjetaResultados {
   background: var(--color-superficie);
   border: 1px solid var(--color-borde);
   border-radius: var(--radio-lg);
   box-shadow: var(--sombra-sm);
+  overflow: hidden;
 }
 
-.campoFiltro {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-1);
-  min-width: 12rem;
-  font-size: var(--texto-md);
-  font-weight: var(--peso-medio);
-  color: var(--color-texto-secundario);
-}
-
-.selector {
-  min-height: var(--tactil-min);
-  padding: 0 var(--espacio-3);
-  font: inherit;
-  color: var(--color-texto);
-  background: var(--color-superficie);
-  border: 1px solid var(--color-borde-fuerte);
-  border-radius: var(--radio-md);
-  cursor: pointer;
-}
-
-.selector:focus-visible {
-  outline: 2px solid var(--color-foco);
-  outline-offset: 2px;
-}
-
-.selector:disabled {
-  color: var(--color-texto-suave);
-  background: var(--color-superficie-suave);
-  cursor: not-allowed;
-}
-
-.botonLimpiar {
-  min-height: var(--tactil-min);
-  padding: 0 var(--espacio-4);
-  font: inherit;
-  font-size: var(--texto-md);
-  font-weight: var(--peso-seminegrita);
-  color: var(--color-texto-secundario);
-  background: var(--color-superficie);
-  border: 1px solid var(--color-borde-fuerte);
-  border-radius: var(--radio-md);
-  cursor: pointer;
-}
-
-.botonLimpiar:hover:not(:disabled) {
-  background: var(--color-superficie-suave);
-}
-
-.botonLimpiar:disabled {
-  color: var(--color-texto-suave);
-  background: var(--color-superficie-suave);
-  cursor: not-allowed;
-}
-
-.campoBusquedaContenedor {
-  width: 100%;
-}
-
-.notaPie {
+.actualizando {
   margin: 0;
+  padding: var(--espacio-2) var(--espacio-4);
   font-size: var(--texto-md);
   color: var(--color-texto-suave);
-  text-align: left;
+  background: var(--color-superficie-suave);
+  border-bottom: 1px solid var(--color-borde);
 }
 
-.botones {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 24px;
+.pie {
+  padding: var(--espacio-3) var(--espacio-4);
+  border-top: 1px solid var(--color-borde);
 }
 
-@media (min-width: 1024px) {
-  .cabecera {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
+@media (max-width: 767px) {
+  .acciones {
+    width: 100%;
   }
 
-  .barraHerramientas {
-    flex-direction: row;
-    align-items: center;
-    flex-wrap: wrap;
+  .acciones > * {
+    flex: 1 1 100%;
+    justify-content: center;
   }
 
-  .campoBusquedaContenedor {
-    max-width: calc(var(--espacio-10) * 8);
+  .filaFiltros,
+  .filaBusqueda {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: var(--espacio-3);
   }
 
-  .notaPie {
-    text-align: right;
+  .campoBusqueda {
+    flex: 1 1 100%;
+    width: 100%;
+    max-width: none;
+  }
+
+  .limpiarFiltros {
+    align-self: flex-start;
+    margin-left: calc(var(--espacio-3) * -1);
   }
 }

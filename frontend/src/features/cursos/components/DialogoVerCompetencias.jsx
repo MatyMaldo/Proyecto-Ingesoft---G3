@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import DialogoBase from './DialogoBase.jsx';
+import DialogoBase from '../../../shared/components/DialogoBase.jsx';
 import estilos from './DialogoVerCompetencias.module.css';
 
 const ID_TITULO = 'dialogo-ver-competencias-titulo';

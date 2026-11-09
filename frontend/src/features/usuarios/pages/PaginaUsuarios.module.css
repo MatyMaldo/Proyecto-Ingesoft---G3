@@ -40,8 +40,8 @@
   gap: var(--espacio-3);
 }
 
-/* Búsqueda, chips de rol y estado en una sola fila (se acomodan en varias líneas si no caben); debajo, los
-   filtros aplicados. El total de resultados lo muestra el paginador. */
+/* Búsqueda arriba; debajo, los grupos de chips de rol y de estado (cada uno con su subtítulo), que se acomodan en
+   varias líneas si no caben, y al final "Limpiar filtros". El total de resultados lo muestra el paginador. */
 .filtros {
   display: flex;
   flex-direction: column;
@@ -56,6 +56,70 @@
   align-items: center;
   gap: var(--espacio-3) var(--espacio-4);
   min-width: 0;
+}
+
+/* Fila de los dos grupos de chips: mucho aire entre ellos para que se lean como filtros distintos. */
+.filaChips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--espacio-4) var(--espacio-8);
+  min-width: 0;
+}
+
+.grupoFiltro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  min-width: 0;
+}
+
+/* Subtítulo de cada grupo: mismo estilo que la etiqueta de los selectores de filtro. */
+.rotuloFiltro {
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+/* "Limpiar filtros": botón de texto a la derecha del buscador, visible solo con algún criterio activo. */
+.limpiarFiltros {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-1);
+  min-height: calc(var(--tactil-min) - var(--espacio-2));
+  padding: 0 var(--espacio-3);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-accion);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.limpiarFiltros:hover {
+  background: var(--color-accion-suave);
+}
+
+.limpiarFiltros:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+/* Con ambos grupos en la misma línea (pantallas anchas) se separan además con una línea vertical fina. */
+@media (min-width: 1400px) {
+  .filaChips {
+    column-gap: 0;
+  }
+
+  .grupoEstado {
+    margin-left: var(--espacio-8);
+    padding-left: var(--espacio-8);
+    border-left: 1px solid var(--color-borde);
+  }
 }
 
 .campoBusqueda {
@@ -103,20 +167,6 @@
   background: var(--color-primario-activo);
 }
 
-.botonSecundario {
-  color: var(--color-accion);
-  background: var(--color-superficie);
-  border: 1px solid var(--color-accion);
-}
-
-.botonSecundario:hover:not(:disabled) {
-  background: var(--color-accion-suave);
-}
-
-.botonSecundario:active:not(:disabled) {
-  background: var(--color-accion-suave-activo);
-}
-
 .tarjetaResultados {
   background: var(--color-superficie);
   border: 1px solid var(--color-borde);
@@ -155,6 +205,19 @@
     flex: 1 1 100%;
     width: 100%;
     min-width: 0;
+  }
+
+  .filaChips {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: var(--espacio-4);
+  }
+
+  .limpiarFiltros {
+    align-self: flex-start;
+    min-height: var(--tactil-min);
+    margin-left: calc(var(--espacio-3) * -1);
   }
 
   .filaFiltros {

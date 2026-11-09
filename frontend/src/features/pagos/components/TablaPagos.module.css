@@ -8,7 +8,9 @@
 
 .tabla {
   width: 100%;
+  min-width: 48rem;
   border-collapse: collapse;
+  font-size: var(--texto-md);
 }
 
 .tabla thead th {
@@ -24,10 +26,12 @@
   white-space: nowrap;
 }
 
-.fila td {
-  padding: var(--espacio-3) var(--espacio-4);
-  vertical-align: top;
+.tabla tbody td {
+  height: 56px;
+  padding: var(--espacio-2) var(--espacio-4);
+  vertical-align: middle;
   border-bottom: 1px solid var(--color-borde);
+  color: var(--color-texto);
 }
 
 .fila:last-child td {
@@ -38,104 +42,109 @@
   background: var(--color-superficie-suave);
 }
 
-.accionesFila {
+/* Grado, sección y matrícula miden lo que su contenido; el espacio sobrante lo toma la columna del alumno. */
+.tabla thead th.columnaCorta {
+  width: 1%;
+}
+
+.tabla td:nth-child(2),
+.tabla td:nth-child(3),
+.tabla td:nth-child(4) {
+  white-space: nowrap;
+}
+
+/* Un poco menos de aire entre grado y sección. */
+.tabla th.columnaSeccion,
+.tabla td.celdaSeccion {
+  padding-left: var(--espacio-2);
+}
+
+/* La columna mide lo que sus botones; cabecera y botones van a la izquierda, sin separarse al borde derecho. */
+.tabla thead th.columnaAcciones,
+.tabla td.columnaAcciones {
+  width: 1%;
+  text-align: left;
+}
+
+.tabla td.columnaAcciones .acciones {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+}
+
+.celdaAlumno {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+  text-align: left;
+}
+
+.nombre {
+  display: block;
+  font-weight: var(--peso-medio);
+  color: var(--color-texto);
+}
+
+.codigo {
+  display: block;
+  margin-top: 2px;
+  font-size: var(--texto-xs);
+  color: var(--color-texto-suave);
+}
+
+.acciones {
   display: flex;
   flex-wrap: wrap;
+  justify-content: flex-end;
   gap: var(--espacio-2);
 }
 
-.identidad {
-  display: flex;
-  flex-wrap: wrap;
+.boton {
+  display: inline-flex;
   align-items: center;
   gap: var(--espacio-2);
-}
-
-.gradoSeccion {
-  margin: 0;
+  min-height: 36px;
+  padding: 0 var(--espacio-3);
+  font: inherit;
   font-size: var(--texto-md);
-  color: var(--color-texto-secundario);
+  font-weight: var(--peso-medio);
+  white-space: nowrap;
+  border-radius: var(--radio-md);
+  cursor: pointer;
 }
 
-.botonDeshabilitado:disabled {
-  background: var(--color-superficie-suave);
+.boton:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.botonSecundario {
+  color: var(--color-accion);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-accion);
+}
+
+.botonSecundario:hover:not(:disabled) {
+  background: var(--color-accion-suave);
+}
+
+.botonSecundario:disabled {
   color: var(--color-texto-suave);
+  background: var(--color-superficie-suave);
   border-color: var(--color-borde);
   cursor: not-allowed;
 }
 
-.tiempo {
-  display: flex;
-  flex-direction: column;
+.botonPrimario {
+  color: #fff;
+  background: var(--color-primario);
+  border: 1px solid var(--color-primario);
 }
 
-.fecha {
-  font-size: var(--texto-md);
-  font-weight: var(--peso-medio);
-  color: var(--color-texto);
-  font-variant-numeric: tabular-nums;
-  white-space: nowrap;
+.botonPrimario:hover {
+  background: var(--color-primario-hover);
 }
 
-.dni {
-  font-size: var(--texto-xs);
-  color: var(--color-texto-suave);
-}
-
-.operacion {
-  font-size: var(--texto-md);
-  color: var(--color-texto-secundario);
-}
-
-.operacion span,
-.operacion code {
-  display: block;
-}
-
-.operacion code {
-  max-width: 24rem;
-  overflow-wrap: anywhere;
-}
-
-.detalle {
-  min-width: 8rem;
-}
-
-.detalle summary {
-  cursor: pointer;
-  color: var(--color-enlace);
-}
-
-.detalle pre {
-  max-width: 28rem;
-  max-height: 16rem;
-  overflow: auto;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
-  font-size: var(--texto-xs);
-}
-
-.mensaje {
-  margin: 0;
-  font-size: var(--texto-md);
-  color: var(--color-texto);
-}
-
-.usuario {
-  display: flex;
-  align-items: center;
-  gap: var(--espacio-1);
-  margin: var(--espacio-1) 0 0;
-  font-size: var(--texto-md);
-  color: var(--color-texto-suave);
-}
-
-/* En la tabla el usuario va en su propia columna, en una sola línea. */
-.tabla .usuario {
-  margin: 0;
-  white-space: nowrap;
-}
-
+/* Tarjetas móviles: se muestran por debajo de 768 px en lugar de la tabla. */
 .listaTarjetas {
   display: none;
   flex-direction: column;
@@ -148,27 +157,18 @@
 .tarjeta {
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-2);
+  gap: var(--espacio-3);
   padding: var(--espacio-4);
   background: var(--color-superficie);
   border: 1px solid var(--color-borde);
-  border-left: var(--borde-acento) solid var(--color-peligro-acento);
   border-radius: var(--radio-lg);
 }
 
 .filaSuperior {
   display: flex;
-  flex-wrap: wrap;
-  align-items: center;
+  align-items: flex-start;
   justify-content: space-between;
   gap: var(--espacio-3);
-}
-
-.fechaHoraTarjeta {
-  font-size: var(--texto-md);
-  font-weight: var(--peso-medio);
-  color: var(--color-texto);
-  font-variant-numeric: tabular-nums;
 }
 
 .campo {
@@ -182,13 +182,6 @@
   color: var(--color-texto-suave);
 }
 
-.mensajeTarjeta {
-  margin: 0;
-  font-size: var(--texto-md);
-  color: var(--color-texto);
-  overflow-wrap: anywhere;
-}
-
 @media (max-width: 767px) {
   .vistaTabla {
     display: none;
@@ -196,5 +189,16 @@
 
   .listaTarjetas {
     display: flex;
+  }
+
+  .tarjeta .acciones {
+    flex-direction: column;
+    align-items: stretch;
+    justify-content: flex-start;
+  }
+
+  .tarjeta .boton {
+    justify-content: center;
+    min-height: var(--tactil-min);
   }
 }

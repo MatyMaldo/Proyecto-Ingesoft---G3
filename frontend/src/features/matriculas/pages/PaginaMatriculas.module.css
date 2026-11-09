@@ -4,15 +4,170 @@
   gap: var(--espacio-6);
 }
 
+/* Barra de título (GUI §6): título y descripción a la izquierda, acciones a la derecha. */
 .cabecera {
   display: flex;
-  flex-direction: column;
+  flex-wrap: wrap;
   align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+}
+
+.textoCabecera {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1);
+  min-width: 0;
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--texto-titulo);
+  font-weight: var(--peso-negrita);
+  color: var(--color-texto);
+}
+
+.descripcion {
+  margin: 0;
+  font-size: var(--texto-md);
+  color: var(--color-texto-suave);
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
   gap: var(--espacio-3);
 }
 
-.sobretitulo {
-  margin: 0 0 var(--espacio-1);
+.boton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-4);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  white-space: nowrap;
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.boton:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.boton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.botonPrimario {
+  color: #fff;
+  background: var(--color-primario);
+  border: 1px solid var(--color-primario);
+}
+
+.botonPrimario:hover:not(:disabled) {
+  background: var(--color-primario-hover);
+}
+
+.botonPrimario:active:not(:disabled) {
+  background: var(--color-primario-activo);
+}
+
+.botonSecundario {
+  color: var(--color-accion);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-accion);
+}
+
+.botonSecundario:hover:not(:disabled),
+.botonSecundario[aria-expanded='true'] {
+  background: var(--color-accion-suave);
+}
+
+.botonSecundario:active:not(:disabled) {
+  background: var(--color-accion-suave-activo);
+}
+
+/* Filtros: selectores de año, grado y sección en una fila; debajo, los chips de estado con su subtítulo. */
+.filtros {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+  /* Sin esto, los chips (que no se parten) ensanchan la sección en pantallas angostas. */
+  min-width: 0;
+}
+
+.filaFiltros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espacio-3) var(--espacio-4);
+  min-width: 0;
+}
+
+.accionesFiltros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-2);
+}
+
+/* "Actualizar": secundario y discreto; los resultados ya se recargan solos al cambiar un filtro. */
+.botonActualizar,
+.limpiarFiltros {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-1);
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-3);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  white-space: nowrap;
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.botonActualizar {
+  color: var(--color-texto-secundario);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
+}
+
+.botonActualizar:hover {
+  background: var(--color-superficie-suave);
+}
+
+.limpiarFiltros {
+  color: var(--color-accion);
+  background: transparent;
+  border: 0;
+}
+
+.limpiarFiltros:hover {
+  background: var(--color-accion-suave);
+}
+
+.botonActualizar:focus-visible,
+.limpiarFiltros:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.grupoFiltro {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  min-width: 0;
+}
+
+/* Subtítulo del grupo de chips: mismo estilo que en Usuarios y que la etiqueta de los selectores de filtro. */
+.rotuloFiltro {
   font-size: var(--texto-xs);
   font-weight: var(--peso-seminegrita);
   letter-spacing: var(--espaciado-letra-ancho);
@@ -20,223 +175,59 @@
   color: var(--color-texto-suave);
 }
 
-.subtitulo {
-  margin: 0 0 var(--espacio-1);
-  font-size: var(--texto-xs);
-  font-weight: var(--peso-seminegrita);
-  letter-spacing: var(--espaciado-letra-ancho);
-  color: var(--color-texto-suave);
+.barraPaginacion {
+  /* Deja un poco de aire entre los filtros y el listado; la barra se alinea a la derecha como en Usuarios. */
+  margin-bottom: calc(var(--espacio-3) * -1);
 }
 
-.titulo {
-  margin: 0;
-  font-size: var(--texto-titulo);
-  font-weight: var(--peso-seminegrita);
-  color: var(--color-texto);
-}
-
-.barraHerramientas {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-3);
-}
-
-.campoBusquedaContenedor {
-  width: 100%;
-}
-
-.notaPie {
-  margin: 0;
-  font-size: var(--texto-md);
-  color: var(--color-texto-suave);
-  text-align: left;
-}
-
-.botones {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 24px;
-}
-
-.botonEstados {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  min-height: var(--tactil-min);
-  padding: 0 var(--espacio-4);
-  font: inherit;
-  font-size: var(--texto-md);
-  font-weight: var(--peso-seminegrita);
-  color: var(--color-accion);
-  background: var(--color-superficie);
-  border: 1px solid var(--color-accion);
-  border-radius: var(--radio-md);
-  cursor: pointer;
-}
-
-.botonEstados:hover:not(:disabled) {
-  background: var(--color-accion-suave);
-}
-
-.botonEstados:disabled {
-  color: var(--color-texto-suave);
-  background: var(--color-superficie-suave);
-  border-color: var(--color-borde);
-  cursor: not-allowed;
-}
-
-.notaEstados {
-  margin: var(--espacio-2) 0 0;
-  font-size: var(--texto-sm);
-  color: var(--color-texto-suave);
-}
-
-.filtrosListado {
-  padding: var(--espacio-4);
+.tarjetaResultados {
   background: var(--color-superficie);
   border: 1px solid var(--color-borde);
   border-radius: var(--radio-lg);
   box-shadow: var(--sombra-sm);
-}
-
-.filaFiltros {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: var(--espacio-4);
-}
-
-.campoFiltro {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-1);
-  min-width: 11rem;
-  font-size: var(--texto-md);
-  font-weight: var(--peso-medio);
-  color: var(--color-texto-secundario);
-}
-
-.selectorFiltro {
-  min-height: var(--tactil-min);
-  padding: 0 var(--espacio-3);
-  font: inherit;
-  color: var(--color-texto);
-  background: var(--color-superficie);
-  border: 1px solid var(--color-borde-fuerte);
-  border-radius: var(--radio-md);
-  cursor: pointer;
-}
-
-.selectorFiltro:focus-visible {
-  outline: 2px solid var(--color-foco);
-  outline-offset: 2px;
-}
-
-.selectorFiltro:disabled {
-  color: var(--color-texto-suave);
-  background: var(--color-superficie-suave);
-  cursor: not-allowed;
-}
-
-.accionesFiltros {
-  display: flex;
-  gap: var(--espacio-2);
-  margin-left: auto;
-}
-
-.botonActualizar,
-.botonLimpiar {
-  min-height: var(--tactil-min);
-  padding: 0 var(--espacio-4);
-  font: inherit;
-  font-size: var(--texto-md);
-  font-weight: var(--peso-seminegrita);
-  border-radius: var(--radio-md);
-  cursor: pointer;
-}
-
-.botonActualizar {
-  color: var(--color-marca-texto);
-  background: var(--color-marca);
-  border: 0;
-}
-
-.botonActualizar:hover {
-  background: var(--color-primario-intenso);
-}
-
-.botonLimpiar {
-  color: var(--color-texto-secundario);
-  background: var(--color-superficie);
-  border: 1px solid var(--color-borde-fuerte);
-}
-
-.botonLimpiar:hover:not(:disabled) {
-  background: var(--color-superficie-suave);
-}
-
-.botonLimpiar:disabled {
-  color: var(--color-texto-suave);
-  background: var(--color-superficie-suave);
-  cursor: not-allowed;
-}
-
-.tarjetaListado {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-3);
+  overflow: hidden;
 }
 
 .actualizando {
   margin: 0;
+  padding: var(--espacio-2) var(--espacio-4);
   font-size: var(--texto-md);
   color: var(--color-texto-suave);
+  background: var(--color-superficie-suave);
+  border-bottom: 1px solid var(--color-borde);
 }
 
-.pieListado {
-  display: flex;
-  justify-content: flex-end;
+.pie {
+  padding: var(--espacio-3) var(--espacio-4);
+  border-top: 1px solid var(--color-borde);
 }
 
 @media (max-width: 767px) {
-  .filaFiltros {
-    flex-direction: column;
+  .acciones {
+    width: 100%;
+    flex-direction: column-reverse;
     align-items: stretch;
   }
 
-  .campoFiltro {
-    min-width: 0;
+  /* Acción principal arriba y a todo el ancho; las acciones masivas debajo. */
+  .acciones > * {
+    flex: 1 1 100%;
+    justify-content: center;
   }
 
-  .accionesFiltros {
-    margin-left: 0;
+  .filaFiltros {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+    gap: var(--espacio-3);
   }
 
-  .botonActualizar,
-  .botonLimpiar {
+  .accionesFiltros > * {
     flex: 1 1 0;
-  }
-}
-
-@media (min-width: 1024px) {
-  .cabecera {
-    flex-direction: row;
-    align-items: center;
-    justify-content: space-between;
+    justify-content: center;
   }
 
-  .barraHerramientas {
-    flex-direction: row;
-    align-items: center;
-    flex-wrap: wrap;
-  }
-
-  .campoBusquedaContenedor {
-    max-width: calc(var(--espacio-10) * 8);
-  }
-
-  .notaPie {
-    text-align: right;
+  .limpiarFiltros {
+    flex: 0 1 auto;
   }
 }

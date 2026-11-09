@@ -22,13 +22,15 @@ const SEPARACION_BOTON_PX = 4;
  *   tono?: 'peligro', separadorAntes?: boolean, alSeleccionar: () => void }>} props.items
  *   `separadorAntes` dibuja una línea divisoria encima de la opción, para agrupar.
  * @param {'inicio' | 'fin'} [props.alineacion] Borde del botón con el que se alinea el menú.
+ * @param {boolean} [props.deshabilitado] Deshabilita el botón (el menú no se puede abrir).
  */
 export default function MenuDesplegable({
   etiquetaBoton,
   contenidoBoton,
   claseBoton,
   items,
-  alineacion = 'fin'
+  alineacion = 'fin',
+  deshabilitado = false
 }) {
   const idMenu = useId();
   const botonRef = useRef(null);
@@ -156,6 +158,7 @@ export default function MenuDesplegable({
         ref={botonRef}
         type="button"
         className={claseBoton}
+        disabled={deshabilitado}
         aria-label={etiquetaBoton}
         aria-haspopup="menu"
         aria-expanded={abierto}

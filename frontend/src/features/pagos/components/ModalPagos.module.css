@@ -1,109 +1,134 @@
-.cajaAncha {
-  max-width: 980px;
-}
+/* Contenido de los diálogos de pagos que muestran datos (compromisos, pagos y detalle). Los campos de los
+   formularios están en shared/styles/camposDialogo.module.css. Todo con los tokens de shared/styles/tokens.css. */
 
 .metaAlumno {
-  margin: 4px 0 0;
-  font-size: 12px;
-  color: #5b6784;
+  margin: 0;
+  font-size: var(--texto-md);
+  color: var(--color-texto-secundario);
+}
+
+.avisoOk,
+.avisoError {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espacio-2);
+  margin: 0;
+  padding: var(--espacio-3) var(--espacio-4);
+  font-size: var(--texto-md);
+  border-radius: var(--radio-md);
+}
+
+.avisoOk {
+  color: var(--color-exito-texto);
+  background: var(--color-exito-fondo);
+  border: 1px solid var(--color-exito-borde);
+}
+
+.avisoError {
+  color: var(--color-peligro-texto);
+  background: var(--color-peligro-fondo);
+  border: 1px solid var(--color-peligro-borde);
 }
 
 .listaCompromisos {
   display: flex;
   flex-direction: column;
-  gap: 14px;
+  gap: var(--espacio-4);
 }
 
 .compromisoCard {
   overflow: hidden;
-  border: 1px solid #dce3f0;
-  border-radius: 10px;
-  background: #ffffff;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
 }
 
 .compromisoCabecera {
   display: flex;
+  flex-wrap: wrap;
   align-items: flex-start;
   justify-content: space-between;
-  gap: 12px;
-  padding: 12px 14px;
-  background: #f6f7fc;
-  border-bottom: 1px solid #e3e7f2;
+  gap: var(--espacio-3);
+  padding: var(--espacio-3) var(--espacio-4);
+  background: var(--color-superficie-suave);
+  border-bottom: 1px solid var(--color-borde);
 }
 
 .compromisoEtiqueta {
   margin: 0 0 2px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
   text-transform: uppercase;
-  color: #8a94ad;
+  color: var(--color-texto-suave);
 }
 
 .compromisoTitulo {
   margin: 0;
-  font-size: 15px;
-  font-weight: 700;
-  color: #1a2238;
+  font-size: var(--texto-base);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
 }
 
 .compromisoMeta {
-  margin: 3px 0 0;
-  font-size: 12px;
-  color: #5b6784;
+  margin: var(--espacio-1) 0 0;
+  font-size: var(--texto-md);
+  color: var(--color-texto-secundario);
 }
 
 .compromisoCuerpo {
-  padding: 12px 14px;
+  padding: var(--espacio-3) var(--espacio-4);
 }
 
 .sinPagos {
   margin: 0;
-  padding: 8px 0;
-  font-size: 13px;
-  color: #8a94ad;
+  padding: var(--espacio-2) 0;
+  font-size: var(--texto-md);
+  color: var(--color-texto-suave);
 }
 
+/* Aviso preventivo (ámbar, GUI §1): por qué las acciones sobre los pagos están bloqueadas. */
 .notaBloqueo {
-  margin: 0 0 10px;
-  padding: 8px 10px;
-  font-size: 12px;
-  color: #8a5a00;
-  background: #fff8e6;
-  border: 1px solid #f0d48a;
-  border-radius: 8px;
+  margin: 0 0 var(--espacio-3);
+  padding: var(--espacio-2) var(--espacio-3);
+  font-size: var(--texto-md);
+  color: var(--tono-ambar-texto);
+  background: var(--tono-ambar-fondo);
+  border: 1px solid var(--tono-ambar-borde);
+  border-radius: var(--radio-md);
 }
 
 .tablaContenedor {
   overflow-x: auto;
-  border: 1px solid #e3e7f2;
-  border-radius: 8px;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
 }
 
 .tabla {
   width: 100%;
-  min-width: 760px;
+  min-width: 46rem;
   border-collapse: collapse;
-  font-size: 13px;
+  font-size: var(--texto-md);
 }
 
 .tabla th {
-  padding: 10px 12px;
-  font-size: 11px;
-  font-weight: 700;
-  letter-spacing: 0.04em;
+  padding: var(--espacio-3) var(--espacio-4);
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
   text-align: left;
   text-transform: uppercase;
-  color: #8a94ad;
-  background: #f6f7fc;
-  border-bottom: 1px solid #e3e7f2;
+  white-space: nowrap;
+  color: var(--color-texto-secundario);
+  background: var(--color-superficie-suave);
+  border-bottom: 1px solid var(--color-borde);
 }
 
 .tabla td {
-  padding: 10px 12px;
-  color: #4a5470;
+  padding: var(--espacio-2) var(--espacio-4);
   vertical-align: middle;
-  border-bottom: 1px solid #eef0f7;
+  color: var(--color-texto);
+  border-bottom: 1px solid var(--color-borde);
 }
 
 .tabla tr:last-child td {
@@ -111,79 +136,77 @@
 }
 
 .monto {
-  font-weight: 700;
-  color: #1a2238;
+  font-weight: var(--peso-seminegrita);
+  font-variant-numeric: tabular-nums;
   white-space: nowrap;
-}
-
-.compromiso {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-}
-
-.compromisoTipo {
-  font-weight: 600;
-  color: #2b3350;
-}
-
-.compromisoId {
-  font-size: 11px;
-  color: #8a94ad;
+  color: var(--color-texto);
 }
 
 .acciones {
   display: flex;
   flex-wrap: wrap;
   justify-content: flex-end;
-  gap: 6px;
+  gap: var(--espacio-2);
 }
 
 .botonAccion,
 .botonDetalle {
-  min-height: 32px;
-  padding: 0 10px;
+  min-height: 36px;
+  padding: 0 var(--espacio-3);
   font: inherit;
-  font-size: 12px;
-  font-weight: 600;
-  border-radius: 7px;
-  cursor: pointer;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-medio);
   white-space: nowrap;
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.botonAccion:focus-visible,
+.botonDetalle:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
 }
 
 .botonValidar {
-  color: #15803d;
-  background: #ecfdf3;
-  border: 1px solid #bbefcf;
+  color: var(--color-exito-texto);
+  background: var(--color-exito-fondo);
+  border: 1px solid var(--color-exito-borde);
 }
 
 .botonRechazar {
-  color: #b91c1c;
-  background: #fef2f2;
-  border: 1px solid #fcc9c9;
+  color: var(--color-peligro-texto);
+  background: var(--color-peligro-fondo);
+  border: 1px solid var(--color-peligro-borde);
 }
 
 .botonDetalle {
-  color: #0b57d0;
-  background: #ffffff;
-  border: 1px solid #c9d8f5;
+  color: var(--color-accion);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-accion);
 }
 
-.botonAccion:hover:not(:disabled),
-.botonDetalle:hover:not(:disabled) {
-  filter: brightness(0.97);
+.botonValidar:hover:not(:disabled) {
+  border-color: var(--color-exito-texto);
+}
+
+.botonRechazar:hover:not(:disabled) {
+  border-color: var(--color-peligro);
+}
+
+.botonDetalle:hover {
+  background: var(--color-accion-suave);
 }
 
 .botonAccion:disabled {
-  color: #9aa8bd;
-  background: #f6f7fc;
-  border-color: #e3e7f2;
+  color: var(--color-texto-suave);
+  background: var(--color-superficie-suave);
+  border-color: var(--color-borde);
   cursor: not-allowed;
 }
 
 .evidencia {
-  color: #0b57d0;
-  font-weight: 600;
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-accion);
   text-decoration: none;
   white-space: nowrap;
 }
@@ -197,36 +220,48 @@
   justify-content: flex-end;
 }
 
+/* Detalle de un pago: datos a la izquierda y vista previa del comprobante a la derecha. */
 .detalleLayout {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(20rem, 34rem);
-  gap: 18px;
+  grid-template-columns: minmax(0, 1fr) minmax(18rem, 32rem);
+  gap: var(--espacio-5);
   align-items: start;
 }
 
 .detalleInfo {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: var(--espacio-3);
   min-width: 0;
 }
 
 .detalle {
   display: grid;
   grid-template-columns: minmax(8rem, 12rem) 1fr;
-  gap: 8px 16px;
+  gap: var(--espacio-2) var(--espacio-4);
   margin: 0;
-  font-size: 13px;
+  font-size: var(--texto-md);
+}
+
+.detalle dt {
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto-suave);
+}
+
+.detalle dd {
+  margin: 0;
+  color: var(--color-texto);
+  overflow-wrap: anywhere;
 }
 
 .preview {
   display: flex;
   flex-direction: column;
-  min-height: 30rem;
+  min-height: 26rem;
   overflow: hidden;
-  background: #f6f7fc;
-  border: 1px solid #e3e7f2;
-  border-radius: 8px;
+  background: var(--color-superficie-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
 }
 
 .previewCabecera {
@@ -234,91 +269,39 @@
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
-  gap: 8px;
-  padding: 10px 12px;
-  font-size: 12px;
-  font-weight: 700;
-  color: #2b3350;
-  background: #ffffff;
-  border-bottom: 1px solid #e3e7f2;
+  gap: var(--espacio-2);
+  padding: var(--espacio-3);
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto-secundario);
+  background: var(--color-superficie);
+  border-bottom: 1px solid var(--color-borde);
 }
 
 .pdf {
   flex: 1 1 auto;
   width: 100%;
-  min-height: 30rem;
+  min-height: 26rem;
   border: 0;
-  background: #ffffff;
+  background: var(--color-superficie);
 }
 
 .previewVacio {
   margin: 0;
-  padding: 24px;
-  font-size: 13px;
-  color: #8a94ad;
+  padding: var(--espacio-6);
+  font-size: var(--texto-md);
+  color: var(--color-texto-suave);
   text-align: center;
 }
 
-.detalle dt {
-  color: #8a94ad;
-  font-weight: 600;
-}
-
-.detalle dd {
-  margin: 0;
-  color: #1a2238;
-  overflow-wrap: anywhere;
-}
-
-.textarea {
-  width: 100%;
-  min-height: 90px;
-  box-sizing: border-box;
-  padding: 10px 12px;
-  font: inherit;
-  font-size: 14px;
-  color: #1a2238;
-  background: #f6f7fc;
-  border: 1px solid #e3e7f2;
-  border-radius: 8px;
-  resize: vertical;
-}
-
-.textarea:focus {
-  border-color: #3b6fd8;
-  outline: none;
-}
-
-.errorCampo {
-  margin: 0;
-  font-size: 12px;
-  color: #b42318;
-}
-
-.aviso {
-  margin: 0;
-  font-size: 12px;
-  color: #8a94ad;
-}
-
 @media (max-width: 767px) {
-  .tabla {
-    min-width: 620px;
-  }
-
-  .detalleLayout {
-    grid-template-columns: 1fr;
-  }
-
+  .detalleLayout,
   .detalle {
     grid-template-columns: 1fr;
   }
 
-  .preview {
-    min-height: 24rem;
-  }
-
+  .preview,
   .pdf {
-    min-height: 24rem;
+    min-height: 20rem;
   }
 }

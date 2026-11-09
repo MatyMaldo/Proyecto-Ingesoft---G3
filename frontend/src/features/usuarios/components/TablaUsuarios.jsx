@@ -160,7 +160,7 @@ export default function TablaUsuarios({ usuarios, esProtegido, alEditar, alCambi
                 </td>
                 <td className={estilos.dni}>{usuario.dni}</td>
                 <td>
-                  <span className={estilos.correo} title={usuario.correo}>{usuario.correo}</span>
+                  <span className={estilos.correo}>{usuario.correo}</span>
                 </td>
                 <td>
                   <Insignia tono={TONO_ROL[usuario.rol]}>{usuario.rol}</Insignia>

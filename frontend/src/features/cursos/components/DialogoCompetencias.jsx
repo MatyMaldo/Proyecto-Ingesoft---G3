@@ -2,7 +2,7 @@ import { useState } from 'react';
 
 import estilosUtil from '../../../shared/styles/utilidades.module.css';
 import { MENSAJE_SIN_COMPETENCIAS_DISPONIBLES } from '../constants/mensajesCursos.js';
-import DialogoBase from './DialogoBase.jsx';
+import DialogoBase from '../../../shared/components/DialogoBase.jsx';
 import estilos from './DialogoCompetencias.module.css';
 
 const ID_TITULO = 'dialogo-competencias-titulo';

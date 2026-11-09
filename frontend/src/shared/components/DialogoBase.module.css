@@ -218,3 +218,20 @@
     flex: 1 1 0;
   }
 }
+
+/* Pie con botones a todo el ancho en pantallas angostas (opt-in con `botonesExpandidos`): el principal queda arriba. */
+@media (max-width: 480px) {
+  .pieExpandido {
+    flex-direction: column-reverse;
+    align-items: stretch;
+  }
+
+  .pieExpandido .notaPie {
+    margin-right: 0;
+  }
+
+  .pieExpandido .botonPrimario,
+  .pieExpandido .botonSecundario {
+    width: 100%;
+  }
+}

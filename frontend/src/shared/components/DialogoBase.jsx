@@ -1,6 +1,6 @@
 import { useEffect, useRef } from 'react';
 
-import Icono from '../../../shared/components/Icono.jsx';
+import Icono from './Icono.jsx';
 import estilos from './DialogoBase.module.css';
 
 // Con varios diálogos apilados (p. ej. una confirmación sobre un formulario) el desplazamiento de la página
@@ -32,6 +32,8 @@ let overflowOriginal = '';
  * @param {string} [props.textoCancelar]
  * @param {string} [props.notaPie] Texto auxiliar a la izquierda de los botones.
  * @param {boolean} [props.confirmarPeligro] Pinta el botón de confirmar como acción crítica (rojo, GUI §4).
+ * @param {boolean} [props.botonesExpandidos] En pantallas angostas (≤ 480 px) los botones del pie ocupan todo el ancho,
+ *   con el principal arriba, para pulsarlos con el pulgar.
  * @param {boolean} [props.enfocarCancelar] Al abrir, el foco va a Cancelar (la opción segura en confirmaciones).
  * @param {() => void} [props.alSolicitarCierre] Si se indica, Esc, X, Cancelar y el velo ya no cierran el diálogo por sí
  *   solos: llaman a esta función para que quien lo usa decida (p. ej. pedir confirmación antes de descartar cambios).
@@ -55,6 +57,7 @@ export default function DialogoBase({
   sinCancelar = false,
   confirmarPeligro = false,
   enfocarCancelar = false,
+  botonesExpandidos = false,
   textoCancelar = 'Cancelar',
   alSolicitarCierre,
   alCancelar,
@@ -180,7 +183,7 @@ export default function DialogoBase({
           </div>
         </div>
 
-        <div className={estilos.pie}>
+        <div className={botonesExpandidos ? `${estilos.pie} ${estilos.pieExpandido}` : estilos.pie}>
           {notaPie && <span className={estilos.notaPie}>{notaPie}</span>}
           {!sinCancelar && (
             <button

@@ -1,0 +1,267 @@
+/* Campos y avisos que van dentro de un DialogoBase (el marco, el encabezado y los botones los pone DialogoBase).
+   Los comparten los diálogos de Matrículas y Pagos. Todo con los tokens de shared/styles/tokens.css. */
+
+.campo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  min-width: 0;
+}
+
+.etiqueta {
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto-secundario);
+}
+
+/* Selector de los diálogos: misma altura, fondo y borde que los campos de Usuarios. */
+.selector {
+  width: 100%;
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-10) 0 var(--espacio-3);
+  font: inherit;
+  font-size: var(--texto-md);
+  color: var(--color-texto);
+  background-color: var(--color-fondo);
+  background-image: var(--flecha-select);
+  background-repeat: no-repeat;
+  background-position: right var(--espacio-3) center;
+  background-size: 16px 16px;
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+  appearance: none;
+  transition: border-color var(--transicion);
+}
+
+.selector:hover:not(:disabled) {
+  border-color: var(--color-texto-suave);
+}
+
+.selector:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 1px;
+  border-color: var(--color-foco);
+}
+
+.selector:disabled {
+  color: var(--color-texto-suave);
+  background-color: var(--color-superficie-suave);
+  cursor: not-allowed;
+}
+
+.ayuda {
+  margin: 0;
+  font-size: var(--texto-xs);
+  line-height: var(--interlineado-xs);
+  color: var(--color-texto-suave);
+}
+
+/* Alumno elegido (estado de éxito, GUI §1). */
+.tarjetaAlumno {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  padding: var(--espacio-3);
+  background: var(--color-exito-fondo);
+  border: 1px solid var(--color-exito-borde);
+  border-radius: var(--radio-md);
+}
+
+.tarjetaEtiqueta {
+  margin: 0 0 2px;
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-exito-texto);
+}
+
+.tarjetaNombre {
+  margin: 0;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+}
+
+.tarjetaDni {
+  margin: 0;
+  font-size: var(--texto-xs);
+  color: var(--color-texto-secundario);
+}
+
+.quitar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tactil-min);
+  height: var(--tactil-min);
+  margin: calc(var(--espacio-3) * -1) calc(var(--espacio-3) * -1) 0 0;
+  padding: 0;
+  color: var(--color-texto-secundario);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.quitar:hover {
+  background: var(--color-superficie-suave);
+}
+
+.quitar:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+/* Secciones: opciones de selección única. */
+.opciones {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+}
+
+.opcion {
+  min-width: 2.75rem;
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-4);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-medio);
+  color: var(--color-texto-secundario);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+  transition: border-color var(--transicion), background var(--transicion);
+}
+
+.opcion:hover {
+  background: var(--color-accion-suave);
+}
+
+.opcion:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.opcionActiva {
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-accion);
+  background: var(--color-accion-suave);
+  border-color: var(--color-accion);
+}
+
+.error {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espacio-2);
+  margin: 0;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-medio);
+  color: var(--color-peligro-texto);
+}
+
+.error svg {
+  flex-shrink: 0;
+  margin-top: 3px;
+}
+
+.reintentar {
+  align-self: flex-start;
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-4);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-accion);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-accion);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.reintentar:hover {
+  background: var(--color-accion-suave);
+}
+
+.reintentar:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+/* Aviso informativo (azul) con una explicación o un resultado. */
+.aviso {
+  padding: var(--espacio-3) var(--espacio-4);
+  color: var(--tono-azul-texto);
+  background: var(--tono-azul-fondo);
+  border: 1px solid var(--tono-azul-borde);
+  border-radius: var(--radio-md);
+}
+
+.avisoTitulo {
+  margin: 0 0 var(--espacio-1);
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+}
+
+.avisoTexto {
+  margin: 0;
+  font-size: var(--texto-md);
+  line-height: var(--interlineado-md);
+}
+
+.avisoErrores {
+  margin: var(--espacio-2) 0 0;
+  padding-left: var(--espacio-5);
+  font-size: var(--texto-md);
+  color: var(--color-peligro-texto);
+}
+
+.resumen {
+  margin: 0;
+  font-size: var(--texto-md);
+  color: var(--color-texto-secundario);
+}
+
+/* Campo de texto o de archivo, con la misma altura, fondo y borde que los campos de Usuarios. */
+.entrada {
+  width: 100%;
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-3);
+  font: inherit;
+  font-size: var(--texto-md);
+  color: var(--color-texto);
+  background: var(--color-fondo);
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio-md);
+  transition: border-color var(--transicion);
+}
+
+.entrada:hover {
+  border-color: var(--color-texto-suave);
+}
+
+.entrada:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 1px;
+  border-color: var(--color-foco);
+}
+
+/* Los campos de archivo necesitan algo de aire vertical para alinear el botón nativo. */
+.entrada[type='file'] {
+  padding: var(--espacio-2) var(--espacio-3);
+}
+
+.areaTexto {
+  composes: entrada;
+  min-height: 6rem;
+  padding: var(--espacio-3);
+  resize: vertical;
+}
+
+.entrada[aria-invalid='true'] {
+  background: var(--color-peligro-fondo);
+  border-color: var(--color-peligro);
+}

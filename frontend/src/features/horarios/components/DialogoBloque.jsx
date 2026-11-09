@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react';
 
-import DialogoBase from '../../cursos/components/DialogoBase.jsx';
+import DialogoBase from '../../../shared/components/DialogoBase.jsx';
 import { obtenerEtiquetaDia } from '../constants/horarios.js';
 import {
   bloqueCruzaReceso,

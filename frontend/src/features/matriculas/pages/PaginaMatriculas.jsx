@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useRef, useState } from 'react';
 
-import Boton from '../../../shared/components/Boton.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
+import FiltroChips from '../../../shared/components/FiltroChips.jsx';
+import Icono from '../../../shared/components/Icono.jsx';
+import MenuDesplegable from '../../../shared/components/MenuDesplegable.jsx';
 import Notificacion from '../../../shared/components/Notificacion.jsx';
 import Paginacion from '../../../shared/components/Paginacion.jsx';
-import estilosBoton from '../../../shared/components/Boton.module.css';
+import SelectFiltro from '../../../shared/components/SelectFiltro.jsx';
 import useNotificacion from '../../../shared/hooks/useNotificacion.js';
 import ModalActualizarEstadosMatricula from '../components/ModalActualizarEstadosMatricula.jsx';
 import ModalAsignarAlumno from '../components/ModalAsignarAlumno.jsx';
@@ -19,11 +21,12 @@ import {
 } from '../services/matriculasService.js';
 import estilos from './PaginaMatriculas.module.css';
 
+/** Chips del filtro de estado; el tono es el mismo de la insignia de estado de la tabla. Sin conteo: el listado se pagina en el servidor. */
 const OPCIONES_ESTADO = [
-  { valor: '', etiqueta: 'Todos los estados' },
-  { valor: 'PENDIENTE', etiqueta: 'Pendiente' },
-  { valor: 'CONFIRMADA', etiqueta: 'Confirmada' },
-  { valor: 'CANCELADA', etiqueta: 'Cancelada' }
+  { valor: '', etiqueta: 'Todos', tono: 'gris' },
+  { valor: 'PENDIENTE', etiqueta: 'Pendiente', tono: 'ambar' },
+  { valor: 'CONFIRMADA', etiqueta: 'Confirmada', tono: 'verde' },
+  { valor: 'CANCELADA', etiqueta: 'Cancelada', tono: 'rojo' }
 ];
 
 export default function PaginaMatriculas() {
@@ -53,6 +56,7 @@ export default function PaginaMatriculas() {
   const [modalComprobanteAbierto, establecerModalComprobanteAbierto] = useState(false);
   const [modalActualizarEstadosAbierto, establecerModalActualizarEstadosAbierto] = useState(false);
   const [emitiendoId, establecerEmitiendoId] = useState(null);
+  const refInicioListado = useRef(null);
 
   const confirmarAsignacion = async (asignacion) => {
     const respuesta = await crearMatricula(asignacion);
@@ -70,7 +74,8 @@ export default function PaginaMatriculas() {
     );
   };
 
-  const emitirDesdeFila = async (matricula) => {    establecerEmitiendoId(matricula.id);
+  const emitirDesdeFila = async (matricula) => {
+    establecerEmitiendoId(matricula.id);
     const respuesta = await emitirCompromisoMatricula({
       matriculaId: matricula.id,
       estudianteId: matricula.estudianteId,
@@ -85,7 +90,9 @@ export default function PaginaMatriculas() {
       return;
     }
     recargar();
-    mostrarNotificacion(`Se emitió el compromiso de la matrícula #${matricula.id}.`);
+    mostrarNotificacion(
+      `Se emitió el compromiso de matrícula de ${matricula.nombreCompletoEstudiante ?? 'el estudiante'}.`
+    );
   };
 
   const emitirMasivo = async (anioId) => {
@@ -96,11 +103,8 @@ export default function PaginaMatriculas() {
     return respuesta;
   };
 
-  const cargandoListado = estadoEstructura === 'cargando'
-    || (estadoEstructura === 'listo' && estado === 'cargando');
-  const hayFiltros = Boolean(filtros.gradoId || filtros.seccionId || filtros.estado);
-
-  const ejecutarActualizacionEstados = async () => {    const respuesta = await cancelarPendientesPorPeriodo();
+  const ejecutarActualizacionEstados = async () => {
+    const respuesta = await cancelarPendientesPorPeriodo();
 
     if (!respuesta.exitoso) {
       return respuesta;
@@ -119,121 +123,158 @@ export default function PaginaMatriculas() {
     return respuesta;
   };
 
+  const estructuraLista = estadoEstructura === 'listo';
+  const cargandoListado = estadoEstructura === 'cargando' || (estructuraLista && estado === 'cargando');
+  const hayFiltros = Boolean(filtros.gradoId || filtros.seccionId || filtros.estado);
+  const hayResultados = estructuraLista && estado === 'listo' && matriculas.length > 0;
+
+  // Al cambiar de página (sobre todo desde el paginador inferior), devuelve la vista al inicio del listado.
+  const cambiarPagina = (nuevaPagina) => {
+    irAPagina(nuevaPagina);
+    const reducirMovimiento = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
+    refInicioListado.current?.scrollIntoView?.({ block: 'start', behavior: reducirMovimiento ? 'auto' : 'smooth' });
+  };
+
+  // El mismo paginador (con el total y el campo de página) va arriba y abajo del listado, como en Usuarios.
+  const paginador = (posicion) => (
+    <Paginacion
+      pagina={pagina}
+      totalPaginas={totalPaginas}
+      totalElementos={totalElementos}
+      tamanioPagina={tamanioPagina}
+      cantidadEnPagina={matriculas.length}
+      alCambiarPagina={cambiarPagina}
+      etiqueta={`Paginación de matrículas (${posicion})`}
+      unidadSingular="matrícula"
+      unidadPlural="matrículas"
+      anunciarTotal={posicion === 'superior'}
+    />
+  );
+
+  const opcionesAnio = [
+    { valor: '', etiqueta: 'Todos los años' },
+    ...(estructura?.anios ?? []).map((anio) => ({ valor: String(anio.id), etiqueta: String(anio.anio) }))
+  ];
+  const opcionesGrado = [
+    { valor: '', etiqueta: 'Todos los grados' },
+    ...(estructura?.grados ?? []).map((grado) => ({ valor: String(grado.id), etiqueta: grado.nombre }))
+  ];
+  const opcionesSeccion = [
+    { valor: '', etiqueta: 'Todas las secciones' },
+    ...secciones.map((seccion) => ({ valor: String(seccion.id), etiqueta: seccion.nombre }))
+  ];
+
   return (
     <div className={estilos.pagina}>
       {notificacion && <Notificacion mensaje={notificacion.mensaje} error={notificacion.error} />}
 
+      {/* Barra de título (GUI §6): título a la izquierda; a la derecha, las acciones masivas (secundaria) y la
+          acción principal. */}
       <header className={estilos.cabecera}>
-        <div>
-          <p className={estilos.sobretitulo}>Módulo de gestión</p>
+        <div className={estilos.textoCabecera}>
           <h1 className={estilos.titulo}>Matrículas</h1>
-          <p className={estilos.subtitulo}>
+          <p className={estilos.descripcion}>
             Consulta las matrículas registradas y emite compromisos desde cada matrícula.
           </p>
         </div>
+        <div className={estilos.acciones}>
+          <MenuDesplegable
+            etiquetaBoton="Acciones masivas"
+            claseBoton={`${estilos.boton} ${estilos.botonSecundario}`}
+            alineacion="fin"
+            deshabilitado={!estructuraLista}
+            contenidoBoton={<>
+              Acciones masivas
+              <Icono nombre="chevron-abajo" tamano={16} />
+            </>}
+            items={[
+              {
+                id: 'emitir',
+                etiqueta: 'Emitir compromisos de matrícula',
+                icono: 'archivo',
+                alSeleccionar: () => establecerModalComprobanteAbierto(true)
+              },
+              {
+                id: 'estados',
+                etiqueta: 'Actualizar estados de matrícula',
+                icono: 'alerta',
+                tono: 'peligro',
+                separadorAntes: true,
+                alSeleccionar: () => establecerModalActualizarEstadosAbierto(true)
+              }
+            ]}
+          />
+          <button
+            type="button"
+            className={`${estilos.boton} ${estilos.botonPrimario}`}
+            onClick={() => establecerModalAsignarAlumnoAbierto(true)}
+          >
+            <Icono nombre="agregar" tamano={16} />
+            Asignar alumno a sección
+          </button>
+        </div>
       </header>
 
-      <div className={estilos.botones}>
-        <Boton
-          icono="agregar"
-          span="Asignar alumno a sección"
-          estilo={estilosBoton.btn_primario}
-          onClick={() => establecerModalAsignarAlumnoAbierto(true)}
-        />
-        <Boton
-          icono="archivo"
-          span="Emitir compromisos de matrícula"
-          estilo={estilosBoton.btn_secundario}
-          onClick={() => establecerModalComprobanteAbierto(true)}
-        />
-        <button
-          type="button"
-          className={estilos.botonEstados}
-          disabled={estadoEstructura !== 'listo'}
-          title="Selecciona el año y actualiza las matrículas pendientes de períodos finalizados."
-          onClick={() => establecerModalActualizarEstadosAbierto(true)}
-        >
-          Actualizar estados de matrícula
-        </button>
-      </div>
-
-      <section className={estilos.filtrosListado} aria-label="Filtros del listado de matrículas">
+      {/* Año, grado y sección como selectores; el estado, como chips con su subtítulo (mismo patrón que Usuarios). */}
+      <section className={estilos.filtros} aria-label="Filtros del listado de matrículas">
         <div className={estilos.filaFiltros}>
-          <label className={estilos.campoFiltro}>
-            Año académico
-            <select
-              className={estilos.selectorFiltro}
-              value={filtros.anioId}
-              disabled={estadoEstructura !== 'listo'}
-              onChange={(evento) => cambiarFiltro('anioId', evento.target.value)}
-            >
-              <option value="">Todos los años</option>
-              {(estructura?.anios ?? []).map((anio) => (
-                <option key={anio.id} value={anio.id}>{anio.anio}</option>
-              ))}
-            </select>
-          </label>
-
-          <label className={estilos.campoFiltro}>
-            Grado
-            <select
-              className={estilos.selectorFiltro}
-              value={filtros.gradoId}
-              disabled={estadoEstructura !== 'listo'}
-              onChange={(evento) => cambiarFiltro('gradoId', evento.target.value)}
-            >
-              <option value="">Todos los grados</option>
-              {(estructura?.grados ?? []).map((grado) => (
-                <option key={grado.id} value={grado.id}>{grado.nombre}</option>
-              ))}
-            </select>
-          </label>
-
-          <label className={estilos.campoFiltro}>
-            Sección
-            <select
-              className={estilos.selectorFiltro}
-              value={filtros.seccionId}
-              disabled={!filtros.gradoId || !filtros.anioId}
-              onChange={(evento) => cambiarFiltro('seccionId', evento.target.value)}
-            >
-              <option value="">Todas las secciones</option>
-              {secciones.map((seccion) => (
-                <option key={seccion.id} value={seccion.id}>{seccion.nombre}</option>
-              ))}
-            </select>
-          </label>
-
-          <label className={estilos.campoFiltro}>
-            Estado
-            <select
-              className={estilos.selectorFiltro}
-              value={filtros.estado}
-              onChange={(evento) => cambiarFiltro('estado', evento.target.value)}
-            >
-              {OPCIONES_ESTADO.map((opcion) => (
-                <option key={opcion.valor} value={opcion.valor}>{opcion.etiqueta}</option>
-              ))}
-            </select>
-          </label>
-
+          <SelectFiltro
+            apilado
+            id="filtro-anio-matriculas"
+            etiqueta="Año académico"
+            valor={filtros.anioId}
+            opciones={opcionesAnio}
+            alCambiar={(valor) => cambiarFiltro('anioId', valor)}
+            deshabilitado={!estructuraLista}
+          />
+          <SelectFiltro
+            apilado
+            id="filtro-grado-matriculas"
+            etiqueta="Grado"
+            valor={filtros.gradoId}
+            opciones={opcionesGrado}
+            alCambiar={(valor) => cambiarFiltro('gradoId', valor)}
+            deshabilitado={!estructuraLista}
+          />
+          <SelectFiltro
+            apilado
+            id="filtro-seccion-matriculas"
+            etiqueta="Sección"
+            valor={filtros.seccionId}
+            opciones={opcionesSeccion}
+            alCambiar={(valor) => cambiarFiltro('seccionId', valor)}
+            deshabilitado={!filtros.gradoId || !filtros.anioId}
+          />
           <div className={estilos.accionesFiltros}>
             <button type="button" className={estilos.botonActualizar} onClick={recargar}>
+              <Icono nombre="reintentar" tamano={16} />
               Actualizar
             </button>
-            <button
-              type="button"
-              className={estilos.botonLimpiar}
-              onClick={limpiarFiltros}
-              disabled={!hayFiltros}
-            >
-              Limpiar filtros
-            </button>
+            {hayFiltros && (
+              <button type="button" className={estilos.limpiarFiltros} onClick={limpiarFiltros}>
+                <Icono nombre="cerrar" tamano={14} />
+                Limpiar filtros
+              </button>
+            )}
           </div>
+        </div>
+
+        <div className={estilos.grupoFiltro}>
+          {/* El subtítulo es visual: el grupo ya tiene su nombre accesible en `etiquetaGrupo`. */}
+          <span className={estilos.rotuloFiltro} aria-hidden="true">Estado</span>
+          <FiltroChips
+            etiquetaGrupo="Filtrar matrículas por estado"
+            opciones={OPCIONES_ESTADO}
+            valorSeleccionado={filtros.estado}
+            alSeleccionar={(valor) => cambiarFiltro('estado', valor)}
+          />
         </div>
       </section>
 
-      <section className={estilos.tarjetaListado} aria-busy={cargandoListado || undefined}>
+      {/* Total y paginación arriba del listado: el total queda a la vista sin bajar hasta el final. */}
+      {hayResultados && <div ref={refInicioListado} className={estilos.barraPaginacion}>{paginador('superior')}</div>}
+
+      <section className={estilos.tarjetaResultados} aria-busy={cargandoListado || undefined}>
         {estadoEstructura === 'error' && (
           <EstadoConsulta
             tipo="error"
@@ -246,24 +287,24 @@ export default function PaginaMatriculas() {
           <EstadoConsulta tipo="carga" filasEsqueleto={5} />
         )}
 
-        {estadoEstructura === 'listo' && estado === 'cargando' && (
+        {estructuraLista && estado === 'cargando' && (
           <EstadoConsulta tipo="carga" filasEsqueleto={5} />
         )}
 
-        {estadoEstructura === 'listo' && estado === 'error' && (
+        {estructuraLista && estado === 'error' && (
           <EstadoConsulta tipo="error" mensaje={error} alReintentar={recargar} />
         )}
 
-        {estadoEstructura === 'listo' && estado === 'listo' && matriculas.length === 0 && (
+        {estructuraLista && estado === 'listo' && matriculas.length === 0 && (
           <EstadoConsulta
             tipo="vacio"
-            mensaje="No hay matrículas con los filtros seleccionados."
+            mensaje="No se encontraron matrículas con los criterios indicados"
             etiquetaAccion={hayFiltros ? 'Limpiar filtros' : undefined}
             alAccion={hayFiltros ? limpiarFiltros : undefined}
           />
         )}
 
-        {estadoEstructura === 'listo' && estado === 'listo' && matriculas.length > 0 && (
+        {hayResultados && (
           <>
             {recargando && <p className={estilos.actualizando}>Actualizando resultados…</p>}
             <TablaMatriculas
@@ -271,19 +312,7 @@ export default function PaginaMatriculas() {
               alEmitir={emitirDesdeFila}
               emitiendoId={emitiendoId}
             />
-            <div className={estilos.pieListado}>
-              <Paginacion
-                pagina={pagina}
-                totalPaginas={totalPaginas}
-                totalElementos={totalElementos}
-                tamanioPagina={tamanioPagina}
-                cantidadEnPagina={matriculas.length}
-                alCambiarPagina={irAPagina}
-                etiqueta="Paginación de matrículas"
-                unidadSingular="matrícula"
-                unidadPlural="matrículas"
-              />
-            </div>
+            <div className={estilos.pie}>{paginador('inferior')}</div>
           </>
         )}
       </section>

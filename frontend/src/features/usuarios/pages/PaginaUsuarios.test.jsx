@@ -1,6 +1,7 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 import { render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('../../../shared/api/configuracionApi.js', () => ({ USAR_MOCK: true }));
 
@@ -13,6 +14,12 @@ function totalMostrado() {
   return within(screen.getByRole('navigation', { name: 'Paginación de usuarios (superior)' })).getByRole('status');
 }
 
+/** Pulsa un chip del grupo de estado ("Activos", "Desactivados" o "Todos"). */
+async function elegirEstado(etiqueta) {
+  const grupo = screen.getByRole('group', { name: 'Filtrar usuarios por estado' });
+  await userEvent.click(within(grupo).getByRole('button', { name: new RegExp(`^${etiqueta}`) }));
+}
+
 function primeraFila() {
   return within(screen.getByRole('table')).getAllByRole('row')[1];
 }
@@ -23,17 +30,19 @@ describe('Usuarios · listado, filtros y acciones', () => {
   });
 
   it('pone las acciones globales en la barra de título y la búsqueda con los filtros en su zona', () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
 
     const titulo = screen.getByRole('banner');
     expect(within(titulo).getByRole('heading', { name: 'Usuarios' })).toBeInTheDocument();
-    expect(within(titulo).getByRole('button', { name: 'Carga masiva CSV' })).toBeInTheDocument();
-    expect(within(titulo).getByRole('button', { name: 'Nuevo usuario' })).toHaveAttribute('aria-haspopup', 'menu');
+    // Una sola acción global: el registro individual y la carga masiva viven en el mismo menú.
+    expect(within(titulo).getByRole('button', { name: 'Agregar usuarios' })).toHaveAttribute('aria-haspopup', 'menu');
+    expect(within(titulo).getAllByRole('button')).toHaveLength(1);
 
     const filtros = screen.getByRole('region', { name: 'Búsqueda y filtros de usuarios' });
     expect(within(filtros).getByLabelText(ETIQUETA_BUSCADOR)).toBeInTheDocument();
-    // No hay rótulo "Rol": los chips se explican solos y el grupo ya tiene nombre accesible.
-    expect(within(filtros).queryByText('Rol')).not.toBeInTheDocument();
+    // Cada grupo de chips lleva su subtítulo ("Rol" y "Estado") para no confundir los dos "Todos".
+    expect(within(filtros).getByText('Rol')).toBeInTheDocument();
+    expect(within(filtros).getByText('Estado')).toBeInTheDocument();
     // El total ya no va junto al buscador: lo muestra el paginador.
     expect(within(filtros).queryByText(/^\d+ usuarios?$/)).not.toBeInTheDocument();
 
@@ -43,19 +52,19 @@ describe('Usuarios · listado, filtros y acciones', () => {
     }
     expect(within(chipsRol).getByRole('button', { name: /^Todos/ })).toHaveAttribute('aria-pressed', 'true');
 
-    // El estado es un selector desplegable, no una segunda fila de chips.
-    const selectEstado = within(filtros).getByLabelText('Estado');
-    expect(selectEstado.tagName).toBe('SELECT');
-    expect(within(selectEstado).getAllByRole('option').map((opcion) => opcion.textContent)).toEqual([
-      'Cualquier estado',
+    // El estado también son chips (con su conteo), en un grupo aparte del de rol.
+    const chipsEstado = within(filtros).getByRole('group', { name: 'Filtrar usuarios por estado' });
+    expect(within(chipsEstado).getAllByRole('button').map((boton) => boton.textContent.replace(/\d+$/, ''))).toEqual([
+      'Todos',
       'Activos',
       'Desactivados'
     ]);
-    expect(within(filtros).queryByRole('group', { name: 'Filtrar usuarios por estado' })).not.toBeInTheDocument();
+    expect(within(chipsEstado).getByRole('button', { name: /^Todos/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(filtros).queryByRole('combobox')).not.toBeInTheDocument();
   });
 
   it('muestra el conteo en todos los chips de rol cuando no hay filtros', () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
 
     const chipsRol = screen.getByRole('group', { name: 'Filtrar usuarios por rol' });
     expect(within(chipsRol).getByRole('button', { name: /^Todos/ })).toHaveTextContent('32');
@@ -65,7 +74,7 @@ describe('Usuarios · listado, filtros y acciones', () => {
   });
 
   it('al elegir un rol, solo el chip seleccionado conserva su conteo', async () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     const chipsRol = screen.getByRole('group', { name: 'Filtrar usuarios por rol' });
 
     await userEvent.click(within(chipsRol).getByRole('button', { name: /^Estudiantes/ }));
@@ -75,7 +84,7 @@ describe('Usuarios · listado, filtros y acciones', () => {
     expect(within(chipsRol).getByRole('button', { name: 'Docentes' })).not.toHaveTextContent(/\d/);
 
     // El conteo del seleccionado refleja los demás criterios: estudiantes desactivados.
-    await userEvent.selectOptions(screen.getByLabelText('Estado'), 'inactivo');
+    await elegirEstado('Desactivados');
     expect(within(chipsRol).getByRole('button', { name: /^Estudiantes/ })).toHaveTextContent('2');
     expect(within(chipsRol).getByRole('button', { name: 'Docentes' })).not.toHaveTextContent(/\d/);
 
@@ -86,10 +95,10 @@ describe('Usuarios · listado, filtros y acciones', () => {
   });
 
   it('con solo el filtro de estado, cada chip de rol (y "Todos") muestra su cantidad con ese estado', async () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     const chipsRol = screen.getByRole('group', { name: 'Filtrar usuarios por rol' });
 
-    await userEvent.selectOptions(screen.getByLabelText('Estado'), 'inactivo');
+    await elegirEstado('Desactivados');
     expect(within(chipsRol).getByRole('button', { name: /^Todos/ })).toHaveTextContent('4');
     expect(within(chipsRol).getByRole('button', { name: /^Apoderados/ })).toHaveTextContent('1');
     expect(within(chipsRol).getByRole('button', { name: /^Docentes/ })).toHaveTextContent('1');
@@ -97,7 +106,7 @@ describe('Usuarios · listado, filtros y acciones', () => {
   });
 
   it('con solo el texto de búsqueda, cada chip de rol muestra cuántos resultados daría', async () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     const chipsRol = screen.getByRole('group', { name: 'Filtrar usuarios por rol' });
 
     await userEvent.type(screen.getByLabelText(ETIQUETA_BUSCADOR), 'jorge');
@@ -108,10 +117,10 @@ describe('Usuarios · listado, filtros y acciones', () => {
   });
 
   it('con un rol elegido y otro filtro, solo ese chip muestra el resultado filtrado', async () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     const chipsRol = screen.getByRole('group', { name: 'Filtrar usuarios por rol' });
 
-    await userEvent.selectOptions(screen.getByLabelText('Estado'), 'inactivo');
+    await elegirEstado('Desactivados');
     await userEvent.click(within(chipsRol).getByRole('button', { name: /^Estudiantes/ }));
     expect(within(chipsRol).getByRole('button', { name: /^Estudiantes/ })).toHaveTextContent('2');
     for (const etiqueta of ['Todos', 'Apoderados', 'Docentes']) {
@@ -124,8 +133,8 @@ describe('Usuarios · listado, filtros y acciones', () => {
   });
 
   it('muestra el total en el paginador superior, como región de estado, y lo actualiza al filtrar', async () => {
-    render(<PaginaUsuarios />);
-    expect(totalMostrado()).toHaveTextContent('1 – 15 de 32 usuarios');
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
+    expect(totalMostrado()).toHaveTextContent('1 – 10 de 32 usuarios');
 
     await userEvent.click(screen.getByRole('button', { name: /^Docentes/ }));
     expect(totalMostrado()).toHaveTextContent('1 – 10 de 10 usuarios');
@@ -135,12 +144,12 @@ describe('Usuarios · listado, filtros y acciones', () => {
   });
 
   it('pone el mismo paginador arriba y abajo del listado, y solo el superior anuncia el total', () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
 
     const superior = screen.getByRole('navigation', { name: 'Paginación de usuarios (superior)' });
     const inferior = screen.getByRole('navigation', { name: 'Paginación de usuarios (inferior)' });
-    expect(superior).toHaveTextContent('1 – 15 de 32 usuarios');
-    expect(inferior).toHaveTextContent('1 – 15 de 32 usuarios');
+    expect(superior).toHaveTextContent('1 – 10 de 32 usuarios');
+    expect(inferior).toHaveTextContent('1 – 10 de 32 usuarios');
     expect(within(superior).getByRole('status')).toBeInTheDocument();
     expect(within(inferior).queryByRole('status')).not.toBeInTheDocument();
     expect(superior.compareDocumentPosition(screen.getByRole('table')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
@@ -148,7 +157,7 @@ describe('Usuarios · listado, filtros y acciones', () => {
   });
 
   it('filtra por rol y por texto sobre la tabla', async () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     const tabla = screen.getByRole('table');
 
     await userEvent.click(screen.getByRole('button', { name: /^Docentes/ }));
@@ -164,11 +173,11 @@ describe('Usuarios · listado, filtros y acciones', () => {
     expect(within(tabla).getByText('Jorge Herrera')).toBeInTheDocument();
   });
 
-  it('filtra por estado desde el selector y lo combina con el de rol', async () => {
-    render(<PaginaUsuarios />);
+  it('filtra por estado desde los chips y lo combina con el de rol', async () => {
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     const tabla = screen.getByRole('table');
 
-    await userEvent.selectOptions(screen.getByLabelText('Estado'), 'inactivo');
+    await elegirEstado('Desactivados');
     expect(within(tabla).getAllByRole('row')).toHaveLength(5);
     expect(within(tabla).getAllByText('Desactivado')).toHaveLength(4);
     expect(totalMostrado()).toHaveTextContent('1 – 4 de 4 usuarios');
@@ -179,7 +188,7 @@ describe('Usuarios · listado, filtros y acciones', () => {
   });
 
   it('busca también por correo electrónico', async () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
 
     await userEvent.type(screen.getByLabelText(ETIQUETA_BUSCADOR), 'jorge.herrera@');
     expect(totalMostrado()).toHaveTextContent('1 – 1 de 1 usuario');
@@ -187,35 +196,36 @@ describe('Usuarios · listado, filtros y acciones', () => {
   });
 
   it('ofrece "Limpiar filtros" solo cuando hay algún criterio activo y lo restablece todo', async () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     expect(screen.queryByRole('button', { name: 'Limpiar filtros' })).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: /^Docentes/ }));
-    await userEvent.selectOptions(screen.getByLabelText('Estado'), 'activo');
+    await elegirEstado('Activos');
     await userEvent.type(screen.getByLabelText(ETIQUETA_BUSCADOR), 'jorge');
     await userEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }));
 
     expect(screen.getByLabelText(ETIQUETA_BUSCADOR)).toHaveValue('');
-    expect(screen.getByLabelText('Estado')).toHaveValue('Todos');
-    expect(screen.getByRole('button', { name: /^Todos/ })).toHaveAttribute('aria-pressed', 'true');
-    expect(totalMostrado()).toHaveTextContent('1 – 15 de 32 usuarios');
+    expect(within(screen.getByRole('group', { name: 'Filtrar usuarios por estado' })).getByRole('button', { name: /^Todos/ }))
+      .toHaveAttribute('aria-pressed', 'true');
+    expect(within(screen.getByRole('group', { name: 'Filtrar usuarios por rol' })).getByRole('button', { name: /^Todos/ }))
+      .toHaveAttribute('aria-pressed', 'true');
+    expect(totalMostrado()).toHaveTextContent('1 – 10 de 32 usuarios');
     expect(screen.queryByRole('button', { name: 'Limpiar filtros' })).not.toBeInTheDocument();
   });
 
-  it('en el mensaje vacío ofrece "Limpiar filtros" para volver al listado', async () => {
-    render(<PaginaUsuarios />);
+  it('sin resultados, el mensaje vacío no repite "Limpiar filtros": basta el botón junto al buscador', async () => {
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
 
     await userEvent.type(screen.getByLabelText(ETIQUETA_BUSCADOR), 'zzzz-no-existe');
-    expect(screen.getByText('No se encontraron usuarios.')).toBeInTheDocument();
+    expect(screen.getByText('No se encontraron usuarios con los criterios indicados')).toBeInTheDocument();
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
 
-    const botones = screen.getAllByRole('button', { name: 'Limpiar filtros' });
-    await userEvent.click(botones[botones.length - 1]);
+    await userEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }));
     expect(screen.getByRole('table')).toBeInTheDocument();
   });
 
   it('ordena por defecto por apellido paterno, apellido materno y nombre (HU-SAT-02)', () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     const tabla = screen.getByRole('table');
 
     expect(primeraFila()).toHaveTextContent('Lorena Acosta Ibarra');
@@ -224,7 +234,7 @@ describe('Usuarios · listado, filtros y acciones', () => {
   });
 
   it('ordena por nombre al revés y por estado desde los encabezados', async () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     const tabla = screen.getByRole('table');
 
     await userEvent.click(within(tabla).getByRole('button', { name: /Nombre completo/ }));
@@ -241,53 +251,45 @@ describe('Usuarios · listado, filtros y acciones', () => {
     expect(primeraFila()).toHaveTextContent('Desactivado');
   });
 
-  it('abre el registro de un apoderado desde el menú "Nuevo usuario"', async () => {
-    render(<PaginaUsuarios />);
+  it('abre el registro de un apoderado desde el menú "Agregar usuarios"', async () => {
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Nuevo usuario' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Agregar usuarios' }));
     for (const rol of ['apoderado', 'estudiante', 'docente']) {
       expect(screen.getByRole('menuitem', { name: `Registrar ${rol}` })).toBeInTheDocument();
     }
-    expect(screen.queryByRole('menuitem', { name: 'Carga masiva CSV' })).not.toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Carga masiva (CSV)' })).toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('menuitem', { name: 'Registrar apoderado' }));
     expect(screen.getByRole('dialog', { name: 'Registrar apoderado' })).toBeInTheDocument();
   });
 
-  it('en pantallas pequeñas mueve "Carga masiva CSV" al menú "Nuevo usuario"', async () => {
-    window.matchMedia = vi.fn().mockImplementation((consulta) => ({
-      matches: true,
-      media: consulta,
-      addEventListener: vi.fn(),
-      removeEventListener: vi.fn()
-    }));
-    render(<PaginaUsuarios />);
+  it('abre la carga masiva desde el mismo menú "Agregar usuarios", en cualquier tamaño de pantalla', async () => {
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
 
-    expect(within(screen.getByRole('banner')).queryByRole('button', { name: 'Carga masiva CSV' })).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('button', { name: 'Nuevo usuario' }));
-    await userEvent.click(screen.getByRole('menuitem', { name: 'Carga masiva CSV' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Agregar usuarios' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Carga masiva (CSV)' }));
     expect(screen.getByRole('dialog', { name: 'Carga masiva de usuarios' })).toBeInTheDocument();
   });
 
   it('cierra el formulario con el botón Cerrar y con Escape', async () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Nuevo usuario' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Agregar usuarios' }));
     await userEvent.click(screen.getByRole('menuitem', { name: 'Registrar docente' }));
     await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Nuevo usuario' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Agregar usuarios' }));
     await userEvent.click(screen.getByRole('menuitem', { name: 'Registrar docente' }));
     await userEvent.keyboard('{Escape}');
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('el formulario de registro no tiene campos de contraseña', async () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
 
-    await userEvent.click(screen.getByRole('button', { name: 'Nuevo usuario' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Agregar usuarios' }));
     await userEvent.click(screen.getByRole('menuitem', { name: 'Registrar apoderado' }));
 
     const dialogo = screen.getByRole('dialog', { name: 'Registrar apoderado' });
@@ -295,30 +297,92 @@ describe('Usuarios · listado, filtros y acciones', () => {
     expect(within(dialogo).queryByRole('button', { name: /mostrar contraseña/i })).not.toBeInTheDocument();
   });
 
-  it('pone el buscador, los chips de rol y el estado en la misma fila de filtros', () => {
-    render(<PaginaUsuarios />);
+  it('pone el buscador en su fila y, debajo, los chips de rol y de estado en una misma fila, cada grupo con su subtítulo', () => {
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
 
-    const fila = screen.getByLabelText(ETIQUETA_BUSCADOR).closest('section').firstElementChild;
-    expect(within(fila).getByLabelText(ETIQUETA_BUSCADOR)).toBeInTheDocument();
-    expect(within(fila).getByRole('group', { name: 'Filtrar usuarios por rol' })).toBeInTheDocument();
-    expect(within(fila).getByLabelText('Estado')).toBeInTheDocument();
+    const seccion = screen.getByLabelText(ETIQUETA_BUSCADOR).closest('section');
+    const [filaBusqueda, filaChips] = seccion.children;
+    expect(within(filaBusqueda).getByLabelText(ETIQUETA_BUSCADOR)).toBeInTheDocument();
+    expect(within(filaBusqueda).queryByRole('group')).not.toBeInTheDocument();
+
+    const grupoRol = within(filaChips).getByRole('group', { name: 'Filtrar usuarios por rol' });
+    const grupoEstado = within(filaChips).getByRole('group', { name: 'Filtrar usuarios por estado' });
+    expect(within(grupoRol.parentElement).getByText('Rol')).toBeInTheDocument();
+    expect(within(grupoEstado.parentElement).getByText('Estado')).toBeInTheDocument();
   });
 
-  it('muestra el estado elegido como filtro aplicado (igual que Auditorías) y permite quitarlo', async () => {
-    render(<PaginaUsuarios />);
+  it('marca el estado elegido en sus chips (con su conteo) y se quita con "Limpiar filtros"', async () => {
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
+    const chipsEstado = screen.getByRole('group', { name: 'Filtrar usuarios por estado' });
+    // Sin estado elegido, los tres chips muestran su cantidad.
+    expect(within(chipsEstado).getByRole('button', { name: /^Todos/ })).toHaveTextContent('32');
+    expect(within(chipsEstado).getByRole('button', { name: /^Activos/ })).toHaveTextContent('28');
+    expect(within(chipsEstado).getByRole('button', { name: /^Desactivados/ })).toHaveTextContent('4');
+
+    await elegirEstado('Desactivados');
+    expect(within(chipsEstado).getByRole('button', { name: /^Desactivados/ })).toHaveAttribute('aria-pressed', 'true');
+    // Con un estado elegido solo ese chip muestra la cantidad.
+    expect(within(chipsEstado).getByRole('button', { name: /^Activos/ })).not.toHaveTextContent(/\d/);
+    // Ya no hay un segundo chip "Estado: …" repetido debajo.
     expect(screen.queryByRole('list', { name: 'Filtros aplicados' })).not.toBeInTheDocument();
 
-    await userEvent.selectOptions(screen.getByLabelText('Estado'), 'inactivo');
-    const aplicados = screen.getByRole('list', { name: 'Filtros aplicados' });
-    expect(within(aplicados).getByText('Estado: Desactivados')).toBeInTheDocument();
+    await userEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }));
+    expect(within(chipsEstado).getByRole('button', { name: /^Todos/ })).toHaveAttribute('aria-pressed', 'true');
+  });
 
-    await userEvent.click(within(aplicados).getByRole('button', { name: 'Quitar filtro Estado: Desactivados' }));
-    expect(screen.getByLabelText('Estado')).toHaveValue('Todos');
-    expect(screen.queryByRole('list', { name: 'Filtros aplicados' })).not.toBeInTheDocument();
+  it('guarda búsqueda, filtros y página en la URL y los recupera al volver a la pantalla', async () => {
+    const { unmount } = render(
+      <MemoryRouter initialEntries={['/usuarios?rol=Docente&estado=activo&q=jorge']}>
+        <PaginaUsuarios />
+      </MemoryRouter>
+    );
+    expect(screen.getByLabelText(ETIQUETA_BUSCADOR)).toHaveValue('jorge');
+    expect(screen.getByRole('button', { name: /^Docentes/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('button', { name: /^Activos/ })).toHaveAttribute('aria-pressed', 'true');
+    expect(totalMostrado()).toHaveTextContent('1 – 1 de 1 usuario');
+    unmount();
+  });
+
+  it('ignora valores de filtro inválidos de la URL', () => {
+    render(
+      <MemoryRouter initialEntries={['/usuarios?rol=Inventado&estado=raro&pagina=abc']}>
+        <PaginaUsuarios />
+      </MemoryRouter>
+    );
+    expect(within(screen.getByRole('group', { name: 'Filtrar usuarios por rol' })).getByRole('button', { name: /^Todos/ }))
+      .toHaveAttribute('aria-pressed', 'true');
+    expect(within(screen.getByRole('group', { name: 'Filtrar usuarios por estado' })).getByRole('button', { name: /^Todos/ }))
+      .toHaveAttribute('aria-pressed', 'true');
+    expect(totalMostrado()).toHaveTextContent('1 – 10 de 32 usuarios');
+  });
+
+  it('"Limpiar filtros" va junto al buscador y solo aparece con algún criterio activo', async () => {
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
+    const filaBusqueda = screen.getByLabelText(ETIQUETA_BUSCADOR).closest('section').firstElementChild;
+    expect(within(filaBusqueda).queryByRole('button', { name: 'Limpiar filtros' })).not.toBeInTheDocument();
+
+    await userEvent.type(screen.getByLabelText(ETIQUETA_BUSCADOR), 'jorge');
+    expect(within(filaBusqueda).getByRole('button', { name: 'Limpiar filtros' })).toBeInTheDocument();
+  });
+
+  it('con rol y estado elegidos, el total sale en el chip del rol y en el paginador, pero no se repite en el del estado', async () => {
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
+    const chipsRol = screen.getByRole('group', { name: 'Filtrar usuarios por rol' });
+    const chipsEstado = screen.getByRole('group', { name: 'Filtrar usuarios por estado' });
+
+    // Solo el estado: el total sale en su chip (y en el paginador).
+    await elegirEstado('Desactivados');
+    expect(within(chipsEstado).getByRole('button', { name: /^Desactivados/ })).toHaveTextContent('4');
+
+    // Rol y estado: el número se queda en el chip del rol y en el paginador.
+    await userEvent.click(within(chipsRol).getByRole('button', { name: /^Estudiantes/ }));
+    expect(within(chipsRol).getByRole('button', { name: /^Estudiantes/ })).toHaveTextContent('2');
+    expect(within(chipsEstado).getByRole('button', { name: /^Desactivados/ })).not.toHaveTextContent(/\d/);
+    expect(totalMostrado()).toHaveTextContent('1 – 2 de 2 usuarios');
   });
 
   it('con solo texto de búsqueda ofrece "Limpiar filtros" sin chip de filtro', async () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
 
     await userEvent.type(screen.getByLabelText(ETIQUETA_BUSCADOR), 'jorge');
     expect(screen.getByRole('button', { name: 'Limpiar filtros' })).toBeInTheDocument();

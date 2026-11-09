@@ -1,166 +1,130 @@
-import { useState } from 'react';
-
+import Avatar, { obtenerInicialesDeNombre } from '../../../shared/components/Avatar.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
-import { formatearFechaVisible } from '../../../shared/utils/formatoFecha.js';
 import Insignia from '../../../shared/components/Insignia.jsx';
 import estilosUtil from '../../../shared/styles/utilidades.module.css';
 import estilos from './TablaPagos.module.css';
-import estilosBoton from '../../../shared/components/Boton.module.css'
-import Boton from '../../../shared/components/Boton.jsx';
-import ModalEmitirPension from './ModalEmitirPension.jsx';
-import ModalPagosEstudiante from './ModalPagosEstudiante.jsx';
-import Notificacion from '../../../shared/components/Notificacion.jsx';
-import useNotificacion from '../../../shared/hooks/useNotificacion.js';
-import { emitirCompromisoPension } from '../services/pagosService.js';
+
+const esConfirmada = (alumno) => String(alumno.estadoMatricula ?? '').toUpperCase() === 'CONFIRMADA';
+
+const gradoYSeccion = (alumno) => (alumno.gradoNombre
+  ? `${alumno.gradoNombre}${alumno.seccionNombre ? ` · ${alumno.seccionNombre}` : ''}`
+  : '—');
+
+function CeldaAlumno({ alumno }) {
+  return (
+    <div className={estilos.celdaAlumno}>
+      <Avatar iniciales={obtenerInicialesDeNombre(alumno.nombre)} />
+      <div>
+        <span className={estilos.nombre}>{alumno.nombre}</span>
+        <span className={estilos.codigo}>{alumno.codigo ?? alumno.dni ?? '—'}</span>
+      </div>
+    </div>
+  );
+}
+
+function InsigniaMatricula({ alumno }) {
+  return (
+    <Insignia tono={esConfirmada(alumno) ? 'verde' : 'ambar'}>
+      {esConfirmada(alumno) ? 'Confirmada' : 'Pendiente'}
+    </Insignia>
+  );
+}
 
 /**
- * @param {Object} props
- * @param {Array} props.alumnos Logs adaptados desde `LogErrorResponse`.
- * @param {boolean} [props.ocupado] `true` mientras se recalcula por un cambio de filtro.
+ * Acciones de un alumno: emitir su compromiso de pensión (solo con matrícula confirmada) y ver sus compromisos y
+ * pagos. El nombre accesible de cada botón dice a qué alumno afecta; el motivo por el que la pensión no está
+ * disponible va como texto asociado al botón y no solo como `title`.
  */
-export default function TablaPagos({ alumnos, anio, ocupado = false }) {
-
-  // Notificación de éxito o error (se llama aquí para que sobreviva al cierre de los modales)
-  const { notificacion, mostrarNotificacion } = useNotificacion();
-
-  // Variables relacionadas con el modal emitir pago
-  const [modalEmitirPensionAbierto, establecerModalEmitirPensionAbierto] = useState(false);
-  const [alumnoSeleccionado, establecerAlumnoSeleccionado] = useState(null);
-  const [enviando, establecerEnviando] = useState(false);
-
-  const [modalPagosAbierto, establecerModalPagosAbierto] = useState(false);
-  const [alumnoPagos, establecerAlumnoPagos] = useState(null);
-
-  // Funciones para abrir y cerrar modales
-  const abrirModalEmitirPension = (alumno) => {
-    establecerModalEmitirPensionAbierto(true);
-    establecerAlumnoSeleccionado(alumno);
-  };
-
-  const cerrarModalEmitirPension = () => {
-    establecerModalEmitirPensionAbierto(false);
-    establecerAlumnoSeleccionado(null);
-    establecerEnviando(false);
-  };
-
-  const abrirModalPagos = (alumno) => {
-    establecerAlumnoPagos(alumno);
-    establecerModalPagosAbierto(true);
-  };
-
-  const cerrarModalPagos = () => {
-    establecerModalPagosAbierto(false);
-    establecerAlumnoPagos(null);
-  };
-
-  // Función para emitir notificación
-  const confirmarComprobante = async ({estudianteId,anioId,mes}) => {
-    if (enviando)
-      return;
-    
-    establecerEnviando(true);
-    const respuesta = await emitirCompromisoPension({ estudianteId, anioId, mes });
-    establecerEnviando(false);
-
-    if (!respuesta.exitoso) {
-      mostrarNotificacion(respuesta.mensaje || 'No fue posible emitir el compromiso de pensión.', true);
-      return;
-    }
-
-    cerrarModalEmitirPension();
-    mostrarNotificacion(`Se emitió el compromiso de pensión de (${mes}).`);
-    
-  };
+function AccionesAlumno({ alumno, alEmitirPension, alVerPagos }) {
+  const confirmada = esConfirmada(alumno);
+  const idMotivo = `motivo-pension-${alumno.id}`;
 
   return (
+    <div className={estilos.acciones}>
+      <button
+        type="button"
+        className={`${estilos.boton} ${estilos.botonSecundario}`}
+        disabled={!confirmada}
+        aria-label={`Emitir compromiso de pensión de ${alumno.nombre}`}
+        aria-describedby={confirmada ? undefined : idMotivo}
+        onClick={() => alEmitirPension(alumno)}
+      >
+        <Icono nombre="archivo" tamano={16} />
+        Emitir pensión
+      </button>
+      {!confirmada && (
+        <span id={idMotivo} className={estilosUtil.ocultoVisualmente}>
+          La pensión estará disponible cuando la matrícula esté confirmada.
+        </span>
+      )}
+      <button
+        type="button"
+        className={`${estilos.boton} ${estilos.botonPrimario}`}
+        aria-label={`Ver compromisos y pagos de ${alumno.nombre}`}
+        onClick={() => alVerPagos(alumno)}
+      >
+        <Icono nombre="tarjeta" tamano={16} />
+        Ver pagos
+      </button>
+    </div>
+  );
+}
+
+/**
+ * Listado de alumnos con matrícula del año: tabla en escritorio y tarjetas por debajo de 768 px (GUI §11).
+ * Solo pinta; los filtros, la paginación, los diálogos y las llamadas a la API viven en la página.
+ *
+ * @param {Object} props
+ * @param {Array} props.alumnos Alumnos de la página actual.
+ * @param {(alumno: Object) => void} props.alEmitirPension
+ * @param {(alumno: Object) => void} props.alVerPagos
+ * @param {boolean} [props.ocupado] `true` mientras se recalcula por un cambio de filtro.
+ */
+export default function TablaPagos({ alumnos, alEmitirPension, alVerPagos, ocupado = false }) {
+  return (
     <div className={estilos.contenedor} aria-busy={ocupado || undefined}>
-      {notificacion && <Notificacion mensaje={notificacion.mensaje} error={notificacion.error} />}
       <div className={estilos.vistaTabla}>
         <table className={estilos.tabla}>
-          <caption className={estilosUtil.ocultoVisualmente}>
-            Alumnos registrados
-          </caption>
+          <caption className={estilosUtil.ocultoVisualmente}>Alumnos matriculados</caption>
           <thead>
             <tr>
               <th scope="col">Alumno</th>
-              <th scope="col">Grado y sección</th>
-              <th scope="col">Acciones</th>
+              <th scope="col" className={estilos.columnaCorta}>Grado</th>
+              <th scope="col" className={`${estilos.columnaCorta} ${estilos.columnaSeccion}`}>Sección</th>
+              <th scope="col" className={estilos.columnaCorta}>Matrícula</th>
+              <th scope="col" className={estilos.columnaAcciones}>Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {alumnos.map((alumno) => {
-              const esConfirmada = String(alumno.estadoMatricula ?? '').toUpperCase() === 'CONFIRMADA';
-              return (
+            {alumnos.map((alumno) => (
               <tr key={alumno.id} className={estilos.fila}>
-                <td>
-                  <div className={estilos.identidad}>
-                    <div>
-                      <p className={estilos.mensaje}>{alumno.nombre}</p>
-                      <p className={estilos.dni}>{alumno.codigo ?? alumno.dni ?? '—'}</p>
-                    </div>
-                    <Insignia tono={esConfirmada ? 'verde' : 'ambar'}>
-                      {esConfirmada ? 'Confirmada' : 'Pendiente'}
-                    </Insignia>
-                  </div>
-                </td>
-                <td>
-                  <p className={estilos.gradoSeccion}>
-                    {alumno.gradoNombre
-                      ? `${alumno.gradoNombre}${alumno.seccionNombre ? ` · ${alumno.seccionNombre}` : ''}`
-                      : '—'}
-                  </p>
-                </td>
-                <td>
-                  <div className={estilos.accionesFila}>
-                    {esConfirmada ? (
-                      <Boton
-                        icono="archivo"
-                        span="Emitir compromiso de pensión"
-                        estilo={estilosBoton.btn_secundario}
-                        onClick={() => abrirModalEmitirPension(alumno)}
-                      />
-                    ) : (
-                      <button
-                        type="button"
-                        className={`${estilosBoton.btn_secundario} ${estilos.botonDeshabilitado}`}
-                        disabled
-                        title="La pensión estará disponible cuando la matrícula esté confirmada."
-                      >
-                        <Icono nombre="archivo" tamano={18} />
-                        <span>Emitir compromiso de pensión</span>
-                      </button>
-                    )}
-                    <Boton
-                      icono="tarjeta"
-                      span="Ver compromisos y pagos"
-                      estilo={estilosBoton.btn_activo}
-                      onClick={() => abrirModalPagos(alumno)}
-                    />
-                  </div>
+                <td><CeldaAlumno alumno={alumno} /></td>
+                <td>{alumno.gradoNombre ?? '—'}</td>
+                <td className={estilos.celdaSeccion}>{alumno.seccionNombre ?? '—'}</td>
+                <td><InsigniaMatricula alumno={alumno} /></td>
+                <td className={estilos.columnaAcciones}>
+                  <AccionesAlumno alumno={alumno} alEmitirPension={alEmitirPension} alVerPagos={alVerPagos} />
                 </td>
               </tr>
-              );
-            })}
+            ))}
           </tbody>
         </table>
       </div>
-      {modalEmitirPensionAbierto && (
-        <ModalEmitirPension
-          onCerrar={cerrarModalEmitirPension}
-          onAceptar={confirmarComprobante}
-          alumno={alumnoSeleccionado}
-          enviando={enviando}
-        />
-      )}
 
-      {modalPagosAbierto && alumnoPagos && (
-        <ModalPagosEstudiante
-          alumno={alumnoPagos}
-          anio={anio}
-          onCerrar={cerrarModalPagos}
-          alNotificar={mostrarNotificacion}
-        />
-      )}
+      <ul className={estilos.listaTarjetas} aria-label="Alumnos matriculados">
+        {alumnos.map((alumno) => (
+          <li key={alumno.id} className={estilos.tarjeta}>
+            <div className={estilos.filaSuperior}>
+              <CeldaAlumno alumno={alumno} />
+              <InsigniaMatricula alumno={alumno} />
+            </div>
+            <p className={estilos.campo}>
+              <span className={estilos.rotuloCampo}>Grado y sección:</span> {gradoYSeccion(alumno)}
+            </p>
+            <AccionesAlumno alumno={alumno} alEmitirPension={alEmitirPension} alVerPagos={alVerPagos} />
+          </li>
+        ))}
+      </ul>
     </div>
   );
 }

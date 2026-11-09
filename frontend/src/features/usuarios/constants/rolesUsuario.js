@@ -25,13 +25,13 @@ export const OPCIONES_FILTRO_ROL = Object.freeze([
  * filtro. Los textos coinciden con los de la insignia de estado de la tabla.
  */
 export const OPCIONES_FILTRO_ESTADO = Object.freeze([
-  { valor: 'Todos', etiqueta: 'Cualquier estado', tono: 'gris' },
+  { valor: 'Todos', etiqueta: 'Todos', tono: 'gris' },
   { valor: 'activo', etiqueta: 'Activos', tono: 'verde' },
   { valor: 'inactivo', etiqueta: 'Desactivados', tono: 'gris' }
 ]);
 
-/** Usuarios por página del listado (HU-SAT-02, escenario 12). */
-export const TAMANIO_PAGINA_USUARIOS = 15;
+/** Usuarios por página del listado (HU-SAT-02, escenario 12; antes 15, bajado a 10 para evitar el scroll de página). */
+export const TAMANIO_PAGINA_USUARIOS = 10;
 
 /** Rol que se asigna a cada tipo de registro (formulario y carga masiva). */
 export const ROL_POR_TIPO_REGISTRO = Object.freeze({
