@@ -6,13 +6,16 @@ import Notificacion from '../../../shared/components/Notificacion.jsx';
 import Paginacion from '../../../shared/components/Paginacion.jsx';
 import estilosBoton from '../../../shared/components/Boton.module.css';
 import useNotificacion from '../../../shared/hooks/useNotificacion.js';
+import ModalActualizarEstadosMatricula from '../components/ModalActualizarEstadosMatricula.jsx';
 import ModalAsignarAlumno from '../components/ModalAsignarAlumno.jsx';
 import ModalComprobante from '../components/ModalComprobante.jsx';
 import TablaMatriculas from '../components/TablaMatriculas.jsx';
 import useListadoMatriculas from '../hooks/useListadoMatriculas.js';
 import {
+  cancelarPendientesPorPeriodo,
   crearMatricula,
-  emitirCompromisoMatricula
+  emitirCompromisoMatricula,
+  emitirCompromisosMatriculaLote
 } from '../services/matriculasService.js';
 import estilos from './PaginaMatriculas.module.css';
 
@@ -48,11 +51,8 @@ export default function PaginaMatriculas() {
 
   const [modalAsignarAlumnoAbierto, establecerModalAsignarAlumnoAbierto] = useState(false);
   const [modalComprobanteAbierto, establecerModalComprobanteAbierto] = useState(false);
+  const [modalActualizarEstadosAbierto, establecerModalActualizarEstadosAbierto] = useState(false);
   const [emitiendoId, establecerEmitiendoId] = useState(null);
-
-  const anioSeleccionado = estructura?.anios.find(
-    (anio) => String(anio.id) === String(filtros.anioId)
-  );
 
   const confirmarAsignacion = async (asignacion) => {
     const respuesta = await crearMatricula(asignacion);
@@ -66,30 +66,11 @@ export default function PaginaMatriculas() {
     establecerModalAsignarAlumnoAbierto(false);
     recargar();
     mostrarNotificacion(
-      `El alumno ${asignacion.alumno.nombre} ha sido asignado correctamente a ${asignacion.grado.nombre}, sección ${asignacion.seccion.nombre}.`
+      `El alumno ${asignacion.alumno.nombre} ha sido asignado correctamente a ${asignacion.grado.nombre}, sección ${asignacion.seccion.nombre}, año ${asignacion.anio?.anio ?? 'seleccionado'}.`
     );
   };
 
-  const confirmarComprobante = async (matricula) => {
-    const respuesta = await emitirCompromisoMatricula({
-      matriculaId: matricula.id,
-      estudianteId: matricula.estudianteId,
-      nombreCompletoEstudiante: matricula.nombreCompletoEstudiante
-    });
-    if (!respuesta.exitoso) {
-      mostrarNotificacion(
-        respuesta.mensaje || 'No fue posible emitir el compromiso de matrícula.',
-        true
-      );
-      return;
-    }
-    establecerModalComprobanteAbierto(false);
-    recargar();
-    mostrarNotificacion(`Se emitió el compromiso de la matrícula #${matricula.id}.`);
-  };
-
-  const emitirDesdeFila = async (matricula) => {
-    establecerEmitiendoId(matricula.id);
+  const emitirDesdeFila = async (matricula) => {    establecerEmitiendoId(matricula.id);
     const respuesta = await emitirCompromisoMatricula({
       matriculaId: matricula.id,
       estudianteId: matricula.estudianteId,
@@ -107,9 +88,36 @@ export default function PaginaMatriculas() {
     mostrarNotificacion(`Se emitió el compromiso de la matrícula #${matricula.id}.`);
   };
 
+  const emitirMasivo = async (anioId) => {
+    const respuesta = await emitirCompromisosMatriculaLote(anioId);
+    if (respuesta.exitoso) {
+      recargar();
+    }
+    return respuesta;
+  };
+
   const cargandoListado = estadoEstructura === 'cargando'
     || (estadoEstructura === 'listo' && estado === 'cargando');
   const hayFiltros = Boolean(filtros.gradoId || filtros.seccionId || filtros.estado);
+
+  const ejecutarActualizacionEstados = async () => {    const respuesta = await cancelarPendientesPorPeriodo();
+
+    if (!respuesta.exitoso) {
+      return respuesta;
+    }
+
+    const canceladas = respuesta.datos.matriculasCanceladas;
+    establecerModalActualizarEstadosAbierto(false);
+    recargar();
+    mostrarNotificacion(
+      canceladas === 0
+        ? 'No había matrículas pendientes por cancelar.'
+        : canceladas === 1
+          ? 'Se canceló 1 matrícula pendiente.'
+          : `Se cancelaron ${canceladas} matrículas pendientes.`
+    );
+    return respuesta;
+  };
 
   return (
     <div className={estilos.pagina}>
@@ -138,6 +146,15 @@ export default function PaginaMatriculas() {
           estilo={estilosBoton.btn_secundario}
           onClick={() => establecerModalComprobanteAbierto(true)}
         />
+        <button
+          type="button"
+          className={estilos.botonEstados}
+          disabled={estadoEstructura !== 'listo'}
+          title="Selecciona el año y actualiza las matrículas pendientes de períodos finalizados."
+          onClick={() => establecerModalActualizarEstadosAbierto(true)}
+        >
+          Actualizar estados de matrícula
+        </button>
       </div>
 
       <section className={estilos.filtrosListado} aria-label="Filtros del listado de matrículas">
@@ -280,10 +297,19 @@ export default function PaginaMatriculas() {
 
       {modalComprobanteAbierto && (
         <ModalComprobante
-          anioId={filtros.anioId}
-          anio={anioSeleccionado?.anio}
+          anios={estructura?.anios ?? []}
+          anioInicialId={filtros.anioId}
           onCerrar={() => establecerModalComprobanteAbierto(false)}
-          onAceptar={confirmarComprobante}
+          onEjecutar={emitirMasivo}
+        />
+      )}
+
+      {modalActualizarEstadosAbierto && (
+        <ModalActualizarEstadosMatricula
+          anios={estructura?.anios ?? []}
+          anioInicialId={filtros.anioId}
+          onCerrar={() => establecerModalActualizarEstadosAbierto(false)}
+          onEjecutar={ejecutarActualizacionEstados}
         />
       )}
     </div>

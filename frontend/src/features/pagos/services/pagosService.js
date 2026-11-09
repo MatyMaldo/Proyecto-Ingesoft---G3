@@ -2,6 +2,7 @@ import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import { solicitar } from '../../../shared/api/clienteHttp.js';
 
 export const TAMANIO_PAGOS = 15
+const TIEMPO_ESPERA_ACCION_MS = 60000;
 
 const falloFormato = (recurso) => ({
   exitoso: false,
@@ -45,20 +46,26 @@ export async function obtenerAlumnos(filtros = {}) {
 }
 
 /**
- * Alumnos con matrícula confirmada del año. Se usan para la tabla porque
- * `/pagos/admin` exige el grado y la sección de cada estudiante.
+ * Alumnos con matrícula pendiente o confirmada del año. Se usan para la tabla
+ * porque `/pagos/admin` exige el grado y la sección de cada estudiante.
+ * Se excluyen las matrículas canceladas.
  */
-export async function obtenerAlumnosMatriculados(anioId) {
+export async function obtenerAlumnosMatriculados(anioId, filtros = {}) {
   if (USAR_MOCK) return { exitoso: true, datos: { estudiantes: [] }, mensaje: '' };
 
-  const respuesta = await solicitar('/matriculas', {
-    parametros: {
-      anioId: Number(anioId),
-      estado: 'CONFIRMADA',
-      page: 0,
-      size: 100
-    }
-  });
+  const parametros = {
+    anioId: Number(anioId),
+    page: 0,
+    size: 100
+  };
+  if (filtros.gradoId !== null && filtros.gradoId !== undefined && filtros.gradoId !== '') {
+    parametros.gradoId = Number(filtros.gradoId);
+  }
+  if (filtros.seccionId !== null && filtros.seccionId !== undefined && filtros.seccionId !== '') {
+    parametros.seccionId = Number(filtros.seccionId);
+  }
+
+  const respuesta = await solicitar('/matriculas', { parametros });
   if (!respuesta.exitoso) return respuesta;
   if (!Array.isArray(respuesta.datos?.content)) {
     return falloFormato('los alumnos matriculados');
@@ -67,26 +74,28 @@ export async function obtenerAlumnosMatriculados(anioId) {
   return {
     exitoso: true,
     datos: {
-      estudiantes: respuesta.datos.content.map((matricula) => ({
-        id: matricula.estudianteId,
-        matriculaId: matricula.id,
-        nombre: matricula.nombreCompletoEstudiante,
-        codigo: matricula.codigoEstudiante,
-        anioAcademicoId: matricula.anioAcademicoId,
-        anioAcademico: matricula.anioAcademico,
-        gradoId: matricula.gradoId,
-        gradoNombre: matricula.gradoNombre,
-        seccionId: matricula.seccionId,
-        seccionNombre: matricula.seccionNombre
-      }))
+      estudiantes: respuesta.datos.content
+        .filter((matricula) => String(matricula.estado ?? '').toUpperCase() !== 'CANCELADA')
+        .map((matricula) => ({
+          id: matricula.estudianteId,
+          matriculaId: matricula.id,
+          nombre: matricula.nombreCompletoEstudiante,
+          codigo: matricula.codigoEstudiante,
+          estadoMatricula: matricula.estado,
+          anioAcademicoId: matricula.anioAcademicoId,
+          anioAcademico: matricula.anioAcademico,
+          gradoId: matricula.gradoId,
+          gradoNombre: matricula.gradoNombre,
+          seccionId: matricula.seccionId,
+          seccionNombre: matricula.seccionNombre
+        }))
     },
     mensaje: ''
   };
 }
 
 // Obtener anio académico
-export async function obtenerAnioAcademico() {
-  if (USAR_MOCK) {
+export async function obtenerAnioAcademico() {  if (USAR_MOCK) {
     return null;
   }
 
@@ -109,6 +118,29 @@ export async function obtenerAnioAcademico() {
   };
 }
 
+/** Grados disponibles para filtrar el listado de pagos. */
+export async function obtenerGrados() {
+  if (USAR_MOCK) return { exitoso: true, datos: [], mensaje: '' };
+
+  const respuesta = await solicitar('/grados');
+  if (!respuesta.exitoso) return respuesta;
+  return Array.isArray(respuesta.datos) ? respuesta : falloFormato('los grados');
+}
+
+/** Secciones de un grado en el año académico seleccionado. */
+export async function obtenerSecciones(gradoId, anioId) {
+  if (USAR_MOCK) return { exitoso: true, datos: [], mensaje: '' };
+
+  const respuesta = await solicitar('/secciones', {
+    parametros: {
+      gradoId: Number(gradoId),
+      anioId: Number(anioId)
+    }
+  });
+  if (!respuesta.exitoso) return respuesta;
+  return Array.isArray(respuesta.datos) ? respuesta : falloFormato('las secciones');
+}
+
 // Emitir compromiso de pago de pension
 
 
@@ -123,9 +155,53 @@ export async function emitirCompromisoPension({estudianteId,anioId,mes}) {
       estudianteId: Number(estudianteId),
       anioId: Number(anioId),
       mes: mes
-    }
+    },
+    tiempoEsperaMs: TIEMPO_ESPERA_ACCION_MS
   });
   if(!respuesta) return { exitoso: false, datos: null, mensaje: '' };
+  return respuesta;
+}
+
+/**
+ * Emisión masiva de compromisos de pensión para un año y mes.
+ * Los filtros de grado y sección son opcionales.
+ */
+export async function emitirCompromisosPensionLote({ anioId, mes, gradoId, seccionId } = {}) {
+  if (USAR_MOCK) {
+    return {
+      exitoso: true,
+      datos: { emitidos: 0, omitidos: 0, errores: [] },
+      mensaje: ''
+    };
+  }
+
+  const cuerpo = {
+    anioId: Number(anioId),
+    mes
+  };
+  if (gradoId !== null && gradoId !== undefined && gradoId !== '') {
+    cuerpo.gradoId = Number(gradoId);
+  }
+  if (seccionId !== null && seccionId !== undefined && seccionId !== '') {
+    cuerpo.seccionId = Number(seccionId);
+  }
+
+  const respuesta = await solicitar('/compromisos-pago/pension/lote', {
+    metodo: 'POST',
+    cuerpo,
+    tiempoEsperaMs: TIEMPO_ESPERA_ACCION_MS
+  });
+  if (!respuesta.exitoso) return respuesta;
+
+  const datos = respuesta.datos;
+  if (
+    !datos ||
+    typeof datos.emitidos !== 'number' ||
+    typeof datos.omitidos !== 'number' ||
+    !Array.isArray(datos.errores)
+  ) {
+    return falloFormato('la emisión masiva de compromisos de pensión');
+  }
   return respuesta;
 }
 
@@ -216,16 +292,31 @@ export async function obtenerPagoAdmin(pagoId) {
   return solicitar(`/pagos/admin/${encodeURIComponent(pagoId)}`);
 }
 
+/** Estado del período de matrícula del año, usado para habilitar correcciones. */
+export async function obtenerPeriodoMatricula(anioId) {
+  const respuesta = await solicitar(
+    `/anios-academicos/${encodeURIComponent(anioId)}/periodo-matricula`
+  );
+  if (!respuesta.exitoso) return respuesta;
+  const datos = respuesta.datos;
+  if (!datos || typeof datos.estado !== 'string') {
+    return falloFormato('el período de matrícula');
+  }
+  return respuesta;
+}
+
 export async function validarPagoAdmin(pagoId) {
   return solicitar(`/pagos/admin/${encodeURIComponent(pagoId)}/validar`, {
     metodo: 'PUT',
-    cuerpo: {}
+    cuerpo: {},
+    tiempoEsperaMs: TIEMPO_ESPERA_ACCION_MS
   });
 }
 
 export async function rechazarPagoAdmin(pagoId, motivo) {
   return solicitar(`/pagos/admin/${encodeURIComponent(pagoId)}/rechazar`, {
     metodo: 'PUT',
-    cuerpo: { motivo: motivo.trim() }
+    cuerpo: { motivo: motivo.trim() },
+    tiempoEsperaMs: TIEMPO_ESPERA_ACCION_MS
   });
 }

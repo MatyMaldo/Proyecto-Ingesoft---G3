@@ -12,11 +12,15 @@ vi.mock('../../grados-secciones/services/gradosSeccionesService.js', () => ({ co
 import {
   obtenerAlumnos,
   obtenerEstructuraMatricula,
+  obtenerEstructuraMatriculaVigente,
   obtenerEstructuraListadoMatriculas,
+  obtenerPeriodoMatricula,
+  cancelarPendientesPorPeriodo,
   listarMatriculas,
   obtenerSeccionesMatricula,
   crearMatricula,
-  emitirCompromisoMatricula
+  emitirCompromisoMatricula,
+  emitirCompromisosMatriculaLote
 } from './matriculasService.js';
 
 describe('matriculasService', () => {
@@ -80,8 +84,32 @@ describe('matriculasService', () => {
     });
   });
 
-  it('obtiene la estructura completa para el listado administrativo', async () => {
+  it('obtiene solo los años con período de matrícula vigente para el modal de asignación', async () => {
     solicitar
+      .mockResolvedValueOnce({
+        exitoso: true,
+        datos: [
+          { id: 1, anio: 2027 },
+          { id: 2, anio: 2026 }
+        ]
+      })
+      .mockResolvedValueOnce({ exitoso: true, datos: [{ id: 1, nombre: 'Primero' }] })
+      .mockResolvedValueOnce({ exitoso: true, datos: { estado: 'VIGENTE' } })
+      .mockResolvedValueOnce({ exitoso: true, datos: { estado: 'FINALIZADO' } });
+
+    const resultado = await obtenerEstructuraMatriculaVigente();
+
+    expect(solicitar).toHaveBeenNthCalledWith(1, '/anios-academicos');
+    expect(solicitar).toHaveBeenNthCalledWith(2, '/grados');
+    expect(solicitar).toHaveBeenNthCalledWith(3, '/anios-academicos/1/periodo-matricula');
+    expect(solicitar).toHaveBeenNthCalledWith(4, '/anios-academicos/2/periodo-matricula');
+    expect(resultado.datos.anios).toEqual([
+      { id: 1, anio: 2027, estadoPeriodo: 'VIGENTE' }
+    ]);
+    expect(resultado.datos.grados).toEqual([{ id: 1, nombre: 'Primero' }]);
+  });
+
+  it('obtiene la estructura completa para el listado administrativo', async () => {    solicitar
       .mockResolvedValueOnce({ exitoso: true, datos: [{ id: 1, anio: 2026 }] })
       .mockResolvedValueOnce({ exitoso: true, datos: [{ id: 2, nombre: 'Primero' }] });
 
@@ -191,5 +219,48 @@ describe('matriculasService', () => {
     expect(respuesta.exitoso).toBe(false);
     expect(respuesta.mensaje).toMatch(/No hay una matrícula creada en esta sesión/);
     expect(solicitar).not.toHaveBeenCalled();
+  });
+
+  it('consulta el estado del período de matrícula del año', async () => {
+    solicitar.mockResolvedValue({
+      exitoso: true,
+      datos: { anioAcademicoId: 1, estado: 'FINALIZADO' }
+    });
+
+    const resultado = await obtenerPeriodoMatricula(1);
+
+    expect(solicitar).toHaveBeenCalledWith('/anios-academicos/1/periodo-matricula');
+    expect(resultado.datos.estado).toBe('FINALIZADO');
+  });
+
+  it('cancela matrículas pendientes de períodos vencidos con timeout extendido', async () => {
+    solicitar.mockResolvedValue({
+      exitoso: true,
+      datos: { matriculasCanceladas: 2 }
+    });
+
+    const resultado = await cancelarPendientesPorPeriodo();
+
+    expect(solicitar).toHaveBeenCalledWith('/matriculas/cancelar-pendientes-por-periodo', {
+      metodo: 'POST',
+      tiempoEsperaMs: 60000
+    });
+    expect(resultado.datos.matriculasCanceladas).toBe(2);
+  });
+
+  it('emite compromisos de matrícula en lote para un año', async () => {
+    solicitar.mockResolvedValue({
+      exitoso: true,
+      datos: { emitidos: 2, omitidos: 1, errores: [] }
+    });
+
+    const resultado = await emitirCompromisosMatriculaLote(2);
+
+    expect(solicitar).toHaveBeenCalledWith('/compromisos-pago/matricula/lote', {
+      metodo: 'POST',
+      cuerpo: { anioId: 2 },
+      tiempoEsperaMs: 60000
+    });
+    expect(resultado.datos).toEqual({ emitidos: 2, omitidos: 1, errores: [] });
   });
 });

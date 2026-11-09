@@ -7,6 +7,7 @@ import Paginacion from '../../../shared/components/Paginacion.jsx';
 import { formatearFechaVisible } from '../../../shared/utils/formatoFecha.js';
 import {
   listarPagosAgrupados,
+  obtenerPeriodoMatricula,
   rechazarPagoAdmin,
   validarPagoAdmin
 } from '../services/pagosService.js';
@@ -25,7 +26,7 @@ import estilos from './ModalPagos.module.css';
 
 const TAMANIO_PAGINA = 10;
 
-export default function ModalPagosEstudiante({ alumno, onCerrar, alNotificar }) {
+export default function ModalPagosEstudiante({ alumno, anio, onCerrar, alNotificar }) {
   const [compromisos, establecerCompromisos] = useState([]);
   const [pagina, establecerPagina] = useState(0);
   const [totalElementos, establecerTotalElementos] = useState(0);
@@ -39,11 +40,79 @@ export default function ModalPagosEstudiante({ alumno, onCerrar, alNotificar }) 
   const [rechazando, establecerRechazando] = useState(false);
   const [aviso, establecerAviso] = useState(null);
   const [errorRechazo, establecerErrorRechazo] = useState('');
+  const [periodoMatricula, establecerPeriodoMatricula] = useState(null);
+  const [estadoPeriodo, establecerEstadoPeriodo] = useState('inactivo');
+  const [errorPeriodo, establecerErrorPeriodo] = useState('');
   const idTitulo = useId();
 
   const tieneContexto = Boolean(
     alumno?.anioAcademicoId && alumno?.gradoId && alumno?.seccionId
   );
+
+  useEffect(() => {
+    const anioId = alumno?.anioAcademicoId;
+    if (!anioId) {
+      establecerPeriodoMatricula(null);
+      establecerEstadoPeriodo('inactivo');
+      establecerErrorPeriodo('');
+      return undefined;
+    }
+
+    let activo = true;
+    establecerEstadoPeriodo('cargando');
+    establecerErrorPeriodo('');
+
+    obtenerPeriodoMatricula(anioId).then((respuesta) => {
+      if (!activo) return;
+      if (!respuesta.exitoso || !respuesta.datos) {
+        establecerPeriodoMatricula(null);
+        establecerErrorPeriodo(
+          respuesta.mensaje || 'No se pudo verificar el período de matrícula.'
+        );
+        establecerEstadoPeriodo('error');
+        return;
+      }
+      establecerPeriodoMatricula(respuesta.datos);
+      establecerEstadoPeriodo('listo');
+    });
+
+    return () => { activo = false; };
+  }, [alumno?.anioAcademicoId]);
+
+  const anioEstaVigente = () => {
+    if (!anio?.fechaInicio || !anio?.fechaFin) return null;
+    const hoy = new Date().toLocaleDateString('en-CA');
+    const inicio = String(anio.fechaInicio).slice(0, 10);
+    const fin = String(anio.fechaFin).slice(0, 10);
+    return hoy >= inicio && hoy <= fin;
+  };
+
+  const permiteAcciones = (compromiso) => {
+    if (compromiso?.tipoCompromiso === 'MATRICULA') {
+      if (estadoPeriodo === 'cargando') return false;
+      if (estadoPeriodo === 'listo') return periodoMatricula?.estado === 'VIGENTE';
+      return true;
+    }
+    return anioEstaVigente() !== false;
+  };
+
+  const motivoBloqueo = (compromiso) => {
+    if (compromiso?.tipoCompromiso === 'MATRICULA') {
+      if (estadoPeriodo === 'cargando') return 'Verificando el período de matrícula…';
+      if (periodoMatricula?.estado === 'FINALIZADO') {
+        return 'El período de matrícula finalizó; no se pueden modificar pagos de matrícula.';
+      }
+      if (periodoMatricula?.estado === 'SIN_INICIAR') {
+        return 'El período de matrícula aún no inicia; no se pueden modificar pagos de matrícula.';
+      }
+      if (estadoPeriodo === 'error') return errorPeriodo;
+      return '';
+    }
+    if (anioEstaVigente() === false) {
+      return 'El año académico no está vigente; no se pueden modificar pagos de pensión.';
+    }
+    return '';
+  };
 
   useEffect(() => {
     if (!tieneContexto) {
@@ -205,6 +274,9 @@ export default function ModalPagosEstudiante({ alumno, onCerrar, alNotificar }) 
                       </header>
 
                       <div className={estilos.compromisoCuerpo}>
+                        {compromiso.pagos.length > 0 && !permiteAcciones(compromiso) && (
+                          <p className={estilos.notaBloqueo}>{motivoBloqueo(compromiso)}</p>
+                        )}
                         {compromiso.pagos.length === 0 ? (
                           <p className={estilos.sinPagos}>
                             Sin pagos registrados para este compromiso.
@@ -224,7 +296,12 @@ export default function ModalPagosEstudiante({ alumno, onCerrar, alNotificar }) 
                               </thead>
                               <tbody>
                                 {compromiso.pagos.map((pago) => {
-                                  const pendiente = pago.estado === 'PENDIENTE';
+                                  const accionesPermitidas = permiteAcciones(compromiso);
+                                  const motivo = accionesPermitidas ? '' : motivoBloqueo(compromiso);
+                                  const puedeValidar = accionesPermitidas
+                                    && (pago.estado === 'PENDIENTE' || pago.estado === 'RECHAZADO');
+                                  const puedeRechazar = accionesPermitidas
+                                    && (pago.estado === 'PENDIENTE' || pago.estado === 'VALIDADO');
                                   return (
                                     <tr key={pago.id}>
                                       <td>{formatearFechaVisible(pago.fechaRegistro)}</td>
@@ -251,17 +328,25 @@ export default function ModalPagosEstudiante({ alumno, onCerrar, alNotificar }) 
                                           <button
                                             type="button"
                                             className={`${estilos.botonAccion} ${estilos.botonValidar}`}
-                                            disabled={!pendiente || accionId === pago.id}
-                                            title={pendiente ? 'Validar pago' : 'El pago ya fue procesado'}
+                                            disabled={!puedeValidar || accionId === pago.id}
+                                            title={puedeValidar
+                                              ? (pago.estado === 'RECHAZADO'
+                                                ? 'Corregir rechazo y validar el pago'
+                                                : 'Validar pago')
+                                              : (motivo || 'El pago no admite esta acción')}
                                             onClick={() => confirmarValidacion(pago)}
                                           >
-                                            Validar
+                                            {accionId === pago.id ? 'Validando…' : 'Validar'}
                                           </button>
                                           <button
                                             type="button"
                                             className={`${estilos.botonAccion} ${estilos.botonRechazar}`}
-                                            disabled={!pendiente || accionId === pago.id}
-                                            title={pendiente ? 'Rechazar pago' : 'El pago ya fue procesado'}
+                                            disabled={!puedeRechazar || accionId === pago.id}
+                                            title={puedeRechazar
+                                              ? (pago.estado === 'VALIDADO'
+                                                ? 'Corregir validación y rechazar el pago'
+                                                : 'Rechazar pago')
+                                              : (motivo || 'El pago no admite esta acción')}
                                             onClick={() => {
                                               establecerErrorRechazo('');
                                               establecerPagoARechazar(pago);

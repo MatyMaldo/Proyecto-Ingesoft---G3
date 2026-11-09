@@ -6,10 +6,14 @@ vi.mock('../../../shared/api/configuracionApi.js', () => ({ USAR_MOCK: false }))
 vi.mock('../../../shared/api/clienteHttp.js', () => ({ solicitar }));
 
 import {
+  emitirCompromisosPensionLote,
   listarPagosAdmin,
   listarPagosAgrupados,
   obtenerAlumnosMatriculados,
+  obtenerGrados,
   obtenerPagoAdmin,
+  obtenerPeriodoMatricula,
+  obtenerSecciones,
   rechazarPagoAdmin,
   validarPagoAdmin
 } from './pagosService.js';
@@ -35,7 +39,7 @@ describe('pagosService · panel admin', () => {
     solicitar.mockReset();
   });
 
-  it('carga alumnos desde matrículas confirmadas del año', async () => {
+  it('carga alumnos con matrícula pendiente o confirmada del año', async () => {
     solicitar.mockResolvedValue({
       exitoso: true,
       datos: {
@@ -64,7 +68,6 @@ describe('pagosService · panel admin', () => {
     expect(solicitar).toHaveBeenCalledWith('/matriculas', {
       parametros: {
         anioId: 2,
-        estado: 'CONFIRMADA',
         page: 0,
         size: 100
       }
@@ -72,10 +75,71 @@ describe('pagosService · panel admin', () => {
     expect(resultado.datos.estudiantes[0]).toMatchObject({
       id: 5,
       nombre: 'Luis Ramirez Torres',
+      estadoMatricula: 'CONFIRMADA',
       gradoId: 1,
       seccionId: 3,
       anioAcademicoId: 2
     });
+  });
+
+  it('incluye matrículas pendientes y excluye las canceladas', async () => {
+    solicitar.mockResolvedValue({
+      exitoso: true,
+      datos: {
+        content: [
+          { id: 1, estado: 'PENDIENTE', estudianteId: 7, nombreCompletoEstudiante: 'Julio Cesar' },
+          { id: 2, estado: 'CONFIRMADA', estudianteId: 8, nombreCompletoEstudiante: 'Ana Ramirez' },
+          { id: 3, estado: 'CANCELADA', estudianteId: 9, nombreCompletoEstudiante: 'Alumno Cancelado' }
+        ],
+        totalElements: 3,
+        totalPages: 1,
+        number: 0
+      }
+    });
+
+    const resultado = await obtenerAlumnosMatriculados(2);
+
+    expect(resultado.datos.estudiantes).toHaveLength(2);
+    expect(resultado.datos.estudiantes.map((alumno) => alumno.nombre)).toEqual([
+      'Julio Cesar',
+      'Ana Ramirez'
+    ]);
+    expect(resultado.datos.estudiantes[0].estadoMatricula).toBe('PENDIENTE');
+  });
+
+  it('envía filtros de grado y sección al listar alumnos', async () => {
+    solicitar.mockResolvedValue({
+      exitoso: true,
+      datos: { content: [], totalElements: 0, totalPages: 0, number: 0 }
+    });
+
+    await obtenerAlumnosMatriculados(2, { gradoId: '1', seccionId: 3 });
+
+    expect(solicitar).toHaveBeenCalledWith('/matriculas', {
+      parametros: {
+        anioId: 2,
+        page: 0,
+        size: 100,
+        gradoId: 1,
+        seccionId: 3
+      }
+    });
+  });
+
+  it('consulta grados y secciones para los filtros', async () => {
+    solicitar
+      .mockResolvedValueOnce({ exitoso: true, datos: [{ id: 1, nombre: 'Primero' }] })
+      .mockResolvedValueOnce({ exitoso: true, datos: [{ id: 3, nombre: 'A' }] });
+
+    const grados = await obtenerGrados();
+    const secciones = await obtenerSecciones(1, 2);
+
+    expect(solicitar).toHaveBeenNthCalledWith(1, '/grados');
+    expect(solicitar).toHaveBeenNthCalledWith(2, '/secciones', {
+      parametros: { gradoId: 1, anioId: 2 }
+    });
+    expect(grados.datos).toEqual([{ id: 1, nombre: 'Primero' }]);
+    expect(secciones.datos).toEqual([{ id: 3, nombre: 'A' }]);
   });
 
   it('lista todos los pagos del estudiante enviando sortBy=fechaRegistro', async () => {
@@ -161,11 +225,69 @@ describe('pagosService · panel admin', () => {
 
     expect(solicitar).toHaveBeenNthCalledWith(1, '/pagos/admin/20/validar', {
       metodo: 'PUT',
-      cuerpo: {}
+      cuerpo: {},
+      tiempoEsperaMs: 60000
     });
     expect(solicitar).toHaveBeenNthCalledWith(2, '/pagos/admin/20/rechazar', {
       metodo: 'PUT',
-      cuerpo: { motivo: 'Comprobante ilegible' }
+      cuerpo: { motivo: 'Comprobante ilegible' },
+      tiempoEsperaMs: 60000
+    });
+  });
+
+  it('consulta el período de matrícula para habilitar correcciones', async () => {
+    solicitar.mockResolvedValue({
+      exitoso: true,
+      datos: { anioAcademicoId: 1, estado: 'VIGENTE' }
+    });
+
+    const resultado = await obtenerPeriodoMatricula(1);
+
+    expect(solicitar).toHaveBeenCalledWith('/anios-academicos/1/periodo-matricula');
+    expect(resultado.datos.estado).toBe('VIGENTE');
+  });
+
+  it('emite compromisos de pensión en lote con año y mes', async () => {
+    solicitar.mockResolvedValue({
+      exitoso: true,
+      datos: { emitidos: 3, omitidos: 1, errores: [] }
+    });
+
+    const resultado = await emitirCompromisosPensionLote({
+      anioId: 2,
+      mes: 'NOVIEMBRE'
+    });
+
+    expect(solicitar).toHaveBeenCalledWith('/compromisos-pago/pension/lote', {
+      metodo: 'POST',
+      cuerpo: { anioId: 2, mes: 'NOVIEMBRE' },
+      tiempoEsperaMs: 60000
+    });
+    expect(resultado.datos).toEqual({ emitidos: 3, omitidos: 1, errores: [] });
+  });
+
+  it('incluye grado y sección en la emisión masiva de pensión cuando se envían', async () => {
+    solicitar.mockResolvedValue({
+      exitoso: true,
+      datos: { emitidos: 0, omitidos: 0, errores: [] }
+    });
+
+    await emitirCompromisosPensionLote({
+      anioId: 2,
+      mes: 'NOVIEMBRE',
+      gradoId: 1,
+      seccionId: 3
+    });
+
+    expect(solicitar).toHaveBeenCalledWith('/compromisos-pago/pension/lote', {
+      metodo: 'POST',
+      cuerpo: {
+        anioId: 2,
+        mes: 'NOVIEMBRE',
+        gradoId: 1,
+        seccionId: 3
+      },
+      tiempoEsperaMs: 60000
     });
   });
 });

@@ -77,46 +77,67 @@ export default function ModalDetallePago({ pagoId, onCerrar }) {
           )}
 
           {estado === 'listo' && pago && (
-            <>
-              <div>
-                <Insignia tono={tonoEstadoPago(pago.estado)}>
-                  {etiquetaEstadoPago(pago.estado)}
-                </Insignia>
+            <div className={estilos.detalleLayout}>
+              <div className={estilos.detalleInfo}>
+                <div>
+                  <Insignia tono={tonoEstadoPago(pago.estado)}>
+                    {etiquetaEstadoPago(pago.estado)}
+                  </Insignia>
+                </div>
+                <dl className={estilos.detalle}>
+                  <dt>Estudiante</dt>
+                  <dd>{pago.estudianteNombreCompleto ?? '—'}</dd>
+                  <dt>Grado y sección</dt>
+                  <dd>{pago.gradoSeccion ?? '—'}</dd>
+                  <dt>Apoderado</dt>
+                  <dd>{pago.apoderadoNombreCompleto ?? '—'}</dd>
+                  <dt>Fecha de registro</dt>
+                  <dd>{formatearFechaVisible(pago.fechaRegistro)}</dd>
+                  <dt>Monto pagado</dt>
+                  <dd className={estilos.monto}>{formatearMonto(pago.montoPagado)}</dd>
+                  <dt>Compromiso</dt>
+                  <dd>
+                    {etiquetaTipoCompromiso(pago.tipoCompromiso)}
+                    {pago.compromisoId != null ? ` · #${pago.compromisoId}` : ''}
+                  </dd>
+                  <dt>Mes</dt>
+                  <dd>{pago.mes ?? '—'}</dd>
+                  <dt>Estado del compromiso</dt>
+                  <dd>{etiquetaEstadoCompromiso(pago.estadoCompromiso)}</dd>
+                  <dt>Validado por</dt>
+                  <dd>{pago.validadorNombreCompleto ?? '—'}</dd>
+                  <dt>Motivo de rechazo</dt>
+                  <dd>{pago.motivo ?? '—'}</dd>
+                </dl>
               </div>
-              <dl className={estilos.detalle}>
-                <dt>Estudiante</dt>
-                <dd>{pago.estudianteNombreCompleto ?? '—'}</dd>
-                <dt>Grado y sección</dt>
-                <dd>{pago.gradoSeccion ?? '—'}</dd>
-                <dt>Apoderado</dt>
-                <dd>{pago.apoderadoNombreCompleto ?? '—'}</dd>
-                <dt>Fecha de registro</dt>
-                <dd>{formatearFechaVisible(pago.fechaRegistro)}</dd>
-                <dt>Monto pagado</dt>
-                <dd className={estilos.monto}>{formatearMonto(pago.montoPagado)}</dd>
-                <dt>Compromiso</dt>
-                <dd>
-                  {etiquetaTipoCompromiso(pago.tipoCompromiso)}
-                  {pago.compromisoId != null ? ` · #${pago.compromisoId}` : ''}
-                </dd>
-                <dt>Mes</dt>
-                <dd>{pago.mes ?? '—'}</dd>
-                <dt>Estado del compromiso</dt>
-                <dd>{etiquetaEstadoCompromiso(pago.estadoCompromiso)}</dd>
-                <dt>Validado por</dt>
-                <dd>{pago.validadorNombreCompleto ?? '—'}</dd>
-                <dt>Motivo de rechazo</dt>
-                <dd>{pago.motivo ?? '—'}</dd>
-                <dt>Comprobante</dt>
-                <dd>
-                  {pago.evidenciaUrl ? (
-                    <a className={estilos.evidencia} href={pago.evidenciaUrl} target="_blank" rel="noreferrer">
-                      Abrir comprobante
+
+              <aside className={estilos.preview} aria-label="Vista previa del comprobante">
+                <div className={estilos.previewCabecera}>
+                  <span>Comprobante</span>
+                  {pago.evidenciaUrl && (
+                    <a
+                      className={estilos.evidencia}
+                      href={pago.evidenciaUrl}
+                      target="_blank"
+                      rel="noreferrer"
+                    >
+                      Abrir en pestaña nueva
                     </a>
-                  ) : '—'}
-                </dd>
-              </dl>
-            </>
+                  )}
+                </div>
+
+                {pago.evidenciaUrl ? (
+                  <iframe
+                    className={estilos.pdf}
+                    src={pago.evidenciaUrl}
+                    title={`Comprobante del pago ${pago.id ?? pagoId}`}
+                    loading="lazy"
+                  />
+                ) : (
+                  <p className={estilos.previewVacio}>Comprobante no disponible.</p>
+                )}
+              </aside>
+            </div>
           )}
         </div>
 

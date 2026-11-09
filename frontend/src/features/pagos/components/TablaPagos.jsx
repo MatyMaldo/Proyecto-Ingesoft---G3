@@ -18,7 +18,7 @@ import { emitirCompromisoPension } from '../services/pagosService.js';
  * @param {Array} props.alumnos Logs adaptados desde `LogErrorResponse`.
  * @param {boolean} [props.ocupado] `true` mientras se recalcula por un cambio de filtro.
  */
-export default function TablaPagos({ alumnos, ocupado = false }) {
+export default function TablaPagos({ alumnos, anio, ocupado = false }) {
 
   // Notificación de éxito o error (se llama aquí para que sobreviva al cierre de los modales)
   const { notificacion, mostrarNotificacion } = useNotificacion();
@@ -83,34 +83,64 @@ export default function TablaPagos({ alumnos, ocupado = false }) {
           <thead>
             <tr>
               <th scope="col">Alumno</th>
+              <th scope="col">Grado y sección</th>
               <th scope="col">Acciones</th>
             </tr>
           </thead>
           <tbody>
-            {alumnos.map((alumno) => (
+            {alumnos.map((alumno) => {
+              const esConfirmada = String(alumno.estadoMatricula ?? '').toUpperCase() === 'CONFIRMADA';
+              return (
               <tr key={alumno.id} className={estilos.fila}>
                 <td>
-                  <p className={estilos.mensaje}>{alumno.nombre}</p>
-                  <p className={estilos.dni}>{alumno.codigo ?? alumno.dni ?? '—'}</p>
+                  <div className={estilos.identidad}>
+                    <div>
+                      <p className={estilos.mensaje}>{alumno.nombre}</p>
+                      <p className={estilos.dni}>{alumno.codigo ?? alumno.dni ?? '—'}</p>
+                    </div>
+                    <Insignia tono={esConfirmada ? 'verde' : 'ambar'}>
+                      {esConfirmada ? 'Confirmada' : 'Pendiente'}
+                    </Insignia>
+                  </div>
+                </td>
+                <td>
+                  <p className={estilos.gradoSeccion}>
+                    {alumno.gradoNombre
+                      ? `${alumno.gradoNombre}${alumno.seccionNombre ? ` · ${alumno.seccionNombre}` : ''}`
+                      : '—'}
+                  </p>
                 </td>
                 <td>
                   <div className={estilos.accionesFila}>
-                    <Boton
-                      icono="archivo"
-                      span="Emitir compromiso de pensión"
-                      estilo={estilosBoton.btn_secundario}
-                      onClick={() => abrirModalEmitirPension(alumno)}
-                    />
+                    {esConfirmada ? (
+                      <Boton
+                        icono="archivo"
+                        span="Emitir compromiso de pensión"
+                        estilo={estilosBoton.btn_secundario}
+                        onClick={() => abrirModalEmitirPension(alumno)}
+                      />
+                    ) : (
+                      <button
+                        type="button"
+                        className={`${estilosBoton.btn_secundario} ${estilos.botonDeshabilitado}`}
+                        disabled
+                        title="La pensión estará disponible cuando la matrícula esté confirmada."
+                      >
+                        <Icono nombre="archivo" tamano={18} />
+                        <span>Emitir compromiso de pensión</span>
+                      </button>
+                    )}
                     <Boton
                       icono="tarjeta"
-                      span="Ver pagos"
+                      span="Ver compromisos y pagos"
                       estilo={estilosBoton.btn_activo}
                       onClick={() => abrirModalPagos(alumno)}
                     />
                   </div>
                 </td>
               </tr>
-            ))}
+              );
+            })}
           </tbody>
         </table>
       </div>
@@ -126,6 +156,7 @@ export default function TablaPagos({ alumnos, ocupado = false }) {
       {modalPagosAbierto && alumnoPagos && (
         <ModalPagosEstudiante
           alumno={alumnoPagos}
+          anio={anio}
           onCerrar={cerrarModalPagos}
           alNotificar={mostrarNotificacion}
         />

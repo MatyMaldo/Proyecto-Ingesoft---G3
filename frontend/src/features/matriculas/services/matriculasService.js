@@ -9,6 +9,7 @@ import { consultarEstructura } from '../../grados-secciones/services/gradosSecci
 const matriculasCreadasEnSesion = new Map();
 let siguienteIdMock = 1;
 let siguienteCompromisoMock = 1;
+const TIEMPO_ESPERA_ACCION_MS = 60000;
 
 const falloFormato = (recurso) => ({
   exitoso: false,
@@ -82,6 +83,62 @@ export async function obtenerEstructuraMatricula() {
   return {
     exitoso: true,
     datos: { anios: [respuestaAnios.datos], grados: respuestaGrados.datos },
+    mensaje: ''
+  };
+}
+
+/**
+ * Estructura para el modal de asignación: años con período de matrícula
+ * VIGENTE y grados disponibles. No reemplaza a `obtenerEstructuraMatricula`,
+ * que conserva su comportamiento para otros consumidores.
+ */
+export async function obtenerEstructuraMatriculaVigente() {
+  if (USAR_MOCK) {
+    const respuesta = await consultarEstructura();
+    if (!respuesta.exitoso) return respuesta;
+    return {
+      ...respuesta,
+      datos: {
+        anios: respuesta.datos.anios.map((anio) => ({
+          ...anio,
+          estadoPeriodo: 'VIGENTE'
+        })),
+        grados: respuesta.datos.grados
+      }
+    };
+  }
+
+  const [respuestaAnios, respuestaGrados] = await Promise.all([
+    solicitar('/anios-academicos'),
+    solicitar('/grados')
+  ]);
+  const error = [respuestaAnios, respuestaGrados].find((respuesta) => !respuesta.exitoso);
+  if (error) return error;
+  if (!Array.isArray(respuestaAnios.datos) || !Array.isArray(respuestaGrados.datos)) {
+    return falloFormato('la estructura de matrícula');
+  }
+
+  const periodos = await Promise.all(
+    respuestaAnios.datos.map(async (anio) => {
+      const respuestaPeriodo = await obtenerPeriodoMatricula(anio.id);
+      return respuestaPeriodo.exitoso && respuestaPeriodo.datos?.estado === 'VIGENTE'
+        ? { ...anio, estadoPeriodo: respuestaPeriodo.datos.estado }
+        : null;
+    })
+  );
+
+  const aniosVigentes = periodos.filter(Boolean);
+  if (aniosVigentes.length === 0) {
+    return {
+      exitoso: false,
+      datos: null,
+      mensaje: 'No hay años académicos con período de matrícula vigente.'
+    };
+  }
+
+  return {
+    exitoso: true,
+    datos: { anios: aniosVigentes, grados: respuestaGrados.datos },
     mensaje: ''
   };
 }
@@ -161,8 +218,46 @@ export async function listarMatriculas({
   return respuesta;
 }
 
-export async function obtenerSeccionesMatricula(gradoId, anioId) {
+/** Estado del período de matrícula del año seleccionado. */
+export async function obtenerPeriodoMatricula(anioId) {
   if (USAR_MOCK) {
+    return {
+      exitoso: true,
+      datos: { anioAcademicoId: Number(anioId), estado: 'FINALIZADO' },
+      mensaje: ''
+    };
+  }
+
+  const respuesta = await solicitar(
+    `/anios-academicos/${encodeURIComponent(anioId)}/periodo-matricula`
+  );
+  if (!respuesta.exitoso) return respuesta;
+  if (!respuesta.datos || typeof respuesta.datos.estado !== 'string') {
+    return falloFormato('el período de matrícula');
+  }
+  return respuesta;
+}
+
+/**
+ * Cancela las matrículas pendientes de períodos vencidos.
+ * Es idempotente y no modifica matrículas confirmadas ni pagos.
+ */
+export async function cancelarPendientesPorPeriodo() {  if (USAR_MOCK) {
+    return { exitoso: true, datos: { matriculasCanceladas: 0 }, mensaje: '' };
+  }
+
+  const respuesta = await solicitar('/matriculas/cancelar-pendientes-por-periodo', {
+    metodo: 'POST',
+    tiempoEsperaMs: TIEMPO_ESPERA_ACCION_MS
+  });
+  if (!respuesta.exitoso) return respuesta;
+  if (!respuesta.datos || typeof respuesta.datos.matriculasCanceladas !== 'number') {
+    return falloFormato('la cancelación de matrículas pendientes');
+  }
+  return respuesta;
+}
+
+export async function obtenerSeccionesMatricula(gradoId, anioId) {  if (USAR_MOCK) {
     const respuesta = await consultarEstructura();
     if (!respuesta.exitoso) return respuesta;
     return {
@@ -257,6 +352,39 @@ export async function emitirCompromisoMatricula(entrada) {
   });
   if (respuesta.exitoso && !esObjeto) {
     matriculasCreadasEnSesion.delete(String(entrada));
+  }
+  return respuesta;
+}
+
+/**
+ * Emisión masiva de compromisos de matrícula para un año académico.
+ * El backend procesa solo matrículas PENDIENTE y reporta emitidos,
+ * omitidos y errores por matrícula.
+ */
+export async function emitirCompromisosMatriculaLote(anioId) {
+  if (USAR_MOCK) {
+    return {
+      exitoso: true,
+      datos: { emitidos: 0, omitidos: 0, errores: [] },
+      mensaje: ''
+    };
+  }
+
+  const respuesta = await solicitar('/compromisos-pago/matricula/lote', {
+    metodo: 'POST',
+    cuerpo: { anioId: Number(anioId) },
+    tiempoEsperaMs: TIEMPO_ESPERA_ACCION_MS
+  });
+  if (!respuesta.exitoso) return respuesta;
+
+  const datos = respuesta.datos;
+  if (
+    !datos ||
+    typeof datos.emitidos !== 'number' ||
+    typeof datos.omitidos !== 'number' ||
+    !Array.isArray(datos.errores)
+  ) {
+    return falloFormato('la emisión masiva de compromisos de matrícula');
   }
   return respuesta;
 }

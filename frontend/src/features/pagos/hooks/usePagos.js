@@ -2,7 +2,9 @@ import { useEffect, useRef, useState } from 'react';
 
 import {
   obtenerAlumnosMatriculados,
-  obtenerAnioAcademico
+  obtenerAnioAcademico,
+  obtenerGrados,
+  obtenerSecciones
 } from '../services/pagosService.js';
 
 function elegirAnioInicial(anios) {
@@ -16,8 +18,8 @@ function elegirAnioInicial(anios) {
 
 /**
  * Datos y comportamiento de la pantalla de Pagos.
- * La tabla se llena con alumnas y alumnos que tienen matrícula confirmada en el
- * año académico actual, porque los pagos requieren grado y sección.
+ * La tabla se llena con alumnos que tienen matrícula pendiente o confirmada en
+ * el año seleccionado, porque los pagos requieren grado y sección.
  */
 export default function usePagos() {
   const [alumnos, establecerAlumnos] = useState([]);
@@ -30,6 +32,11 @@ export default function usePagos() {
   const [estadoEstructura, establecerEstadoEstructura] = useState('cargando');
   const [errorEstructura, establecerErrorEstructura] = useState('');
   const [anioId, establecerAnioId] = useState(null);
+  const [grados, establecerGrados] = useState([]);
+  const [gradoId, establecerGradoId] = useState(null);
+  const [secciones, establecerSecciones] = useState([]);
+  const [seccionId, establecerSeccionId] = useState(null);
+  const [cargandoSecciones, establecerCargandoSecciones] = useState(false);
   const [mes, establecerMes] = useState(null);
   const [intentoClave, establecerIntentoClave] = useState(0);
 
@@ -47,7 +54,7 @@ export default function usePagos() {
     }
     establecerError('');
 
-    const resultado = await obtenerAlumnosMatriculados(anioId);
+    const resultado = await obtenerAlumnosMatriculados(anioId, { gradoId, seccionId });
 
     if (idActual !== idSolicitudRef.current) {
       return;
@@ -73,35 +80,43 @@ export default function usePagos() {
     };
     // cargarLista captura el estado de la consulta actual.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [anioId, intentoClave]);
+  }, [anioId, gradoId, seccionId, intentoClave]);
 
-  // Carga años académicos y deja seleccionado el año actual.
+  // Carga años académicos, grados y deja seleccionado el año actual.
   useEffect(() => {
     let cancelado = false;
     establecerEstadoEstructura('cargando');
 
-    obtenerAnioAcademico().then((respuesta) => {
+    Promise.all([
+      obtenerAnioAcademico(),
+      obtenerGrados()
+    ]).then(([respuestaAnios, respuestaGrados]) => {
       if (cancelado) return;
 
-      if (!respuesta.exitoso) {
-        establecerErrorEstructura(respuesta.mensaje);
+      if (!respuestaAnios.exitoso) {
+        establecerErrorEstructura(respuestaAnios.mensaje);
         establecerEstadoEstructura('error');
         return;
       }
 
-      if (!Array.isArray(respuesta.datos?.anios)) {
+      if (!Array.isArray(respuestaAnios.datos?.anios)) {
         establecerErrorEstructura('No se recibió una lista válida de años académicos.');
         establecerEstadoEstructura('error');
         return;
       }
 
-      const anioInicial = elegirAnioInicial(respuesta.datos.anios);
+      const anioInicial = elegirAnioInicial(respuestaAnios.datos.anios);
       if (!anioInicial) {
         establecerErrorEstructura('No hay años académicos configurados.');
         establecerEstadoEstructura('error');
         return;
       }
-      establecerAnios(respuesta.datos.anios);
+      establecerAnios(respuestaAnios.datos.anios);
+      establecerGrados(
+        respuestaGrados.exitoso && Array.isArray(respuestaGrados.datos)
+          ? respuestaGrados.datos
+          : []
+      );
       establecerAnioId((actual) => actual ?? Number(anioInicial.id));
       establecerErrorEstructura('');
       establecerEstadoEstructura('listo');
@@ -112,8 +127,52 @@ export default function usePagos() {
     };
   }, [intentoClave]);
 
+  // Carga las secciones cuando cambia el año o el grado.
+  useEffect(() => {
+    let cancelado = false;
+    establecerSecciones([]);
+
+    if (!anioId || !gradoId) {
+      establecerCargandoSecciones(false);
+      return undefined;
+    }
+
+    establecerCargandoSecciones(true);
+
+    obtenerSecciones(gradoId, anioId).then((respuesta) => {
+      if (cancelado) return;
+      if (respuesta.exitoso && Array.isArray(respuesta.datos)) {
+        establecerSecciones(
+          [...respuesta.datos].sort((a, b) => a.nombre.localeCompare(b.nombre))
+        );
+      } else {
+        establecerSecciones([]);
+      }
+      establecerCargandoSecciones(false);
+    });
+
+    return () => {
+      cancelado = true;
+    };
+  }, [anioId, gradoId]);
+
   const seleccionarAnio = (valor) => {
     establecerAnioId(valor === '' ? null : Number(valor));
+    establecerSeccionId(null);
+  };
+
+  const seleccionarGrado = (valor) => {
+    establecerGradoId(valor === '' ? null : Number(valor));
+    establecerSeccionId(null);
+  };
+
+  const seleccionarSeccion = (valor) => {
+    establecerSeccionId(valor === '' ? null : Number(valor));
+  };
+
+  const limpiarFiltros = () => {
+    establecerGradoId(null);
+    establecerSeccionId(null);
   };
 
   const seleccionarMes = (valor) => {
@@ -132,6 +191,14 @@ export default function usePagos() {
     errorEstructura,
     anioId,
     seleccionarAnio,
+    grados,
+    gradoId,
+    seleccionarGrado,
+    secciones,
+    seccionId,
+    seleccionarSeccion,
+    cargandoSecciones,
+    limpiarFiltros,
     mes,
     seleccionarMes,
     reintentar: () => establecerIntentoClave((valor) => valor + 1)

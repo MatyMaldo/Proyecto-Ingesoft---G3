@@ -46,6 +46,13 @@ export const SECCIONES_NAVEGACION = Object.freeze([
         roles: Object.freeze([ROLES.ADMIN])
       }),
       Object.freeze({
+        id: 'mis-pagos',
+        etiqueta: 'Mis pagos',
+        ruta: '/mis-pagos',
+        icono: 'tarjeta',
+        roles: Object.freeze([ROLES.APODERADO])
+      }),
+      Object.freeze({
         id: 'horarios',
         etiqueta: 'Horarios',
         ruta: '/horarios',

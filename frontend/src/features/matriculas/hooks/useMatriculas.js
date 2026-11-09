@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import {
   obtenerAlumnos,
-  obtenerEstructuraMatricula,
+  obtenerEstructuraMatriculaVigente,
   obtenerSeccionesMatricula
 } from '../services/matriculasService.js';
 
@@ -9,17 +9,18 @@ const DEBOUNCE_BUSQUEDA_MS = 300;
 const MIN_CARACTERES_BUSQUEDA = 2;
 
 /**
- * Elige el año académico vigente: el más reciente que aún no finalizó.
- * Si todos ya finalizaron, devuelve el más reciente.
+ * Elige el año inicial: el año actual si tiene período vigente; si no,
+ * el año vigente más reciente.
  *
- * @param {Array} anios - años académicos con `anio`, `fechaInicio` y `fechaFin` (AAAA-MM-DD).
+ * @param {Array} anios - años académicos con período de matrícula vigente.
  * @returns {Object|null}
  */
-function obtenerAnioVigente(anios) {
-  const hoy = new Date().toLocaleDateString('en-CA');
-  const ordenados = [...(anios ?? [])].sort((a, b) => b.anio - a.anio);
-
-  return ordenados.find((anio) => !anio.fechaFin || anio.fechaFin >= hoy) ?? ordenados[0] ?? null;
+function elegirAnioInicial(anios) {
+  const ordenados = [...(anios ?? [])].sort((a, b) => Number(b.anio) - Number(a.anio));
+  const anioActual = new Date().getFullYear();
+  return ordenados.find((anio) => Number(anio.anio) === anioActual)
+    ?? ordenados[0]
+    ?? null;
 }
 
 /**
@@ -31,11 +32,13 @@ function obtenerAnioVigente(anios) {
  *   hayBusqueda: boolean, resultados: Array, buscando: boolean, errorBusqueda: string,
  *   alumnoSeleccionado: Object|null,
  *   seleccionarAlumno: (alumno: Object) => void, quitarAlumno: () => void,
+ *   anios: Array, anioId: number|null, seleccionarAnio: (valor: string) => void,
  *   grados: Array, estadoEstructura: 'cargando'|'listo'|'error', errorEstructura: string,
  *   reintentarEstructura: () => void,
  *   gradoId: number|null, seleccionarGrado: (valor: string) => void,
  *   secciones: Array, seccionId: number|null, seleccionarSeccion: (id: number) => void,
- *   asignacion: { alumno: Object, grado: Object, seccion: Object }|null
+ *   anio: Object|null,
+ *   asignacion: { alumno: Object, anio: Object, grado: Object, seccion: Object }|null
  * }}
  */
 export default function useMatriculas() {
@@ -50,6 +53,7 @@ export default function useMatriculas() {
   const [estadoEstructura, establecerEstadoEstructura] = useState('cargando');
   const [errorEstructura, establecerErrorEstructura] = useState('');
   const [secciones, establecerSecciones] = useState([]);
+  const [anioId, establecerAnioId] = useState(null);
   const [gradoId, establecerGradoId] = useState(null);
   const [seccionId, establecerSeccionId] = useState(null);
   const [intentoClave, establecerIntentoClave] = useState(0);
@@ -94,7 +98,7 @@ export default function useMatriculas() {
     let cancelado = false;
     establecerEstadoEstructura('cargando');
 
-    obtenerEstructuraMatricula().then((respuesta) => {
+    obtenerEstructuraMatriculaVigente().then((respuesta) => {
       if (cancelado) {
         return;
       }
@@ -105,7 +109,9 @@ export default function useMatriculas() {
         return;
       }
 
+      const anioInicial = elegirAnioInicial(respuesta.datos.anios);
       establecerEstructura(respuesta.datos);
+      establecerAnioId(anioInicial?.id != null ? Number(anioInicial.id) : null);
       establecerErrorEstructura('');
       establecerEstadoEstructura('listo');
     });
@@ -115,7 +121,9 @@ export default function useMatriculas() {
     };
   }, [intentoClave]);
 
-  const anio = obtenerAnioVigente(estructura?.anios);
+  const anio = (estructura?.anios ?? []).find(
+    (item) => String(item.id) === String(anioId)
+  ) ?? null;
 
   useEffect(() => {
     let cancelado = false;
@@ -138,13 +146,17 @@ export default function useMatriculas() {
     };
   }, [estructura, gradoId, anio?.id]);
 
-  const seleccionarAlumno = (alumno) => {
-    establecerAlumnoSeleccionado(alumno);
+  const seleccionarAlumno = (alumno) => {    establecerAlumnoSeleccionado(alumno);
     establecerBusqueda('');
     establecerBusquedaDebounced('');
   };
 
   const quitarAlumno = () => establecerAlumnoSeleccionado(null);
+
+  const seleccionarAnio = (valor) => {
+    establecerAnioId(valor === '' ? null : Number(valor));
+    establecerSeccionId(null);
+  };
 
   // Cambiar de grado invalida la sección elegida, porque cada grado tiene las suyas.
   const seleccionarGrado = (valor) => {
@@ -160,9 +172,9 @@ export default function useMatriculas() {
   const grado = grados.find((item) => String(item.id) === String(gradoId));
   const seccion = secciones.find((item) => String(item.id) === String(seccionId));
 
-  // Solo existe cuando alumno, grado y sección están elegidos: habilita "Aceptar".
-  const asignacion = alumnoSeleccionado && grado && seccion
-    ? { alumno: alumnoSeleccionado, grado, seccion }
+  // Solo existe cuando alumno, año, grado y sección están elegidos.
+  const asignacion = alumnoSeleccionado && anio && grado && seccion
+    ? { alumno: alumnoSeleccionado, anio, grado, seccion }
     : null;
 
   return {
@@ -175,6 +187,9 @@ export default function useMatriculas() {
     alumnoSeleccionado,
     seleccionarAlumno,
     quitarAlumno,
+    anios: estructura?.anios ?? [],
+    anioId,
+    seleccionarAnio,
     grados,
     estadoEstructura,
     errorEstructura,
@@ -184,6 +199,7 @@ export default function useMatriculas() {
     secciones,
     seccionId,
     seleccionarSeccion,
+    anio,
     asignacion
   };
 }

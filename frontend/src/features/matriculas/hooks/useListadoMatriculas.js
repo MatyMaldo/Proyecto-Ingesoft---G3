@@ -9,12 +9,11 @@ import {
 const TAMANIO_PAGINA = 15;
 const FILTROS_INICIALES = { anioId: '', gradoId: '', seccionId: '', estado: '' };
 
-function elegirAnioInicial(anios, anioActual = new Date().getFullYear()) {
+function elegirAnioInicial(anios) {
   const lista = [...(anios ?? [])].sort((a, b) => Number(b.anio) - Number(a.anio));
-  return lista.find((anio) => Number(anio.anio) === Number(anioActual))
-    ?? lista.find((anio) => !anio.fechaFin || anio.fechaFin >= new Date().toLocaleDateString('en-CA'))
-    ?? lista[0]
-    ?? null;
+  // En matrículas interesa abrir el año más reciente: normalmente es el año
+  // para el que se está gestionando el proceso de admisión y matrícula.
+  return lista[0] ?? null;
 }
 
 /**
