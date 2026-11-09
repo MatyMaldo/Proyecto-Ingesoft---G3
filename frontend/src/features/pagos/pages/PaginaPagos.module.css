@@ -95,45 +95,6 @@
   min-width: 0;
 }
 
-/* Buscador y "Limpiar filtros" en su propia línea, encima de los selectores. */
-.filaBusqueda {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--espacio-3) var(--espacio-4);
-  min-width: 0;
-}
-
-.campoBusqueda {
-  flex: 1 1 15rem;
-  max-width: 24rem;
-}
-
-.limpiarFiltros {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--espacio-1);
-  min-height: var(--tactil-min);
-  padding: 0 var(--espacio-3);
-  font: inherit;
-  font-size: var(--texto-md);
-  font-weight: var(--peso-seminegrita);
-  white-space: nowrap;
-  color: var(--color-accion);
-  background: transparent;
-  border: 0;
-  border-radius: var(--radio-md);
-  cursor: pointer;
-}
-
-.limpiarFiltros:hover {
-  background: var(--color-accion-suave);
-}
-
-.limpiarFiltros:focus-visible {
-  outline: 2px solid var(--color-foco);
-  outline-offset: 2px;
-}
 
 .grupoFiltro {
   display: flex;
@@ -188,22 +149,10 @@
     justify-content: center;
   }
 
-  .filaFiltros,
-  .filaBusqueda {
+  .filaFiltros {
     flex-direction: column;
     flex-wrap: nowrap;
     align-items: stretch;
     gap: var(--espacio-3);
-  }
-
-  .campoBusqueda {
-    flex: 1 1 100%;
-    width: 100%;
-    max-width: none;
-  }
-
-  .limpiarFiltros {
-    align-self: flex-start;
-    margin-left: calc(var(--espacio-3) * -1);
   }
 }

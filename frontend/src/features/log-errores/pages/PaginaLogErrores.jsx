@@ -1,13 +1,12 @@
 import { useRef } from 'react';
 
+import BarraBusquedaListado from '../../../shared/components/BarraBusquedaListado.jsx';
 import CampoBusqueda from '../../../shared/components/CampoBusqueda.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import FiltroRangoFechas from '../../../shared/components/FiltroRangoFechas.jsx';
-import FiltrosActivos from '../../../shared/components/FiltrosActivos.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
 import Paginacion from '../../../shared/components/Paginacion.jsx';
 import estilosUtil from '../../../shared/styles/utilidades.module.css';
-import { describirRangoFechas } from '../../../shared/utils/rangoFechas.js';
 import TablaLogErrores from '../components/TablaLogErrores.jsx';
 import useLogErrores, { OPCIONES_MODULO } from '../hooks/useLogErrores.js';
 import {
@@ -38,7 +37,6 @@ export default function PaginaLogErrores() {
     mensajeErrorRango,
     rangoAplicado,
     limpiarFiltros,
-    quitarRango,
     establecerModulo,
     establecerBusqueda,
     establecerFechaDesde,
@@ -63,19 +61,6 @@ export default function PaginaLogErrores() {
   const hayModulo = SOPORTA_FILTRO_MODULO_Y_BUSQUEDA && modulo !== 'TODOS';
   const hayBusqueda = SOPORTA_FILTRO_MODULO_Y_BUSQUEDA && busqueda.trim().length > 0;
   const hayFiltros = hayRango || hayModulo || hayBusqueda;
-  const chipsActivos = [
-    ...(hayModulo
-      ? [{
-        id: 'modulo',
-        etiqueta: `Módulo: ${OPCIONES_MODULO.find((opcion) => opcion.valor === modulo)?.etiqueta ?? modulo}`,
-        alQuitar: () => establecerModulo('TODOS')
-      }]
-      : []),
-    ...(hayRango
-      ? [{ id: 'fechas', etiqueta: describirRangoFechas(rangoAplicado), alQuitar: quitarRango }]
-      : [])
-  ];
-
   let mensajeRegion = '';
   if (recargando) {
     mensajeRegion = 'Actualizando resultados…';
@@ -109,36 +94,27 @@ export default function PaginaLogErrores() {
         </p>
       </header>
 
-      <section className={estilos.filtros} aria-label="Filtros del log de errores">
-        <div className={estilos.filaUno}>
+      {/* Primera línea: buscador, "Actualizar" y "Limpiar filtros". Debajo, los filtros: primero las fechas y luego
+          el módulo. */}
+      <section className={estilos.filtros} aria-label="Búsqueda y filtros del log de errores">
+        <BarraBusquedaListado
+          alActualizar={reintentar}
+          actualizando={recargando}
+          hayFiltros={hayFiltros}
+          alLimpiar={limpiarFiltros}
+        >
           {SOPORTA_FILTRO_MODULO_Y_BUSQUEDA && (
-            <>
-              <CampoBusqueda
-                id="busqueda-log-errores"
-                etiqueta="Buscar por mensaje, tipo de error o usuario"
-                placeholder="Buscar por mensaje, tipo de error o usuario"
-                valor={busqueda}
-                alCambiar={establecerBusqueda}
-              />
-              <div className={estilos.campoModulo}>
-                <label htmlFor="modulo-log-errores" className={estilos.etiquetaModulo}>
-                  Módulo
-                </label>
-                <select
-                  id="modulo-log-errores"
-                  className={estilos.selectorModulo}
-                  value={modulo}
-                  onChange={(evento) => establecerModulo(evento.target.value)}
-                >
-                  {OPCIONES_MODULO.map((opcion) => (
-                    <option key={opcion.valor} value={opcion.valor}>
-                      {opcion.etiqueta}
-                    </option>
-                  ))}
-                </select>
-              </div>
-            </>
+            <CampoBusqueda
+              id="busqueda-log-errores"
+              etiqueta="Buscar por mensaje, tipo de error o usuario"
+              placeholder="Buscar por mensaje, tipo de error o usuario"
+              valor={busqueda}
+              alCambiar={establecerBusqueda}
+            />
           )}
+        </BarraBusquedaListado>
+
+        <div className={estilos.filaFiltros}>
           <FiltroRangoFechas
             fechaDesde={fechaDesde}
             fechaHasta={fechaHasta}
@@ -146,9 +122,26 @@ export default function PaginaLogErrores() {
             alCambiarFechaHasta={establecerFechaHasta}
             mensajeError={mensajeErrorRango}
           />
+          {SOPORTA_FILTRO_MODULO_Y_BUSQUEDA && (
+            <div className={estilos.campoModulo}>
+              <label htmlFor="modulo-log-errores" className={estilos.etiquetaModulo}>
+                Módulo
+              </label>
+              <select
+                id="modulo-log-errores"
+                className={estilos.selectorModulo}
+                value={modulo}
+                onChange={(evento) => establecerModulo(evento.target.value)}
+              >
+                {OPCIONES_MODULO.map((opcion) => (
+                  <option key={opcion.valor} value={opcion.valor}>
+                    {opcion.etiqueta}
+                  </option>
+                ))}
+              </select>
+            </div>
+          )}
         </div>
-
-        <FiltrosActivos filtros={chipsActivos} hayFiltros={hayFiltros} alLimpiar={limpiarFiltros} />
       </section>
 
       {/* Total y paginación arriba del listado, como en Usuarios y Auditorías. */}
@@ -166,19 +159,15 @@ export default function PaginaLogErrores() {
         {estado === 'error' && <EstadoConsulta tipo="error" alReintentar={reintentar} />}
 
         {estado === 'listo' && errores.length === 0 && (
-          <EstadoConsulta
-            tipo="vacio"
-            mensaje={MENSAJE_VACIO}
-            etiquetaAccion={hayFiltros ? 'Limpiar filtros' : undefined}
-            alAccion={hayFiltros ? limpiarFiltros : undefined}
-          />
+          <EstadoConsulta tipo="vacio" mensaje={MENSAJE_VACIO} />
         )}
 
         {estado === 'listo' && errores.length > 0 && (
           <>
             {recargando && <p className={estilos.actualizando}>Actualizando resultados…</p>}
             <TablaLogErrores errores={errores} ocupado={recargando} />
-            <div className={estilos.pie}>{pieDePaginacion('inferior')}</div>
+            {/* Con una sola página el total ya está arriba: no se repite abajo. */}
+            {totalPaginas > 1 && <div className={estilos.pie}>{pieDePaginacion('inferior')}</div>}
           </>
         )}
       </section>

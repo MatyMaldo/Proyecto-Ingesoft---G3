@@ -90,15 +90,24 @@ describe('HU-SAT-04 · Encabezado', () => {
   });
 });
 
-describe('HU-SAT-04 · Paginación de 15 en 15 (Esc. 4)', () => {
-  it('muestra 15 registros por página y el mismo paginador arriba y abajo, con total solo en el superior', async () => {
+describe('HU-SAT-04 · Paginación de 10 en 10', () => {
+  it('muestra 10 registros por página y el mismo paginador arriba y abajo, con total solo en el superior', async () => {
     await renderizarYEsperar();
 
-    expect(totalMostrado()).toHaveTextContent('1 – 15 de 26 registros');
+    expect(totalMostrado()).toHaveTextContent('1 – 10 de 26 registros');
     const inferior = screen.getByRole('navigation', PAGINADOR_INFERIOR);
-    expect(inferior).toHaveTextContent('1 – 15 de 26 registros');
+    expect(inferior).toHaveTextContent('1 – 10 de 26 registros');
     expect(within(inferior).queryByRole('status')).not.toBeInTheDocument();
-    expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(16);
+    expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(11);
+  });
+
+  it('con una sola página no repite el paginador abajo', async () => {
+    const usuario = userEvent.setup();
+    await renderizarYEsperar();
+
+    await usuario.selectOptions(screen.getByLabelText('Módulo'), 'PAGOS');
+    await waitFor(() => expect(totalMostrado()).toHaveTextContent(/^1 – \d+ de \d+ registros?$/));
+    await waitFor(() => expect(screen.queryByRole('navigation', PAGINADOR_INFERIOR)).not.toBeInTheDocument());
   });
 
   it('cambia de página y conserva los filtros; al cambiar un filtro vuelve a la primera', async () => {
@@ -106,88 +115,87 @@ describe('HU-SAT-04 · Paginación de 15 en 15 (Esc. 4)', () => {
     await renderizarYEsperar();
 
     await usuario.click(within(screen.getByRole('navigation', PAGINADOR_SUPERIOR)).getByRole('button', { name: 'Página siguiente' }));
-    await waitFor(() => expect(totalMostrado()).toHaveTextContent('16 – 26 de 26 registros'));
-    expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(12);
+    await waitFor(() => expect(totalMostrado()).toHaveTextContent('11 – 20 de 26 registros'));
+    expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(11);
 
     // Un filtro nuevo regresa a la primera página.
     await usuario.selectOptions(screen.getByLabelText('Módulo'), 'NOTAS');
-    await waitFor(() => expect(screen.getByRole('list', { name: 'Filtros aplicados' })).toBeInTheDocument());
     await waitFor(() => expect(totalMostrado()).toHaveTextContent(/^1 – \d+ de \d+ registros?$/));
   });
 });
 
-describe('HU-SAT-04 · Filtros aplicados y "Limpiar filtros"', () => {
-  it('no ofrece limpiar mientras no haya filtros', async () => {
+describe('HU-SAT-04 · Búsqueda, "Actualizar" y "Limpiar filtros"', () => {
+  it('no ofrece limpiar mientras no haya filtros y nunca muestra los filtros elegidos como chips', async () => {
+    const usuario = userEvent.setup();
     await renderizarYEsperar();
 
     expect(screen.queryByRole('button', { name: 'Limpiar filtros' })).not.toBeInTheDocument();
+    await usuario.selectOptions(screen.getByLabelText('Módulo'), 'NOTAS');
+    await usuario.selectOptions(screen.getByLabelText('Tipo de acción'), 'CREAR');
+    fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '2026-09-17' } });
+
+    await screen.findByRole('button', { name: 'Limpiar filtros' });
     expect(screen.queryByRole('list', { name: 'Filtros aplicados' })).not.toBeInTheDocument();
   });
 
-  it('muestra un chip por filtro, permite quitarlo por separado y limpiar todo', async () => {
+  it('"Limpiar filtros" restablece módulo, acción, búsqueda y fechas', async () => {
     const usuario = userEvent.setup();
     await renderizarYEsperar();
 
     await usuario.selectOptions(screen.getByLabelText('Módulo'), 'NOTAS');
     await usuario.selectOptions(screen.getByLabelText('Tipo de acción'), 'CREAR');
-
-    const chips = await screen.findByRole('list', { name: 'Filtros aplicados' });
-    expect(within(chips).getByText('Módulo: Notas')).toBeInTheDocument();
-    expect(within(chips).getByText('Acción: Crear')).toBeInTheDocument();
-
-    await usuario.click(within(chips).getByRole('button', { name: 'Quitar filtro Módulo: Notas' }));
-    expect(screen.getByLabelText('Módulo')).toHaveValue('TODOS');
-    expect(screen.getByLabelText('Tipo de acción')).toHaveValue('CREAR');
-
-    await usuario.click(screen.getByRole('button', { name: 'Limpiar filtros' }));
-    expect(screen.getByLabelText('Tipo de acción')).toHaveValue('');
-    expect(screen.queryByRole('button', { name: 'Limpiar filtros' })).not.toBeInTheDocument();
-    await waitFor(() => expect(totalMostrado()).toHaveTextContent('1 – 15 de 26 registros'));
-  });
-
-  it('limpiar también vacía la búsqueda y las fechas', async () => {
-    const usuario = userEvent.setup();
-    await renderizarYEsperar();
-
     await usuario.type(screen.getByLabelText('Buscar usuario o descripción en la página'), 'zzz');
     fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '2026-09-17' } });
     await usuario.click(await screen.findByRole('button', { name: 'Limpiar filtros' }));
 
+    expect(screen.getByLabelText('Módulo')).toHaveValue('TODOS');
+    expect(screen.getByLabelText('Tipo de acción')).toHaveValue('');
     expect(screen.getByLabelText('Buscar usuario o descripción en la página')).toHaveValue('');
     expect(screen.getByLabelText('Desde')).toHaveValue('');
     expect(screen.getByLabelText('Hasta')).toHaveValue('');
+    expect(screen.queryByRole('button', { name: 'Limpiar filtros' })).not.toBeInTheDocument();
+    await waitFor(() => expect(totalMostrado()).toHaveTextContent('1 – 10 de 26 registros'));
   });
 
-  it('el mensaje de sin resultados también ofrece limpiar los filtros', async () => {
+  it('sin resultados muestra solo el mensaje: el único "Limpiar filtros" es el de la barra del buscador', async () => {
     const usuario = userEvent.setup();
     await renderizarYEsperar();
 
     await usuario.selectOptions(screen.getByLabelText('Tipo de acción'), 'ELIMINAR');
     await usuario.selectOptions(screen.getByLabelText('Módulo'), 'PAGOS');
-    await screen.findByText('No se encontraron registros de auditoría con los criterios indicados');
+    const mensaje = await screen.findByText('No se encontraron registros de auditoría con los criterios indicados');
+    expect(within(mensaje.parentElement).queryByRole('button')).not.toBeInTheDocument();
 
     const botones = screen.getAllByRole('button', { name: 'Limpiar filtros' });
-    await usuario.click(botones[botones.length - 1]);
+    expect(botones).toHaveLength(1);
+    await usuario.click(botones[0]);
     await waitFor(() => expect(screen.getByRole('table')).toBeInTheDocument());
   });
-});
 
-describe('HU-SAT-04 · Rango de fechas como filtro aplicado', () => {
-  it('muestra el rango escrito como chip y quitarlo vacía las fechas', async () => {
+  it('pone el buscador con "Actualizar" en la primera línea y las fechas antes que los selectores', async () => {
     const usuario = userEvent.setup();
     await renderizarYEsperar();
 
-    fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '2026-09-17' } });
-    fireEvent.change(screen.getByLabelText('Hasta'), { target: { value: '2026-09-18' } });
+    const buscador = screen.getByLabelText('Buscar usuario o descripción en la página');
+    const actualizar = screen.getByRole('button', { name: 'Actualizar' });
+    const desde = screen.getByLabelText('Desde');
+    const hasta = screen.getByLabelText('Hasta');
+    const modulo = screen.getByLabelText('Módulo');
+    const accion = screen.getByLabelText('Tipo de acción');
+    const viene = (a, b) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
 
-    const chips = await screen.findByRole('list', { name: 'Filtros aplicados' });
-    expect(within(chips).getByText('Fecha: 17/09/2026 – 18/09/2026')).toBeInTheDocument();
+    expect(viene(buscador, actualizar)).toBe(true);
+    expect(viene(actualizar, desde)).toBe(true);
+    expect(viene(desde, hasta)).toBe(true);
+    expect(viene(hasta, modulo)).toBe(true);
+    expect(viene(modulo, accion)).toBe(true);
 
-    await usuario.click(within(chips).getByRole('button', { name: /^Quitar filtro Fecha/ }));
-    expect(screen.getByLabelText('Desde')).toHaveValue('');
-    expect(screen.getByLabelText('Hasta')).toHaveValue('');
+    await usuario.click(actualizar);
+    await waitFor(() => expect(totalMostrado()).toHaveTextContent('1 – 10 de 26 registros'));
   });
+});
 
+describe('HU-SAT-04 · Rango de fechas', () => {
   it('no ofrece atajos de fecha (Hoy, Últimos 7 días...)', async () => {
     await renderizarYEsperar();
 

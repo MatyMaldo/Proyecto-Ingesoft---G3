@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
+import BarraBusquedaListado from '../../../shared/components/BarraBusquedaListado.jsx';
 import CampoBusqueda from '../../../shared/components/CampoBusqueda.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import FiltroChips from '../../../shared/components/FiltroChips.jsx';
@@ -36,6 +37,8 @@ function PaginaUsuarios() {
     const [cargando, setCargando] = useState(!USAR_MOCK);
     const [errorCarga, setErrorCarga] = useState('');
     const [intentoCarga, setIntentoCarga] = useState(0);
+    // `true` mientras "Actualizar" vuelve a pedir la lista: la tabla sigue a la vista (no vuelve al esqueleto de carga).
+    const [actualizando, setActualizando] = useState(false);
     // Búsqueda, filtros y página viven también en la URL (?q=&rol=&estado=&pagina=): sobreviven a recargar la
     // página y a volver desde otra pantalla. Se leen una sola vez al montar y después se reflejan en la URL.
     const [parametros, establecerParametros] = useSearchParams();
@@ -51,7 +54,12 @@ function PaginaUsuarios() {
     useEffect(() => {
         if (USAR_MOCK) return undefined;
         let vigente = true;
-        setCargando(true);
+        // Con la lista ya a la vista se actualiza en sitio; en la primera carga o tras un error, se muestra el esqueleto.
+        if (usuarios.length > 0 && !errorCarga) {
+            setActualizando(true);
+        } else {
+            setCargando(true);
+        }
         setErrorCarga('');
         listarUsuarios().then(resultado => {
             if (!vigente) return;
@@ -61,8 +69,11 @@ function PaginaUsuarios() {
                 setUsuarios(resultado.datos);
             }
             setCargando(false);
+            setActualizando(false);
         });
         return () => { vigente = false; };
+        // Solo se vuelve a pedir al reintentar o actualizar: `usuarios` y `errorCarga` se leen tal como están en ese momento.
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [intentoCarga]);
     useEffect(() => {
         const siguientes = new URLSearchParams(parametros);
@@ -138,6 +149,7 @@ function PaginaUsuarios() {
     const cambiarRol = valor => { setRolFiltro(valor); setPagina(0); };
     const cambiarEstado = valor => { setEstadoFiltro(valor); setPagina(0); };
     const limpiarFiltros = () => { setQuery(''); setRolFiltro('Todos'); setEstadoFiltro('Todos'); setPagina(0); };
+    const recargar = () => setIntentoCarga(actual => actual + 1);
     // Pulsar la misma columna invierte el sentido; otra columna empieza en ascendente.
     const ordenarPor = campo => {
         setOrden(actual => ({ campo, direccion: actual.campo === campo && actual.direccion === 'asc' ? 'desc' : 'asc' }));
@@ -192,25 +204,22 @@ function PaginaUsuarios() {
       {/* Búsqueda arriba; debajo, los chips de rol y de estado (con conteo), cada grupo con su subtítulo; "Limpiar
           filtros" aparece junto al buscador cuando hay algún criterio activo. */}
       <section className={estilos.filtros} aria-label="Búsqueda y filtros de usuarios">
-        <div className={estilos.filaFiltros}>
-          <div className={estilos.campoBusqueda}>
-            <CampoBusqueda
-              id="busqueda-usuarios"
-              etiqueta="Buscar usuarios por nombre, DNI o correo"
-              placeholder="Buscar por nombre, DNI o correo"
-              valor={query}
-              alCambiar={cambiarBusqueda}
-            />
-          </div>
-          {/* Junto al buscador: esa fila siempre tiene espacio, así el botón aparece y desaparece sin mover lo que hay
-              debajo (en la fila de chips bajaba de línea en casi todos los anchos). */}
-          {hayFiltros && (
-            <button type="button" className={estilos.limpiarFiltros} onClick={limpiarFiltros}>
-              <Icono nombre="cerrar" tamano={14} />
-              Limpiar filtros
-            </button>
-          )}
-        </div>
+        {/* Junto al buscador: esa fila siempre tiene espacio, así "Limpiar filtros" aparece y desaparece sin mover lo
+            que hay debajo. "Actualizar" vuelve a pedir la lista sin perder búsqueda, filtros ni página. */}
+        <BarraBusquedaListado
+          alActualizar={recargar}
+          actualizando={actualizando}
+          hayFiltros={hayFiltros}
+          alLimpiar={limpiarFiltros}
+        >
+          <CampoBusqueda
+            id="busqueda-usuarios"
+            etiqueta="Buscar usuarios por nombre, DNI o correo"
+            placeholder="Buscar por nombre, DNI o correo"
+            valor={query}
+            alCambiar={cambiarBusqueda}
+          />
+        </BarraBusquedaListado>
         <div className={estilos.filaChips}>
           {/* El subtítulo es visual: el grupo ya tiene su nombre accesible en `etiquetaGrupo`. */}
           <div className={estilos.grupoFiltro}>
@@ -253,7 +262,8 @@ function PaginaUsuarios() {
         ) : (
           <>
             <TablaUsuarios usuarios={usuariosPagina} esProtegido={esAdministrador} alEditar={openEdit} alCambiarEstado={openToggle} orden={orden} alOrdenar={ordenarPor} />
-            <div className={estilos.pie}>{paginador('inferior')}</div>
+            {/* Con una sola página el total ya está arriba: no se repite abajo. */}
+            {totalPaginas > 1 && <div className={estilos.pie}>{paginador('inferior')}</div>}
           </>
         )}
       </section>

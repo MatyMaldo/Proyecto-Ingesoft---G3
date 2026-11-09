@@ -63,6 +63,20 @@ describe('Usuarios · listado, filtros y acciones', () => {
     expect(within(filtros).queryByRole('combobox')).not.toBeInTheDocument();
   });
 
+  it('pone "Actualizar" (solo ícono) a la derecha del buscador, antes de los chips', () => {
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
+
+    const buscador = screen.getByLabelText(ETIQUETA_BUSCADOR);
+    const actualizar = screen.getByRole('button', { name: 'Actualizar' });
+    const chipsRol = screen.getByRole('group', { name: 'Filtrar usuarios por rol' });
+    const viene = (a, b) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+    expect(actualizar).toBeEnabled();
+    expect(actualizar).toHaveTextContent('');
+    expect(viene(buscador, actualizar)).toBe(true);
+    expect(viene(actualizar, chipsRol)).toBe(true);
+  });
+
   it('muestra el conteo en todos los chips de rol cuando no hay filtros', () => {
     render(<PaginaUsuarios />, { wrapper: MemoryRouter });
 

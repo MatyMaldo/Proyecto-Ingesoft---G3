@@ -1,6 +1,7 @@
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import { solicitar } from '../../../shared/api/clienteHttp.js';
 import {
+  contarMatriculasPorEstadoMock,
   listarMatriculasMock,
   obtenerAlumnosMock
 } from './mocks/matriculasMock.js';
@@ -177,7 +178,7 @@ export async function obtenerEstructuraListadoMatriculas() {
 
 /**
  * Listado administrativo paginado de matrículas.
- * El backend ordena por fechaAsignacion DESC e id DESC.
+ * El backend ordena por fechaAsignacion DESC e id DESC. `busqueda` filtra por nombre o código del estudiante.
  */
 export async function listarMatriculas({
   anioId,
@@ -185,11 +186,12 @@ export async function listarMatriculas({
   seccionId,
   estado,
   estudianteId,
+  busqueda,
   page = 0,
-  size = 15
+  size = 10
 } = {}) {
   if (USAR_MOCK) {
-    return listarMatriculasMock({ anioId, gradoId, seccionId, estado, estudianteId, page, size });
+    return listarMatriculasMock({ anioId, gradoId, seccionId, estado, estudianteId, busqueda, page, size });
   }
 
   const respuesta = await solicitar('/matriculas', {
@@ -199,6 +201,7 @@ export async function listarMatriculas({
       seccionId: numeroOpcional(seccionId),
       estado: estado || undefined,
       estudianteId: numeroOpcional(estudianteId),
+      busqueda: busqueda?.trim() || undefined,
       page,
       size
     }
@@ -214,6 +217,36 @@ export async function listarMatriculas({
     typeof datos.number !== 'number'
   ) {
     return falloFormato('el listado de matrículas');
+  }
+  return respuesta;
+}
+
+/**
+ * Cantidad de matrículas por estado con los filtros del listado (año, grado, sección y búsqueda; el estado no
+ * filtra este conteo). Alimenta los contadores de los chips de estado.
+ *
+ * @returns {Promise<{ exitoso: boolean, datos: { total: number, pendientes: number, confirmadas: number,
+ *   canceladas: number }|null, mensaje: string }>}
+ */
+export async function contarMatriculasPorEstado({ anioId, gradoId, seccionId, busqueda } = {}) {
+  if (USAR_MOCK) {
+    return contarMatriculasPorEstadoMock({ anioId, gradoId, seccionId, busqueda });
+  }
+
+  const respuesta = await solicitar('/matriculas/conteo-por-estado', {
+    parametros: {
+      anioId: numeroOpcional(anioId),
+      gradoId: numeroOpcional(gradoId),
+      seccionId: numeroOpcional(seccionId),
+      busqueda: busqueda?.trim() || undefined
+    }
+  });
+  if (!respuesta.exitoso) return respuesta;
+
+  const datos = respuesta.datos;
+  const camposNumericos = ['total', 'pendientes', 'confirmadas', 'canceladas'];
+  if (!datos || camposNumericos.some((campo) => typeof datos[campo] !== 'number')) {
+    return falloFormato('el conteo de matrículas por estado');
   }
   return respuesta;
 }

@@ -1,5 +1,7 @@
 import { useRef, useState } from 'react';
 
+import BarraBusquedaListado from '../../../shared/components/BarraBusquedaListado.jsx';
+import CampoBusqueda from '../../../shared/components/CampoBusqueda.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import FiltroChips from '../../../shared/components/FiltroChips.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
@@ -21,12 +23,15 @@ import {
 } from '../services/matriculasService.js';
 import estilos from './PaginaMatriculas.module.css';
 
-/** Chips del filtro de estado; el tono es el mismo de la insignia de estado de la tabla. Sin conteo: el listado se pagina en el servidor. */
+/**
+ * Chips del filtro de estado; el tono es el mismo de la insignia de estado de la tabla. `campoConteo` es el campo
+ * del conteo por estado que trae el backend (`/matriculas/conteo-por-estado`) para ese chip.
+ */
 const OPCIONES_ESTADO = [
-  { valor: '', etiqueta: 'Todos', tono: 'gris' },
-  { valor: 'PENDIENTE', etiqueta: 'Pendiente', tono: 'ambar' },
-  { valor: 'CONFIRMADA', etiqueta: 'Confirmada', tono: 'verde' },
-  { valor: 'CANCELADA', etiqueta: 'Cancelada', tono: 'rojo' }
+  { valor: '', etiqueta: 'Todos', tono: 'gris', campoConteo: 'total' },
+  { valor: 'PENDIENTE', etiqueta: 'Pendiente', tono: 'ambar', campoConteo: 'pendientes' },
+  { valor: 'CONFIRMADA', etiqueta: 'Confirmada', tono: 'verde', campoConteo: 'confirmadas' },
+  { valor: 'CANCELADA', etiqueta: 'Cancelada', tono: 'rojo', campoConteo: 'canceladas' }
 ];
 
 export default function PaginaMatriculas() {
@@ -37,6 +42,9 @@ export default function PaginaMatriculas() {
     errorEstructura,
     secciones,
     filtros,
+    busqueda,
+    conteoEstados,
+    cambiarBusqueda,
     cambiarFiltro,
     limpiarFiltros,
     pagina,
@@ -125,7 +133,7 @@ export default function PaginaMatriculas() {
 
   const estructuraLista = estadoEstructura === 'listo';
   const cargandoListado = estadoEstructura === 'cargando' || (estructuraLista && estado === 'cargando');
-  const hayFiltros = Boolean(filtros.gradoId || filtros.seccionId || filtros.estado);
+  const hayFiltros = Boolean(filtros.gradoId || filtros.seccionId || filtros.estado || busqueda.trim());
   const hayResultados = estructuraLista && estado === 'listo' && matriculas.length > 0;
 
   // Al cambiar de página (sobre todo desde el paginador inferior), devuelve la vista al inicio del listado.
@@ -150,6 +158,15 @@ export default function PaginaMatriculas() {
       anunciarTotal={posicion === 'superior'}
     />
   );
+
+  // Contadores de los chips con año, grado, sección y búsqueda vigentes. Con "Todos" cada chip muestra su cantidad;
+  // al elegir un estado, solo ese la muestra (mismo patrón que Pagos). Sin conteo del servidor, no se muestra ninguno.
+  const opcionesEstado = OPCIONES_ESTADO.map(({ campoConteo, ...opcion }) => ({
+    ...opcion,
+    conteo: conteoEstados && (!filtros.estado || opcion.valor === filtros.estado)
+      ? conteoEstados[campoConteo]
+      : undefined
+  }));
 
   const opcionesAnio = [
     { valor: '', etiqueta: 'Todos los años' },
@@ -215,8 +232,25 @@ export default function PaginaMatriculas() {
         </div>
       </header>
 
-      {/* Año, grado y sección como selectores; el estado, como chips con su subtítulo (mismo patrón que Usuarios). */}
-      <section className={estilos.filtros} aria-label="Filtros del listado de matrículas">
+      {/* El buscador va solo en la primera línea, con "Actualizar" a su costado; debajo, año, grado y sección como
+          selectores y el estado como chips con su subtítulo (mismo patrón que Usuarios y Pagos). */}
+      <section className={estilos.filtros} aria-label="Búsqueda y filtros del listado de matrículas">
+        <BarraBusquedaListado
+          alActualizar={recargar}
+          actualizando={recargando}
+          hayFiltros={hayFiltros}
+          alLimpiar={limpiarFiltros}
+        >
+          <CampoBusqueda
+            id="busqueda-matriculas"
+            etiqueta="Buscar matrículas por nombre o código del estudiante"
+            placeholder="Buscar por nombre o código"
+            valor={busqueda}
+            alCambiar={cambiarBusqueda}
+            maxLength={100}
+          />
+        </BarraBusquedaListado>
+
         <div className={estilos.filaFiltros}>
           <SelectFiltro
             apilado
@@ -245,18 +279,6 @@ export default function PaginaMatriculas() {
             alCambiar={(valor) => cambiarFiltro('seccionId', valor)}
             deshabilitado={!filtros.gradoId || !filtros.anioId}
           />
-          <div className={estilos.accionesFiltros}>
-            <button type="button" className={estilos.botonActualizar} onClick={recargar}>
-              <Icono nombre="reintentar" tamano={16} />
-              Actualizar
-            </button>
-            {hayFiltros && (
-              <button type="button" className={estilos.limpiarFiltros} onClick={limpiarFiltros}>
-                <Icono nombre="cerrar" tamano={14} />
-                Limpiar filtros
-              </button>
-            )}
-          </div>
         </div>
 
         <div className={estilos.grupoFiltro}>
@@ -264,7 +286,7 @@ export default function PaginaMatriculas() {
           <span className={estilos.rotuloFiltro} aria-hidden="true">Estado</span>
           <FiltroChips
             etiquetaGrupo="Filtrar matrículas por estado"
-            opciones={OPCIONES_ESTADO}
+            opciones={opcionesEstado}
             valorSeleccionado={filtros.estado}
             alSeleccionar={(valor) => cambiarFiltro('estado', valor)}
           />
@@ -299,8 +321,6 @@ export default function PaginaMatriculas() {
           <EstadoConsulta
             tipo="vacio"
             mensaje="No se encontraron matrículas con los criterios indicados"
-            etiquetaAccion={hayFiltros ? 'Limpiar filtros' : undefined}
-            alAccion={hayFiltros ? limpiarFiltros : undefined}
           />
         )}
 
@@ -312,7 +332,8 @@ export default function PaginaMatriculas() {
               alEmitir={emitirDesdeFila}
               emitiendoId={emitiendoId}
             />
-            <div className={estilos.pie}>{paginador('inferior')}</div>
+            {/* Con una sola página el total ya está arriba: no se repite abajo. */}
+            {totalPaginas > 1 && <div className={estilos.pie}>{paginador('inferior')}</div>}
           </>
         )}
       </section>

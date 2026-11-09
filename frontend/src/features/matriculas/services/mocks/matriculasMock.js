@@ -77,16 +77,35 @@ const MATRICULAS_MOCK = ALUMNOS.map((alumno, indice) => ({
   anioAcademico: 2026
 }));
 
-export const listarMatriculasMock = (filtros = {}) => esperar(() => {
-  const filtradas = MATRICULAS_MOCK.filter((matricula) => (
-    (!filtros.anioId || String(matricula.anioAcademicoId) === String(filtros.anioId))
+/** Aplica los filtros del listado; `ignorarEstado` es para contar por estado (el estado no filtra ese conteo). */
+const filtrarMatriculasMock = (filtros, { ignorarEstado = false } = {}) => {
+  const termino = normalizarTexto(String(filtros.busqueda ?? ''));
+  return MATRICULAS_MOCK.filter((matricula) => (
+    (!termino || normalizarTexto(`${matricula.nombreCompletoEstudiante} ${matricula.codigoEstudiante}`).includes(termino))
+    && (!filtros.anioId || String(matricula.anioAcademicoId) === String(filtros.anioId))
     && (!filtros.gradoId || String(matricula.gradoId) === String(filtros.gradoId))
     && (!filtros.seccionId || String(matricula.seccionId) === String(filtros.seccionId))
-    && (!filtros.estado || matricula.estado === filtros.estado)
+    && (ignorarEstado || !filtros.estado || matricula.estado === filtros.estado)
     && (!filtros.estudianteId || String(matricula.estudianteId) === String(filtros.estudianteId))
   ));
+};
+
+/** Cantidad de matrículas por estado con los filtros del listado, sin el estado (como `/matriculas/conteo-por-estado`). */
+export const contarMatriculasPorEstadoMock = (filtros = {}) => esperar(() => {
+  const filtradas = filtrarMatriculasMock(filtros, { ignorarEstado: true });
+  const cantidad = (estado) => filtradas.filter((matricula) => matricula.estado === estado).length;
+  return exito({
+    total: filtradas.length,
+    pendientes: cantidad('PENDIENTE'),
+    confirmadas: cantidad('CONFIRMADA'),
+    canceladas: cantidad('CANCELADA')
+  });
+});
+
+export const listarMatriculasMock = (filtros = {}) => esperar(() => {
+  const filtradas = filtrarMatriculasMock(filtros);
   const page = Number(filtros.page ?? 0);
-  const size = Number(filtros.size ?? 15);
+  const size = Number(filtros.size ?? 10);
   const inicio = page * size;
 
   return exito({

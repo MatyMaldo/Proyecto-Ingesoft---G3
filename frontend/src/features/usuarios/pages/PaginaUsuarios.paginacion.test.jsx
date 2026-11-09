@@ -46,9 +46,9 @@ describe('Usuarios · paginación de 10 en 10 (HU-SAT-02, escenario 12)', () => 
 
     const tabla = screen.getByRole('table');
     expect(within(tabla).getByText('Usuario01 Prueba')).toBeInTheDocument();
-    // 9 coincidencias caben en una página: se ve el total, pero ya no hay botones para cambiar de página.
+    // 9 coincidencias caben en una página: se ve el total arriba, no se repite abajo y no hay botones de página.
     expect(paginador('superior')).toHaveTextContent('1 – 9 de 9 usuarios');
-    expect(paginador('inferior')).toHaveTextContent('1 – 9 de 9 usuarios');
+    expect(screen.queryByRole('navigation', { name: 'Paginación de usuarios (inferior)' })).not.toBeInTheDocument();
     expect(screen.queryByRole('button', { name: /siguiente/i })).not.toBeInTheDocument();
   });
 });

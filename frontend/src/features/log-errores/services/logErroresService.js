@@ -2,7 +2,8 @@ import { obtenerErroresMock } from './mocks/logErroresMock.js';
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import { solicitar } from '../../../shared/api/clienteHttp.js';
 
-export const TAMANIO_PAGINA_LOG_ERRORES = 15;
+/** Errores por página: 10 en 10, igual que el resto de listados del panel (antes 15). */
+export const TAMANIO_PAGINA_LOG_ERRORES = 10;
 
 /**
  * Indica si el origen de datos soporta el filtro de módulo y el buscador.

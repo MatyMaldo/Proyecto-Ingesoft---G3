@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
+import BotonActualizar from '../../../shared/components/BotonActualizar.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
-import Icono from '../../../shared/components/Icono.jsx';
 import Notificacion from '../../../shared/components/Notificacion.jsx';
 import SelectFiltro from '../../../shared/components/SelectFiltro.jsx';
 import useNotificacion from '../../../shared/hooks/useNotificacion.js';
@@ -101,15 +101,11 @@ export default function PaginaPagosApoderado() {
           alCambiar={seleccionarEstudiante}
           deshabilitado={estadoEstudiantes !== 'listo' || estudiantes.length === 0}
         />
-        <button
-          type="button"
-          className={estilos.botonActualizar}
-          onClick={recargar}
-          disabled={estadoAnios !== 'listo'}
-        >
-          <Icono nombre="reintentar" tamano={16} />
-          Actualizar
-        </button>
+        <BotonActualizar
+          alActualizar={recargar}
+          actualizando={estadoCompromisos === 'cargando'}
+          deshabilitado={estadoAnios !== 'listo'}
+        />
       </section>
 
       {contextoEstudiante && (

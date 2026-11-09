@@ -10,6 +10,7 @@ vi.mock('../../../shared/api/clienteHttp.js', () => ({ solicitar }));
 vi.mock('../../grados-secciones/services/gradosSeccionesService.js', () => ({ consultarEstructura }));
 
 import {
+  contarMatriculasPorEstado,
   obtenerAlumnos,
   obtenerEstructuraMatricula,
   obtenerEstructuraMatriculaVigente,
@@ -135,7 +136,7 @@ describe('matriculasService', () => {
         totalElements: 1,
         totalPages: 1,
         number: 0,
-        size: 15
+        size: 10
       }
     });
 
@@ -144,8 +145,9 @@ describe('matriculasService', () => {
       gradoId: '',
       seccionId: '2',
       estado: 'CONFIRMADA',
+      busqueda: '  Luis ',
       page: 0,
-      size: 15
+      size: 10
     });
 
     expect(solicitar).toHaveBeenCalledWith('/matriculas', {
@@ -155,11 +157,40 @@ describe('matriculasService', () => {
         seccionId: 2,
         estado: 'CONFIRMADA',
         estudianteId: undefined,
+        busqueda: 'Luis',
         page: 0,
-        size: 15
+        size: 10
       }
     });
     expect(resultado.datos.content[0].id).toBe(12);
+  });
+
+  it('cuenta las matrículas por estado con los filtros del listado, sin el estado', async () => {
+    solicitar.mockResolvedValue({
+      exitoso: true,
+      datos: { total: 5, pendientes: 3, confirmadas: 1, canceladas: 1 }
+    });
+
+    const resultado = await contarMatriculasPorEstado({
+      anioId: '1',
+      gradoId: '',
+      seccionId: '2',
+      busqueda: '  Luis '
+    });
+
+    expect(solicitar).toHaveBeenCalledWith('/matriculas/conteo-por-estado', {
+      parametros: { anioId: 1, gradoId: undefined, seccionId: 2, busqueda: 'Luis' }
+    });
+    expect(resultado.datos).toEqual({ total: 5, pendientes: 3, confirmadas: 1, canceladas: 1 });
+  });
+
+  it('rechaza un conteo por estado con formato inválido', async () => {
+    solicitar.mockResolvedValue({ exitoso: true, datos: { total: 5 } });
+
+    const resultado = await contarMatriculasPorEstado({});
+
+    expect(resultado.exitoso).toBe(false);
+    expect(resultado.mensaje).toMatch(/conteo de matrículas por estado/);
   });
 
   it('rechaza un listado de matrículas con formato inválido', async () => {

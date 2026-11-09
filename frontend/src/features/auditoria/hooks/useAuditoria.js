@@ -204,7 +204,7 @@ export default function useAuditoria() {
       fechaDesde: rangoActual.fechaDesde,
       fechaHasta: rangoActual.fechaHasta,
       tipoAccion: tipoAccionActual || '',
-      // El backend pagina de 15 en 15; cualquier cambio de filtro vuelve a la primera página.
+      // El backend pagina de 10 en 10; cualquier cambio de filtro vuelve a la primera página.
       pagina: paginaActual
     };
     paginaRef.current = paginaActual;

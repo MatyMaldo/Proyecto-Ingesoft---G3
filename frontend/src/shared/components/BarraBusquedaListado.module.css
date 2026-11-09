@@ -1,0 +1,66 @@
+.barra {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-3) var(--espacio-4);
+  min-width: 0;
+}
+
+/* Buscador y botón "Actualizar" siempre juntos: si la línea no alcanza, "Limpiar filtros" baja, ellos no se separan. */
+.grupoBusqueda {
+  display: flex;
+  flex: 1 1 15rem;
+  align-items: flex-end;
+  gap: var(--espacio-2);
+  max-width: 28rem;
+  min-width: 0;
+}
+
+.campoBusqueda {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.limpiarFiltros {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-1);
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-3);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  white-space: nowrap;
+  color: var(--color-accion);
+  background: transparent;
+  border: 0;
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.limpiarFiltros:hover {
+  background: var(--color-accion-suave);
+}
+
+.limpiarFiltros:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  .barra {
+    flex-direction: column;
+    flex-wrap: nowrap;
+    align-items: stretch;
+  }
+
+  .grupoBusqueda {
+    flex: 1 1 100%;
+    max-width: none;
+  }
+
+  .limpiarFiltros {
+    align-self: flex-start;
+    margin-left: calc(var(--espacio-3) * -1);
+  }
+}

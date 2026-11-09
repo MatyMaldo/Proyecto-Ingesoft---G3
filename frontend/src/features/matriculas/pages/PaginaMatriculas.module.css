@@ -110,55 +110,6 @@
   min-width: 0;
 }
 
-.accionesFiltros {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--espacio-2);
-}
-
-/* "Actualizar": secundario y discreto; los resultados ya se recargan solos al cambiar un filtro. */
-.botonActualizar,
-.limpiarFiltros {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--espacio-1);
-  min-height: var(--tactil-min);
-  padding: 0 var(--espacio-3);
-  font: inherit;
-  font-size: var(--texto-md);
-  font-weight: var(--peso-seminegrita);
-  white-space: nowrap;
-  border-radius: var(--radio-md);
-  cursor: pointer;
-}
-
-.botonActualizar {
-  color: var(--color-texto-secundario);
-  background: var(--color-superficie);
-  border: 1px solid var(--color-borde-fuerte);
-}
-
-.botonActualizar:hover {
-  background: var(--color-superficie-suave);
-}
-
-.limpiarFiltros {
-  color: var(--color-accion);
-  background: transparent;
-  border: 0;
-}
-
-.limpiarFiltros:hover {
-  background: var(--color-accion-suave);
-}
-
-.botonActualizar:focus-visible,
-.limpiarFiltros:focus-visible {
-  outline: 2px solid var(--color-foco);
-  outline-offset: 2px;
-}
-
 .grupoFiltro {
   display: flex;
   flex-direction: column;
@@ -220,14 +171,5 @@
     flex-wrap: nowrap;
     align-items: stretch;
     gap: var(--espacio-3);
-  }
-
-  .accionesFiltros > * {
-    flex: 1 1 0;
-    justify-content: center;
-  }
-
-  .limpiarFiltros {
-    flex: 0 1 auto;
   }
 }

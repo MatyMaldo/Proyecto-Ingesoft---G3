@@ -1,0 +1,51 @@
+/* Cuadrado del mismo alto que los campos (--tactil-min), para que quede alineado con el buscador y los selectores. */
+.boton {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: var(--tactil-min);
+  height: var(--tactil-min);
+  padding: 0;
+  color: var(--color-texto-secundario);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.boton:hover:not(:disabled) {
+  color: var(--color-accion);
+  background: var(--color-superficie-suave);
+}
+
+.boton:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.boton:disabled {
+  color: var(--color-texto-suave);
+  cursor: progress;
+}
+
+.icono,
+.girando {
+  display: inline-flex;
+}
+
+.girando {
+  animation: girar 0.9s linear infinite;
+}
+
+@keyframes girar {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .girando {
+    animation: none;
+  }
+}

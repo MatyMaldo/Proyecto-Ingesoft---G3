@@ -50,14 +50,6 @@
   min-width: 0;
 }
 
-.filaFiltros {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--espacio-3) var(--espacio-4);
-  min-width: 0;
-}
-
 /* Fila de los dos grupos de chips: mucho aire entre ellos para que se lean como filtros distintos. */
 .filaChips {
   display: flex;
@@ -83,32 +75,6 @@
   color: var(--color-texto-suave);
 }
 
-/* "Limpiar filtros": botón de texto a la derecha del buscador, visible solo con algún criterio activo. */
-.limpiarFiltros {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--espacio-1);
-  min-height: calc(var(--tactil-min) - var(--espacio-2));
-  padding: 0 var(--espacio-3);
-  font: inherit;
-  font-size: var(--texto-md);
-  font-weight: var(--peso-seminegrita);
-  color: var(--color-accion);
-  background: transparent;
-  border: 0;
-  border-radius: var(--radio-md);
-  cursor: pointer;
-}
-
-.limpiarFiltros:hover {
-  background: var(--color-accion-suave);
-}
-
-.limpiarFiltros:focus-visible {
-  outline: 2px solid var(--color-foco);
-  outline-offset: 2px;
-}
-
 /* Con ambos grupos en la misma línea (pantallas anchas) se separan además con una línea vertical fina. */
 @media (min-width: 1400px) {
   .filaChips {
@@ -120,12 +86,6 @@
     padding-left: var(--espacio-8);
     border-left: 1px solid var(--color-borde);
   }
-}
-
-.campoBusqueda {
-  /* Crece hasta 18 rem si hay espacio, para que el texto de ayuda no quede cortado. */
-  flex: 1 1 15rem;
-  max-width: 18rem;
 }
 
 .boton {
@@ -201,30 +161,10 @@
     align-items: stretch;
   }
 
-  .campoBusqueda {
-    flex: 1 1 100%;
-    width: 100%;
-    min-width: 0;
-  }
-
   .filaChips {
     flex-direction: column;
     flex-wrap: nowrap;
     align-items: stretch;
     gap: var(--espacio-4);
   }
-
-  .limpiarFiltros {
-    align-self: flex-start;
-    min-height: var(--tactil-min);
-    margin-left: calc(var(--espacio-3) * -1);
-  }
-
-  .filaFiltros {
-    flex-direction: column;
-    flex-wrap: nowrap;
-    align-items: stretch;
-    gap: var(--espacio-3);
-  }
-
 }

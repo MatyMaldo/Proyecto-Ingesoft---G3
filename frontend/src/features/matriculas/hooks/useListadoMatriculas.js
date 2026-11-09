@@ -2,13 +2,17 @@ import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import {
+  contarMatriculasPorEstado,
   listarMatriculas,
   obtenerEstructuraListadoMatriculas,
   obtenerSeccionesMatricula
 } from '../services/matriculasService.js';
 
-/** Matrículas por página del listado (antes 15; bajado a 10 para evitar el scroll de página, igual que Usuarios). */
+/** Matrículas por página del listado (10 en 10, igual que Usuarios y el resto de listados del panel). */
 const TAMANIO_PAGINA = 10;
+/** Espera tras la última tecla antes de consultar al servidor (la búsqueda se resuelve en el backend). */
+const RETARDO_BUSQUEDA_MS = 300;
+const MAXIMO_BUSQUEDA = 100;
 const FILTROS_INICIALES = { anioId: '', gradoId: '', seccionId: '', estado: '' };
 const ESTADOS_VALIDOS = ['PENDIENTE', 'CONFIRMADA', 'CANCELADA'];
 
@@ -37,8 +41,9 @@ function elegirAnioInicial(anios) {
 }
 
 /**
- * Listado administrativo de matrículas con filtros y paginación. Los filtros y la página viven también en la URL
- * (?anio=&grado=&seccion=&estado=&pagina=), así sobreviven a recargar la página.
+ * Listado administrativo de matrículas con búsqueda, filtros y paginación. La búsqueda (por nombre o código del
+ * estudiante, resuelta en el backend), los filtros y la página viven también en la URL
+ * (?q=&anio=&grado=&seccion=&estado=&pagina=), así sobreviven a recargar la página.
  * No modifica el hook de los modales de asignación.
  */
 export default function useListadoMatriculas() {
@@ -54,6 +59,11 @@ export default function useListadoMatriculas() {
   const [pagina, establecerPagina] = useState(
     () => Math.max(0, (Number.parseInt(parametros.get('pagina'), 10) || 1) - 1)
   );
+  // `busqueda` es lo que se ve en el campo; `busquedaAplicada` es lo que se consulta (con retardo).
+  const [busqueda, establecerBusqueda] = useState(() => (parametros.get('q') ?? '').slice(0, MAXIMO_BUSQUEDA));
+  const [busquedaAplicada, establecerBusquedaAplicada] = useState(() => busqueda.trim());
+  // Cantidad por estado con año, grado, sección y búsqueda vigentes (contadores de los chips); `null` si aún no llega.
+  const [conteoEstados, establecerConteoEstados] = useState(null);
   const [matriculas, establecerMatriculas] = useState([]);
   const [totalElementos, establecerTotalElementos] = useState(0);
   const [totalPaginas, establecerTotalPaginas] = useState(0);
@@ -61,6 +71,8 @@ export default function useListadoMatriculas() {
   const [error, establecerError] = useState('');
   const [recargando, establecerRecargando] = useState(false);
   const [intento, establecerIntento] = useState(0);
+  // Solo vuelve a pedir el listado (botón "Actualizar"): no reinicia la estructura de años y grados.
+  const [recarga, establecerRecarga] = useState(0);
 
   useEffect(() => {
     let cancelado = false;
@@ -104,6 +116,17 @@ export default function useListadoMatriculas() {
     return () => { cancelado = true; };
   }, [filtros.anioId, filtros.gradoId]);
 
+  // La búsqueda se aplica un instante después de dejar de escribir y vuelve a la primera página.
+  useEffect(() => {
+    const nueva = busqueda.trim();
+    if (nueva === busquedaAplicada) return undefined;
+    const temporizador = setTimeout(() => {
+      establecerPagina(0);
+      establecerBusquedaAplicada(nueva);
+    }, RETARDO_BUSQUEDA_MS);
+    return () => clearTimeout(temporizador);
+  }, [busqueda, busquedaAplicada]);
+
   useEffect(() => {
     if (estadoEstructura !== 'listo') return undefined;
     let cancelado = false;
@@ -118,6 +141,7 @@ export default function useListadoMatriculas() {
       gradoId: filtros.gradoId,
       seccionId: filtros.seccionId,
       estado: filtros.estado,
+      busqueda: busquedaAplicada,
       page: pagina,
       size: TAMANIO_PAGINA
     }).then((respuesta) => {
@@ -136,7 +160,36 @@ export default function useListadoMatriculas() {
     });
 
     return () => { cancelado = true; };
-  }, [estadoEstructura, filtros.anioId, filtros.gradoId, filtros.seccionId, filtros.estado, pagina, intento]);
+  }, [
+    estadoEstructura,
+    filtros.anioId,
+    filtros.gradoId,
+    filtros.seccionId,
+    filtros.estado,
+    busquedaAplicada,
+    pagina,
+    intento,
+    recarga
+  ]);
+
+  // Los contadores de los chips no dependen del estado elegido: se vuelven a pedir al cambiar año, grado, sección o
+  // búsqueda, o al actualizar. Si falla, los chips se muestran sin contador (el listado no depende de esto).
+  useEffect(() => {
+    if (estadoEstructura !== 'listo') return undefined;
+    let cancelado = false;
+
+    contarMatriculasPorEstado({
+      anioId: filtros.anioId,
+      gradoId: filtros.gradoId,
+      seccionId: filtros.seccionId,
+      busqueda: busquedaAplicada
+    }).then((respuesta) => {
+      if (cancelado) return;
+      establecerConteoEstados(respuesta.exitoso ? respuesta.datos : null);
+    });
+
+    return () => { cancelado = true; };
+  }, [estadoEstructura, filtros.anioId, filtros.gradoId, filtros.seccionId, busquedaAplicada, intento, recarga]);
 
   // Refleja en la URL los filtros y la página, cuando ya se cargó la estructura (antes el año aún no está elegido).
   useEffect(() => {
@@ -147,11 +200,12 @@ export default function useListadoMatriculas() {
     fijar('grado', filtros.gradoId);
     fijar('seccion', filtros.seccionId);
     fijar('estado', filtros.estado);
+    fijar('q', busquedaAplicada);
     fijar('pagina', pagina > 0 ? String(pagina + 1) : '');
     if (siguientes.toString() !== parametros.toString()) {
       establecerParametros(siguientes, { replace: true });
     }
-  }, [estadoEstructura, filtros, pagina, parametros, establecerParametros]);
+  }, [estadoEstructura, filtros, busquedaAplicada, pagina, parametros, establecerParametros]);
 
   // Una página de la URL que ya no existe (p. ej. se quitaron matrículas) vuelve a la última que sí existe.
   useEffect(() => {
@@ -171,6 +225,8 @@ export default function useListadoMatriculas() {
 
   const limpiarFiltros = () => {
     establecerPagina(0);
+    establecerBusqueda('');
+    establecerBusquedaAplicada('');
     establecerFiltros((actuales) => ({
       ...FILTROS_INICIALES,
       anioId: actuales.anioId
@@ -183,6 +239,10 @@ export default function useListadoMatriculas() {
     errorEstructura,
     secciones,
     filtros,
+    busqueda,
+    busquedaAplicada,
+    conteoEstados,
+    cambiarBusqueda: (valor) => establecerBusqueda(valor.slice(0, MAXIMO_BUSQUEDA)),
     cambiarFiltro,
     limpiarFiltros,
     pagina,
@@ -194,7 +254,7 @@ export default function useListadoMatriculas() {
     error,
     recargando,
     irAPagina: establecerPagina,
-    recargar: () => establecerIntento((actual) => actual + 1),
+    recargar: () => establecerRecarga((actual) => actual + 1),
     reintentarEstructura: () => establecerIntento((actual) => actual + 1)
   };
 }
