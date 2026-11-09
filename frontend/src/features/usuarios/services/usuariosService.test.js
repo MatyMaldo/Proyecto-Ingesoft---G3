@@ -140,7 +140,6 @@ describe('usuariosService', () => {
       dni: '12345678',
       email: 'carlos@example.com',
       telefono: '+51987654321',
-      password: 'Password123',
       codigo: 'EST-001',
       fechaNacimiento: '2010-05-15',
       apoderadoId: 10
@@ -187,7 +186,6 @@ describe('usuariosService', () => {
       dni: '12345678',
       email: 'juan@example.com',
       telefono: '987654321',
-      password: 'Password123',
       ...camposExtra
     };
 

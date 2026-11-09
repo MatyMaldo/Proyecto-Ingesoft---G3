@@ -29,7 +29,7 @@ describe('Usuarios · formularios en diálogo', () => {
     render(<PaginaUsuarios />);
     const dialogo = await abrirRegistro('estudiante');
 
-    for (const etiqueta of ['Nombre', 'Apellido paterno', 'Apellido materno', 'Fecha de nacimiento', 'DNI', 'Teléfono', 'Correo', 'Contraseña inicial', 'Confirmar contraseña', 'DNI del apoderado']) {
+    for (const etiqueta of ['Nombre', 'Apellido paterno', 'Apellido materno', 'Fecha de nacimiento', 'DNI', 'Teléfono', 'Correo', 'DNI del apoderado']) {
       const exacta = new RegExp("^" + etiqueta + "( [*])?$");
       const campo = within(dialogo).getByLabelText(exacta);
       await userEvent.click(within(dialogo).getByText(exacta, { selector: 'label' }));
@@ -41,21 +41,21 @@ describe('Usuarios · formularios en diálogo', () => {
     render(<PaginaUsuarios />);
     const dialogo = await abrirRegistro('docente');
 
-    for (const titulo of ['Datos personales', 'Contacto', 'Acceso']) {
+    for (const titulo of ['Datos personales', 'Contacto']) {
       expect(within(dialogo).getByRole('region', { name: titulo })).toBeInTheDocument();
     }
-    expect(within(dialogo).getByRole('region', { name: 'Acceso' }).querySelectorAll('input[type="password"]')).toHaveLength(2);
+    expect(within(dialogo).queryByRole('region', { name: 'Acceso' })).not.toBeInTheDocument();
     // El estudiante suma la sección del apoderado.
     expect(within(dialogo).queryByRole('region', { name: 'Apoderado' })).not.toBeInTheDocument();
   });
 
-  it('mantiene autocomplete="new-password" en los campos de contraseña', async () => {
+  it.each(['apoderado', 'docente', 'estudiante'])('el formulario de %s no pide contraseña: la define el usuario con un código', async (tipo) => {
     render(<PaginaUsuarios />);
-    const dialogo = await abrirRegistro('apoderado');
+    const dialogo = await abrirRegistro(tipo);
 
-    for (const campo of dialogo.querySelectorAll('input[type="password"]')) {
-      expect(campo).toHaveAttribute('autocomplete', 'new-password');
-    }
+    expect(dialogo.querySelectorAll('input[type="password"]')).toHaveLength(0);
+    expect(within(dialogo).queryByLabelText(/contraseña/i)).not.toBeInTheDocument();
+    expect(within(dialogo).getByRole('note')).toHaveTextContent(/código de verificación/);
   });
 
   it('muestra los errores con ícono y texto, marca el campo y enfoca el primero inválido', async () => {
@@ -132,8 +132,6 @@ describe('Usuarios · formularios en diálogo', () => {
     await userEvent.type(within(dialogo).getByLabelText(/^Edad/), '35');
     await userEvent.type(within(dialogo).getByLabelText(/^Documento de identidad/), '91234567');
     await userEvent.type(within(dialogo).getByLabelText(/^Correo/), 'ana.lopez@correo.com');
-    await userEvent.type(within(dialogo).getByLabelText(/^Contraseña/, { selector: 'input' }), 'clave-segura-1');
-    await userEvent.type(within(dialogo).getByLabelText(/^Confirmar contraseña/), 'clave-segura-1');
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Registrar' }));
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
