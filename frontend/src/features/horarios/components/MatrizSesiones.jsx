@@ -65,6 +65,14 @@ function diaYMes(fecha) {
   return `${fecha.slice(8)}/${fecha.slice(5, 7)}`;
 }
 
+/** "1er Grado de Secundaria" → "1er Grado"; el nombre completo queda en el title. */
+function acortarGrado(grado) {
+  return String(grado ?? '')
+    .replace(/\s+de\s+(Secundaria|Primaria|Inicial)$/i, '')
+    .replace(/\s+(Secundaria|Primaria|Inicial)$/i, '')
+    .trim();
+}
+
 /**
  * Matriz de solo lectura para las sesiones generadas. Se usa una matriz por
  * semana; las filas se construyen con las horas reales de las sesiones.
@@ -110,13 +118,6 @@ export default function MatrizSesiones({ titulo, sesiones, mostrarSeccion = fals
       aMinutos(segmento.inicio) >= inicio && aMinutos(segmento.fin) <= fin
     ).length;
     return cantidad > 0 ? cantidad : 1;
-  }
-
-  // La hora del bloque solo se repite si no coincide con una única fila (la fila ya la muestra).
-  function coincideConFila(sesion, segmento) {
-    return filasQueOcupa(sesion) === 1
-      && String(sesion.horaInicio).slice(0, 5) === segmento.inicio
-      && String(sesion.horaFin).slice(0, 5) === segmento.fin;
   }
 
   return (
@@ -176,23 +177,41 @@ export default function MatrizSesiones({ titulo, sesiones, mostrarSeccion = fals
                   const clave = `${dia.id}|${segmento.inicio}`;
 
                   if (sesion) {
+                    const filas = filasQueOcupa(sesion);
+                    const bloqueCorto = filas === 1;
+                    const gradoCorto = acortarGrado(sesion.gradoNombre);
+                    const etiquetaSeccion = gradoCorto
+                      ? `${gradoCorto} · ${sesion.seccionNombre ?? ''}`.trim()
+                      : sesion.seccionNombre ? `Sección ${sesion.seccionNombre}` : '';
+                    const descripcion = [
+                      sesion.gradoNombre,
+                      sesion.seccionNombre ? `Sección ${sesion.seccionNombre}` : null,
+                      `${String(sesion.horaInicio).slice(0, 5)} – ${String(sesion.horaFin).slice(0, 5)}`,
+                      formatearFecha(sesion.fecha)
+                    ].filter(Boolean).join(' · ');
+
                     return (
                       <td
                         key={clave}
-                        rowSpan={filasQueOcupa(sesion)}
+                        rowSpan={filas}
                         className={`${estilos.celda} ${claseDia(dia.id)}`}
                       >
                         <div className={estilos.envoltura}>
-                          <div className={`${estilos.bloque} ${claseTono(sesion)}`}>
-                            <span className={estilos.curso}>{sesion.cursoNombre}</span>
+                          <div
+                            className={`${estilos.bloque} ${estilos.bloqueSesion} ${claseTono(sesion)}`}
+                            title={descripcion}
+                          >
+                            <span className={`${estilos.curso} ${estilos.cursoSesion}`}>
+                              {sesion.cursoNombre}
+                            </span>
                             <span className={estilos.detalle}>{sesion.docenteNombre}</span>
                             <span className={estilos.detalle}>{sesion.aulaNombre}</span>
-                            {mostrarSeccion && (
-                              <span className={estilos.detalle}>
-                                {sesion.gradoNombre} {sesion.seccionNombre}
+                            {mostrarSeccion && etiquetaSeccion && (
+                              <span className={`${estilos.detalle} ${estilos.detalleSeccion}`}>
+                                {etiquetaSeccion}
                               </span>
                             )}
-                            {!coincideConFila(sesion, segmento) && (
+                            {!bloqueCorto && (
                               <span className={estilos.detalle}>
                                 {String(sesion.horaInicio).slice(0, 5)} – {String(sesion.horaFin).slice(0, 5)}
                               </span>

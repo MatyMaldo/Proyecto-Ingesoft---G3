@@ -46,6 +46,7 @@ export default function PaginaVisualizadorHorario() {
   const {
     tipo,
     anio,
+    anios,
     gradoId,
     id,
     grados,
@@ -76,6 +77,7 @@ export default function PaginaVisualizadorHorario() {
     establecerSemanaSeleccionada,
     seleccionarTipo,
     seleccionarGrado,
+    seleccionarAnio,
     irSemanaAnterior,
     irSemanaSiguiente,
     rangoPersonalizado,
@@ -91,6 +93,16 @@ export default function PaginaVisualizadorHorario() {
   const etiquetaConsulta = esApoderado ? 'Estudiante' : tipo === 'seccion' ? 'Sección' : 'Docente';
   const valorConsulta = consultaPorSeccion ? seccionSeleccionada?.nombre : tituloConsulta;
   const nombreGrado = grados.find((grado) => String(grado.id) === String(gradoId))?.nombre;
+  const estudianteSeleccionado = estudiantes.find(
+    (estudiante) => String(estudiante.id) === String(id)
+  );
+  const contextoEstudiante = estudianteSeleccionado
+    ? [
+      estudianteSeleccionado.gradoNombre,
+      estudianteSeleccionado.seccionNombre ? `Sección ${estudianteSeleccionado.seccionNombre}` : null,
+      estudianteSeleccionado.anioAcademico
+    ].filter(Boolean).join(' · ')
+    : '';
 
   const chipsActivos = [
     ...(consultaPorSeccion && gradoId && nombreGrado
@@ -123,11 +135,18 @@ export default function PaginaVisualizadorHorario() {
     }))
   ];
 
+  const opcionesAnio = anios.map((elemento) => ({
+    valor: String(elemento.id),
+    etiqueta: String(elemento.anio)
+  }));
+
   const opcionesEstudiante = [
     { valor: '', etiqueta: 'Seleccione un estudiante' },
     ...estudiantes.map((estudiante) => ({
       valor: String(estudiante.id),
-      etiqueta: estudiante.nombreCompleto
+      etiqueta: estudiante.estadoMatricula
+        ? estudiante.nombreCompleto
+        : `${estudiante.nombreCompleto} (sin matrícula)`
     }))
   ];
 
@@ -311,14 +330,29 @@ export default function PaginaVisualizadorHorario() {
           )}
 
           {esApoderado && (
-            <SelectFiltro
-              id="consulta-horario-estudiante"
-              etiqueta="Estudiante a cargo"
-              valor={id}
-              opciones={opcionesEstudiante}
-              alCambiar={establecerId}
-              apilado
-            />
+            <div className={estilos.campoAnio}>
+              <SelectFiltro
+                id="consulta-horario-anio"
+                etiqueta="Año académico"
+                valor={anio?.id == null ? '' : String(anio.id)}
+                opciones={opcionesAnio}
+                alCambiar={seleccionarAnio}
+                apilado
+              />
+            </div>
+          )}
+
+          {esApoderado && (
+            <div className={estilos.campoEstudiante}>
+              <SelectFiltro
+                id="consulta-horario-estudiante"
+                etiqueta="Estudiante a cargo"
+                valor={id}
+                opciones={opcionesEstudiante}
+                alCambiar={establecerId}
+                apilado
+              />
+            </div>
           )}
 
           <div className={`${estilos.campoFiltro} ${estilos.campoFecha}`}>
@@ -345,6 +379,14 @@ export default function PaginaVisualizadorHorario() {
         </div>
 
         <div className={estilos.areaChips}>
+          {esApoderado && estudianteSeleccionado && (
+            <p className={estilos.contextoEstudiante}>
+              <Icono nombre="usuario" tamano={16} />
+              <span>
+                {contextoEstudiante || 'Sin matrícula confirmada para el año seleccionado.'}
+              </span>
+            </p>
+          )}
           <FiltrosActivos filtros={chipsActivos} hayFiltros={hayFiltros} alLimpiar={limpiarFiltros} />
         </div>
 

@@ -62,6 +62,9 @@
 }
 
 .areaChips {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
   grid-area: chips;
   min-width: 0;
 }
@@ -72,6 +75,25 @@
 
 .areaEnlace {
   grid-area: enlace;
+}
+
+.contextoEstudiante {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espacio-2);
+  margin: 0;
+  padding: var(--espacio-3) var(--espacio-4);
+  font-size: var(--texto-md);
+  color: var(--color-texto-secundario);
+  background: var(--color-accion-suave);
+  border: 1px solid var(--tono-azul-borde);
+  border-radius: var(--radio-md);
+}
+
+.contextoEstudiante svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+  color: var(--color-accion);
 }
 
 .filaFiltros {
@@ -90,9 +112,32 @@
   min-width: 0;
 }
 
+/* En el apoderado el año no necesita tanto ancho y el estudiante sí. */
+.campoAnio {
+  flex: 0 0 7.5rem;
+  width: 7.5rem;
+  min-width: 0;
+}
+
+.campoAnio select {
+  width: 100%;
+}
+
+.campoEstudiante {
+  flex: 1 1 18rem;
+  width: auto;
+  min-width: 14rem;
+  max-width: 24rem;
+}
+
+.campoEstudiante select {
+  width: 100%;
+}
+
 /* Misma etiqueta que `SelectFiltro` para que todos los filtros de la fila se vean igual. */
 .campoFecha {
-  width: var(--ancho-selector-filtro);
+  flex: 0 0 10rem;
+  width: 10rem;
 }
 
 /* Misma etiqueta que en Auditorías y Log de errores. */
@@ -331,8 +376,13 @@
     align-items: stretch;
   }
 
+  .campoAnio,
+  .campoEstudiante,
   .campoFecha {
+    flex: 1 1 auto;
     width: auto;
+    max-width: none;
+    min-width: 0;
   }
 
   .areaAccion .botonSecundario {

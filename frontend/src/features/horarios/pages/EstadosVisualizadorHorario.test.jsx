@@ -75,6 +75,7 @@ describe('Estados vacíos del visualizador', () => {
     render(<PaginaVisualizadorHorario />);
 
     const selector = await screen.findByLabelText(/Estudiante a cargo/i);
+    await screen.findByRole('option', { name: /Luis Perez/i });
     fireEvent.change(selector, { target: { value: '5' } });
 
     expect(await screen.findByText(SIN_SESIONES)).toBeInTheDocument();

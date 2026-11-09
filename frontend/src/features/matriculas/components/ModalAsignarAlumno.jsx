@@ -32,11 +32,15 @@ export default function ModalAsignarAlumno({ onCerrar, onAceptar }) {
     secciones,
     seccionId,
     seleccionarSeccion,
+    anios,
+    anioId,
+    seleccionarAnio,
     asignacion
   } = useMatriculas();
 
   const idTitulo = useId();
   const idBusqueda = useId();
+  const idAnio = useId();
   const idGrado = useId();
   const idSeccion = useId();
 
@@ -72,7 +76,7 @@ export default function ModalAsignarAlumno({ onCerrar, onAceptar }) {
     }
 
     if (secciones.length === 0) {
-      return <p className={estilosModal.textoAyuda}>Este grado no tiene secciones en el año académico vigente.</p>;
+      return <p className={estilosModal.textoAyuda}>Este grado no tiene secciones en el año seleccionado.</p>;
     }
 
     return (
@@ -146,6 +150,29 @@ export default function ModalAsignarAlumno({ onCerrar, onAceptar }) {
               </button>
             </div>
           )}
+
+          <div className={estilosModal.campo}>
+            <label htmlFor={idAnio} className={estilosModal.etiqueta}>Año académico</label>
+            <select
+              id={idAnio}
+              className={estilosModal.entrada}
+              value={anioId ?? ''}
+              disabled={estadoEstructura !== 'listo'}
+              onChange={(evento) => seleccionarAnio(evento.target.value)}
+            >
+              <option value="">
+                {estadoEstructura === 'cargando' ? 'Cargando años...' : 'Seleccionar año...'}
+              </option>
+              {anios.map((anioDisponible) => (
+                <option key={anioDisponible.id} value={anioDisponible.id}>
+                  {anioDisponible.anio} · Período vigente
+                </option>
+              ))}
+            </select>
+            <p className={estilosModal.textoAyuda}>
+              Solo se muestran años con período de matrícula vigente.
+            </p>
+          </div>
 
           <div className={estilosModal.campo}>
             <label htmlFor={idGrado} className={estilosModal.etiqueta}>Grado académico</label>

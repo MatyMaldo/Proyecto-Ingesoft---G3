@@ -227,3 +227,94 @@
   background: #9aa8bd;
   cursor: not-allowed;
 }
+
+.listaMatriculas {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+  max-height: 18rem;
+  overflow-y: auto;
+}
+
+.opcionMatricula {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  padding: 10px 12px;
+  border: 1px solid #e3e7f2;
+  border-radius: 8px;
+  background: #ffffff;
+  cursor: pointer;
+}
+
+.opcionMatricula:hover {
+  background: #f6f7fc;
+}
+
+.opcionActiva {
+  border-color: #3b6fd8;
+  background: #eef3ff;
+}
+
+.opcionMatricula input {
+  margin-top: 3px;
+  accent-color: #0b57d0;
+}
+
+.idMatricula {
+  flex: 0 0 auto;
+  font-size: 13px;
+  font-weight: 700;
+  color: #0b57d0;
+}
+
+.detalleMatricula {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+  font-size: 13px;
+  color: #5b6784;
+}
+
+.nombreMatricula {
+  font-weight: 700;
+  color: #1a2238;
+}
+
+.placeholderGlobal {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 14px;
+  border: 1px dashed #c9d1e3;
+  border-radius: 8px;
+  background: #f6f7fc;
+}
+
+.etiquetaPlaceholder {
+  margin: 0 0 2px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #2b3350;
+}
+
+.textoPlaceholder {
+  margin: 0;
+  font-size: 12px;
+  color: #5b6784;
+}
+
+.botonGlobal {
+  flex: 0 0 auto;
+  padding: 8px 12px;
+  font: inherit;
+  font-size: 12px;
+  font-weight: 600;
+  color: #8a94ad;
+  background: #ffffff;
+  border: 1px solid #e3e7f2;
+  border-radius: 8px;
+  cursor: not-allowed;
+}
