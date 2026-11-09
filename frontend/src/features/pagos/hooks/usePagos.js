@@ -44,6 +44,8 @@ export default function usePagos({ anioId: anioInicialId = null, gradoId: gradoI
   const [cargandoSecciones, establecerCargandoSecciones] = useState(false);
   const [mes, establecerMes] = useState(null);
   const [intentoClave, establecerIntentoClave] = useState(0);
+  // Solo vuelve a pedir la lista de alumnos (botón "Actualizar"): no reinicia años, grados ni filtros.
+  const [recargaClave, establecerRecargaClave] = useState(0);
 
   const idSolicitudRef = useRef(0);
 
@@ -85,7 +87,7 @@ export default function usePagos({ anioId: anioInicialId = null, gradoId: gradoI
     };
     // cargarLista captura el estado de la consulta actual.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [anioId, gradoId, seccionId, intentoClave]);
+  }, [anioId, gradoId, seccionId, intentoClave, recargaClave]);
 
   // Carga años académicos, grados y deja seleccionado el año actual.
   useEffect(() => {
@@ -206,6 +208,7 @@ export default function usePagos({ anioId: anioInicialId = null, gradoId: gradoI
     limpiarFiltros,
     mes,
     seleccionarMes,
+    recargar: () => establecerRecargaClave((valor) => valor + 1),
     reintentar: () => establecerIntentoClave((valor) => valor + 1)
   };
 }

@@ -17,11 +17,11 @@ async function esperarCargaInicial(result) {
 }
 
 describe('HU-SAT-06 · integración del contrato paginado de logs de errores', () => {
-  it('adapta los campos del log y pagina de 15 en 15', async () => {
+  it('adapta los campos del log y pagina de 10 en 10', async () => {
     const { result } = renderizarHook();
     await esperarCargaInicial(result);
 
-    expect(result.current.errores).toHaveLength(15);
+    expect(result.current.errores).toHaveLength(10);
     expect(result.current.totalElementos).toBe(18);
     expect(result.current.totalPaginas).toBe(2);
     expect(result.current.errores[0]).toMatchObject({
@@ -36,8 +36,8 @@ describe('HU-SAT-06 · integración del contrato paginado de logs de errores', (
     await waitFor(() => expect(result.current.pagina).toBe(1));
     await waitFor(() => expect(result.current.recargando).toBe(false));
 
-    expect(result.current.errores).toHaveLength(3);
-    expect(result.current.errores.map((error) => error.id)).toEqual([16, 17, 18]);
+    expect(result.current.errores).toHaveLength(8);
+    expect(result.current.errores.map((error) => error.id).slice(-3)).toEqual([16, 17, 18]);
   });
 
   it('aplica fechas inclusivas y rechaza rangos inválidos sin cambiar la consulta', async () => {
@@ -86,12 +86,12 @@ describe('HU-SAT-06 · integración del contrato paginado de logs de errores', (
     const { result } = renderizarHook('/?pagina=2');
     await esperarCargaInicial(result);
     expect(result.current.pagina).toBe(1);
-    expect(result.current.errores.map((error) => error.id)).toEqual([16, 17, 18]);
+    expect(result.current.errores.map((error) => error.id).slice(-3)).toEqual([16, 17, 18]);
 
     const fuera = renderizarHook('/?pagina=99');
     await waitFor(() => expect(fuera.result.current.pagina).toBe(1), { timeout: 3000 });
     await waitFor(() => expect(fuera.result.current.estado).toBe('listo'), { timeout: 3000 });
-    expect(fuera.result.current.errores).toHaveLength(3);
+    expect(fuera.result.current.errores).toHaveLength(8);
 
     const invalida = renderizarHook('/?pagina=abc');
     await esperarCargaInicial(invalida.result);

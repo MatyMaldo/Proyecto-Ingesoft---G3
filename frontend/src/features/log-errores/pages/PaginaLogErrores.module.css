@@ -37,16 +37,12 @@
   gap: var(--espacio-4);
 }
 
-.filaUno {
+/* Segunda línea: fechas y módulo. */
+.filaFiltros {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: var(--espacio-4);
-}
-
-.filaUno > :first-child {
-  flex: 1 1 20rem;
-  max-width: 24rem;
 }
 
 .tarjetaResultados {
@@ -80,18 +76,13 @@
 }
 
 @media (max-width: 767px) {
-  .filaUno {
+  .filaFiltros {
     flex-direction: column;
     align-items: stretch;
   }
 
-  .filaUno > :first-child {
-    flex: 0 0 auto;
-    max-width: none;
-  }
-
   /* Más específico que `.campoModulo`, que se declara más abajo en el archivo. */
-  .filaUno .campoModulo {
+  .filaFiltros .campoModulo {
     width: auto;
   }
 }

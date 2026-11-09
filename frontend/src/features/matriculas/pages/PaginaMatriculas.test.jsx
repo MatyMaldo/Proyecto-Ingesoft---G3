@@ -74,13 +74,13 @@ describe('Matrículas · listado, filtros y acciones', () => {
     expect(ejecutar).toBeEnabled();
   });
 
-  it('muestra el listado con el total arriba y abajo, y cada fila con su acción', async () => {
+  it('muestra el listado con el total arriba, sin repetirlo abajo si cabe en una página, y cada fila con su acción', async () => {
     mostrar();
     const tabla = await esperarTabla();
 
     expect(within(tabla).getAllByRole('row')).toHaveLength(6);
     expect(totalMostrado()).toHaveTextContent('1 – 5 de 5 matrículas');
-    expect(screen.getByRole('navigation', { name: 'Paginación de matrículas (inferior)' })).toBeInTheDocument();
+    expect(screen.queryByRole('navigation', { name: 'Paginación de matrículas (inferior)' })).not.toBeInTheDocument();
     // El nombre accesible dice a qué estudiante afecta la acción.
     expect(within(tabla).getByRole('button', { name: 'Emitir compromiso de Mateo Herrera Campos' })).toBeInTheDocument();
     // Las matrículas que no están pendientes no tienen acción.
@@ -90,52 +90,116 @@ describe('Matrículas · listado, filtros y acciones', () => {
   it('el estado se filtra con chips, y "Limpiar filtros" aparece solo con algún filtro y lo restablece', async () => {
     mostrar();
     await esperarTabla();
-    expect(within(chipsEstado()).getByRole('button', { name: 'Todos' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(chipsEstado()).getByRole('button', { name: /^Todos/ })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByRole('button', { name: 'Limpiar filtros' })).not.toBeInTheDocument();
 
-    await userEvent.click(within(chipsEstado()).getByRole('button', { name: 'Pendiente' }));
+    await userEvent.click(within(chipsEstado()).getByRole('button', { name: /^Pendiente/ }));
     await vi.waitFor(() => expect(totalMostrado()).toHaveTextContent('1 – 3 de 3 matrículas'));
-    expect(within(chipsEstado()).getByRole('button', { name: 'Pendiente' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(chipsEstado()).getByRole('button', { name: /^Pendiente/ })).toHaveAttribute('aria-pressed', 'true');
 
     await userEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }));
     await vi.waitFor(() => expect(totalMostrado()).toHaveTextContent('1 – 5 de 5 matrículas'));
-    expect(within(chipsEstado()).getByRole('button', { name: 'Todos' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(chipsEstado()).getByRole('button', { name: /^Todos/ })).toHaveAttribute('aria-pressed', 'true');
     expect(screen.queryByRole('button', { name: 'Limpiar filtros' })).not.toBeInTheDocument();
+  });
+
+  it('los chips de estado muestran su cantidad según los filtros; al elegir uno, solo ese conserva el contador', async () => {
+    mostrar();
+    await esperarTabla();
+
+    // Con "Todos", cada chip muestra su cantidad (el de "Todos" es el total).
+    await vi.waitFor(() => expect(within(chipsEstado()).getByRole('button', { name: /^Todos\s*5$/ })).toBeInTheDocument());
+    expect(within(chipsEstado()).getByRole('button', { name: /^Pendiente\s*3$/ })).toBeInTheDocument();
+    expect(within(chipsEstado()).getByRole('button', { name: /^Confirmada\s*1$/ })).toBeInTheDocument();
+    expect(within(chipsEstado()).getByRole('button', { name: /^Cancelada\s*1$/ })).toBeInTheDocument();
+
+    // Al elegir "Pendiente", solo ese chip conserva su contador.
+    await userEvent.click(within(chipsEstado()).getByRole('button', { name: /^Pendiente/ }));
+    await vi.waitFor(() => expect(totalMostrado()).toHaveTextContent('1 – 3 de 3 matrículas'));
+    expect(within(chipsEstado()).getByRole('button', { name: /^Pendiente\s*3$/ })).toBeInTheDocument();
+    expect(within(chipsEstado()).getByRole('button', { name: /^Todos/ })).toBeInTheDocument();
+    expect(within(chipsEstado()).getByRole('button', { name: /^Confirmada/ })).toBeInTheDocument();
+  });
+
+  it('los contadores de los chips siguen a la búsqueda', async () => {
+    mostrar();
+    await esperarTabla();
+
+    await userEvent.type(screen.getByLabelText('Buscar matrículas por nombre o código del estudiante'), 'mateo');
+    await vi.waitFor(() => {
+      expect(within(chipsEstado()).getByRole('button', { name: /^Todos\s*1$/ })).toBeInTheDocument();
+    }, { timeout: 3000 });
+    expect(within(chipsEstado()).getByRole('button', { name: /^Pendiente\s*1$/ })).toBeInTheDocument();
+    expect(within(chipsEstado()).getByRole('button', { name: /^Confirmada\s*0$/ })).toBeInTheDocument();
+    expect(within(chipsEstado()).getByRole('button', { name: /^Cancelada\s*0$/ })).toBeInTheDocument();
   });
 
   it('los selectores de año, grado y sección usan el selector compartido; la sección espera a grado y año', async () => {
     mostrar();
     await esperarTabla();
 
-    const filtros = screen.getByRole('region', { name: 'Filtros del listado de matrículas' });
+    const filtros = screen.getByRole('region', { name: 'Búsqueda y filtros del listado de matrículas' });
     expect(within(filtros).getByLabelText('Año académico').tagName).toBe('SELECT');
     expect(within(filtros).getByLabelText('Grado').tagName).toBe('SELECT');
     expect(within(filtros).getByLabelText('Sección')).toBeDisabled();
     expect(within(filtros).getByText('Estado')).toBeInTheDocument();
   });
 
+  it('busca por nombre o código del estudiante, con "Actualizar" a su costado y encima de los selectores', async () => {
+    mostrar();
+    await esperarTabla();
+
+    const buscador = screen.getByLabelText('Buscar matrículas por nombre o código del estudiante');
+    const actualizar = screen.getByRole('button', { name: 'Actualizar' });
+    const selectorAnio = screen.getByLabelText('Año académico');
+    const viene = (a, b) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(viene(buscador, actualizar)).toBe(true);
+    expect(viene(actualizar, selectorAnio)).toBe(true);
+
+    await userEvent.type(buscador, 'mateo');
+    await vi.waitFor(() => expect(totalMostrado()).toHaveTextContent('1 – 1 de 1 matrícula'), { timeout: 3000 });
+    expect(within(screen.getByRole('table')).getByText('Mateo Herrera Campos')).toBeInTheDocument();
+
+    // "Limpiar filtros" también vacía la búsqueda.
+    await userEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }));
+    expect(buscador).toHaveValue('');
+    await vi.waitFor(() => expect(totalMostrado()).toHaveTextContent('1 – 5 de 5 matrículas'), { timeout: 3000 });
+  });
+
+  it('recupera la búsqueda de la URL y "Actualizar" vuelve a pedir el listado con los mismos filtros', async () => {
+    mostrar('/matriculas?anio=todos&q=mateo');
+    await esperarTabla();
+    expect(screen.getByLabelText('Buscar matrículas por nombre o código del estudiante')).toHaveValue('mateo');
+    expect(totalMostrado()).toHaveTextContent('1 – 1 de 1 matrícula');
+
+    await userEvent.click(screen.getByRole('button', { name: 'Actualizar' }));
+    await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Actualizar' })).toBeEnabled(), { timeout: 3000 });
+    expect(totalMostrado()).toHaveTextContent('1 – 1 de 1 matrícula');
+  });
+
   it('recupera el estado y la página de la URL y ignora valores inválidos', async () => {
     mostrar('/matriculas?anio=todos&estado=CANCELADA');
     await esperarTabla();
-    expect(within(chipsEstado()).getByRole('button', { name: 'Cancelada' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(chipsEstado()).getByRole('button', { name: /^Cancelada/ })).toHaveAttribute('aria-pressed', 'true');
     expect(totalMostrado()).toHaveTextContent('1 – 1 de 1 matrícula');
   });
 
   it('ignora un estado inválido de la URL', async () => {
     mostrar('/matriculas?anio=todos&estado=RARO&pagina=abc');
     await esperarTabla();
-    expect(within(chipsEstado()).getByRole('button', { name: 'Todos' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(chipsEstado()).getByRole('button', { name: /^Todos/ })).toHaveAttribute('aria-pressed', 'true');
     expect(totalMostrado()).toHaveTextContent('1 – 5 de 5 matrículas');
   });
 
-  it('sin resultados con filtros activos ofrece "Limpiar filtros" también dentro del mensaje vacío', async () => {
+  it('sin resultados muestra solo el mensaje: el único "Limpiar filtros" es el de la barra del buscador', async () => {
     mostrar('/matriculas?anio=todos&seccion=99');
     const mensaje = await screen.findByText('No se encontraron matrículas con los criterios indicados', {}, { timeout: 3000 });
     expect(screen.queryByRole('table')).not.toBeInTheDocument();
-    // Uno junto a los filtros y otro dentro del mensaje vacío.
-    expect(screen.getAllByRole('button', { name: 'Limpiar filtros' })).toHaveLength(2);
+    expect(within(mensaje.parentElement).queryByRole('button')).not.toBeInTheDocument();
 
-    await userEvent.click(within(mensaje.parentElement).getByRole('button', { name: 'Limpiar filtros' }));
+    const botones = screen.getAllByRole('button', { name: 'Limpiar filtros' });
+    expect(botones).toHaveLength(1);
+    await userEvent.click(botones[0]);
     await esperarTabla();
     expect(screen.queryByRole('button', { name: 'Limpiar filtros' })).not.toBeInTheDocument();
   });

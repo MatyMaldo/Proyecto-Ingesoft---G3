@@ -94,6 +94,22 @@ describe('Pagos · listado de alumnos, filtros y acciones', () => {
     expect(screen.getAllByRole('button', { name: 'Limpiar filtros' })).toHaveLength(1);
   });
 
+  it('pone "Actualizar" al costado del buscador, encima de los selectores, y vuelve a pedir la lista', async () => {
+    mostrar();
+    await esperarTabla();
+
+    const buscador = screen.getByLabelText('Buscar alumnos por nombre o código');
+    const actualizar = screen.getByRole('button', { name: 'Actualizar' });
+    const selectorAnio = screen.getByLabelText('Año académico');
+    const viene = (a, b) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+    expect(viene(buscador, actualizar)).toBe(true);
+    expect(viene(actualizar, selectorAnio)).toBe(true);
+
+    await userEvent.click(actualizar);
+    await vi.waitFor(() => expect(screen.getByRole('button', { name: 'Actualizar' })).toBeEnabled(), { timeout: 3000 });
+    expect(screen.getByRole('table')).toBeInTheDocument();
+  });
+
   it('recupera búsqueda y estado de la matrícula de la URL, e ignora valores inválidos', async () => {
     mostrar('/pagos?q=isabella&matricula=CONFIRMADA&pagina=abc');
     await esperarTabla();

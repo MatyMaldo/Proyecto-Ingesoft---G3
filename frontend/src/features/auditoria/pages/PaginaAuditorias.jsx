@@ -1,19 +1,18 @@
 import { useRef, useState } from 'react';
 
+import BarraBusquedaListado from '../../../shared/components/BarraBusquedaListado.jsx';
 import CampoBusqueda from '../../../shared/components/CampoBusqueda.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import FiltroRangoFechas from '../../../shared/components/FiltroRangoFechas.jsx';
-import FiltrosActivos from '../../../shared/components/FiltrosActivos.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
 import Paginacion from '../../../shared/components/Paginacion.jsx';
 import estilosUtil from '../../../shared/styles/utilidades.module.css';
-import { describirRangoFechas } from '../../../shared/utils/rangoFechas.js';
 import TablaAuditoria from '../components/TablaAuditoria.jsx';
 import DetalleTransaccion from '../components/DetalleTransaccion.jsx';
 import useAuditoria from '../hooks/useAuditoria.js';
-import { obtenerEtiquetaCategoria, obtenerOpcionesFiltroCategoria } from '../constants/categoriasAuditoria.js';
+import { obtenerOpcionesFiltroCategoria } from '../constants/categoriasAuditoria.js';
 import { TAMANIO_PAGINA_AUDITORIA } from '../constants/paginacionAuditoria.js';
-import { TIPOS_ACCION_AUDITORIA, obtenerEtiquetaAccion } from '../constants/tiposAccionAuditoria.js';
+import { TIPOS_ACCION_AUDITORIA } from '../constants/tiposAccionAuditoria.js';
 import estilos from './PaginaAuditorias.module.css';
 
 const OPCIONES_CATEGORIA = obtenerOpcionesFiltroCategoria();
@@ -24,7 +23,7 @@ const MENSAJE_VACIO_FILTRADO = 'No se encontraron registros de auditoría con lo
 
 /**
  * Página de Auditorías del Sistema (HU-SAT-04). Consulta de solo lectura: listado
- * general con filtros, paginación de 15 en 15 y panel de detalle con el historial de
+ * general con filtros, paginación de 10 en 10 y panel de detalle con el historial de
  * una transacción. No hay ningún control de edición ni eliminación.
  */
 export default function PaginaAuditorias() {
@@ -44,7 +43,6 @@ export default function PaginaAuditorias() {
     establecerFechaHasta,
     mensajeErrorRango,
     rangoVigente,
-    establecerRango,
     limpiarFiltros,
     pagina,
     totalPaginas,
@@ -63,18 +61,6 @@ export default function PaginaAuditorias() {
   const hayFiltrosAplicados = filtrosActivos > 0 || busqueda.trim().length > 0;
   const mensajeVacio = hayFiltrosAplicados ? MENSAJE_VACIO_FILTRADO : MENSAJE_VACIO_TOTAL;
   const hayResultados = estado === 'listo' && registros.length > 0;
-
-  const chipsActivos = [
-    ...(categoria !== 'TODOS'
-      ? [{ id: 'categoria', etiqueta: `Módulo: ${obtenerEtiquetaCategoria(categoria)}`, alQuitar: () => establecerCategoria('TODOS') }]
-      : []),
-    ...(tipoAccion
-      ? [{ id: 'accion', etiqueta: `Acción: ${obtenerEtiquetaAccion(tipoAccion)}`, alQuitar: () => establecerTipoAccion('') }]
-      : []),
-    ...(hayRangoVigente
-      ? [{ id: 'fechas', etiqueta: describirRangoFechas(rangoVigente), alQuitar: () => establecerRango('', '') }]
-      : [])
-  ];
 
   // Al cambiar de página (sobre todo desde el paginador inferior) la vista vuelve al inicio del listado.
   const irAPagina = (nuevaPagina) => {
@@ -109,18 +95,25 @@ export default function PaginaAuditorias() {
         </p>
       </header>
 
-      <section className={estilos.barraHerramientas} aria-label="Filtros de auditoría">
-        <div className={estilos.filaUno}>
-          <div className={estilos.campoBusquedaContenedor}>
-            <CampoBusqueda
-              id="busqueda-auditorias"
-              etiqueta="Buscar usuario o descripción en la página"
-              placeholder="Buscar por usuario o descripción"
-              valor={busqueda}
-              alCambiar={establecerBusqueda}
-            />
-          </div>
+      {/* Primera línea: buscador, "Actualizar" y "Limpiar filtros". Debajo, los filtros: primero las fechas y luego
+          los selectores. En pantallas angostas los filtros se pliegan detrás del botón "Filtros". */}
+      <section className={estilos.barraHerramientas} aria-label="Búsqueda y filtros de auditoría">
+        <BarraBusquedaListado
+          alActualizar={reintentar}
+          actualizando={actualizando}
+          hayFiltros={hayFiltrosAplicados}
+          alLimpiar={limpiarFiltros}
+        >
+          <CampoBusqueda
+            id="busqueda-auditorias"
+            etiqueta="Buscar usuario o descripción en la página"
+            placeholder="Buscar por usuario o descripción"
+            valor={busqueda}
+            alCambiar={establecerBusqueda}
+          />
+        </BarraBusquedaListado>
 
+        <div className={estilos.filaFiltros}>
           <button
             type="button"
             className={estilos.botonFiltros}
@@ -144,6 +137,14 @@ export default function PaginaAuditorias() {
             id="filtros-avanzados-auditorias"
             className={filtrosAbiertos ? `${estilos.filtrosAvanzados} ${estilos.filtrosAbiertos}` : estilos.filtrosAvanzados}
           >
+            <FiltroRangoFechas
+              fechaDesde={fechaDesde}
+              fechaHasta={fechaHasta}
+              alCambiarFechaDesde={establecerFechaDesde}
+              alCambiarFechaHasta={establecerFechaHasta}
+              mensajeError={mensajeErrorRango}
+            />
+
             <div className={estilos.campoFiltro}>
               <label htmlFor="modulo-auditorias" className={estilos.etiquetaFiltro}>
                 Módulo
@@ -180,19 +181,8 @@ export default function PaginaAuditorias() {
                 ))}
               </select>
             </div>
-
-            <FiltroRangoFechas
-              fechaDesde={fechaDesde}
-              fechaHasta={fechaHasta}
-              alCambiarFechaDesde={establecerFechaDesde}
-              alCambiarFechaHasta={establecerFechaHasta}
-              mensajeError={mensajeErrorRango}
-            />
-
           </div>
         </div>
-
-        <FiltrosActivos filtros={chipsActivos} hayFiltros={hayFiltrosAplicados} alLimpiar={limpiarFiltros} />
       </section>
 
       {/* Total y paginación arriba del listado, como en Usuarios y Log de errores. */}
@@ -202,12 +192,7 @@ export default function PaginaAuditorias() {
         {estado === 'cargando' && <EstadoConsulta tipo="carga" filasEsqueleto={5} />}
         {estado === 'error' && <EstadoConsulta tipo="error" alReintentar={reintentar} />}
         {estado === 'listo' && registros.length === 0 && (
-          <EstadoConsulta
-            tipo="vacio"
-            mensaje={mensajeVacio}
-            etiquetaAccion={hayFiltrosAplicados ? 'Limpiar filtros' : undefined}
-            alAccion={hayFiltrosAplicados ? limpiarFiltros : undefined}
-          />
+          <EstadoConsulta tipo="vacio" mensaje={mensajeVacio} />
         )}
         {hayResultados && (
           <>
@@ -216,7 +201,8 @@ export default function PaginaAuditorias() {
               actualizando={actualizando}
               alSeleccionarRegistro={detalle.abrir}
             />
-            <div className={estilos.pie}>{paginador('inferior')}</div>
+            {/* Con una sola página el total ya está arriba: no se repite abajo. */}
+            {totalPaginas > 1 && <div className={estilos.pie}>{paginador('inferior')}</div>}
           </>
         )}
       </section>

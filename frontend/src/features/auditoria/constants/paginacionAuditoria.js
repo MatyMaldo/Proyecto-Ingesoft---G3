@@ -1,8 +1,9 @@
 /**
- * Tamaño de página del listado de auditorías: 15 en 15 (HU-SAT-04, Esc. 4; igual que HU-SAT-02 y HU-SAT-05).
+ * Tamaño de página del listado de auditorías: 10 en 10, igual que Usuarios, Pagos, Matrículas y Log de errores
+ * (decisión del usuario, 2026-11-09; antes 15 según HU-SAT-04, Esc. 4).
  * Se envía al backend como `size` y el mock lo respeta.
  */
-export const TAMANIO_PAGINA_AUDITORIA = 15;
+export const TAMANIO_PAGINA_AUDITORIA = 10;
 
 /**
  * Máximo de registros que se piden para el historial de una transacción (no se pagina: la HU solo pagina

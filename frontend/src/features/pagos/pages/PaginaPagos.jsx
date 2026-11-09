@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
+import BarraBusquedaListado from '../../../shared/components/BarraBusquedaListado.jsx';
 import CampoBusqueda from '../../../shared/components/CampoBusqueda.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import FiltroChips from '../../../shared/components/FiltroChips.jsx';
@@ -61,6 +62,7 @@ export default function PaginaPagos() {
     seleccionarSeccion,
     cargandoSecciones,
     limpiarFiltros: limpiarFiltrosEstructura,
+    recargar,
     reintentar
   } = usePagos({
     anioId: idDeUrl(parametros.get('anio')),
@@ -225,23 +227,20 @@ export default function PaginaPagos() {
       {/* El buscador va solo en una línea, con "Limpiar filtros" a su lado; debajo, año, grado y sección como
           selectores y el estado de la matrícula como chips con su subtítulo (mismo patrón que Usuarios y Matrículas). */}
       <section className={estilos.filtros} aria-label="Búsqueda y filtros de pagos">
-        <div className={estilos.filaBusqueda}>
-          <div className={estilos.campoBusqueda}>
-            <CampoBusqueda
-              id="busqueda-pagos"
-              etiqueta="Buscar alumnos por nombre o código"
-              placeholder="Buscar por nombre o código"
-              valor={query}
-              alCambiar={cambiarBusqueda}
-            />
-          </div>
-          {hayFiltros && (
-            <button type="button" className={estilos.limpiarFiltros} onClick={limpiarFiltros}>
-              <Icono nombre="cerrar" tamano={14} />
-              Limpiar filtros
-            </button>
-          )}
-        </div>
+        <BarraBusquedaListado
+          alActualizar={recargar}
+          actualizando={recargando}
+          hayFiltros={hayFiltros}
+          alLimpiar={limpiarFiltros}
+        >
+          <CampoBusqueda
+            id="busqueda-pagos"
+            etiqueta="Buscar alumnos por nombre o código"
+            placeholder="Buscar por nombre o código"
+            valor={query}
+            alCambiar={cambiarBusqueda}
+          />
+        </BarraBusquedaListado>
 
         <div className={estilos.filaFiltros}>
           <SelectFiltro
@@ -321,7 +320,8 @@ export default function PaginaPagos() {
               alEmitirPension={establecerAlumnoPension}
               alVerPagos={establecerAlumnoPagos}
             />
-            <div className={estilos.pie}>{paginador('inferior')}</div>
+            {/* Con una sola página el total ya está arriba: no se repite abajo. */}
+            {totalPaginas > 1 && <div className={estilos.pie}>{paginador('inferior')}</div>}
           </>
         )}
       </section>

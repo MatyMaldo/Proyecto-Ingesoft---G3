@@ -45,7 +45,7 @@ describe('servicio de logs de errores · contrato backend', () => {
         fechaInicio: '2026-11-03T00:00:00',
         fechaFin: '2026-11-04T23:59:59',
         page: 1,
-        size: 15,
+        size: 10,
         sortBy: 'fechaHora',
         sortDirection: 'DESC'
       },

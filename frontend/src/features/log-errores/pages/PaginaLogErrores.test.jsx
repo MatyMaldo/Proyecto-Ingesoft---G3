@@ -45,7 +45,7 @@ describe('HU-SAT-05 · Logs de errores según el contrato paginado', () => {
     expect(encabezados.slice(-2)).toEqual(['Usuario', 'Detalle']);
     // El mismo paginador (resumen + campo de página) aparece arriba y abajo, sincronizado.
     for (const paginador of [paginadorSuperior(), paginadorInferior()]) {
-      expect(within(paginador).getByText('1 – 15 de 18 errores')).toBeInTheDocument();
+      expect(within(paginador).getByText('1 – 10 de 18 errores')).toBeInTheDocument();
       expect(within(paginador).getByLabelText('Número de página')).toHaveValue(1);
       expect(within(paginador).getByText('de 2')).toBeInTheDocument();
       expect(within(paginador).getByRole('button', { name: 'Primera página' })).toBeDisabled();
@@ -55,7 +55,7 @@ describe('HU-SAT-05 · Logs de errores según el contrato paginado', () => {
 
     await userEvent.click(within(paginadorSuperior()).getByRole('button', { name: 'Página siguiente' }));
 
-    await waitFor(() => expect(within(paginadorInferior()).getByText('16 – 18 de 18 errores')).toBeInTheDocument(), { timeout: 3000 });
+    await waitFor(() => expect(within(paginadorInferior()).getByText('11 – 18 de 18 errores')).toBeInTheDocument(), { timeout: 3000 });
     for (const paginador of [paginadorSuperior(), paginadorInferior()]) {
       expect(within(paginador).getByLabelText('Número de página')).toHaveValue(2);
       expect(within(paginador).getByRole('button', { name: 'Página siguiente' })).toBeDisabled();
@@ -66,23 +66,23 @@ describe('HU-SAT-05 · Logs de errores según el contrato paginado', () => {
   it('abre en la página indicada por la URL y anuncia la página actual', async () => {
     renderizarPagina('/?pagina=2');
 
-    await waitFor(() => expect(within(paginadorInferior()).getByText('16 – 18 de 18 errores')).toBeInTheDocument(), {
+    await waitFor(() => expect(within(paginadorInferior()).getByText('11 – 18 de 18 errores')).toBeInTheDocument(), {
       timeout: 3000
     });
     expect(within(paginadorInferior()).getByLabelText('Número de página')).toHaveValue(2);
-    expect(screen.getByRole('status')).toHaveTextContent('Página 2 de 2. Mostrando 3 errores');
+    expect(screen.getByRole('status')).toHaveTextContent('Página 2 de 2. Mostrando 8 errores');
   });
 
   it('permite escribir el número de página (se confirma al salir del campo) en cualquiera de los dos paginadores', async () => {
     renderizarPagina();
-    await waitFor(() => expect(within(paginadorInferior()).getByText('1 – 15 de 18 errores')).toBeInTheDocument(), {
+    await waitFor(() => expect(within(paginadorInferior()).getByText('1 – 10 de 18 errores')).toBeInTheDocument(), {
       timeout: 3000
     });
 
     await userEvent.clear(within(paginadorInferior()).getByLabelText('Número de página'));
     await userEvent.type(within(paginadorInferior()).getByLabelText('Número de página'), '2');
     await userEvent.tab();
-    await waitFor(() => expect(within(paginadorSuperior()).getByText('16 – 18 de 18 errores')).toBeInTheDocument(), { timeout: 3000 });
+    await waitFor(() => expect(within(paginadorSuperior()).getByText('11 – 18 de 18 errores')).toBeInTheDocument(), { timeout: 3000 });
 
     // Un número fuera de rango se ajusta al límite.
     await userEvent.clear(within(paginadorSuperior()).getByLabelText('Número de página'));
@@ -93,15 +93,15 @@ describe('HU-SAT-05 · Logs de errores según el contrato paginado', () => {
     await userEvent.clear(within(paginadorSuperior()).getByLabelText('Número de página'));
     await userEvent.type(within(paginadorSuperior()).getByLabelText('Número de página'), '0');
     await userEvent.tab();
-    await waitFor(() => expect(within(paginadorInferior()).getByText('1 – 15 de 18 errores')).toBeInTheDocument(), { timeout: 3000 });
+    await waitFor(() => expect(within(paginadorInferior()).getByText('1 – 10 de 18 errores')).toBeInTheDocument(), { timeout: 3000 });
   });
 
   it('filtra por módulo y por texto, y los combina', async () => {
     renderizarPagina();
-    await waitFor(() => expect(within(paginadorInferior()).getByText('1 – 15 de 18 errores')).toBeInTheDocument(), { timeout: 3000 });
+    await waitFor(() => expect(within(paginadorInferior()).getByText('1 – 10 de 18 errores')).toBeInTheDocument(), { timeout: 3000 });
 
     await userEvent.selectOptions(screen.getByLabelText('Módulo'), 'AUTENTICACION');
-    await waitFor(() => expect(within(paginadorInferior()).getByText('1 – 2 de 2 errores')).toBeInTheDocument(), { timeout: 3000 });
+    await waitFor(() => expect(within(paginadorSuperior()).getByText('1 – 2 de 2 errores')).toBeInTheDocument(), { timeout: 3000 });
     expect(screen.getAllByText('Iniciar sesión').length).toBeGreaterThan(0);
 
     await userEvent.type(screen.getByLabelText('Buscar por mensaje, tipo de error o usuario'), 'garcia');
@@ -141,39 +141,65 @@ describe('Log de errores · coherencia con Usuarios y Auditorías', () => {
     expect(screen.getByText(/Consulta de solo lectura/)).toBeInTheDocument();
   });
 
-  it('muestra el módulo como filtro aplicado y permite quitarlo o limpiar todo', async () => {
+  it('no muestra los filtros elegidos como chips; "Limpiar filtros" aparece solo con algún criterio y lo restablece todo', async () => {
     renderizarPagina();
     await screen.findByRole('columnheader', { name: 'Operación' }, { timeout: 3000 });
     expect(screen.queryByRole('button', { name: 'Limpiar filtros' })).not.toBeInTheDocument();
 
-    await userEvent.selectOptions(screen.getByLabelText('Módulo'), 'USUARIOS');
-    const chips = await screen.findByRole('list', { name: 'Filtros aplicados' });
-    expect(within(chips).getByText('Módulo: Usuarios')).toBeInTheDocument();
-
-    await userEvent.click(within(chips).getByRole('button', { name: 'Quitar filtro Módulo: Usuarios' }));
-    expect(screen.getByLabelText('Módulo')).toHaveValue('TODOS');
-
     await userEvent.selectOptions(screen.getByLabelText('Módulo'), 'PAGOS');
     await userEvent.type(screen.getByLabelText('Buscar por mensaje, tipo de error o usuario'), 'zzz');
+    expect(screen.queryByRole('list', { name: 'Filtros aplicados' })).not.toBeInTheDocument();
+
     await userEvent.click(await screen.findByRole('button', { name: 'Limpiar filtros' }));
     expect(screen.getByLabelText('Módulo')).toHaveValue('TODOS');
     expect(screen.getByLabelText('Buscar por mensaje, tipo de error o usuario')).toHaveValue('');
+    expect(screen.queryByRole('button', { name: 'Limpiar filtros' })).not.toBeInTheDocument();
   });
 
-  it('el rango de fechas se ve como filtro aplicado y el mensaje de sin resultados ofrece limpiar', async () => {
+  it('sin resultados muestra solo el mensaje: el único "Limpiar filtros" es el de la barra del buscador', async () => {
     renderizarPagina();
     await screen.findByRole('columnheader', { name: 'Operación' }, { timeout: 3000 });
 
     fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '2001-01-01' } });
     fireEvent.change(screen.getByLabelText('Hasta'), { target: { value: '2001-01-02' } });
 
-    expect(await screen.findByText('Fecha: 01/01/2001 – 02/01/2001')).toBeInTheDocument();
-    expect(await screen.findByText('No se encontraron errores con los criterios indicados', {}, { timeout: 3000 })).toBeInTheDocument();
+    const mensaje = await screen.findByText('No se encontraron errores con los criterios indicados', {}, { timeout: 3000 });
+    expect(screen.queryByText('Fecha: 01/01/2001 – 02/01/2001')).not.toBeInTheDocument();
+    expect(within(mensaje.parentElement).queryByRole('button')).not.toBeInTheDocument();
 
     const botones = screen.getAllByRole('button', { name: 'Limpiar filtros' });
-    await userEvent.click(botones[botones.length - 1]);
+    expect(botones).toHaveLength(1);
+    await userEvent.click(botones[0]);
     expect(await screen.findByRole('columnheader', { name: 'Operación' }, { timeout: 3000 })).toBeInTheDocument();
     expect(screen.getByLabelText('Desde')).toHaveValue('');
+  });
+
+  it('pone el buscador con "Actualizar" en la primera línea y las fechas antes que el módulo', async () => {
+    renderizarPagina();
+    await screen.findByRole('columnheader', { name: 'Operación' }, { timeout: 3000 });
+
+    const buscador = screen.getByLabelText('Buscar por mensaje, tipo de error o usuario');
+    const actualizar = screen.getByRole('button', { name: 'Actualizar' });
+    const desde = screen.getByLabelText('Desde');
+    const hasta = screen.getByLabelText('Hasta');
+    const modulo = screen.getByLabelText('Módulo');
+    const viene = (a, b) => Boolean(a.compareDocumentPosition(b) & Node.DOCUMENT_POSITION_FOLLOWING);
+
+    expect(viene(buscador, actualizar)).toBe(true);
+    expect(viene(actualizar, desde)).toBe(true);
+    expect(viene(desde, hasta)).toBe(true);
+    expect(viene(hasta, modulo)).toBe(true);
+
+    await userEvent.click(actualizar);
+    expect(await screen.findByRole('columnheader', { name: 'Operación' }, { timeout: 3000 })).toBeInTheDocument();
+  });
+
+  it('con una sola página no repite el paginador abajo', async () => {
+    renderizarPagina();
+    await screen.findByRole('columnheader', { name: 'Operación' }, { timeout: 3000 });
+    await userEvent.selectOptions(screen.getByLabelText('Módulo'), 'AUTENTICACION');
+    await waitFor(() => expect(within(paginadorSuperior()).getByText('1 – 2 de 2 errores')).toBeInTheDocument(), { timeout: 3000 });
+    expect(screen.queryByRole('navigation', { name: /inferior/ })).not.toBeInTheDocument();
   });
 
   it('no muestra tarjetas de resumen', async () => {

@@ -39,15 +39,12 @@
   min-width: 0;
 }
 
-.filaUno {
+/* Segunda línea: fechas y selectores (en pantallas angostas, tras el botón "Filtros"). */
+.filaFiltros {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: flex-start;
   gap: var(--espacio-4);
-}
-
-.campoBusquedaContenedor {
-  width: 100%;
 }
 
 .campoFiltro {
@@ -121,19 +118,13 @@
 }
 
 @media (min-width: 1024px) {
-  .campoBusquedaContenedor {
-    flex: 1 1 calc(var(--espacio-10) * 6.5);
-    width: auto;
-    max-width: calc(var(--espacio-10) * 8);
-  }
-
   .campoFiltro {
     width: var(--ancho-selector-filtro);
   }
 }
 
 @media (max-width: 767px) {
-  .filaUno {
+  .filaFiltros {
     flex-direction: column;
     align-items: stretch;
   }

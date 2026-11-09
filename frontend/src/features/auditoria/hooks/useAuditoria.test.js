@@ -76,6 +76,12 @@ describe('HU-SAT-04 · Escenario 3: historial del mismo elemento, del más antig
     const { result } = renderHook(() => useAuditoria());
     await esperarCargaInicial(result);
 
+    // Con 10 por página el pago no cae en la primera: se acota al módulo de pagos.
+    act(() => {
+      result.current.establecerCategoria('PAGOS');
+    });
+    await waitFor(() => expect(result.current.actualizando).toBe(false));
+
     const registroPago = result.current.registros.find((registro) => registro.idElemento === 'PAGO-0006');
     expect(registroPago).toBeDefined();
 
@@ -100,6 +106,12 @@ describe('HU-SAT-04 · Escenario 3: historial del mismo elemento, del más antig
     const { result } = renderHook(() => useAuditoria());
     await esperarCargaInicial(result);
 
+    // Con 10 por página el pago no cae en la primera: se acota al módulo de pagos.
+    act(() => {
+      result.current.establecerCategoria('PAGOS');
+    });
+    await waitFor(() => expect(result.current.actualizando).toBe(false));
+
     const registroPago = result.current.registros.find((registro) => registro.idElemento === 'PAGO-0007');
     expect(registroPago).toBeDefined();
 
@@ -118,6 +130,12 @@ describe('HU-SAT-04 · Escenario 5: registro de una operación automática del s
   it('incluye un registro con "Sistema" como autor, con la misma forma que cualquier otro registro', async () => {
     const { result } = renderHook(() => useAuditoria());
     await esperarCargaInicial(result);
+
+    // Con 10 por página la cancelación automática no cae en la primera: se acota al módulo de matrícula.
+    act(() => {
+      result.current.establecerCategoria('MATRICULA');
+    });
+    await waitFor(() => expect(result.current.actualizando).toBe(false));
 
     const registroSistema = result.current.registros.find((registro) => registro.usuario.nombre === 'Sistema');
     expect(registroSistema).toBeDefined();
