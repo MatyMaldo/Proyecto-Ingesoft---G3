@@ -1,5 +1,18 @@
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import { solicitar } from '../../../shared/api/clienteHttp.js';
+import {
+  emitirCompromisoPensionMock,
+  emitirCompromisosPensionLoteMock,
+  listarPagosAgrupadosMock,
+  obtenerAlumnosMatriculadosMock,
+  obtenerAnioAcademicoMock,
+  obtenerGradosMock,
+  obtenerPagoAdminMock,
+  obtenerPeriodoMatriculaMock,
+  obtenerSeccionesMock,
+  rechazarPagoAdminMock,
+  validarPagoAdminMock
+} from './mocks/pagosMock.js';
 
 export const TAMANIO_PAGOS = 15
 const TIEMPO_ESPERA_ACCION_MS = 60000;
@@ -51,7 +64,7 @@ export async function obtenerAlumnos(filtros = {}) {
  * Se excluyen las matrículas canceladas.
  */
 export async function obtenerAlumnosMatriculados(anioId, filtros = {}) {
-  if (USAR_MOCK) return { exitoso: true, datos: { estudiantes: [] }, mensaje: '' };
+  if (USAR_MOCK) return obtenerAlumnosMatriculadosMock(anioId, filtros);
 
   const parametros = {
     anioId: Number(anioId),
@@ -95,9 +108,8 @@ export async function obtenerAlumnosMatriculados(anioId, filtros = {}) {
 }
 
 // Obtener anio académico
-export async function obtenerAnioAcademico() {  if (USAR_MOCK) {
-    return null;
-  }
+export async function obtenerAnioAcademico() {
+  if (USAR_MOCK) return obtenerAnioAcademicoMock();
 
   const [respuestaAnios] = await Promise.all([
     solicitar('/anios-academicos')
@@ -120,7 +132,7 @@ export async function obtenerAnioAcademico() {  if (USAR_MOCK) {
 
 /** Grados disponibles para filtrar el listado de pagos. */
 export async function obtenerGrados() {
-  if (USAR_MOCK) return { exitoso: true, datos: [], mensaje: '' };
+  if (USAR_MOCK) return obtenerGradosMock();
 
   const respuesta = await solicitar('/grados');
   if (!respuesta.exitoso) return respuesta;
@@ -129,7 +141,7 @@ export async function obtenerGrados() {
 
 /** Secciones de un grado en el año académico seleccionado. */
 export async function obtenerSecciones(gradoId, anioId) {
-  if (USAR_MOCK) return { exitoso: true, datos: [], mensaje: '' };
+  if (USAR_MOCK) return obtenerSeccionesMock(gradoId, anioId);
 
   const respuesta = await solicitar('/secciones', {
     parametros: {
@@ -145,9 +157,7 @@ export async function obtenerSecciones(gradoId, anioId) {
 
 
 export async function emitirCompromisoPension({estudianteId,anioId,mes}) {
-  if (USAR_MOCK) {
-    return { exitoso: false, datos, mensaje: '' }; // Moccks no implementados
-  }
+  if (USAR_MOCK) return emitirCompromisoPensionMock();
 
   const respuesta = await solicitar('/compromisos-pago/pension', {
     metodo: 'POST',
@@ -167,13 +177,7 @@ export async function emitirCompromisoPension({estudianteId,anioId,mes}) {
  * Los filtros de grado y sección son opcionales.
  */
 export async function emitirCompromisosPensionLote({ anioId, mes, gradoId, seccionId } = {}) {
-  if (USAR_MOCK) {
-    return {
-      exitoso: true,
-      datos: { emitidos: 0, omitidos: 0, errores: [] },
-      mensaje: ''
-    };
-  }
+  if (USAR_MOCK) return emitirCompromisosPensionLoteMock();
 
   const cuerpo = {
     anioId: Number(anioId),
@@ -256,6 +260,8 @@ export async function listarPagosAgrupados({
   page = 0,
   size = 10
 }) {
+  if (USAR_MOCK) return listarPagosAgrupadosMock({ page, size });
+
   const respuesta = await solicitar('/pagos/admin/agrupados', {
     parametros: {
       anioAcademicoId: Number(anioAcademicoId),
@@ -289,11 +295,13 @@ export async function listarPagosAgrupados({
 }
 
 export async function obtenerPagoAdmin(pagoId) {
+  if (USAR_MOCK) return obtenerPagoAdminMock(pagoId);
   return solicitar(`/pagos/admin/${encodeURIComponent(pagoId)}`);
 }
 
 /** Estado del período de matrícula del año, usado para habilitar correcciones. */
 export async function obtenerPeriodoMatricula(anioId) {
+  if (USAR_MOCK) return obtenerPeriodoMatriculaMock(anioId);
   const respuesta = await solicitar(
     `/anios-academicos/${encodeURIComponent(anioId)}/periodo-matricula`
   );
@@ -306,6 +314,7 @@ export async function obtenerPeriodoMatricula(anioId) {
 }
 
 export async function validarPagoAdmin(pagoId) {
+  if (USAR_MOCK) return validarPagoAdminMock();
   return solicitar(`/pagos/admin/${encodeURIComponent(pagoId)}/validar`, {
     metodo: 'PUT',
     cuerpo: {},
@@ -314,6 +323,7 @@ export async function validarPagoAdmin(pagoId) {
 }
 
 export async function rechazarPagoAdmin(pagoId, motivo) {
+  if (USAR_MOCK) return rechazarPagoAdminMock();
   return solicitar(`/pagos/admin/${encodeURIComponent(pagoId)}/rechazar`, {
     metodo: 'PUT',
     cuerpo: { motivo: motivo.trim() },

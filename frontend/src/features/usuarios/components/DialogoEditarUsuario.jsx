@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
-import DialogoBase from '../../cursos/components/DialogoBase.jsx';
+import DialogoBase from '../../../shared/components/DialogoBase.jsx';
 import { actualizarUsuario } from '../services/usuariosService.js';
 import { separarTelefono, telefonoPeru } from '../utils/telefono.js';
 import CampoApoderado from './CampoApoderado.jsx';
@@ -91,9 +91,7 @@ export default function DialogoEditarUsuario({ usuario, usuarios, alGuardado, al
     }
   };
 
-  const guardar = async (evento) => {
-    evento.preventDefault();
-    setErrorGeneral(null);
+  const validar = () => {
     const errs = {};
     if (!form.nombre.trim())
       errs.nombre = 'Ingrese el nombre.';
@@ -112,11 +110,26 @@ export default function DialogoEditarUsuario({ usuario, usuarios, alGuardado, al
     if (usuarios.some((u) => u.id !== usuario.id && u.correo.trim().toLowerCase() === form.correo.trim().toLowerCase()))
       errs.correo = 'Este correo ya pertenece a otro usuario.';
     const telefonoIngresado = form.telefono.trim();
-    const telefonoCompacto = telefonoPeru(telefonoIngresado);
     if (telefonoIngresado && !/^\d{9}$/.test(telefonoIngresado))
       errs.telefono = 'El teléfono debe tener exactamente 9 dígitos.';
     if (esEstudiante && (!form.apoderadoId || !form.apoderadoSeleccionado))
       errs.apoderadoId = 'Seleccione un apoderado para el estudiante.';
+    return errs;
+  };
+
+  // Validación inmediata: al salir de un campo con contenido se muestra su error sin esperar al envío.
+  const validarCampo = (clave) => {
+    if (!String(form[clave] ?? '').trim()) return;
+    const errs = validar();
+    setErrores((previo) => ({ ...previo, [clave]: errs[clave] ?? '' }));
+  };
+
+  const guardar = async (evento) => {
+    evento.preventDefault();
+    setErrorGeneral(null);
+    const errs = validar();
+    const telefonoIngresado = form.telefono.trim();
+    const telefonoCompacto = telefonoPeru(telefonoIngresado);
     if (Object.keys(errs).length) {
       setErrores(errs);
       setIntentosFallidos((cantidad) => cantidad + 1);
@@ -203,6 +216,7 @@ export default function DialogoEditarUsuario({ usuario, usuarios, alGuardado, al
         confirmarDeshabilitado={esEstudiante && (!form.apoderadoId || !form.apoderadoSeleccionado)}
         error={errorGeneral}
         anchoMaximo="38rem"
+        botonesExpandidos
         cerrarAlClicFuera={false}
         alSolicitarCierre={solicitarCierre}
         alCancelar={alCerrar}
@@ -210,10 +224,10 @@ export default function DialogoEditarUsuario({ usuario, usuarios, alGuardado, al
       >
         <div ref={refSecciones} className={estilos.secciones}>
           <SeccionFormulario titulo="Datos personales">
-            <CampoUsuario etiqueta="Nombre" valor={form.nombre} alCambiar={(v) => cambiar('nombre', v)} placeholder="Nombre" error={errores.nombre} maxLength={80} requerido autoEnfocar />
-            <CampoUsuario etiqueta="Apellido paterno" valor={form.apellidoPaterno} alCambiar={(v) => cambiar('apellidoPaterno', v)} placeholder="Apellido paterno" error={errores.apellidoPaterno} maxLength={80} />
-            <CampoUsuario etiqueta="Apellido materno" valor={form.apellidoMaterno} alCambiar={(v) => cambiar('apellidoMaterno', v)} placeholder="Apellido materno (opcional)" error={errores.apellidoMaterno} maxLength={80} />
-            <CampoUsuario etiqueta="DNI" valor={form.dni} alCambiar={(v) => cambiar('dni', v)} placeholder="8 dígitos" error={errores.dni} maxLength={8} requerido />
+            <CampoUsuario etiqueta="Nombre" valor={form.nombre} alCambiar={(v) => cambiar('nombre', v)} onBlur={() => validarCampo('nombre')} placeholder="Nombre" error={errores.nombre} maxLength={80} requerido autoEnfocar />
+            <CampoUsuario etiqueta="Apellido paterno" valor={form.apellidoPaterno} alCambiar={(v) => cambiar('apellidoPaterno', v)} onBlur={() => validarCampo('apellidoPaterno')} placeholder="Apellido paterno" error={errores.apellidoPaterno} maxLength={80} />
+            <CampoUsuario etiqueta="Apellido materno" valor={form.apellidoMaterno} alCambiar={(v) => cambiar('apellidoMaterno', v)} onBlur={() => validarCampo('apellidoMaterno')} placeholder="Apellido materno (opcional)" error={errores.apellidoMaterno} maxLength={80} />
+            <CampoUsuario etiqueta="DNI" valor={form.dni} alCambiar={(v) => cambiar('dni', v.replace(/\D/g, ''))} onBlur={() => validarCampo('dni')} placeholder="8 dígitos" error={errores.dni} maxLength={8} inputMode="numeric" autoComplete="off" requerido />
           </SeccionFormulario>
 
           {esEstudiante && (
@@ -233,8 +247,8 @@ export default function DialogoEditarUsuario({ usuario, usuarios, alGuardado, al
           )}
 
           <SeccionFormulario titulo="Contacto">
-            <CampoTelefono valor={form.telefono} alCambiar={(telefono) => cambiar('telefono', telefono)} error={errores.telefono} />
-            <CampoUsuario etiqueta="Correo" type="email" valor={form.correo} alCambiar={(v) => cambiar('correo', v)} placeholder="Correo" error={errores.correo} maxLength={160} requerido />
+            <CampoTelefono valor={form.telefono} alCambiar={(telefono) => cambiar('telefono', telefono)} alDesenfocar={() => validarCampo('telefono')} error={errores.telefono} />
+            <CampoUsuario etiqueta="Correo" type="email" valor={form.correo} alCambiar={(v) => cambiar('correo', v)} onBlur={() => validarCampo('correo')} placeholder="Correo" error={errores.correo} maxLength={160} requerido />
           </SeccionFormulario>
         </div>
       </DialogoBase>

@@ -1,3 +1,34 @@
+/* Identifica a quién afecta la acción (nombre, DNI y rol), por si hay nombres parecidos. */
+.usuario {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+  padding: var(--espacio-3);
+  background: var(--color-superficie-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+}
+
+.datosUsuario {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.nombreUsuario {
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+  overflow-wrap: anywhere;
+}
+
+.detalleUsuario {
+  font-size: var(--texto-xs);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-texto-suave);
+}
+
 .pregunta,
 .consecuencia {
   margin: 0;

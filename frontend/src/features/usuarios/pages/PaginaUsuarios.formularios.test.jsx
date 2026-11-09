@@ -1,13 +1,14 @@
 import { describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, within } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
+import { MemoryRouter } from 'react-router-dom';
 
 vi.mock('../../../shared/api/configuracionApi.js', () => ({ USAR_MOCK: true }));
 
 import PaginaUsuarios from './PaginaUsuarios.jsx';
 
 async function abrirRegistro(tipo) {
-  await userEvent.click(screen.getByRole('button', { name: 'Nuevo usuario' }));
+  await userEvent.click(screen.getByRole('button', { name: 'Agregar usuarios' }));
   await userEvent.click(screen.getByRole('menuitem', { name: `Registrar ${tipo}` }));
   return screen.getByRole('dialog', { name: `Registrar ${tipo}` });
 }
@@ -19,14 +20,14 @@ function clicEnElFondo(dialogo) {
 
 describe('Usuarios · formularios en diálogo', () => {
   it('enfoca el primer campo al abrir el registro', async () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     const dialogo = await abrirRegistro('apoderado');
 
     expect(within(dialogo).getByLabelText(/^Nombre/)).toHaveFocus();
   });
 
   it('asocia cada etiqueta con su campo: el clic en la etiqueta enfoca el campo', async () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     const dialogo = await abrirRegistro('estudiante');
 
     for (const etiqueta of ['Nombre', 'Apellido paterno', 'Apellido materno', 'Fecha de nacimiento', 'DNI', 'Teléfono', 'Correo', 'DNI del apoderado']) {
@@ -38,7 +39,7 @@ describe('Usuarios · formularios en diálogo', () => {
   });
 
   it('agrupa los campos en secciones con título', async () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     const dialogo = await abrirRegistro('docente');
 
     for (const titulo of ['Datos personales', 'Contacto']) {
@@ -50,7 +51,7 @@ describe('Usuarios · formularios en diálogo', () => {
   });
 
   it.each(['apoderado', 'docente', 'estudiante'])('el formulario de %s no pide contraseña: la define el usuario con un código', async (tipo) => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     const dialogo = await abrirRegistro(tipo);
 
     expect(dialogo.querySelectorAll('input[type="password"]')).toHaveLength(0);
@@ -59,7 +60,7 @@ describe('Usuarios · formularios en diálogo', () => {
   });
 
   it('muestra los errores con ícono y texto, marca el campo y enfoca el primero inválido', async () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     const dialogo = await abrirRegistro('apoderado');
 
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Registrar' }));
@@ -76,8 +77,65 @@ describe('Usuarios · formularios en diálogo', () => {
     expect(nombre).not.toHaveAttribute('aria-invalid');
   });
 
+  it('valida al salir de cada campo con contenido, sin esperar al envío', async () => {
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
+    const dialogo = await abrirRegistro('docente');
+
+    // Un campo vacío no se marca al pasar con Tab: "obligatorio" se avisa al registrar.
+    await userEvent.tab();
+    expect(within(dialogo).getByLabelText(/^Nombre/)).not.toHaveAttribute('aria-invalid');
+
+    const correo = within(dialogo).getByLabelText(/^Correo/);
+    await userEvent.type(correo, 'esto-no-es-un-correo');
+    await userEvent.tab();
+    expect(correo).toHaveAttribute('aria-invalid', 'true');
+    expect(document.getElementById(correo.getAttribute('aria-describedby'))).toHaveTextContent('Ingrese un correo válido.');
+
+    // Corregirlo y salir de nuevo quita el error.
+    await userEvent.clear(correo);
+    await userEvent.type(correo, 'docente.nuevo@colegio.pe');
+    await userEvent.tab();
+    expect(correo).not.toHaveAttribute('aria-invalid');
+  });
+
+  it('el DNI solo admite dígitos y se valida al salir del campo', async () => {
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
+    const dialogo = await abrirRegistro('docente');
+
+    const dni = within(dialogo).getByLabelText(/^DNI/);
+    expect(dni).toHaveAttribute('inputmode', 'numeric');
+    await userEvent.type(dni, '12a34b56');
+    expect(dni).toHaveValue('123456');
+
+    await userEvent.tab();
+    expect(dni).toHaveAttribute('aria-invalid', 'true');
+    expect(document.getElementById(dni.getAttribute('aria-describedby'))).toHaveTextContent('El DNI debe tener 8 dígitos.');
+  });
+
+  it('el teléfono muestra la bandera, agrupa los dígitos de 3 en 3 y avisa al salir si faltan dígitos', async () => {
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
+    const dialogo = await abrirRegistro('docente');
+
+    const telefono = within(dialogo).getByLabelText(/^Teléfono/);
+    expect(telefono).toHaveAttribute('placeholder', '987 654 321');
+    // La bandera es un SVG (el emoji no se ve en Windows) junto al prefijo +51.
+    const prefijo = within(dialogo).getByText('+51').parentElement;
+    expect(prefijo.querySelector('svg')).toBeInTheDocument();
+
+    await userEvent.type(telefono, '98x76543');
+    expect(telefono).toHaveValue('987 654 3');
+
+    await userEvent.tab();
+    expect(telefono).toHaveAttribute('aria-invalid', 'true');
+    expect(document.getElementById(telefono.getAttribute('aria-describedby')))
+      .toHaveTextContent('El teléfono debe tener exactamente 9 dígitos.');
+
+    await userEvent.type(telefono, '21');
+    expect(telefono).toHaveValue('987 654 321');
+  });
+
   it('el clic en el fondo oscuro no cierra el formulario de registro', async () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     const dialogo = await abrirRegistro('apoderado');
 
     clicEnElFondo(dialogo);
@@ -86,7 +144,7 @@ describe('Usuarios · formularios en diálogo', () => {
   });
 
   it('sin datos escritos, la X y Escape cierran el formulario sin preguntar', async () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     await abrirRegistro('apoderado');
     await userEvent.click(screen.getByRole('button', { name: 'Cerrar' }));
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
@@ -97,7 +155,7 @@ describe('Usuarios · formularios en diálogo', () => {
   });
 
   it('con datos escritos, la X y Escape piden confirmar antes de descartar', async () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     const dialogo = await abrirRegistro('apoderado');
     await userEvent.type(within(dialogo).getByLabelText(/^Nombre/), 'Ana');
 
@@ -124,7 +182,7 @@ describe('Usuarios · formularios en diálogo', () => {
   });
 
   it('registra un apoderado con el mismo resultado de antes y avisa con la notificación compartida', async () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     const dialogo = await abrirRegistro('apoderado');
 
     await userEvent.type(within(dialogo).getByLabelText(/^Nombre/), 'Ana');
@@ -139,7 +197,7 @@ describe('Usuarios · formularios en diálogo', () => {
   });
 
   it('el estudiante necesita un apoderado: busca por DNI, lo muestra y permite quitarlo', async () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     const dialogo = await abrirRegistro('estudiante');
     const campoApoderado = within(dialogo).getByLabelText(/^DNI del apoderado/);
 
@@ -152,7 +210,7 @@ describe('Usuarios · formularios en diálogo', () => {
   });
 
   it('en la edición, el fondo no cierra y Escape confirma solo si hubo cambios', async () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     await userEvent.click(screen.getAllByRole('button', { name: /^Editar/ })[0]);
     const dialogo = screen.getByRole('dialog', { name: 'Editar usuario' });
     expect(within(dialogo).getByLabelText(/^Nombre/)).toHaveFocus();
@@ -171,7 +229,7 @@ describe('Usuarios · formularios en diálogo', () => {
   });
 
   it('el diálogo de activar/desactivar sigue cerrándose con el fondo y con Escape', async () => {
-    render(<PaginaUsuarios />);
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     await userEvent.click(screen.getAllByRole('button', { name: /^Desactivar|^Activar/ })[0]);
     const dialogo = screen.getByRole('dialog', { name: /(Desactivar|Activar) usuario/ });
 
@@ -180,8 +238,9 @@ describe('Usuarios · formularios en diálogo', () => {
   });
 
   it('la carga CSV no se cierra con el fondo y pide confirmar solo cuando hay un archivo elegido', async () => {
-    render(<PaginaUsuarios />);
-    await userEvent.click(screen.getByRole('button', { name: 'Carga masiva CSV' }));
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
+    await userEvent.click(screen.getByRole('button', { name: 'Agregar usuarios' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Carga masiva (CSV)' }));
     const dialogo = screen.getByRole('dialog', { name: 'Carga masiva de usuarios' });
 
     clicEnElFondo(dialogo);

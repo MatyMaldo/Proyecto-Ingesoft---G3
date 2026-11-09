@@ -1,7 +1,9 @@
 import { useState } from 'react';
 
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
+import Icono from '../../../shared/components/Icono.jsx';
 import Notificacion from '../../../shared/components/Notificacion.jsx';
+import SelectFiltro from '../../../shared/components/SelectFiltro.jsx';
 import useNotificacion from '../../../shared/hooks/useNotificacion.js';
 import ModalDetallePagoApoderado from '../components/ModalDetallePagoApoderado.jsx';
 import ModalRegistrarPago from '../components/ModalRegistrarPago.jsx';
@@ -68,51 +70,44 @@ export default function PaginaPagosApoderado() {
       {notificacion && <Notificacion mensaje={notificacion.mensaje} error={notificacion.error} />}
 
       <header className={estilos.cabecera}>
-        <p className={estilos.sobretitulo}>Módulo de pagos</p>
         <h1 className={estilos.titulo}>Mis pagos</h1>
         <p className={estilos.descripcion}>
           Selecciona un estudiante y un año académico para consultar sus compromisos y registrar comprobantes de pago.
         </p>
       </header>
 
+      {/* Año y estudiante con el selector compartido (mismo patrón que Auditorías y Matrículas). */}
       <section className={estilos.filtros} aria-label="Filtros de pagos">
-        <label className={estilos.campoFiltro}>
-          Año académico
-          <select
-            className={estilos.selector}
-            value={anioId}
-            disabled={estadoAnios !== 'listo'}
-            onChange={(evento) => seleccionarAnio(evento.target.value)}
-          >
-            {anios.map((anio) => (
-              <option key={anio.id} value={anio.id}>{anio.anio}</option>
-            ))}
-          </select>
-        </label>
-
-        <label className={estilos.campoFiltro}>
-          Estudiante a cargo
-          <select
-            className={estilos.selector}
-            value={estudianteId}
-            disabled={estadoEstudiantes !== 'listo' || estudiantes.length === 0}
-            onChange={(evento) => seleccionarEstudiante(evento.target.value)}
-          >
-            {estudiantes.length === 0 && <option value="">Sin estudiantes</option>}
-            {estudiantes.map((estudiante) => (
-              <option key={estudiante.id} value={estudiante.id}>
-                {estudiante.nombreCompleto}
-              </option>
-            ))}
-          </select>
-        </label>
-
+        <SelectFiltro
+          apilado
+          id="filtro-anio-mis-pagos"
+          etiqueta="Año académico"
+          valor={String(anioId ?? '')}
+          opciones={anios.map((anio) => ({ valor: String(anio.id), etiqueta: String(anio.anio) }))}
+          alCambiar={seleccionarAnio}
+          deshabilitado={estadoAnios !== 'listo'}
+        />
+        <SelectFiltro
+          apilado
+          id="filtro-estudiante-mis-pagos"
+          etiqueta="Estudiante a cargo"
+          valor={String(estudianteId ?? '')}
+          opciones={estudiantes.length === 0
+            ? [{ valor: '', etiqueta: 'Sin estudiantes' }]
+            : estudiantes.map((estudiante) => ({
+              valor: String(estudiante.id),
+              etiqueta: estudiante.nombreCompleto
+            }))}
+          alCambiar={seleccionarEstudiante}
+          deshabilitado={estadoEstudiantes !== 'listo' || estudiantes.length === 0}
+        />
         <button
           type="button"
           className={estilos.botonActualizar}
           onClick={recargar}
           disabled={estadoAnios !== 'listo'}
         >
+          <Icono nombre="reintentar" tamano={16} />
           Actualizar
         </button>
       </section>

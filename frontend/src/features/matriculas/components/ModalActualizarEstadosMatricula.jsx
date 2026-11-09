@@ -1,12 +1,14 @@
 import { useEffect, useId, useState } from 'react';
 
 import Icono from '../../../shared/components/Icono.jsx';
+import DialogoBase from '../../../shared/components/DialogoBase.jsx';
 import { obtenerPeriodoMatricula } from '../services/matriculasService.js';
-import estilosModal from './Modal.module.css';
+import estilos from '../../../shared/styles/camposDialogo.module.css';
 
 /**
- * Actualización manual del estado de matrículas.
- * Solo se habilita cuando el período del año seleccionado ya finalizó.
+ * Actualización manual del estado de matrículas: cancela las pendientes de un período ya finalizado.
+ * Solo se habilita cuando el período del año seleccionado ya finalizó. Es una acción crítica, así que el botón
+ * de confirmar va en rojo (GUI §4).
  */
 export default function ModalActualizarEstadosMatricula({
   anios,
@@ -24,7 +26,6 @@ export default function ModalActualizarEstadosMatricula({
   const [errorEjecucion, establecerErrorEjecucion] = useState('');
   const [intento, establecerIntento] = useState(0);
 
-  const idTitulo = useId();
   const idAnio = useId();
 
   useEffect(() => {
@@ -55,18 +56,6 @@ export default function ModalActualizarEstadosMatricula({
     return () => { activo = false; };
   }, [anioId, intento]);
 
-  useEffect(() => {
-    const manejarTecla = (evento) => {
-      if (evento.key === 'Escape') onCerrar();
-    };
-    document.addEventListener('keydown', manejarTecla);
-    return () => document.removeEventListener('keydown', manejarTecla);
-  }, [onCerrar]);
-
-  const manejarClicFondo = (evento) => {
-    if (evento.target === evento.currentTarget) onCerrar();
-  };
-
   const puedeEjecutar = estadoPeriodo === 'listo'
     && periodo?.estado === 'FINALIZADO'
     && !ejecutando;
@@ -88,7 +77,8 @@ export default function ModalActualizarEstadosMatricula({
     return 'Estado de período no reconocido.';
   })();
 
-  const ejecutar = async () => {
+  const ejecutar = async (evento) => {
+    evento.preventDefault();
     if (!puedeEjecutar) return;
 
     establecerEjecutando(true);
@@ -104,80 +94,58 @@ export default function ModalActualizarEstadosMatricula({
   };
 
   return (
-    <div className={estilosModal.fondo} onMouseDown={manejarClicFondo}>
-      <div className={estilosModal.caja} role="dialog" aria-modal="true" aria-labelledby={idTitulo}>
-        <header className={estilosModal.cabecera}>
-          <div>
-            <p className={estilosModal.sobretitulo}>Gestión de matrículas</p>
-            <h2 id={idTitulo} className={estilosModal.titulo}>
-              Actualizar estados de matrícula
-            </h2>
-          </div>
-          <button type="button" className={estilosModal.cerrar} onClick={onCerrar} aria-label="Cerrar">
-            <Icono nombre="cerrar" tamano={16} />
-          </button>
-        </header>
-
-        <div className={estilosModal.cuerpo}>
-          <div className={estilosModal.campo}>
-            <label htmlFor={idAnio} className={estilosModal.etiqueta}>Año académico</label>
-            <select
-              id={idAnio}
-              className={estilosModal.entrada}
-              value={anioId}
-              onChange={(evento) => {
-                establecerAnioId(evento.target.value);
-                establecerErrorEjecucion('');
-              }}
-            >
-              {(anios ?? []).map((anio) => (
-                <option key={anio.id} value={anio.id}>{anio.anio}</option>
-              ))}
-            </select>
-          </div>
-
-          <div className={estilosModal.placeholderGlobal}>
-            <div>
-              <p className={estilosModal.etiquetaPlaceholder}>¿Qué hace esta acción?</p>
-              <p className={estilosModal.textoPlaceholder}>
-                Cancela las matrículas pendientes cuyo período ya finalizó y que
-                no tienen un compromiso de matrícula pagado. No modifica
-                matrículas confirmadas ni pagos.
-              </p>
-            </div>
-          </div>
-
-          <p className={estilosModal.textoAyuda}>{mensajePeriodo}</p>
-
-          {estadoPeriodo === 'error' && (
-            <button
-              type="button"
-              className={estilosModal.reintentar}
-              onClick={() => establecerIntento((actual) => actual + 1)}
-            >
-              Reintentar
-            </button>
-          )}
-
-          {errorEjecucion && (
-            <p className={estilosModal.errorEstructura} role="alert">{errorEjecucion}</p>
-          )}
-        </div>
-
-        <footer className={estilosModal.pie}>
-          <button type="button" className={estilosModal.botonSecundario} onClick={onCerrar}>
-            Cancelar
-          </button>
-          <button
-            type="button"
-            className={estilosModal.botonPrimario}
-            disabled={!puedeEjecutar}
-            onClick={ejecutar}
-          >
-            {ejecutando ? 'Actualizando…' : 'Ejecutar actualización'}
-          </button>
-        </footer>
+    <DialogoBase
+      idTitulo="dialogo-actualizar-estados"
+      titulo="Actualizar estados de matrícula"
+      subtitulo="Gestión de matrículas"
+      textoConfirmar="Ejecutar actualización"
+      textoEnviando="Actualizando..."
+      enviando={ejecutando}
+      confirmarDeshabilitado={!puedeEjecutar}
+      confirmarPeligro
+      error={errorEjecucion || null}
+      anchoMaximo="32rem"
+      botonesExpandidos
+      alCancelar={onCerrar}
+      alConfirmar={ejecutar}
+    >
+      <div className={estilos.campo}>
+        <label htmlFor={idAnio} className={estilos.etiqueta}>Año académico</label>
+        <select
+          id={idAnio}
+          className={estilos.selector}
+          value={anioId}
+          onChange={(evento) => {
+            establecerAnioId(evento.target.value);
+            establecerErrorEjecucion('');
+          }}
+        >
+          {(anios ?? []).map((anio) => (
+            <option key={anio.id} value={anio.id}>{anio.anio}</option>
+          ))}
+        </select>
       </div>
-    </div>
+
+      <div className={estilos.aviso}>
+        <p className={estilos.avisoTitulo}>¿Qué hace esta acción?</p>
+        <p className={estilos.avisoTexto}>
+          Cancela las matrículas pendientes cuyo período ya finalizó y que
+          no tienen un compromiso de matrícula pagado. No modifica
+          matrículas confirmadas ni pagos.
+        </p>
+      </div>
+
+      <p className={estilos.resumen}>{mensajePeriodo}</p>
+
+      {estadoPeriodo === 'error' && (
+        <button
+          type="button"
+          className={estilos.reintentar}
+          onClick={() => establecerIntento((actual) => actual + 1)}
+        >
+          <Icono nombre="reintentar" tamano={14} /> Reintentar
+        </button>
+      )}
+    </DialogoBase>
   );
 }

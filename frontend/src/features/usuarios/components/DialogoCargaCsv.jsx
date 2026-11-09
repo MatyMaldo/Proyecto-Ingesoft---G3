@@ -3,7 +3,7 @@ import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import Icono from '../../../shared/components/Icono.jsx';
 import Insignia from '../../../shared/components/Insignia.jsx';
 import useCoincideMedia from '../../../shared/hooks/useCoincideMedia.js';
-import DialogoBase from '../../cursos/components/DialogoBase.jsx';
+import DialogoBase from '../../../shared/components/DialogoBase.jsx';
 import { ROL_POR_TIPO_REGISTRO, TONO_ROL } from '../constants/rolesUsuario.js';
 import {
   CODIGOS_ESTUDIANTE_HISTORICOS,

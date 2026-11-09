@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import Icono from '../../../shared/components/Icono.jsx';
-import DialogoBase from './DialogoBase.jsx';
+import DialogoBase from '../../../shared/components/DialogoBase.jsx';
 import estilos from './DialogoCrearCurso.module.css';
 
 const ID_TITULO = 'dialogo-crear-competencia-titulo';

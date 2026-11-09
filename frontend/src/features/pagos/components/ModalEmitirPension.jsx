@@ -1,144 +1,91 @@
-import { useEffect, useId, useState } from 'react';
+import { useId, useState } from 'react';
 
-import Icono from '../../../shared/components/Icono.jsx';
-import estilosModal from './Modal.module.css';
-import usePagos from '../hooks/usePagos.js';
+import DialogoBase from '../../../shared/components/DialogoBase.jsx';
+import estilos from '../../../shared/styles/camposDialogo.module.css';
+import { MESES_PENSION } from '../utils/periodo.js';
 
 /**
+ * Diálogo para elegir año y mes y emitir el compromiso de pensión de un alumno. Al confirmar entrega
+ * `{ estudianteId, anioId, mes }` a `onAceptar`.
  *
- * Modal para elegir año y mes y emitir el compromiso de pensión de un alumno.
- * Al aceptar entrega `{ alumno, anioId, mes }` a `onAceptar`.
- *
- * @param {{
- *   onCerrar: () => void,
- *   onAceptar: (datos: { estudianteId: number, anioId: number, mes: string }) => void,
- *   alumno: Object|null,
- *   enviando?: boolean
- * }} props
+ * @param {Object} props
+ * @param {Object} props.alumno Alumno al que se emite el compromiso.
+ * @param {Array<{ id: number|string, anio: number|string }>} props.anios Años académicos disponibles.
+ * @param {string|number} [props.anioInicialId] Año que aparece elegido al abrir (el de la pantalla).
+ * @param {boolean} [props.enviando] `true` mientras se espera al servidor.
+ * @param {() => void} props.onCerrar
+ * @param {(datos: { estudianteId: number, anioId: number|string, mes: string }) => void} props.onAceptar
  */
-export default function ModalEmitirPension({ onCerrar, onAceptar,alumno,enviando }) {
-
-  const{
-    alumnos,
-    estado,
-    recargando,
-    anios,
-    estadoEstructura,
-    errorEstructura,
-    anioId,
-    seleccionarAnio,
-    mes,
-    seleccionarMes
-  } = usePagos();
-
-  const estudianteId = alumno.id;
-  const idTitulo = useId();
+export default function ModalEmitirPension({ alumno, anios, anioInicialId = '', enviando = false, onCerrar, onAceptar }) {
+  const [anioId, establecerAnioId] = useState(() => (anioInicialId === null ? '' : String(anioInicialId)));
+  const [mes, establecerMes] = useState('');
   const idAnio = useId();
   const idMes = useId();
 
+  const puedeEmitir = Boolean(alumno && anioId && mes);
+
+  const confirmar = (evento) => {
+    evento.preventDefault();
+    if (!puedeEmitir || enviando) return;
+    onAceptar({ estudianteId: alumno.id, anioId, mes });
+  };
+
   return (
-    <div className={estilosModal.fondo} >
-      <div className={estilosModal.caja} role="dialog" aria-modal="true" aria-labelledby={idTitulo}>
-        <header className={estilosModal.cabecera}>
+    <DialogoBase
+      idTitulo="dialogo-emitir-pension"
+      titulo="Emitir compromiso de pensión"
+      subtitulo="Pagos"
+      textoConfirmar="Emitir compromiso"
+      textoEnviando="Emitiendo..."
+      enviando={enviando}
+      confirmarDeshabilitado={!puedeEmitir}
+      cerrarAlClicFuera={false}
+      botonesExpandidos
+      alCancelar={onCerrar}
+      alConfirmar={confirmar}
+    >
+      {alumno && (
+        <div className={estilos.tarjetaAlumno}>
           <div>
-            <p className={estilosModal.sobretitulo}>Gestión académica</p>
-            <h2 id={idTitulo} className={estilosModal.titulo}>Emitir compromiso de pago de pensión</h2>
+            <p className={estilos.tarjetaEtiqueta}>Alumno</p>
+            <p className={estilos.tarjetaNombre}>{alumno.nombre}</p>
+            <p className={estilos.tarjetaDni}>
+              {alumno.dni ? `DNI: ${alumno.dni}` : `Código: ${alumno.codigo ?? '—'}`}
+            </p>
           </div>
-          <button type="button" className={estilosModal.cerrar} onClick={onCerrar} aria-label="Cerrar">
-            <Icono nombre="cerrar" tamano={16} />
-          </button>
-        </header>
-
-        <div className={estilosModal.cuerpo}>
-
-          {alumno && (
-            <div className={estilosModal.tarjetaAlumno}>
-              <div>
-                <p className={estilosModal.tarjetaEtiqueta}>Alumno seleccionado</p>
-                <p className={estilosModal.tarjetaNombre}>{alumno.nombre}</p>
-                <p className={estilosModal.tarjetaDni}>
-                  {alumno.dni ? `DNI: ${alumno.dni}` : `Código: ${alumno.codigo ?? '—'}`}
-                </p>
-              </div>
-            </div>
-          )}
-          
-          <div className={estilosModal.campo}>
-            <label htmlFor={idAnio} className={estilosModal.etiqueta}>Año académico</label>
-            <select
-              id={idAnio}
-              className={estilosModal.entrada}
-              value={anioId ?? ''}
-              disabled={estadoEstructura !== 'listo'}
-              onChange={(evento) => seleccionarAnio(evento.target.value)}
-              //onChange={() => {}}
-            >
-              <option value="">
-                {estadoEstructura === 'cargando' ? 'Cargando años...' : 'Seleccionar año...'
-                }
-              </option>
-              {anios.map((anio) => (
-                <option key={anio.id} value={anio.id}>{anio.anio}</option>
-              ))}
-            </select>
-            {estadoEstructura === 'error' && (
-              <div className={estilosModal.errorEstructura} role="alert">
-                <span>{errorEstructura}</span>
-              </div>
-            )}
-          </div>
-
-          <div className={estilosModal.campo}>
-            <label htmlFor={idMes} className={estilosModal.etiqueta}>Mes</label>
-            <select
-              id={idMes}
-              className={estilosModal.entrada}
-              value={mes ?? ''}
-              disabled={estadoEstructura !== 'listo'}
-              onChange={(evento) => seleccionarMes(evento.target.value)}
-              //onChange={() => {}}
-            >
-              <option value="">
-                {estadoEstructura === 'cargando' ? 'Cargando meses...' : 'Seleccionar Mes...'
-                }
-              </option>
-              
-              <option key={1} value="MARZO">MARZO</option>
-              <option key={2} value="ABRIL">ABRIL</option>
-              <option key={3} value="MAYO">MAYO</option>
-              <option key={4} value="JUNIO">JUNIO</option>
-              <option key={5} value="JULIO">JULIO</option>
-              <option key={6} value="AGOSTO">AGOSTO</option>
-              <option key={7} value="SETIEMBRE">SETIEMBRE</option>
-              <option key={8} value="OCTUBRE">OCTUBRE</option>
-              <option key={9} value="NOVIEMBRE">NOVIEMBRE</option>
-              <option key={10} value="DICIEMBRE">DICIEMBRE</option>
-
-            </select>
-            {estadoEstructura === 'error' && (
-              <div className={estilosModal.errorEstructura} role="alert">
-                <span>{errorEstructura}</span>
-              </div>
-            )}
-          </div>
-
         </div>
+      )}
 
-        <footer className={estilosModal.pie}>
-          <button type="button" className={estilosModal.botonSecundario} onClick={onCerrar}>
-            Cancelar
-          </button>
-          <button
-            type="button"
-            className={estilosModal.botonPrimario}
-            disabled={ (alumno && anioId && mes) ? false : true } // Por ahora estaría así 
-            onClick={() => onAceptar({estudianteId,anioId,mes})}
-            //onClick={onAceptar} Por ahora
-          >
-            {enviando ? 'Emitiendo...' : 'Aceptar'}
-          </button>
-        </footer>
+      <div className={estilos.campo}>
+        <label htmlFor={idAnio} className={estilos.etiqueta}>Año académico</label>
+        <select
+          id={idAnio}
+          className={estilos.selector}
+          value={anioId}
+          data-enfoque-inicial=""
+          onChange={(evento) => establecerAnioId(evento.target.value)}
+        >
+          <option value="">Seleccionar año...</option>
+          {(anios ?? []).map((anio) => (
+            <option key={anio.id} value={anio.id}>{anio.anio}</option>
+          ))}
+        </select>
       </div>
-    </div>
+
+      <div className={estilos.campo}>
+        <label htmlFor={idMes} className={estilos.etiqueta}>Mes</label>
+        <select
+          id={idMes}
+          className={estilos.selector}
+          value={mes}
+          onChange={(evento) => establecerMes(evento.target.value)}
+        >
+          <option value="">Seleccionar mes...</option>
+          {MESES_PENSION.map((nombreMes) => (
+            <option key={nombreMes} value={nombreMes}>{nombreMes}</option>
+          ))}
+        </select>
+      </div>
+    </DialogoBase>
   );
 }

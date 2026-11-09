@@ -20,8 +20,13 @@ function elegirAnioInicial(anios) {
  * Datos y comportamiento de la pantalla de Pagos.
  * La tabla se llena con alumnos que tienen matrícula pendiente o confirmada en
  * el año seleccionado, porque los pagos requieren grado y sección.
+ *
+ * @param {Object} [iniciales] Filtros con los que arranca la pantalla (los que vienen de la URL).
+ * @param {number|null} [iniciales.anioId] Si no se indica, se elige el año vigente.
+ * @param {number|null} [iniciales.gradoId]
+ * @param {number|null} [iniciales.seccionId]
  */
-export default function usePagos() {
+export default function usePagos({ anioId: anioInicialId = null, gradoId: gradoInicialId = null, seccionId: seccionInicialId = null } = {}) {
   const [alumnos, establecerAlumnos] = useState([]);
   const [estado, establecerEstado] = useState('cargando');
   const [error, establecerError] = useState('');
@@ -31,11 +36,11 @@ export default function usePagos() {
   const [anios, establecerAnios] = useState([]);
   const [estadoEstructura, establecerEstadoEstructura] = useState('cargando');
   const [errorEstructura, establecerErrorEstructura] = useState('');
-  const [anioId, establecerAnioId] = useState(null);
+  const [anioId, establecerAnioId] = useState(anioInicialId);
   const [grados, establecerGrados] = useState([]);
-  const [gradoId, establecerGradoId] = useState(null);
+  const [gradoId, establecerGradoId] = useState(gradoInicialId);
   const [secciones, establecerSecciones] = useState([]);
-  const [seccionId, establecerSeccionId] = useState(null);
+  const [seccionId, establecerSeccionId] = useState(seccionInicialId);
   const [cargandoSecciones, establecerCargandoSecciones] = useState(false);
   const [mes, establecerMes] = useState(null);
   const [intentoClave, establecerIntentoClave] = useState(0);

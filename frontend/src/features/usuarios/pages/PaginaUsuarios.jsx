@@ -1,15 +1,13 @@
 import { useEffect, useRef, useState } from 'react';
+import { useSearchParams } from 'react-router-dom';
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import CampoBusqueda from '../../../shared/components/CampoBusqueda.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import FiltroChips from '../../../shared/components/FiltroChips.jsx';
-import FiltrosActivos from '../../../shared/components/FiltrosActivos.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
 import MenuDesplegable from '../../../shared/components/MenuDesplegable.jsx';
 import Notificacion from '../../../shared/components/Notificacion.jsx';
 import Paginacion from '../../../shared/components/Paginacion.jsx';
-import SelectFiltro from '../../../shared/components/SelectFiltro.jsx';
-import useCoincideMedia from '../../../shared/hooks/useCoincideMedia.js';
 import useNotificacion from '../../../shared/hooks/useNotificacion.js';
 import DialogoCambiarEstado from '../components/DialogoCambiarEstado.jsx';
 import DialogoCargaCsv from '../components/DialogoCargaCsv.jsx';
@@ -28,17 +26,24 @@ import estilos from './PaginaUsuarios.module.css';
 
 const TIPOS_REGISTRO = ['apoderado', 'estudiante', 'docente'];
 
+/** Valor de la URL si es una de las opciones del filtro; si no, `'Todos'` (sin filtro). */
+function valorValido(valor, opciones) {
+    return opciones.some(opcion => opcion.valor === valor) ? valor : 'Todos';
+}
+
 function PaginaUsuarios() {
     const [usuarios, setUsuarios] = useState(() => USAR_MOCK ? USUARIOS_INICIAL : []);
     const [cargando, setCargando] = useState(!USAR_MOCK);
     const [errorCarga, setErrorCarga] = useState('');
     const [intentoCarga, setIntentoCarga] = useState(0);
-    const [query, setQuery] = useState('');
-    const [rolFiltro, setRolFiltro] = useState('Todos');
-    const [estadoFiltro, setEstadoFiltro] = useState('Todos');
-    const [pagina, setPagina] = useState(0);
+    // Búsqueda, filtros y página viven también en la URL (?q=&rol=&estado=&pagina=): sobreviven a recargar la
+    // página y a volver desde otra pantalla. Se leen una sola vez al montar y después se reflejan en la URL.
+    const [parametros, establecerParametros] = useSearchParams();
+    const [query, setQuery] = useState(() => parametros.get('q') ?? '');
+    const [rolFiltro, setRolFiltro] = useState(() => valorValido(parametros.get('rol'), OPCIONES_FILTRO_ROL));
+    const [estadoFiltro, setEstadoFiltro] = useState(() => valorValido(parametros.get('estado'), OPCIONES_FILTRO_ESTADO));
+    const [pagina, setPagina] = useState(() => Math.max(0, (Number.parseInt(parametros.get('pagina'), 10) || 1) - 1));
     const [orden, setOrden] = useState(ORDEN_INICIAL);
-    const esMovil = useCoincideMedia('(max-width: 767px)');
     const { notificacion, mostrarNotificacion } = useNotificacion();
     // Diálogo abierto: un tipo de registro, 'cargaCsv', 'editar' o 'toggle'; `usuarioActivo` es el usuario de los dos últimos.
     const [modal, setModal] = useState(null);
@@ -59,6 +64,17 @@ function PaginaUsuarios() {
         });
         return () => { vigente = false; };
     }, [intentoCarga]);
+    useEffect(() => {
+        const siguientes = new URLSearchParams(parametros);
+        const fijar = (clave, valor) => (valor ? siguientes.set(clave, valor) : siguientes.delete(clave));
+        fijar('q', query.trim());
+        fijar('rol', rolFiltro !== 'Todos' ? rolFiltro : '');
+        fijar('estado', estadoFiltro !== 'Todos' ? estadoFiltro : '');
+        fijar('pagina', pagina > 0 ? String(pagina + 1) : '');
+        if (siguientes.toString() !== parametros.toString()) {
+            establecerParametros(siguientes, { replace: true });
+        }
+    }, [query, rolFiltro, estadoFiltro, pagina, parametros, establecerParametros]);
     const busqueda = query.trim().toLowerCase();
     const coincideBusqueda = u => !busqueda
         || `${u.nombre} ${u.apellido}`.toLowerCase().includes(busqueda)
@@ -77,14 +93,17 @@ function PaginaUsuarios() {
             ? usuarios.filter(u => coincideBusqueda(u) && coincideEstado(u) && (opcion.valor === 'Todos' || u.rol === opcion.valor)).length
             : undefined
     }));
-    // Filtros aplicados que no se ven como chip (el rol ya se ve en sus chips): el estado, que está en un selector.
-    const chipsActivos = estadoFiltro === 'Todos'
-        ? []
-        : [{
-            id: 'estado',
-            etiqueta: `Estado: ${OPCIONES_FILTRO_ESTADO.find(opcion => opcion.valor === estadoFiltro)?.etiqueta ?? estadoFiltro}`,
-            alQuitar: () => cambiarEstado('Todos')
-        }];
+    // Mismo criterio para los chips de estado: la búsqueda y el rol se aplican a cada chip. Con rol y estado elegidos
+    // los dos chips seleccionados darían el mismo número que el paginador: el del estado se omite para que el total
+    // se vea solo dos veces (en el chip del rol y en el paginador).
+    const omitirConteoEstado = rolFiltro !== 'Todos' && estadoFiltro !== 'Todos';
+    const opcionesEstado = OPCIONES_FILTRO_ESTADO.map(opcion => ({
+        ...opcion,
+        conteo: !omitirConteoEstado && (estadoFiltro === 'Todos' || opcion.valor === estadoFiltro)
+            ? usuarios.filter(u => coincideBusqueda(u) && coincideRol(u)
+                && (opcion.valor === 'Todos' || (opcion.valor === 'activo') === Boolean(u.activo))).length
+            : undefined
+    }));
     const ordenados = ordenarUsuarios(filtered, orden);
     const totalPaginas = Math.max(1, Math.ceil(ordenados.length / TAMANIO_PAGINA_USUARIOS));
     const paginaActual = Math.min(pagina, totalPaginas - 1);
@@ -96,6 +115,8 @@ function PaginaUsuarios() {
         const reducirMovimiento = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
         refInicioListado.current?.scrollIntoView?.({ block: 'start', behavior: reducirMovimiento ? 'auto' : 'smooth' });
     };
+    // Sin ningún usuario y sin filtros: en vez de un vacío sin salida, se ofrece registrar el primero.
+    const sinUsuarios = usuarios.length === 0 && !hayFiltros;
     const hayResultados = !cargando && !errorCarga && ordenados.length > 0;
     // El mismo paginador (con el total y el campo de página) va arriba y abajo del listado, como en Log de errores.
     const paginador = posicion => (
@@ -138,43 +159,38 @@ function PaginaUsuarios() {
     return (<div className={estilos.pagina}>
       {notificacion && <Notificacion mensaje={notificacion.mensaje} error={notificacion.error} />}
 
-      {/* Barra de título (GUI §6): título a la izquierda y acciones globales a la derecha, secundaria y luego primaria. */}
+      {/* Barra de título (GUI §6): título a la izquierda y una sola acción global a la derecha: "Agregar usuarios" reúne
+          el registro individual (por tipo) y la carga masiva por CSV. */}
       <header className={estilos.cabecera}>
         <div className={estilos.textoCabecera}>
           <h1 className={estilos.titulo}>Usuarios</h1>
           <p className={estilos.descripcion}>Gestiona los usuarios registrados en el sistema.</p>
         </div>
         <div className={estilos.acciones}>
-          {/* En móvil la carga masiva pasa al menú "Nuevo usuario" para no apilar dos botones a ancho completo. */}
-          {!esMovil && (
-            <button type="button" className={`${estilos.boton} ${estilos.botonSecundario}`} disabled={cargando} onClick={abrirCargaCsv}>
-              <Icono nombre="subir" tamano={16} />
-              Carga masiva CSV
-            </button>
-          )}
           <MenuDesplegable
-            etiquetaBoton="Nuevo usuario"
+            etiquetaBoton="Agregar usuarios"
             claseBoton={`${estilos.boton} ${estilos.botonPrimario}`}
             alineacion="fin"
             contenidoBoton={<>
               <Icono nombre="agregar" tamano={16} />
-              Nuevo usuario
+              Agregar usuarios
               <Icono nombre="chevron-abajo" tamano={16} />
             </>}
             items={[
-              { id: 'apoderado', etiqueta: 'Apoderado', ariaLabel: 'Registrar apoderado', icono: 'usuarios', alSeleccionar: () => openRegister('apoderado') },
-              { id: 'estudiante', etiqueta: 'Estudiante', ariaLabel: 'Registrar estudiante', icono: 'birrete', alSeleccionar: () => openRegister('estudiante') },
-              { id: 'docente', etiqueta: 'Docente', ariaLabel: 'Registrar docente', icono: 'libro', alSeleccionar: () => openRegister('docente') },
-              ...(esMovil && !cargando
-                ? [{ id: 'csv', etiqueta: 'Carga masiva CSV', icono: 'subir', separadorAntes: true, alSeleccionar: abrirCargaCsv }]
+              { id: 'apoderado', etiqueta: 'Registrar apoderado', icono: 'usuarios', alSeleccionar: () => openRegister('apoderado') },
+              { id: 'estudiante', etiqueta: 'Registrar estudiante', icono: 'birrete', alSeleccionar: () => openRegister('estudiante') },
+              { id: 'docente', etiqueta: 'Registrar docente', icono: 'libro', alSeleccionar: () => openRegister('docente') },
+              // La carga masiva espera a que termine de cargar el listado, porque valida contra los usuarios existentes.
+              ...(!cargando
+                ? [{ id: 'csv', etiqueta: 'Carga masiva (CSV)', icono: 'subir', separadorAntes: true, alSeleccionar: abrirCargaCsv }]
                 : [])
             ]}
           />
         </div>
       </header>
 
-      {/* Búsqueda, chips de rol (con conteo) y estado en una sola fila; debajo, los filtros aplicados y "Limpiar filtros"
-          (mismo patrón que Auditorías). */}
+      {/* Búsqueda arriba; debajo, los chips de rol y de estado (con conteo), cada grupo con su subtítulo; "Limpiar
+          filtros" aparece junto al buscador cuando hay algún criterio activo. */}
       <section className={estilos.filtros} aria-label="Búsqueda y filtros de usuarios">
         <div className={estilos.filaFiltros}>
           <div className={estilos.campoBusqueda}>
@@ -186,21 +202,36 @@ function PaginaUsuarios() {
               alCambiar={cambiarBusqueda}
             />
           </div>
-          <FiltroChips
-            etiquetaGrupo="Filtrar usuarios por rol"
-            opciones={opcionesRol}
-            valorSeleccionado={rolFiltro}
-            alSeleccionar={cambiarRol}
-          />
-          <SelectFiltro
-            id="filtro-estado-usuarios"
-            etiqueta="Estado"
-            valor={estadoFiltro}
-            opciones={OPCIONES_FILTRO_ESTADO}
-            alCambiar={cambiarEstado}
-          />
+          {/* Junto al buscador: esa fila siempre tiene espacio, así el botón aparece y desaparece sin mover lo que hay
+              debajo (en la fila de chips bajaba de línea en casi todos los anchos). */}
+          {hayFiltros && (
+            <button type="button" className={estilos.limpiarFiltros} onClick={limpiarFiltros}>
+              <Icono nombre="cerrar" tamano={14} />
+              Limpiar filtros
+            </button>
+          )}
         </div>
-        <FiltrosActivos filtros={chipsActivos} hayFiltros={hayFiltros} alLimpiar={limpiarFiltros} />
+        <div className={estilos.filaChips}>
+          {/* El subtítulo es visual: el grupo ya tiene su nombre accesible en `etiquetaGrupo`. */}
+          <div className={estilos.grupoFiltro}>
+            <span className={estilos.rotuloFiltro} aria-hidden="true">Rol</span>
+            <FiltroChips
+              etiquetaGrupo="Filtrar usuarios por rol"
+              opciones={opcionesRol}
+              valorSeleccionado={rolFiltro}
+              alSeleccionar={cambiarRol}
+            />
+          </div>
+          <div className={`${estilos.grupoFiltro} ${estilos.grupoEstado}`}>
+            <span className={estilos.rotuloFiltro} aria-hidden="true">Estado</span>
+            <FiltroChips
+              etiquetaGrupo="Filtrar usuarios por estado"
+              opciones={opcionesEstado}
+              valorSeleccionado={estadoFiltro}
+              alSeleccionar={cambiarEstado}
+            />
+          </div>
+        </div>
       </section>
 
       {/* Total y paginación arriba del listado: el total queda a la vista sin bajar hasta el final. */}
@@ -215,9 +246,9 @@ function PaginaUsuarios() {
         ) : filtered.length === 0 ? (
           <EstadoConsulta
             tipo="vacio"
-            mensaje="No se encontraron usuarios."
-            etiquetaAccion={hayFiltros ? 'Limpiar filtros' : undefined}
-            alAccion={hayFiltros ? limpiarFiltros : undefined}
+            mensaje={sinUsuarios ? 'Aún no hay usuarios registrados.' : 'No se encontraron usuarios con los criterios indicados'}
+            etiquetaAccion={sinUsuarios ? 'Registrar apoderado' : undefined}
+            alAccion={sinUsuarios ? () => openRegister('apoderado') : undefined}
           />
         ) : (
           <>

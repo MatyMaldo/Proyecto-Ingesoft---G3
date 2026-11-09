@@ -1,7 +1,7 @@
 import { useState } from 'react';
 
 import Icono from '../../../shared/components/Icono.jsx';
-import DialogoBase from '../../cursos/components/DialogoBase.jsx';
+import DialogoBase from '../../../shared/components/DialogoBase.jsx';
 import { cargarBloquesCsv, descargarPlantillaBloquesCsv } from '../services/horariosService.js';
 import { guardarArchivo } from '../utils/guardarArchivo.js';
 import estilos from './DialogoCargaMasiva.module.css';

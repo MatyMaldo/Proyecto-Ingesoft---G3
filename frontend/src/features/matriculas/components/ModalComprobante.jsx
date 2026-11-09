@@ -2,11 +2,12 @@ import { useEffect, useId, useState } from 'react';
 
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
+import DialogoBase from '../../../shared/components/DialogoBase.jsx';
 import {
   listarMatriculas,
   obtenerPeriodoMatricula
 } from '../services/matriculasService.js';
-import estilosModal from './Modal.module.css';
+import estilos from '../../../shared/styles/camposDialogo.module.css';
 
 /**
  * Emisión masiva de compromisos de matrícula.
@@ -19,24 +20,24 @@ export default function ModalComprobante({ anios, anioInicialId, onCerrar, onEje
   const [cantidadPendientes, establecerCantidadPendientes] = useState(null);
   const [periodo, establecerPeriodo] = useState(null);
   const [estado, establecerEstado] = useState('cargando');
-  const [error, establecerError] = useState('');
+  const [errorCarga, establecerErrorCarga] = useState('');
+  const [errorEmision, establecerErrorEmision] = useState('');
   const [intento, establecerIntento] = useState(0);
   const [ejecutando, establecerEjecutando] = useState(false);
   const [resultado, establecerResultado] = useState(null);
 
-  const idTitulo = useId();
   const idAnio = useId();
 
   useEffect(() => {
     if (!anioId) {
       establecerEstado('error');
-      establecerError('Selecciona un año académico.');
+      establecerErrorCarga('Selecciona un año académico.');
       return undefined;
     }
 
     let activo = true;
     establecerEstado('cargando');
-    establecerError('');
+    establecerErrorCarga('');
 
     Promise.all([
       listarMatriculas({ anioId, estado: 'PENDIENTE', page: 0, size: 1 }),
@@ -45,7 +46,7 @@ export default function ModalComprobante({ anios, anioInicialId, onCerrar, onEje
       if (!activo) return;
 
       if (!respuestaMatriculas.exitoso) {
-        establecerError(
+        establecerErrorCarga(
           respuestaMatriculas.mensaje || 'No se pudieron cargar las matrículas pendientes.'
         );
         establecerEstado('error');
@@ -59,18 +60,6 @@ export default function ModalComprobante({ anios, anioInicialId, onCerrar, onEje
 
     return () => { activo = false; };
   }, [anioId, intento]);
-
-  useEffect(() => {
-    const manejarTecla = (evento) => {
-      if (evento.key === 'Escape') onCerrar();
-    };
-    document.addEventListener('keydown', manejarTecla);
-    return () => document.removeEventListener('keydown', manejarTecla);
-  }, [onCerrar]);
-
-  const manejarClicFondo = (evento) => {
-    if (evento.target === evento.currentTarget) onCerrar();
-  };
 
   const periodoVigente = periodo?.estado === 'VIGENTE';
   const hayPendientes = (cantidadPendientes ?? 0) > 0;
@@ -91,25 +80,19 @@ export default function ModalComprobante({ anios, anioInicialId, onCerrar, onEje
     return 'Estado de período no reconocido.';
   })();
 
-  const motivoBloqueo = (() => {
-    if (estado !== 'listo') return 'Cargando información del año.';
-    if (!periodoVigente) return mensajePeriodo;
-    if (!hayPendientes) return 'No hay matrículas pendientes para emitir.';
-    return '';
-  })();
-
-  const ejecutar = async () => {
+  const ejecutar = async (evento) => {
+    evento.preventDefault();
     if (!puedeEmitir) return;
 
     establecerEjecutando(true);
-    establecerError('');
+    establecerErrorEmision('');
     establecerResultado(null);
 
     const respuesta = await onEjecutar(anioId);
     establecerEjecutando(false);
 
     if (!respuesta.exitoso) {
-      establecerError(respuesta.mensaje || 'No fue posible emitir los compromisos.');
+      establecerErrorEmision(respuesta.mensaje || 'No fue posible emitir los compromisos.');
       return;
     }
 
@@ -118,113 +101,95 @@ export default function ModalComprobante({ anios, anioInicialId, onCerrar, onEje
   };
 
   return (
-    <div className={estilosModal.fondo} onMouseDown={manejarClicFondo}>
-      <div className={estilosModal.caja} role="dialog" aria-modal="true" aria-labelledby={idTitulo}>
-        <header className={estilosModal.cabecera}>
-          <div>
-            <p className={estilosModal.sobretitulo}>Pagos y Matrícula</p>
-            <h2 id={idTitulo} className={estilosModal.titulo}>
-              Emitir compromisos de matrícula
-            </h2>
-            <p className={estilosModal.tarjetaDni}>
-              Emisión masiva por año académico
-            </p>
-          </div>
-          <button type="button" className={estilosModal.cerrar} onClick={onCerrar} aria-label="Cerrar">
-            <Icono nombre="cerrar" tamano={16} />
-          </button>
-        </header>
+    <DialogoBase
+      idTitulo="dialogo-emitir-compromisos"
+      titulo="Emitir compromisos de matrícula"
+      subtitulo="Emisión masiva por año académico"
+      textoConfirmar="Emitir todos"
+      textoEnviando="Emitiendo..."
+      textoCancelar="Cerrar"
+      enviando={ejecutando}
+      confirmarDeshabilitado={!puedeEmitir}
+      error={errorEmision || null}
+      anchoMaximo="32rem"
+      botonesExpandidos
+      alCancelar={onCerrar}
+      alConfirmar={ejecutar}
+    >
+      <div className={estilos.campo}>
+        <label htmlFor={idAnio} className={estilos.etiqueta}>Año académico</label>
+        <select
+          id={idAnio}
+          className={estilos.selector}
+          value={anioId}
+          onChange={(evento) => {
+            establecerAnioId(evento.target.value);
+            establecerResultado(null);
+            establecerErrorEmision('');
+          }}
+        >
+          {(anios ?? []).map((anio) => (
+            <option key={anio.id} value={anio.id}>{anio.anio}</option>
+          ))}
+        </select>
+      </div>
 
-        <div className={estilosModal.cuerpo}>
-          <div className={estilosModal.campo}>
-            <label htmlFor={idAnio} className={estilosModal.etiqueta}>Año académico</label>
-            <select
-              id={idAnio}
-              className={estilosModal.entrada}
-              value={anioId}
-              onChange={(evento) => {
-                establecerAnioId(evento.target.value);
-                establecerResultado(null);
-              }}
-            >
-              {(anios ?? []).map((anio) => (
-                <option key={anio.id} value={anio.id}>{anio.anio}</option>
-              ))}
-            </select>
-          </div>
+      <p className={estilos.ayuda}>
+        Se emitirá un compromiso de pago de matrícula para cada matrícula
+        pendiente del año que aún no tenga uno.
+      </p>
 
-          <p className={estilosModal.textoAyuda}>
-            Se emitirá un compromiso de pago de matrícula para cada matrícula
-            pendiente del año que aún no tenga uno.
+      {estado === 'cargando' && <EstadoConsulta tipo="carga" filasEsqueleto={2} />}
+
+      {estado === 'error' && (
+        <div className={estilos.campo}>
+          <p className={estilos.error} role="alert">
+            <Icono nombre="alerta" tamano={14} />
+            <span>{errorCarga}</span>
           </p>
-
-          {estado === 'cargando' && <EstadoConsulta tipo="carga" filasEsqueleto={2} />}
-
-          {estado === 'error' && (
-            <div>
-              <p className={estilosModal.errorEstructura} role="alert">{error}</p>
-              <button
-                type="button"
-                className={estilosModal.reintentar}
-                onClick={() => establecerIntento((actual) => actual + 1)}
-              >
-                Reintentar
-              </button>
-            </div>
-          )}
-
-          {estado === 'listo' && (
-            <>
-              <p className={estilosModal.textoAyuda}>
-                Matrículas pendientes: <strong>{cantidadPendientes ?? 0}</strong>
-              </p>
-              <p className={estilosModal.textoAyuda}>{mensajePeriodo}</p>
-            </>
-          )}
-
-          {error && estado === 'listo' && (
-            <p className={estilosModal.errorEstructura} role="alert">{error}</p>
-          )}
-
-          {resultado && (
-            <div className={estilosModal.placeholderGlobal}>
-              <div>
-                <p className={estilosModal.etiquetaPlaceholder}>Resultado de la emisión</p>
-                <p className={estilosModal.textoPlaceholder}>
-                  Emitidos: <strong>{resultado.emitidos}</strong>
-                  {' · '}
-                  Omitidos: <strong>{resultado.omitidos}</strong>
-                  {' · '}
-                  Errores: <strong>{resultado.errores.length}</strong>
-                </p>
-                {resultado.errores.map((errorMatricula) => (
-                  <p
-                    key={errorMatricula.matriculaId}
-                    className={estilosModal.errorEstructura}
-                  >
-                    Matrícula #{errorMatricula.matriculaId}: {errorMatricula.mensaje}
-                  </p>
-                ))}
-              </div>
-            </div>
-          )}
-        </div>
-
-        <footer className={estilosModal.pie}>
-          <button type="button" className={estilosModal.botonSecundario} onClick={onCerrar}>
-            Cerrar
-          </button>
           <button
             type="button"
-            className={estilosModal.botonPrimario}
-            disabled={!puedeEmitir}
-            title={motivoBloqueo || 'Emitir todos los compromisos pendientes'}
-            onClick={ejecutar}
+            className={estilos.reintentar}
+            onClick={() => establecerIntento((actual) => actual + 1)}
           >
-            {ejecutando ? 'Emitiendo…' : 'Emitir todos'}
+            Reintentar
           </button>
-        </footer>
-      </div>
-    </div>
+        </div>
+      )}
+
+      {estado === 'listo' && (
+        <>
+          <p className={estilos.resumen}>
+            Matrículas pendientes: <strong>{cantidadPendientes ?? 0}</strong>
+          </p>
+          <p className={estilos.resumen}>{mensajePeriodo}</p>
+          {!hayPendientes && (
+            <p className={estilos.resumen}>No hay matrículas pendientes para emitir.</p>
+          )}
+        </>
+      )}
+
+      {resultado && (
+        <div className={estilos.aviso} role="status">
+          <p className={estilos.avisoTitulo}>Resultado de la emisión</p>
+          <p className={estilos.avisoTexto}>
+            Emitidos: <strong>{resultado.emitidos}</strong>
+            {' · '}
+            Omitidos: <strong>{resultado.omitidos}</strong>
+            {' · '}
+            Errores: <strong>{resultado.errores.length}</strong>
+          </p>
+          {resultado.errores.length > 0 && (
+            <ul className={estilos.avisoErrores}>
+              {resultado.errores.map((errorMatricula) => (
+                <li key={errorMatricula.matriculaId}>
+                  Matrícula #{errorMatricula.matriculaId}: {errorMatricula.mensaje}
+                </li>
+              ))}
+            </ul>
+          )}
+        </div>
+      )}
+    </DialogoBase>
   );
 }

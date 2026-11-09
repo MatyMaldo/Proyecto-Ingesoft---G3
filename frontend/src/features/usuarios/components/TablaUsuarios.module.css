@@ -49,15 +49,16 @@
  */
 .tabla {
   table-layout: fixed;
-  min-width: 52rem;
+  min-width: 56rem;
 }
 
+/* Las columnas con contenido corto (DNI, rol, estado, acciones) miden lo justo; el correo no lleva ancho y se queda
+   con todo el espacio que sobra, así se ve completo. */
 .tabla th:nth-child(1) { width: 22%; }
-.tabla th:nth-child(2) { width: 12%; }
-.tabla th:nth-child(3) { width: 25%; }
-.tabla th:nth-child(4) { width: 14%; }
-.tabla th:nth-child(5) { width: 14%; }
-.tabla th:nth-child(6) { width: 13%; }
+.tabla th:nth-child(2) { width: 6.5rem; }
+.tabla th:nth-child(4) { width: 8.5rem; }
+.tabla th:nth-child(5) { width: 7.75rem; }
+.tabla th:nth-child(6) { width: 7.5rem; }
 
 .tabla td:nth-child(2),
 .tabla td:nth-child(4),
@@ -145,9 +146,8 @@
 .correo {
   display: block;
   max-width: 100%;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  /* El correo se muestra completo: si no cabe en una línea, se parte en vez de cortarse con "…". */
+  overflow-wrap: anywhere;
   color: var(--color-texto-secundario);
 }
 
@@ -279,6 +279,7 @@
   gap: var(--espacio-1);
   font-size: var(--texto-md);
   color: var(--color-texto-suave);
+  white-space: normal;
 }
 
 .listaTarjetas {

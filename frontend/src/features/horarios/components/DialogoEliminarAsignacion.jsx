@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import DialogoBase from '../../cursos/components/DialogoBase.jsx';
+import DialogoBase from '../../../shared/components/DialogoBase.jsx';
 
 /**
  * Confirmación para quitar una relación curso-docente. También se quitan sus bloques del horario.

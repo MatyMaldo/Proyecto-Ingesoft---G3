@@ -1,6 +1,9 @@
 import { useEffect, useState } from 'react';
+import Avatar from '../../../shared/components/Avatar.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
-import DialogoBase from '../../cursos/components/DialogoBase.jsx';
+import Insignia from '../../../shared/components/Insignia.jsx';
+import DialogoBase from '../../../shared/components/DialogoBase.jsx';
+import { TONO_ROL } from '../constants/rolesUsuario.js';
 import { cambiarEstadoUsuario, listarSeccionesTutor } from '../services/usuariosService.js';
 import estilos from './DialogoCambiarEstado.module.css';
 
@@ -75,6 +78,14 @@ export default function DialogoCambiarEstado({ usuario, alCambiado, alCerrar }) 
       alCancelar={alCerrar}
       alConfirmar={confirmar}
     >
+      <div className={estilos.usuario}>
+        <Avatar nombre={usuario.nombre} apellido={usuario.apellido} />
+        <div className={estilos.datosUsuario}>
+          <span className={estilos.nombreUsuario}>{nombreCompleto}</span>
+          <span className={estilos.detalleUsuario}>DNI {usuario.dni}</span>
+        </div>
+        <Insignia tono={TONO_ROL[usuario.rol]}>{usuario.rol}</Insignia>
+      </div>
       <p className={estilos.pregunta}>
         {desactivando
           ? `¿Está seguro de que desea desactivar a ${nombreCompleto}?`

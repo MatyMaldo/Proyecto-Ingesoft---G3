@@ -1,4 +1,4 @@
-import DialogoBase from './DialogoBase.jsx';
+import DialogoBase from '../../../shared/components/DialogoBase.jsx';
 
 /**
  * Confirmación de eliminación. El backend valida si existen competencias asociadas.

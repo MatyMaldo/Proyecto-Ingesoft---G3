@@ -1,6 +1,6 @@
 import { useState } from 'react';
 
-import DialogoBase from '../../cursos/components/DialogoBase.jsx';
+import DialogoBase from '../../../shared/components/DialogoBase.jsx';
 import CampoSelect from './CampoSelect.jsx';
 
 /**

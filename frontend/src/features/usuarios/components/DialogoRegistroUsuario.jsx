@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import Icono from '../../../shared/components/Icono.jsx';
-import DialogoBase from '../../cursos/components/DialogoBase.jsx';
+import DialogoBase from '../../../shared/components/DialogoBase.jsx';
 import { ROL_POR_TIPO_REGISTRO } from '../constants/rolesUsuario.js';
 import {
   CODIGOS_ESTUDIANTE_HISTORICOS,
@@ -65,6 +65,14 @@ export default function DialogoRegistroUsuario({ tipo, usuarios, alRegistrado, a
   const cambiar = (clave, valor) => {
     setForm((previo) => ({ ...previo, [clave]: valor }));
     setErrores((previo) => ({ ...previo, [clave]: '' }));
+  };
+
+  // Validación inmediata: al salir de un campo con contenido se muestra su error sin esperar al envío. Los campos
+  // vacíos no se marcan al pasar con Tab; "obligatorio" se avisa al registrar.
+  const validarCampo = (clave) => {
+    if (!String(form[clave] ?? '').trim()) return;
+    const errs = validar();
+    setErrores((previo) => ({ ...previo, [clave]: errs[clave] ?? '' }));
   };
 
   const buscarApoderado = () => {
@@ -228,6 +236,7 @@ export default function DialogoRegistroUsuario({ tipo, usuarios, alRegistrado, a
         enviando={enviando}
         error={errorGeneral}
         anchoMaximo="38rem"
+        botonesExpandidos
         cerrarAlClicFuera={false}
         alSolicitarCierre={solicitarCierre}
         alCancelar={alCerrar}
@@ -235,15 +244,15 @@ export default function DialogoRegistroUsuario({ tipo, usuarios, alRegistrado, a
       >
         <div ref={refSecciones} className={estilos.secciones}>
           <SeccionFormulario titulo="Datos personales">
-            <CampoUsuario etiqueta="Nombre" valor={form.nombre} alCambiar={(v) => cambiar('nombre', v)} placeholder="Ingrese el nombre" error={errores.nombre} maxLength={80} requerido autoEnfocar />
+            <CampoUsuario etiqueta="Nombre" valor={form.nombre} alCambiar={(v) => cambiar('nombre', v)} onBlur={() => validarCampo('nombre')} placeholder="Ingrese el nombre" error={errores.nombre} maxLength={80} requerido autoEnfocar />
             {apellidosSeparados
-              ? <CampoUsuario etiqueta="Apellido paterno" valor={form.apellidoPaterno} alCambiar={(v) => cambiar('apellidoPaterno', v)} placeholder="Ingrese el apellido paterno" error={errores.apellidoPaterno} maxLength={80} requerido />
-              : <CampoUsuario etiqueta="Apellido" valor={form.apellido} alCambiar={(v) => cambiar('apellido', v)} placeholder="Ingrese el apellido" error={errores.apellido} requerido />}
+              ? <CampoUsuario etiqueta="Apellido paterno" valor={form.apellidoPaterno} alCambiar={(v) => cambiar('apellidoPaterno', v)} onBlur={() => validarCampo('apellidoPaterno')} placeholder="Ingrese el apellido paterno" error={errores.apellidoPaterno} maxLength={80} requerido />
+              : <CampoUsuario etiqueta="Apellido" valor={form.apellido} alCambiar={(v) => cambiar('apellido', v)} onBlur={() => validarCampo('apellido')} placeholder="Ingrese el apellido" error={errores.apellido} requerido />}
             {apellidosSeparados && (
-              <CampoUsuario etiqueta="Apellido materno" valor={form.apellidoMaterno} alCambiar={(v) => cambiar('apellidoMaterno', v)} placeholder="Opcional" error={errores.apellidoMaterno} maxLength={80} />
+              <CampoUsuario etiqueta="Apellido materno" valor={form.apellidoMaterno} alCambiar={(v) => cambiar('apellidoMaterno', v)} onBlur={() => validarCampo('apellidoMaterno')} placeholder="Opcional" error={errores.apellidoMaterno} maxLength={80} />
             )}
             {esEstudiante && (
-              <CampoUsuario etiqueta="Fecha de nacimiento" type="date" valor={form.fechaNacimiento} alCambiar={(v) => cambiar('fechaNacimiento', v)} error={errores.fechaNacimiento} requerido />
+              <CampoUsuario etiqueta="Fecha de nacimiento" type="date" valor={form.fechaNacimiento} alCambiar={(v) => cambiar('fechaNacimiento', v)} onBlur={() => validarCampo('fechaNacimiento')} error={errores.fechaNacimiento} requerido />
             )}
             {pideEdad && (
               <CampoUsuario
@@ -253,13 +262,14 @@ export default function DialogoRegistroUsuario({ tipo, usuarios, alRegistrado, a
                 step={1}
                 valor={form.edad}
                 alCambiar={(v) => cambiar('edad', v)}
+                onBlur={() => validarCampo('edad')}
                 placeholder="Ingrese la edad"
                 error={errores.edad}
                 ayuda={tipo === 'docente' ? 'El docente debe tener 18 años o más.' : ''}
                 requerido
               />
             )}
-            <CampoUsuario etiqueta={tipo === 'apoderado' && USAR_MOCK ? 'Documento de identidad' : 'DNI'} valor={form.dni} alCambiar={(v) => cambiar('dni', v)} placeholder="Ingrese el DNI" error={errores.dni} maxLength={9} requerido />
+            <CampoUsuario etiqueta={tipo === 'apoderado' && USAR_MOCK ? 'Documento de identidad' : 'DNI'} valor={form.dni} alCambiar={(v) => cambiar('dni', v.replace(/\D/g, ''))} onBlur={() => validarCampo('dni')} placeholder="Ingrese el DNI" error={errores.dni} maxLength={9} inputMode="numeric" autoComplete="off" requerido />
           </SeccionFormulario>
 
           {esEstudiante && (
@@ -279,8 +289,8 @@ export default function DialogoRegistroUsuario({ tipo, usuarios, alRegistrado, a
           )}
 
           <SeccionFormulario titulo="Contacto">
-            <CampoTelefono valor={form.telefono} alCambiar={(telefono) => cambiar('telefono', telefono)} error={errores.telefono} requerido={telefonoObligatorio} />
-            <CampoUsuario etiqueta="Correo" type="email" valor={form.correo} alCambiar={(v) => cambiar('correo', v)} placeholder="Ingrese el correo electrónico" error={errores.correo} maxLength={160} requerido />
+            <CampoTelefono valor={form.telefono} alCambiar={(telefono) => cambiar('telefono', telefono)} alDesenfocar={() => validarCampo('telefono')} error={errores.telefono} requerido={telefonoObligatorio} />
+            <CampoUsuario etiqueta="Correo" type="email" valor={form.correo} alCambiar={(v) => cambiar('correo', v)} onBlur={() => validarCampo('correo')} placeholder="Ingrese el correo electrónico" error={errores.correo} maxLength={160} requerido />
           </SeccionFormulario>
 
           <div role="note" className={estilos.aviso}>
