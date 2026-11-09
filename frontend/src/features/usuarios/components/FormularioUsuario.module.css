@@ -4,3 +4,22 @@
   flex-direction: column;
   gap: var(--espacio-4);
 }
+
+/* Aviso informativo bajo los campos (por ejemplo, cómo define su contraseña el usuario). */
+.aviso {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espacio-2);
+  padding: var(--espacio-3);
+  font-size: var(--texto-md);
+  line-height: var(--interlineado-md);
+  color: var(--tono-azul-texto);
+  background: var(--tono-azul-fondo);
+  border: 1px solid var(--tono-azul-borde);
+  border-radius: var(--radio-md);
+}
+
+.aviso svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}

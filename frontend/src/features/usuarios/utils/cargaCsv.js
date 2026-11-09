@@ -2,7 +2,7 @@ import { ROL_POR_TIPO_REGISTRO } from '../constants/rolesUsuario.js';
 
 export const CSV_USUARIOS_COLUMNAS = [
     'tipoUsuario', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'dni',
-    'telefono', 'correo', 'password', 'edad', 'fechaNacimiento', 'dniApoderado'
+    'telefono', 'correo', 'edad', 'fechaNacimiento', 'dniApoderado'
 ];
 
 /** Límites por carga, los mismos que aplica el backend a sus cargas masivas (2 MB y 1000 filas). */
@@ -68,6 +68,10 @@ export function leerCsv(texto) {
     const encabezados = filas[0].map(normalizarCsv);
     const faltantes = CSV_USUARIOS_COLUMNAS.filter(columna => !encabezados.includes(normalizarCsv(columna)));
     if (faltantes.length) throw new Error(`Faltan columnas requeridas en el encabezado: ${faltantes.join(', ')}.`);
+    // El administrador no conoce ni define contraseñas: cada usuario crea la suya con el código que recibe por correo.
+    if (encabezados.some(encabezado => ['password', 'contrasena'].includes(encabezado))) {
+        throw new Error('El archivo incluye una columna de contraseña. Elimínala: cada usuario creará su propia contraseña con el código de verificación que recibirá en su correo.');
+    }
 
     return filas.slice(1).map((valores, indice) => {
         const datos = Object.fromEntries(encabezados.map((encabezado, posicion) => [encabezado, (valores[posicion] ?? '').trim()]));
@@ -90,7 +94,6 @@ export function leerCsv(texto) {
                 return digitos.length === 11 && digitos.startsWith('51') ? digitos.slice(2) : digitos;
             })(),
             correo: datos.correo ?? '',
-            password: datos.password ?? '',
             edad: datos.edad ?? '',
             fechaNacimiento: datos.fechanacimiento ?? '',
             dniApoderado: datos.dniapoderado ?? ''
@@ -149,7 +152,6 @@ export function validarFilasCsv(filas, usuarios, usarMock) {
         const telefonoIngresado = fila.telefonoTexto.trim() !== '';
         if (telefonoIngresado && (!/^[+\d\s().-]+$/.test(fila.telefonoTexto) || !/^\d{9}$/.test(fila.telefono))) problemasFila.push(problema('Teléfono', 'debe tener exactamente 9 dígitos'));
         if ((fila.tipoUsuario === 'estudiante' || (usarMock && fila.tipoUsuario === 'docente')) && !telefonoIngresado) problemasFila.push(problema('Teléfono', 'es obligatorio'));
-        if (!fila.password || fila.password.length < 8 || fila.password.length > 40) problemasFila.push(problema('Contraseña', 'es obligatoria y debe tener entre 8 y 40 caracteres'));
         if (fila.tipoUsuario === 'apoderado' || (usarMock && fila.tipoUsuario === 'docente')) {
             const edad = Number(fila.edad);
             const edadMinima = usarMock ? 18 : 1;
@@ -204,7 +206,6 @@ export function describirColumnasCsv(usarMock) {
             ejemplo: '900000013'
         },
         { campo: 'correo', obligatorio: 'Todos', regla: 'Correo válido; no puede repetirse', ejemplo: 'diego@mail.com' },
-        { campo: 'password', obligatorio: 'Todos', regla: 'De 8 a 40 caracteres', ejemplo: 'Clave2026!' },
         {
             campo: 'edad',
             obligatorio: usarMock ? 'Apoderados y docentes' : 'Apoderados',

@@ -284,15 +284,14 @@ describe('Usuarios · listado, filtros y acciones', () => {
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
-  it('no muestra las contraseñas escritas en el formulario de registro', async () => {
+  it('el formulario de registro no tiene campos de contraseña', async () => {
     render(<PaginaUsuarios />);
 
     await userEvent.click(screen.getByRole('button', { name: 'Nuevo usuario' }));
     await userEvent.click(screen.getByRole('menuitem', { name: 'Registrar apoderado' }));
 
     const dialogo = screen.getByRole('dialog', { name: 'Registrar apoderado' });
-    const campos = dialogo.querySelectorAll('input[type="password"]');
-    expect(campos).toHaveLength(2);
+    expect(dialogo.querySelectorAll('input[type="password"]')).toHaveLength(0);
     expect(within(dialogo).queryByRole('button', { name: /mostrar contraseña/i })).not.toBeInTheDocument();
   });
 

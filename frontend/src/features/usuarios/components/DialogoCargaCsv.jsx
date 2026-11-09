@@ -20,6 +20,7 @@ import {
   textoProblema,
   validarFilasCsv
 } from '../utils/cargaCsv.js';
+import { ejecutarConConcurrencia } from '../utils/concurrencia.js';
 import { separarTelefono, telefonoPeru } from '../utils/telefono.js';
 import estilos from './DialogoCargaCsv.module.css';
 import DialogoDescartarCambios from './DialogoDescartarCambios.jsx';
@@ -27,6 +28,8 @@ import DialogoDescartarCambios from './DialogoDescartarCambios.jsx';
 // En pantallas compactas las filas son tarjetas altas: se muestran las primeras y el resto bajo demanda.
 // En pantallas amplias se muestran todas, con desplazamiento dentro de la tabla.
 const MAXIMO_FILAS_COMPACTA = 8;
+// Peticiones de registro en vuelo a la vez: acelera la carga sin saturar un servidor de pocos recursos.
+const CONCURRENCIA_IMPORTACION = 5;
 const COLUMNAS_FORMATO = describirColumnasCsv(USAR_MOCK);
 
 const TIPOS = Object.freeze([
@@ -191,14 +194,39 @@ export default function DialogoCargaCsv({ usuarios, alImportar, alImportacionCom
     const rechazar = (fila, motivo) => resultados.push({ ...baseResultado(fila), estado: 'rechazado', motivo });
     let importados = 0;
 
-    try {
-      for (const [indice, fila] of filasOrdenadas.entries()) {
-        setProgreso({
-          hechas: indice,
-          total: filasOrdenadas.length,
-          etiqueta: `${ROL_POR_TIPO_REGISTRO[fila.tipoUsuario]} · ${baseResultado(fila).nombre}`
-        });
-        let nuevoUsuario;
+    // Los códigos de estudiante se reservan antes de enviar nada y en el orden de registro, para que sean
+    // los mismos aunque las respuestas lleguen desordenadas al registrar varias filas a la vez.
+    const prefijoCodigo = USAR_MOCK ? 'EST-' : 'EST';
+    const codigoPorLinea = new Map();
+    for (const fila of filasOrdenadas.filter((candidata) => candidata.tipoUsuario === 'estudiante')) {
+      let correlativo = 1;
+      let codigo;
+      do {
+        codigo = `${prefijoCodigo}${String(correlativo).padStart(3, '0')}`;
+        correlativo += 1;
+      } while (codigosUsados.has(codigo.replace(/-/g, '').toUpperCase()));
+      codigosUsados.add(codigo.replace(/-/g, '').toUpperCase());
+      codigoPorLinea.set(fila.linea, codigo);
+    }
+
+    // `creados[orden]` conserva el orden de registro para armar la lista final aunque las filas terminen desordenadas.
+    const creados = [];
+    // Avance: filas ya terminadas (creadas o rechazadas) y, como etiqueta, la fila en curso más antigua.
+    const enCurso = new Map();
+    let completadas = 0;
+    const publicarProgreso = () => {
+      setProgreso({
+        hechas: completadas,
+        total: filasOrdenadas.length,
+        etiqueta: enCurso.size ? enCurso.values().next().value : ''
+      });
+    };
+
+    const registrarFila = async (fila, indice) => {
+      let nuevoUsuario;
+      const codigoEstudiante = codigoPorLinea.get(fila.linea);
+
+      try {
         const telefono = telefonoPeru(fila.telefono);
         // El backend exige exactamente 9 dígitos (sin prefijo +51); el mock conserva el formato +51 para mostrarlo.
         const telefonoApi = separarTelefono(fila.telefono);
@@ -208,83 +236,95 @@ export default function DialogoCargaCsv({ usuarios, alImportar, alImportacionCom
           ...(fila.apellidoMaterno ? { apellidoMaterno: fila.apellidoMaterno } : {}),
           dni: fila.dni,
           email: fila.correo,
-          ...(telefonoApi ? { telefono: telefonoApi } : {}),
-          password: fila.password
+          ...(telefonoApi ? { telefono: telefonoApi } : {})
         };
-        const prefijoCodigo = USAR_MOCK ? 'EST-' : 'EST';
-        let codigoEstudiante;
 
-        if (fila.tipoUsuario === 'estudiante') {
-          let correlativo = 1;
-          do {
-            codigoEstudiante = `${prefijoCodigo}${String(correlativo).padStart(3, '0')}`;
-            correlativo += 1;
-          } while (codigosUsados.has(codigoEstudiante.replace(/-/g, '').toUpperCase()));
-          codigosUsados.add(codigoEstudiante.replace(/-/g, '').toUpperCase());
-        }
-
-        try {
-          if (USAR_MOCK) {
-            const apoderado = fila.tipoUsuario === 'estudiante' ? apoderadosPorDni.get(fila.dniApoderado) : null;
-            if (fila.tipoUsuario === 'estudiante' && !apoderado) {
-              rechazar(fila, `No se pudo asociar el apoderado ${fila.dniApoderado}.`);
-              continue;
-            }
-            nuevoUsuario = {
-              id: `csv-${Date.now()}-${indice}`,
-              nombre: fila.nombre,
-              apellido: [fila.apellidoPaterno, fila.apellidoMaterno].filter(Boolean).join(' '),
-              apellidoPaterno: fila.apellidoPaterno,
-              apellidoMaterno: fila.apellidoMaterno,
-              dni: fila.dni,
-              rol: ROL_POR_TIPO_REGISTRO[fila.tipoUsuario],
-              correo: fila.correo,
-              activo: true,
-              ...(fila.edad ? { edad: Number(fila.edad) } : {}),
-              ...(telefono ? { telefono } : {}),
-              ...(fila.tipoUsuario === 'estudiante' ? {
-                codigoEstudiante,
-                fechaNacimiento: fila.fechaNacimiento,
-                apoderadoId: apoderado.id
-              } : {})
-            };
-          } else {
-            let respuesta;
-            if (fila.tipoUsuario === 'apoderado') {
-              respuesta = await registrarApoderado({ ...datosBase, edad: Number(fila.edad) });
-            } else if (fila.tipoUsuario === 'docente') {
-              respuesta = await registrarDocente(datosBase);
-            } else {
-              const apoderado = apoderadosPorDni.get(fila.dniApoderado);
-              if (!apoderado) {
-                rechazar(fila, `No se pudo asociar el apoderado ${fila.dniApoderado}; verifica que se haya creado correctamente.`);
-                continue;
-              }
-              respuesta = await registrarEstudiante({
-                ...datosBase,
-                codigo: codigoEstudiante,
-                fechaNacimiento: fila.fechaNacimiento,
-                apoderadoId: apoderado.id
-              });
-            }
-            if (!respuesta.exitoso || !respuesta.datos) {
-              rechazar(fila, respuesta.mensaje || 'El servidor rechazó el registro.');
-              continue;
-            }
-            nuevoUsuario = respuesta.datos;
+        if (USAR_MOCK) {
+          const apoderado = fila.tipoUsuario === 'estudiante' ? apoderadosPorDni.get(fila.dniApoderado) : null;
+          if (fila.tipoUsuario === 'estudiante' && !apoderado) {
+            rechazar(fila, `No se pudo asociar el apoderado ${fila.dniApoderado}.`);
+            return;
           }
-
-          usuariosActuales.push(nuevoUsuario);
-          if (fila.tipoUsuario === 'apoderado') apoderadosPorDni.set(fila.dni, nuevoUsuario);
-          importados += 1;
-          resultados.push({
-            ...baseResultado(fila),
-            estado: 'creado',
-            codigo: fila.tipoUsuario === 'estudiante' ? (nuevoUsuario.codigoEstudiante ?? codigoEstudiante) : ''
-          });
-        } catch (error) {
-          rechazar(fila, error.message || 'No fue posible registrar el usuario.');
+          nuevoUsuario = {
+            id: `csv-${Date.now()}-${indice}`,
+            nombre: fila.nombre,
+            apellido: [fila.apellidoPaterno, fila.apellidoMaterno].filter(Boolean).join(' '),
+            apellidoPaterno: fila.apellidoPaterno,
+            apellidoMaterno: fila.apellidoMaterno,
+            dni: fila.dni,
+            rol: ROL_POR_TIPO_REGISTRO[fila.tipoUsuario],
+            correo: fila.correo,
+            activo: true,
+            ...(fila.edad ? { edad: Number(fila.edad) } : {}),
+            ...(telefono ? { telefono } : {}),
+            ...(fila.tipoUsuario === 'estudiante' ? {
+              codigoEstudiante,
+              fechaNacimiento: fila.fechaNacimiento,
+              apoderadoId: apoderado.id
+            } : {})
+          };
+        } else {
+          let respuesta;
+          if (fila.tipoUsuario === 'apoderado') {
+            respuesta = await registrarApoderado({ ...datosBase, edad: Number(fila.edad) });
+          } else if (fila.tipoUsuario === 'docente') {
+            respuesta = await registrarDocente(datosBase);
+          } else {
+            const apoderado = apoderadosPorDni.get(fila.dniApoderado);
+            if (!apoderado) {
+              rechazar(fila, `No se pudo asociar el apoderado ${fila.dniApoderado}; verifica que se haya creado correctamente.`);
+              return;
+            }
+            respuesta = await registrarEstudiante({
+              ...datosBase,
+              codigo: codigoEstudiante,
+              fechaNacimiento: fila.fechaNacimiento,
+              apoderadoId: apoderado.id
+            });
+          }
+          if (!respuesta.exitoso || !respuesta.datos) {
+            rechazar(fila, respuesta.mensaje || 'El servidor rechazó el registro.');
+            return;
+          }
+          nuevoUsuario = respuesta.datos;
         }
+
+        creados[indice] = nuevoUsuario;
+        if (fila.tipoUsuario === 'apoderado') apoderadosPorDni.set(fila.dni, nuevoUsuario);
+        importados += 1;
+        resultados.push({
+          ...baseResultado(fila),
+          estado: 'creado',
+          codigo: fila.tipoUsuario === 'estudiante' ? (nuevoUsuario.codigoEstudiante ?? codigoEstudiante) : ''
+        });
+      } catch (error) {
+        rechazar(fila, error.message || 'No fue posible registrar el usuario.');
+      }
+    };
+
+    const procesarFila = async ({ fila, indice }) => {
+      enCurso.set(indice, `${ROL_POR_TIPO_REGISTRO[fila.tipoUsuario]} · ${baseResultado(fila).nombre}`);
+      publicarProgreso();
+      try {
+        await registrarFila(fila, indice);
+      } finally {
+        enCurso.delete(indice);
+        completadas += 1;
+        publicarProgreso();
+      }
+    };
+
+    // Dos fases: los estudiantes necesitan el id de su apoderado, así que esperan a que terminen los apoderados
+    // (los docentes no dependen de nadie y viajan con ellos). Dentro de cada fase se registra en paralelo.
+    const filasConOrden = filasOrdenadas.map((fila, indice) => ({ fila, indice }));
+    const sinDependencia = filasConOrden.filter(({ fila }) => fila.tipoUsuario !== 'estudiante');
+    const estudiantes = filasConOrden.filter(({ fila }) => fila.tipoUsuario === 'estudiante');
+
+    try {
+      await ejecutarConConcurrencia(sinDependencia, CONCURRENCIA_IMPORTACION, procesarFila);
+      await ejecutarConConcurrencia(estudiantes, CONCURRENCIA_IMPORTACION, procesarFila);
+      for (const usuario of creados) {
+        if (usuario) usuariosActuales.push(usuario);
       }
       alImportar(usuariosActuales);
       setResultado({
@@ -349,6 +389,7 @@ export default function DialogoCargaCsv({ usuarios, alImportar, alImportacionCom
                 <div>
                   Cada estudiante necesita el DNI de un apoderado ya registrado o incluido en este mismo archivo. El orden de las filas
                   no importa: se registran primero los apoderados, luego los docentes y al final los estudiantes.
+                  El archivo no lleva contraseñas: cada usuario recibirá un código de verificación en su correo para crear la suya.
                 </div>
               </div>
 
@@ -564,7 +605,7 @@ export default function DialogoCargaCsv({ usuarios, alImportar, alImportacionCom
             <section className={estilos.progreso} aria-label="Progreso de la importación">
               <div className={estilos.progresoTexto}>
                 <span className={estilos.zonaTitulo}>
-                  Importando usuario {Math.min(progreso.hechas + 1, progreso.total)} de {progreso.total}
+                  {progreso.hechas} de {progreso.total} usuarios procesados
                 </span>
                 <span className={estilos.zonaAyuda}>{progreso.etiqueta}</span>
               </div>

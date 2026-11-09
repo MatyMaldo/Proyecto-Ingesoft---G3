@@ -27,10 +27,10 @@ if (!Blob.prototype.text) {
 }
 
 const CSV = [
-  'tipoUsuario,nombre,apellidoPaterno,apellidoMaterno,dni,telefono,correo,password,edad,fechaNacimiento,dniApoderado',
-  'APODERADO,Carmen,Soto,Vega,10000011,900000011,carmen.soto@example.com,PruebaApod2026!,40,,',
-  'DOCENTE,Pedro,Rojas,Luna,10000012,900000012,pedro.rojas@example.com,PruebaDoc2026!,,,',
-  'ESTUDIANTE,Diego,Soto,Ramos,10000013,900000013,diego.soto@example.com,PruebaEst2026!,,2012-03-15,10000011'
+  'tipoUsuario,nombre,apellidoPaterno,apellidoMaterno,dni,telefono,correo,edad,fechaNacimiento,dniApoderado',
+  'APODERADO,Carmen,Soto,Vega,10000011,900000011,carmen.soto@example.com,40,,',
+  'DOCENTE,Pedro,Rojas,Luna,10000012,900000012,pedro.rojas@example.com,,,',
+  'ESTUDIANTE,Diego,Soto,Ramos,10000013,900000013,diego.soto@example.com,,2012-03-15,10000011'
 ].join('\r\n');
 
 const APODERADO_CREADO = { id: 26, nombre: 'Carmen', dni: '10000011', rol: 'Apoderado', activo: true, correo: 'carmen.soto@example.com' };
@@ -63,12 +63,17 @@ describe('DialogoCargaCsv · importación contra el backend', () => {
 
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Importar 3 usuarios' }));
 
-    // Con la primera respuesta pendiente se ve el avance, con el usuario que se está registrando.
+    // Con la primera respuesta pendiente se ve el avance, con el usuario en curso más antiguo.
     const progreso = await within(dialogo).findByRole('region', { name: 'Progreso de la importación' });
-    expect(within(progreso).getByText('Importando usuario 1 de 3')).toBeInTheDocument();
     expect(within(progreso).getByText('Apoderado · Carmen Soto')).toBeInTheDocument();
     expect(within(progreso).getByRole('progressbar', { name: 'Avance de la importación' })).toHaveAttribute('max', '3');
     expect(registrarApoderado).toHaveBeenCalledWith(expect.objectContaining({ telefono: '900000011', edad: 40 }));
+
+    // Los docentes no dependen de los apoderados: se registran mientras el apoderado sigue pendiente.
+    // Los estudiantes sí dependen de su apoderado: no se envían hasta que este termina.
+    await waitFor(() => expect(registrarDocente).toHaveBeenCalledTimes(1));
+    await within(progreso).findByText('1 de 3 usuarios procesados');
+    expect(registrarEstudiante).not.toHaveBeenCalled();
 
     responderApoderado();
     const resultado = await within(dialogo).findByRole('region', { name: 'Resultado de la importación' });
@@ -80,6 +85,35 @@ describe('DialogoCargaCsv · importación contra el backend', () => {
 
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Listo' }));
     expect(alImportacionCompleta).toHaveBeenCalledWith(3);
+  });
+
+  it('registra varias filas a la vez, con un máximo de 5 peticiones simultáneas', async () => {
+    const filas = Array.from({ length: 12 }, (_, i) => {
+      const n = String(i + 1).padStart(2, '0');
+      return `DOCENTE,Doc${n},Perez,,200000${n},9000000${n},doc${n}@example.com,,,`;
+    });
+    const csv = [CSV.split('\r\n')[0], ...filas].join('\r\n');
+    let enVuelo = 0;
+    let maximo = 0;
+    registrarDocente.mockImplementation(async () => {
+      enVuelo += 1;
+      maximo = Math.max(maximo, enVuelo);
+      await new Promise((resolver) => { setTimeout(resolver, 10); });
+      enVuelo -= 1;
+      return { exitoso: true, datos: { id: 1, nombre: 'Doc', dni: '20000001', rol: 'Docente', activo: true } };
+    });
+    render(<DialogoCargaCsv usuarios={[]} alImportar={vi.fn()} alImportacionCompleta={vi.fn()} alCerrar={vi.fn()} />);
+    const dialogo = screen.getByRole('dialog', { name: 'Carga masiva de usuarios' });
+    await userEvent.upload(within(dialogo).getByLabelText(/Seleccionar archivo CSV/), new File([csv], 'docentes.csv', { type: 'text/csv' }));
+    await within(dialogo).findByRole('table', { name: 'Revisión de las filas del archivo' });
+
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Importar 12 usuarios' }));
+    const resultado = await within(dialogo).findByRole('region', { name: 'Resultado de la importación' });
+
+    expect(within(resultado).getAllByText('Creada')).toHaveLength(12);
+    expect(registrarDocente).toHaveBeenCalledTimes(12);
+    expect(maximo).toBeGreaterThan(1);
+    expect(maximo).toBeLessThanOrEqual(5);
   });
 
   it('muestra qué filas rechazó el servidor y por qué, sin cerrar el diálogo', async () => {

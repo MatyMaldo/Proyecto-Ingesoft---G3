@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
+import Icono from '../../../shared/components/Icono.jsx';
 import DialogoBase from '../../cursos/components/DialogoBase.jsx';
 import { ROL_POR_TIPO_REGISTRO } from '../constants/rolesUsuario.js';
 import {
@@ -25,8 +26,6 @@ const FORMULARIO_VACIO = {
   dni: '',
   telefono: '',
   correo: '',
-  password: '',
-  confirm: '',
   fechaNacimiento: '',
   dniApoderado: '',
   apoderadoSeleccionado: null,
@@ -127,12 +126,6 @@ export default function DialogoRegistroUsuario({ tipo, usuarios, alRegistrado, a
       errs.telefono = tipo === 'docente' ? 'Ingrese el teléfono del docente.' : 'Ingrese el teléfono del estudiante.';
     else if (telefonoIngresado && !telefonoValido)
       errs.telefono = 'El teléfono debe tener exactamente 9 dígitos.';
-    if (!form.password)
-      errs.password = 'Ingrese la contraseña.';
-    else if (form.password.length < 8 || form.password.length > 40)
-      errs.password = 'La contraseña debe tener entre 8 y 40 caracteres.';
-    if (form.password !== form.confirm)
-      errs.confirm = 'Las contraseñas no coinciden.';
     if (tipo === 'estudiante' && !form.apoderadoSeleccionado)
       errs.dniApoderado = 'Seleccione un apoderado válido.';
     return errs;
@@ -173,8 +166,7 @@ export default function DialogoRegistroUsuario({ tipo, usuarios, alRegistrado, a
           ...(form.apellidoMaterno.trim() ? { apellidoMaterno: form.apellidoMaterno.trim() } : {}),
           dni: form.dni.trim(),
           email: form.correo.trim(),
-          ...(telefonoApi ? { telefono: telefonoApi } : {}),
-          password: form.password
+          ...(telefonoApi ? { telefono: telefonoApi } : {})
         };
         const enviar = {
           estudiante: () => registrarEstudiante({
@@ -291,10 +283,13 @@ export default function DialogoRegistroUsuario({ tipo, usuarios, alRegistrado, a
             <CampoUsuario etiqueta="Correo" type="email" valor={form.correo} alCambiar={(v) => cambiar('correo', v)} placeholder="Ingrese el correo electrónico" error={errores.correo} maxLength={160} requerido />
           </SeccionFormulario>
 
-          <SeccionFormulario titulo="Acceso">
-            <CampoUsuario etiqueta={esEstudiante || tipo === 'docente' ? 'Contraseña inicial' : 'Contraseña'} type="password" valor={form.password} alCambiar={(v) => cambiar('password', v)} placeholder="Ingrese la contraseña" error={errores.password} ayuda="Debe tener entre 8 y 40 caracteres." maxLength={40} autoComplete="new-password" requerido />
-            <CampoUsuario etiqueta="Confirmar contraseña" type="password" valor={form.confirm} alCambiar={(v) => cambiar('confirm', v)} placeholder="Confirme la contraseña" error={errores.confirm} maxLength={40} autoComplete="new-password" />
-          </SeccionFormulario>
+          <div role="note" className={estilos.aviso}>
+            <Icono nombre="informacion" tamano={18} />
+            <div>
+              La contraseña no se define aquí. Al registrar la cuenta, el usuario recibirá un código de verificación
+              en su correo para crear su propia contraseña.
+            </div>
+          </div>
         </div>
       </DialogoBase>
       {confirmandoDescarte && (
