@@ -7,6 +7,7 @@ import useNotificacion from '../../../shared/hooks/useNotificacion.js';
 import DialogoAsignacion from '../components/DialogoAsignacion.jsx';
 import DialogoBloque from '../components/DialogoBloque.jsx';
 import DialogoCargaMasiva from '../components/DialogoCargaMasiva.jsx';
+import DialogoCargaDocente from '../components/DialogoCargaDocente.jsx';
 import DialogoDescartarCambios from '../components/DialogoDescartarCambios.jsx';
 import DialogoSesiones from '../components/DialogoSesiones.jsx';
 import DialogoEliminarAsignacion from '../components/DialogoEliminarAsignacion.jsx';
@@ -14,6 +15,8 @@ import FiltrosHorario from '../components/FiltrosHorario.jsx';
 import MatrizHorario from '../components/MatrizHorario.jsx';
 import TablaAsignaciones from '../components/TablaAsignaciones.jsx';
 import useHorarios from '../hooks/useHorarios.js';
+import { exportarBorrador } from '../services/horariosService.js';
+import { guardarArchivo } from '../utils/guardarArchivo.js';
 import estilos from './PaginaHorarios.module.css';
 
 const ID_TITULO_MATRIZ = 'horarios-titulo-matriz';
@@ -60,6 +63,7 @@ export default function PaginaHorarios() {
   const [confirmacion, establecerConfirmacion] = useState(null);
   const [dialogoSesiones, establecerDialogoSesiones] = useState(false);
   const [dialogoCargaMasiva, establecerDialogoCargaMasiva] = useState(false);
+  const [dialogoCargaDocente, establecerDialogoCargaDocente] = useState(false);
 
   const sinRelaciones = asignaciones.lista.length === 0;
   const sinBloquesGuardados = Object.keys(horario.bloquesGuardados).length === 0;
@@ -89,8 +93,7 @@ export default function PaginaHorarios() {
     );
   }
 
-  function completarCargaMasiva({ bloquesCreados }) {
-    establecerDialogoCargaMasiva(false);
+  function completarCargaMasiva({ bloquesCreados }) {    establecerDialogoCargaMasiva(false);
     if (consulta && horario.hayCambios) {
       // No se pisa el borrador de la matriz: el usuario decide cuándo volver a consultar.
       mostrarNotificacion(
@@ -100,6 +103,45 @@ export default function PaginaHorarios() {
     }
     recargarConsulta();
     mostrarNotificacion(`Carga masiva completada: se crearon ${bloquesCreados} bloques horarios.`);
+  }
+
+  async function exportarBorradorActual() {
+    const bloques = Object.values(horario.bloques);
+    const anioAcademicoId = consulta?.anioAcademicoId ?? consulta?.anioId ?? anioVigente?.id;
+
+    if (!anioAcademicoId || bloques.length === 0) {
+      mostrarNotificacion(
+        'Selecciona una sección con bloques para exportar el borrador.',
+        true
+      );
+      return;
+    }
+
+    const bloqueIncompleto = bloques.find((bloque) =>
+      bloque.asignacionId == null
+      || bloque.aulaId == null
+      || !bloque.dia
+      || !bloque.horaInicio
+      || !bloque.horaFin
+    );
+    if (bloqueIncompleto) {
+      mostrarNotificacion(
+        'Hay bloques incompletos en la grilla. Revisa que tengan curso, aula, día y horas.',
+        true
+      );
+      return;
+    }
+
+    const respuesta = await exportarBorrador({
+      anioAcademicoId,
+      formato: 'csv',
+      bloques
+    });
+    if (!respuesta.exitoso || !(respuesta.datos instanceof Blob)) {
+      mostrarNotificacion(respuesta.mensaje || 'No se pudo exportar el borrador.', true);
+      return;
+    }
+    guardarArchivo(respuesta.datos, 'horarios-borrador.csv');
   }
 
   async function agregarAsignacion(datos) {
@@ -184,20 +226,42 @@ export default function PaginaHorarios() {
           alCambiarSeccion={seleccionarSeccion}
           alVerHorario={solicitarVerHorario}
           acciones={(
-            <button
-              type="button"
-              className={estilos.botonCargaMasiva}
-              disabled={estadoCatalogos !== 'listo' || !puedeEditarBloques}
-              title={
-                !puedeEditarBloques
-                  ? 'La carga masiva solo está disponible con el periodo en VIGENTE.'
-                  : undefined
-              }
-              onClick={() => establecerDialogoCargaMasiva(true)}
-            >
-              <Icono nombre="subir" tamano={18} />
-              Carga masiva
-            </button>
+            <>
+              <button
+                type="button"
+                className={estilos.botonCargaMasiva}
+                disabled={
+                  estadoCatalogos !== 'listo'
+                  || !anioVigente?.id
+                  || (catalogos.docentes ?? []).length === 0
+                }
+                title={
+                  !anioVigente?.id
+                    ? 'No hay un año académico vigente para consultar la carga docente.'
+                    : (catalogos.docentes ?? []).length === 0
+                      ? 'No hay docentes activos disponibles.'
+                      : undefined
+                }
+                onClick={() => establecerDialogoCargaDocente(true)}
+              >
+                <Icono nombre="reloj" tamano={18} />
+                Carga docente
+              </button>
+              <button
+                type="button"
+                className={estilos.botonCargaMasiva}
+                disabled={estadoCatalogos !== 'listo' || !puedeEditarBloques}
+                title={
+                  !puedeEditarBloques
+                    ? 'La carga masiva solo está disponible con el periodo en VIGENTE.'
+                    : undefined
+                }
+                onClick={() => establecerDialogoCargaMasiva(true)}
+              >
+                <Icono nombre="subir" tamano={18} />
+                Carga masiva
+              </button>
+            </>
           )}
         />
       )}
@@ -267,6 +331,22 @@ export default function PaginaHorarios() {
                 />
 
                 <div className={estilos.pieMatriz}>
+                  <button
+                    type="button"
+                    className={estilos.botonExportar}
+                    disabled={!consulta || Object.keys(horario.bloques).length === 0}
+                    title={
+                      !consulta
+                        ? 'Selecciona una sección para exportar su borrador.'
+                        : Object.keys(horario.bloques).length === 0
+                          ? 'No hay bloques en la grilla para exportar.'
+                          : 'Exporta la grilla actual, incluso si tiene cambios sin guardar.'
+                    }
+                    onClick={exportarBorradorActual}
+                  >
+                    <Icono nombre="archivo" tamano={18} />
+                    Exportar borrador
+                  </button>
                   <button
                     type="button"
                     className={estilos.botonSesiones}
@@ -367,9 +447,20 @@ export default function PaginaHorarios() {
       {dialogoCargaMasiva && (
         <DialogoCargaMasiva
           anios={catalogos.anios}
+          aulas={catalogos.aulas}
           anioIdInicial={anioVigente?.id}
           alCompletar={completarCargaMasiva}
           alCancelar={() => establecerDialogoCargaMasiva(false)}
+        />
+      )}
+
+      {dialogoCargaDocente && (
+        <DialogoCargaDocente
+          docentes={catalogos.docentes}
+          anioId={anioVigente?.id}
+          anio={anioVigente?.anio}
+          docenteInicialId={asignaciones.lista[0]?.docenteId}
+          onCerrar={() => establecerDialogoCargaDocente(false)}
         />
       )}
 

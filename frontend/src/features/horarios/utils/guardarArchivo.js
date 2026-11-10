@@ -9,6 +9,8 @@ export function guardarArchivo(contenido, nombre) {
   const enlace = document.createElement('a');
   enlace.href = url;
   enlace.download = nombre;
+  document.body.appendChild(enlace);
   enlace.click();
+  enlace.remove();
   setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

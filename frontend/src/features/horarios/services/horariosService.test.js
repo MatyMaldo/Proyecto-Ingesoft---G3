@@ -17,10 +17,12 @@ import {
   crearBloqueHorario,
   crearAsignacion,
   descargarPlantillaBloquesCsv,
+  exportarBorrador,
   eliminarAsignacion,
   eliminarBloqueHorario,
   generarSesiones,
   listarAsignaciones,
+  listarBloquesDocente,
   listarBloquesHorario,
   listarSeccionesHorario,
   listarSesiones,
@@ -167,6 +169,45 @@ describe('servicio de horarios · contrato API v1', () => {
       ['/bloques-horario/12', { metodo: 'PUT', cuerpo: { diaSemana: 'MARTES' } }],
       ['/bloques-horario/12', { metodo: 'DELETE' }]
     ]);
+  });
+
+  it('consulta los bloques planificados de un docente por año', async () => {
+    await listarBloquesDocente({ docenteId: 9, anioId: 2 });
+
+    expect(solicitar).toHaveBeenCalledWith('/bloques-horario', {
+      parametros: { docenteId: 9, anioId: 2 }
+    });
+  });
+
+  it('exporta el borrador actual sin guardarlo', async () => {
+    await exportarBorrador({
+      anioAcademicoId: 2,
+      formato: 'csv',
+      bloques: [{
+        asignacionId: 12,
+        aulaId: 4,
+        dia: 'LUNES',
+        horaInicio: '08:00',
+        horaFin: '09:00'
+      }]
+    });
+
+    expect(solicitar).toHaveBeenCalledWith('/bloques-horario/exportar-borrador', {
+      metodo: 'POST',
+      cuerpo: {
+        anioAcademicoId: 2,
+        formato: 'csv',
+        bloques: [{
+          asignacionCursoId: 12,
+          aulaId: 4,
+          diaSemana: 'LUNES',
+          horaInicio: '08:00',
+          horaFin: '09:00',
+          origen: undefined
+        }]
+      },
+      respuestaArchivo: true
+    });
   });
 
   it('usa la plantilla CSV y multipart con los campos establecidos', async () => {
