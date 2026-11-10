@@ -32,16 +32,10 @@ function CeldaEstudiante({ matricula }) {
   );
 }
 
-/** Año académico con la fecha de asignación debajo, en pequeño: el período y cuándo se asignó, en dos líneas. */
+/** Año académico de la matrícula. */
 function CeldaAnio({ matricula }) {
   return (
-    <div>
-      <span className={estilos.anio}>{matricula.anioAcademico ?? '—'}</span>
-      <span className={estilos.fechaAsignacion}>
-        <span className={estilosUtil.ocultoVisualmente}>Fecha de asignación: </span>
-        {formatearFechaVisible(matricula.fechaAsignacion)}
-      </span>
-    </div>
+    <span className={estilos.anio}>{matricula.anioAcademico ?? '—'}</span>
   );
 }
 
@@ -92,11 +86,12 @@ export default function TablaMatriculas({ matriculas, alEmitir, emitiendoId }) {
           <caption className={estilosUtil.ocultoVisualmente}>Listado de matrículas registradas</caption>
           <thead>
             <tr>
-              <th scope="col">Estudiante</th>
+              <th scope="col" className={estilos.columnaEstudiante}>Estudiante</th>
               <th scope="col" className={estilos.columnaAnio}>Año</th>
-              <th scope="col">Grado</th>
+              <th scope="col" className={estilos.columnaFecha}>Fecha de asignación</th>
+              <th scope="col" className={estilos.columnaGrado}>Grado</th>
               <th scope="col" className={estilos.columnaSeccion}>Sección</th>
-              <th scope="col">Estado</th>
+              <th scope="col" className={estilos.columnaEstado}>Estado</th>
               <th scope="col" className={estilos.columnaAccion}>Acción</th>
             </tr>
           </thead>
@@ -107,6 +102,9 @@ export default function TablaMatriculas({ matriculas, alEmitir, emitiendoId }) {
                 <tr key={matricula.id} className={estilos.fila}>
                   <td><CeldaEstudiante matricula={matricula} /></td>
                   <td><CeldaAnio matricula={matricula} /></td>
+                  <td className={estilos.celdaFecha}>
+                    {formatearFechaVisible(matricula.fechaAsignacion)}
+                  </td>
                   <td>{matricula.gradoNombre ?? '—'}</td>
                   <td>{matricula.seccionNombre ?? '—'}</td>
                   <td><InsigniaEstado estado={estado} /></td>

@@ -10,6 +10,7 @@ import Notificacion from '../../../shared/components/Notificacion.jsx';
 import Paginacion from '../../../shared/components/Paginacion.jsx';
 import SelectFiltro from '../../../shared/components/SelectFiltro.jsx';
 import useNotificacion from '../../../shared/hooks/useNotificacion.js';
+import useOperacionMasiva from '../../../shared/hooks/useOperacionMasiva.js';
 import ModalActualizarEstadosMatricula from '../components/ModalActualizarEstadosMatricula.jsx';
 import ModalAsignarAlumno from '../components/ModalAsignarAlumno.jsx';
 import ModalComprobante from '../components/ModalComprobante.jsx';
@@ -18,8 +19,7 @@ import useListadoMatriculas from '../hooks/useListadoMatriculas.js';
 import {
   cancelarPendientesPorPeriodo,
   crearMatricula,
-  emitirCompromisoMatricula,
-  emitirCompromisosMatriculaLote
+  emitirCompromisoMatricula
 } from '../services/matriculasService.js';
 import estilos from './PaginaMatriculas.module.css';
 
@@ -66,6 +66,19 @@ export default function PaginaMatriculas() {
   const [emitiendoId, establecerEmitiendoId] = useState(null);
   const refInicioListado = useRef(null);
 
+  const operacionMatriculas = useOperacionMasiva({
+    alTerminar: (job) => {
+      recargar();
+      const conError = job.errores > 0
+        || job.estado === 'COMPLETADO_CON_ERRORES'
+        || job.estado === 'FALLIDO';
+      mostrarNotificacion(
+        `Emisión masiva: ${job.exitosos} emitidos, ${job.omitidos} omitidos, ${job.errores} errores.`,
+        conError
+      );
+    }
+  });
+
   const confirmarAsignacion = async (asignacion) => {
     const respuesta = await crearMatricula(asignacion);
     if (!respuesta.exitoso) {
@@ -101,14 +114,6 @@ export default function PaginaMatriculas() {
     mostrarNotificacion(
       `Se emitió el compromiso de matrícula de ${matricula.nombreCompletoEstudiante ?? 'el estudiante'}.`
     );
-  };
-
-  const emitirMasivo = async (anioId) => {
-    const respuesta = await emitirCompromisosMatriculaLote(anioId);
-    if (respuesta.exitoso) {
-      recargar();
-    }
-    return respuesta;
   };
 
   const ejecutarActualizacionEstados = async () => {
@@ -350,7 +355,7 @@ export default function PaginaMatriculas() {
           anios={estructura?.anios ?? []}
           anioInicialId={filtros.anioId}
           onCerrar={() => establecerModalComprobanteAbierto(false)}
-          onEjecutar={emitirMasivo}
+          operacion={operacionMatriculas}
         />
       )}
 

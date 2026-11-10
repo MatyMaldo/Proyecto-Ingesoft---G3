@@ -8,7 +8,8 @@
 
 .tabla {
   width: 100%;
-  min-width: 52rem;
+  min-width: 64rem;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: var(--texto-md);
 }
@@ -42,51 +43,82 @@
   background: var(--color-superficie-suave);
 }
 
-/* Año y, debajo, la fecha de asignación: mismo patrón de dos líneas que nombre y código del estudiante. */
-.anio,
-.fechaAsignacion {
-  display: block;
-  font-variant-numeric: tabular-nums;
+/* Columnas equilibradas: el estudiante conserva la mayor parte, pero sin absorber todo el espacio libre. */
+.tabla th.columnaEstudiante,
+.tabla td:nth-child(1) {
+  width: 24%;
 }
 
-.fechaAsignacion {
-  margin-top: 2px;
-  font-size: var(--texto-xs);
-  color: var(--color-texto-suave);
+.tabla th.columnaAnio,
+.tabla td:nth-child(2) {
+  width: 7%;
 }
 
-/* Año, grado, sección, estado y acción nunca se parten. */
-.tabla td:nth-child(2),
-.tabla td:nth-child(4),
-.tabla td:nth-child(5),
-.tabla td:nth-child(6) {
-  white-space: nowrap;
-}
-
-/* Año, grado, sección y estado miden lo que su contenido; el espacio sobrante lo toma la columna del estudiante.
-   Así la sección queda pegada al grado en vez de repartirse el espacio entre ambas. */
-.tabla thead th.columnaAnio,
-.tabla thead th:nth-child(3),
-.tabla thead th.columnaSeccion,
-.tabla thead th:nth-child(5) {
-  width: 1%;
-}
-
+.tabla th.columnaFecha,
 .tabla td:nth-child(3) {
+  width: 14%;
+}
+
+.tabla th.columnaGrado,
+.tabla td:nth-child(4) {
+  width: 19%;
+}
+
+.tabla th.columnaSeccion,
+.tabla td:nth-child(5) {
+  width: 8%;
+}
+
+.tabla th.columnaEstado,
+.tabla td:nth-child(6) {
+  width: 11%;
+}
+
+.tabla th.columnaAccion,
+.tabla td:nth-child(7) {
+  width: 17%;
+}
+
+/* Año, fecha, sección, estado y acción no se parten. El grado y el estudiante pueden envolver si hace falta. */
+.tabla td:nth-child(2),
+.tabla td:nth-child(3),
+.tabla td:nth-child(5),
+.tabla td:nth-child(6),
+.tabla td:nth-child(7) {
   white-space: nowrap;
 }
 
 /* Un poco menos de aire entre grado y sección. */
 .tabla th.columnaSeccion,
-.tabla td:nth-child(4) {
+.tabla td:nth-child(5) {
   padding-left: var(--espacio-2);
 }
 
-/* La columna mide lo que el botón; cabecera y contenido van a la izquierda, sobre el borde del botón. */
+/* El encabezado de fecha puede ocupar dos líneas si hace falta. */
+.tabla thead th.columnaFecha {
+  white-space: normal;
+  padding-right: var(--espacio-3);
+}
+
+/* La sección se centra en su columna para separarla visualmente del grado. */
+.tabla thead th.columnaSeccion,
+.tabla td:nth-child(5) {
+  text-align: center;
+}
+
+/* La acción se alinea a la izquierda sobre el borde del botón. */
 .tabla thead th.columnaAccion,
 .tabla td.columnaAccion {
-  width: 1%;
   text-align: left;
+}
+
+.anio {
+  display: block;
+  font-variant-numeric: tabular-nums;
+}
+
+.celdaFecha {
+  font-variant-numeric: tabular-nums;
 }
 
 .celdaEstudiante {
