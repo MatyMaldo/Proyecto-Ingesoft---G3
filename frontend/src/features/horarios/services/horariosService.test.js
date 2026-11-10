@@ -17,10 +17,14 @@ import {
   crearBloqueHorario,
   crearAsignacion,
   descargarPlantillaBloquesCsv,
+  exportarBorrador,
   eliminarAsignacion,
   eliminarBloqueHorario,
   generarSesiones,
+  iniciarConfirmacionCargaMasivaAsync,
+  iniciarGeneracionSesionesAsync,
   listarAsignaciones,
+  listarBloquesDocente,
   listarBloquesHorario,
   listarSeccionesHorario,
   listarSesiones,
@@ -169,6 +173,45 @@ describe('servicio de horarios · contrato API v1', () => {
     ]);
   });
 
+  it('consulta los bloques planificados de un docente por año', async () => {
+    await listarBloquesDocente({ docenteId: 9, anioId: 2 });
+
+    expect(solicitar).toHaveBeenCalledWith('/bloques-horario', {
+      parametros: { docenteId: 9, anioId: 2 }
+    });
+  });
+
+  it('exporta el borrador actual sin guardarlo', async () => {
+    await exportarBorrador({
+      anioAcademicoId: 2,
+      formato: 'csv',
+      bloques: [{
+        asignacionId: 12,
+        aulaId: 4,
+        dia: 'LUNES',
+        horaInicio: '08:00',
+        horaFin: '09:00'
+      }]
+    });
+
+    expect(solicitar).toHaveBeenCalledWith('/bloques-horario/exportar-borrador', {
+      metodo: 'POST',
+      cuerpo: {
+        anioAcademicoId: 2,
+        formato: 'csv',
+        bloques: [{
+          asignacionCursoId: 12,
+          aulaId: 4,
+          diaSemana: 'LUNES',
+          horaInicio: '08:00',
+          horaFin: '09:00',
+          origen: undefined
+        }]
+      },
+      respuestaArchivo: true
+    });
+  });
+
   it('usa la plantilla CSV y multipart con los campos establecidos', async () => {
     const archivo = new File(['csv'], 'horarios.csv', { type: 'text/csv' });
     await descargarPlantillaBloquesCsv();
@@ -213,6 +256,60 @@ describe('servicio de horarios · contrato API v1', () => {
         parametros: { seccionId: 3, fechaInicio: rango.fechaInicio, fechaFin: rango.fechaFin }
       }]
     ]);
+  });
+
+  it('inicia la confirmación de carga masiva asíncrona', async () => {
+    await iniciarConfirmacionCargaMasivaAsync({
+      anioAcademicoId: 2,
+      bloques: [{
+        asignacionCursoId: 12,
+        aulaId: 4,
+        diaSemana: 'LUNES',
+        horaInicio: '08:00',
+        horaFin: '09:00',
+        origen: '1A.xlsx#2'
+      }]
+    }, 'carga-2026');
+
+    expect(solicitar).toHaveBeenCalledWith('/bloques-horario/carga-masiva/confirmar/async', {
+      metodo: 'POST',
+      cuerpo: {
+        anioAcademicoId: 2,
+        bloques: [{
+          asignacionCursoId: 12,
+          aulaId: 4,
+          diaSemana: 'LUNES',
+          horaInicio: '08:00',
+          horaFin: '09:00',
+          origen: '1A.xlsx#2'
+        }]
+      },
+      cabeceras: { 'Idempotency-Key': 'carga-2026' },
+      tiempoEsperaMs: 15000
+    });
+  });
+
+  it('inicia la generación de sesiones asíncrona', async () => {
+    await iniciarGeneracionSesionesAsync({
+      anioAcademicoId: 2026,
+      seccionId: 3,
+      fechaInicio: '2026-01-01',
+      fechaFin: '2026-12-31',
+      sesionesOmitidas: [{ bloqueHorarioId: 100, fecha: '2026-01-15' }]
+    }, 'sesiones-2026');
+
+    expect(solicitar).toHaveBeenCalledWith('/sesiones-clase/generar/async', {
+      metodo: 'POST',
+      cuerpo: {
+        anioAcademicoId: 2026,
+        seccionId: 3,
+        fechaInicio: '2026-01-01',
+        fechaFin: '2026-12-31',
+        sesionesOmitidas: [{ bloqueHorarioId: 100, fecha: '2026-01-15' }]
+      },
+      cabeceras: { 'Idempotency-Key': 'sesiones-2026' },
+      tiempoEsperaMs: 15000
+    });
   });
 
   it('guarda la grilla con el endpoint masivo usando el estado final completo', async () => {

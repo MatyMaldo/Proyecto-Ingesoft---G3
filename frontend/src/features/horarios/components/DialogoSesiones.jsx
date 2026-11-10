@@ -1,9 +1,12 @@
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
 import DialogoBase from '../../../shared/components/DialogoBase.jsx';
+import ProgresoOperacionMasiva from '../../../shared/components/ProgresoOperacionMasiva.jsx';
+import { crearClaveIdempotencia } from '../../../shared/api/operacionesMasivasService.js';
 import useSesionesHorario from '../hooks/useSesionesHorario.js';
+import { iniciarGeneracionSesionesAsync } from '../services/horariosService.js';
 import { fechaISO, formatearFecha, lunesDeFecha } from '../utils/tiempo.js';
 import SelectorFecha from './SelectorFecha.jsx';
 import estilos from './DialogoSesiones.module.css';
@@ -61,10 +64,17 @@ function construirGrupos(sesionesPreview) {
   return meses;
 }
 
-export default function DialogoSesiones({ consulta, tituloSeccion, alCancelar, alNotificar }) {
+export default function DialogoSesiones({
+  consulta,
+  tituloSeccion,
+  alCancelar,
+  alNotificar,
+  operacion
+}) {
   const sesiones = useSesionesHorario(consulta);
   const [errorGeneral, establecerErrorGeneral] = useState(null);
   const [mesesAbiertos, establecerMesesAbiertos] = useState({});
+  const claveRef = useRef(null);
 
   const grupos = useMemo(
     () => construirGrupos(sesiones.sesionesPreview),
@@ -85,13 +95,29 @@ export default function DialogoSesiones({ consulta, tituloSeccion, alCancelar, a
   async function manejarEnvio(evento) {
     evento.preventDefault();
     establecerErrorGeneral(null);
-    const resultado = await sesiones.generar();
-    if (typeof resultado === 'string') {
-      establecerErrorGeneral(resultado);
+
+    const datos = sesiones.construirSolicitud();
+    if (!Number.isSafeInteger(Number(datos.anioAcademicoId))
+      || !Number.isSafeInteger(Number(datos.seccionId))) {
+      establecerErrorGeneral('Falta el identificador de año académico o sección.');
       return;
     }
-    alNotificar(`Se generaron ${resultado} sesiones.`);
-    alCancelar();
+    if (!datos.fechaInicio || !datos.fechaFin || datos.fechaFin < datos.fechaInicio) {
+      establecerErrorGeneral('Selecciona un rango de fechas válido.');
+      return;
+    }
+
+    if (!claveRef.current || operacion?.job) {
+      claveRef.current = crearClaveIdempotencia('generar-sesiones');
+    }
+    const respuesta = await operacion.iniciar(() => (
+      iniciarGeneracionSesionesAsync(datos, claveRef.current)
+    ));
+    if (respuesta && !respuesta.exitoso) {
+      establecerErrorGeneral(
+        respuesta.mensaje || 'No fue posible iniciar la generación de sesiones.'
+      );
+    }
   }
 
   const faltaAnio = !consulta?.anioAcademicoId && !consulta?.anioId;
@@ -115,9 +141,12 @@ export default function DialogoSesiones({ consulta, tituloSeccion, alCancelar, a
       anchoMaximo="56rem"
       textoConfirmar="Generar sesiones"
       textoEnviando="Generando…"
-      enviando={sesiones.generando}
-      confirmarDeshabilitado={sesiones.estadoPreview !== 'listo' || faltaAnio}
-      error={errorGeneral}
+      enviando={operacion?.iniciando ?? false}
+      confirmarDeshabilitado={
+        sesiones.estadoPreview !== 'listo' || faltaAnio
+        || Boolean(operacion?.enCurso) || Boolean(operacion?.job)
+      }
+      error={errorGeneral || operacion?.error || null}
       notaPie={resumen}
       cerrarAlClicFuera={false}
       alCancelar={alCancelar}
@@ -153,7 +182,7 @@ export default function DialogoSesiones({ consulta, tituloSeccion, alCancelar, a
         <button
           type="button"
           className={estilos.botonGenerar}
-          disabled={sesiones.generando || faltaAnio}
+          disabled={sesiones.generando || faltaAnio || operacion?.enCurso || Boolean(operacion?.job)}
           onClick={previsualizar}
         >
           Previsualizar
@@ -292,6 +321,14 @@ export default function DialogoSesiones({ consulta, tituloSeccion, alCancelar, a
             );
           })}
         </>
+      )}
+
+      {operacion?.job && (
+        <ProgresoOperacionMasiva
+          job={operacion.job}
+          error={operacion.error}
+          titulo="Generación de sesiones"
+        />
       )}
     </DialogoBase>
   );

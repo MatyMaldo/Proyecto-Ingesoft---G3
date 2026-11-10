@@ -1,9 +1,12 @@
-import { useEffect, useId, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
 import DialogoBase from '../../../shared/components/DialogoBase.jsx';
+import ProgresoOperacionMasiva from '../../../shared/components/ProgresoOperacionMasiva.jsx';
+import { crearClaveIdempotencia } from '../../../shared/api/operacionesMasivasService.js';
 import {
+  iniciarEmisionMatriculasLoteAsync,
   listarMatriculas,
   obtenerPeriodoMatricula
 } from '../services/matriculasService.js';
@@ -13,7 +16,7 @@ import estilos from '../../../shared/styles/camposDialogo.module.css';
  * Emisión masiva de compromisos de matrícula.
  * La emisión individual vive en cada fila de la tabla de matrículas.
  */
-export default function ModalComprobante({ anios, anioInicialId, onCerrar, onEjecutar }) {
+export default function ModalComprobante({ anios, anioInicialId, onCerrar, operacion }) {
   const [anioId, establecerAnioId] = useState(() => (
     anioInicialId || anios?.[0]?.id || ''
   ));
@@ -23,8 +26,7 @@ export default function ModalComprobante({ anios, anioInicialId, onCerrar, onEje
   const [errorCarga, establecerErrorCarga] = useState('');
   const [errorEmision, establecerErrorEmision] = useState('');
   const [intento, establecerIntento] = useState(0);
-  const [ejecutando, establecerEjecutando] = useState(false);
-  const [resultado, establecerResultado] = useState(null);
+  const claveRef = useRef(null);
 
   const idAnio = useId();
 
@@ -66,7 +68,8 @@ export default function ModalComprobante({ anios, anioInicialId, onCerrar, onEje
   const puedeEmitir = estado === 'listo'
     && periodoVigente
     && hayPendientes
-    && !ejecutando;
+    && !operacion?.enCurso
+    && !operacion?.job;
 
   const mensajePeriodo = (() => {
     if (!periodo) return 'No se pudo verificar el período de matrícula.';
@@ -84,20 +87,19 @@ export default function ModalComprobante({ anios, anioInicialId, onCerrar, onEje
     evento.preventDefault();
     if (!puedeEmitir) return;
 
-    establecerEjecutando(true);
     establecerErrorEmision('');
-    establecerResultado(null);
-
-    const respuesta = await onEjecutar(anioId);
-    establecerEjecutando(false);
-
-    if (!respuesta.exitoso) {
-      establecerErrorEmision(respuesta.mensaje || 'No fue posible emitir los compromisos.');
-      return;
+    if (!claveRef.current || operacion?.job) {
+      claveRef.current = crearClaveIdempotencia('matricula-lote');
     }
 
-    establecerResultado(respuesta.datos);
-    establecerIntento((actual) => actual + 1);
+    const respuesta = await operacion.iniciar(() => (
+      iniciarEmisionMatriculasLoteAsync(anioId, claveRef.current)
+    ));
+    if (respuesta && !respuesta.exitoso) {
+      establecerErrorEmision(
+        respuesta.mensaje || 'No fue posible iniciar la emisión masiva.'
+      );
+    }
   };
 
   return (
@@ -106,11 +108,11 @@ export default function ModalComprobante({ anios, anioInicialId, onCerrar, onEje
       titulo="Emitir compromisos de matrícula"
       subtitulo="Emisión masiva por año académico"
       textoConfirmar="Emitir todos"
-      textoEnviando="Emitiendo..."
+      textoEnviando="Iniciando..."
       textoCancelar="Cerrar"
-      enviando={ejecutando}
+      enviando={operacion?.iniciando ?? false}
       confirmarDeshabilitado={!puedeEmitir}
-      error={errorEmision || null}
+      error={errorEmision || operacion?.error || null}
       anchoMaximo="32rem"
       botonesExpandidos
       alCancelar={onCerrar}
@@ -122,9 +124,11 @@ export default function ModalComprobante({ anios, anioInicialId, onCerrar, onEje
           id={idAnio}
           className={estilos.selector}
           value={anioId}
+          disabled={operacion?.enCurso || Boolean(operacion?.job)}
           onChange={(evento) => {
             establecerAnioId(evento.target.value);
-            establecerResultado(null);
+            claveRef.current = null;
+            operacion?.reiniciar();
             establecerErrorEmision('');
           }}
         >
@@ -169,26 +173,12 @@ export default function ModalComprobante({ anios, anioInicialId, onCerrar, onEje
         </>
       )}
 
-      {resultado && (
-        <div className={estilos.aviso} role="status">
-          <p className={estilos.avisoTitulo}>Resultado de la emisión</p>
-          <p className={estilos.avisoTexto}>
-            Emitidos: <strong>{resultado.emitidos}</strong>
-            {' · '}
-            Omitidos: <strong>{resultado.omitidos}</strong>
-            {' · '}
-            Errores: <strong>{resultado.errores.length}</strong>
-          </p>
-          {resultado.errores.length > 0 && (
-            <ul className={estilos.avisoErrores}>
-              {resultado.errores.map((errorMatricula) => (
-                <li key={errorMatricula.matriculaId}>
-                  Matrícula #{errorMatricula.matriculaId}: {errorMatricula.mensaje}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+      {operacion?.job && (
+        <ProgresoOperacionMasiva
+          job={operacion.job}
+          error={operacion.error}
+          titulo="Emisión masiva de matrícula"
+        />
       )}
     </DialogoBase>
   );

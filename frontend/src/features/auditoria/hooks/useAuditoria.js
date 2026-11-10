@@ -61,10 +61,15 @@ function transformarRegistro(registroApi) {
   const fechaHoraIso = normalizarFechaHoraApi(registroApi.fechaHora);
   const { fecha, hora } = formatearFechaHora(fechaHoraIso);
   const horaConSegundos = FORMATEADOR_HORA_SEGUNDOS.format(new Date(fechaHoraIso));
-  const usuarioApi = registroApi.usuario ?? {
-    nombre: registroApi.usuarioId === undefined ? 'Usuario' : `Usuario #${registroApi.usuarioId}`,
-    rol: 'No especificado'
-  };
+  const usuarioApi = registroApi.usuario ?? {};
+  const usuarioId = usuarioApi.id ?? registroApi.usuarioId;
+  const nombreApi = typeof usuarioApi.nombre === 'string' ? usuarioApi.nombre.trim() : '';
+  const nombreUsuario = nombreApi
+    || (usuarioId === undefined || usuarioId === null
+      ? 'Sistema'
+      : `Usuario #${usuarioId}`);
+  const rolUsuario = usuarioApi.rol
+    ?? (usuarioId === undefined || usuarioId === null ? 'SISTEMA' : null);
   const detalles = Array.isArray(registroApi.detalles) ? registroApi.detalles : [];
   const convertirDetalles = (campo) => detalles
     .map((detalle) => {
@@ -94,9 +99,9 @@ function transformarRegistro(registroApi) {
     // Mismo formato de fecha que el listado (DD/MM/AAAA); en el detalle se añaden los segundos.
     fechaHoraCompleta: `${formatearFechaVisible(fecha)} ${horaConSegundos}`,
     usuario: {
-      nombre: usuarioApi.nombre,
-      rol: obtenerEtiquetaRol(usuarioApi.rol),
-      iniciales: derivarIniciales(usuarioApi.nombre)
+      nombre: nombreUsuario,
+      rol: rolUsuario ? obtenerEtiquetaRol(rolUsuario) : '',
+      iniciales: derivarIniciales(nombreUsuario)
     },
     // El módulo es neutro (gris): el color de la tabla se reserva para la acción.
     modulo: {

@@ -10,12 +10,13 @@ import Notificacion from '../../../shared/components/Notificacion.jsx';
 import Paginacion from '../../../shared/components/Paginacion.jsx';
 import SelectFiltro from '../../../shared/components/SelectFiltro.jsx';
 import useNotificacion from '../../../shared/hooks/useNotificacion.js';
+import useOperacionMasiva from '../../../shared/hooks/useOperacionMasiva.js';
 import ModalEmitirPension from '../components/ModalEmitirPension.jsx';
 import ModalEmitirPensionesMasivo from '../components/ModalEmitirPensionesMasivo.jsx';
 import ModalPagosEstudiante from '../components/ModalPagosEstudiante.jsx';
 import TablaPagos from '../components/TablaPagos.jsx';
 import usePagos from '../hooks/usePagos.js';
-import { emitirCompromisoPension, emitirCompromisosPensionLote } from '../services/pagosService.js';
+import { emitirCompromisoPension } from '../services/pagosService.js';
 import estilos from './PaginaPagos.module.css';
 
 /** Alumnos por página del listado (igual que Usuarios y Matrículas). La lista completa se carga una vez y se pagina aquí. */
@@ -84,6 +85,19 @@ export default function PaginaPagos() {
   const [emitiendoPension, establecerEmitiendoPension] = useState(false);
   const [alumnoPagos, establecerAlumnoPagos] = useState(null);
   const refInicioListado = useRef(null);
+
+  const operacionPension = useOperacionMasiva({
+    alTerminar: (job) => {
+      recargar();
+      const conError = job.errores > 0
+        || job.estado === 'COMPLETADO_CON_ERRORES'
+        || job.estado === 'FALLIDO';
+      mostrarNotificacion(
+        `Emisión masiva de pensión: ${job.exitosos} emitidos, ${job.omitidos} omitidos, ${job.errores} errores.`,
+        conError
+      );
+    }
+  });
 
   // Refleja en la URL los filtros y la página, cuando ya se cargó la estructura (antes el año aún no está elegido).
   useEffect(() => {
@@ -163,14 +177,6 @@ export default function PaginaPagos() {
       anunciarTotal={posicion === 'superior'}
     />
   );
-
-  const emitirPensionesMasivo = async ({ anioId: anioElegidoId, mes }) => {
-    const respuesta = await emitirCompromisosPensionLote({ anioId: anioElegidoId, mes });
-    if (respuesta.exitoso) {
-      reintentar();
-    }
-    return respuesta;
-  };
 
   // La notificación se muestra desde la página para que siga visible cuando el diálogo se cierra.
   const confirmarPension = async ({ estudianteId, anioId: anioElegidoId, mes }) => {
@@ -331,7 +337,7 @@ export default function PaginaPagos() {
           anios={anios}
           anioInicialId={anioId != null ? String(anioId) : ''}
           onCerrar={() => establecerModalPensionesAbierto(false)}
-          onEjecutar={emitirPensionesMasivo}
+          operacion={operacionPension}
         />
       )}
 

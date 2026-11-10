@@ -79,6 +79,7 @@ export function configurarCliente({
  * @property {*} [cuerpo] - Cuerpo de la solicitud; se envía como JSON si está presente.
  * @property {FormData} [cuerpoFormulario] - Formulario multipart; el navegador asigna el boundary.
  * @property {boolean} [respuestaArchivo] - Devuelve el cuerpo exitoso como `Blob`.
+ * @property {Object<string,string>} [cabeceras] - Cabeceras adicionales para esta solicitud.
  * @property {AbortSignal} [signal] - Señal externa para cancelar la solicitud.
  * @property {boolean} [sinVersionApi] - Usa `/api` en lugar de la ruta API versionada.
  * @property {number} [tiempoEsperaMs] - Tiempo máximo de espera para esta solicitud.
@@ -111,6 +112,7 @@ export async function solicitar(ruta, opciones = {}) {
     cuerpo,
     cuerpoFormulario,
     respuestaArchivo = false,
+    cabeceras: cabecerasAdicionales = {},
     signal: signalExterno,
     sinVersionApi = false,
     tiempoEsperaMs = TIEMPO_ESPERA_MS
@@ -135,12 +137,12 @@ export async function solicitar(ruta, opciones = {}) {
     }
   }
 
-  const cabeceras = {};
-  if (cuerpo !== undefined) {
+  const cabeceras = { ...cabecerasAdicionales };
+  if (cuerpo !== undefined && cabeceras['Content-Type'] === undefined) {
     cabeceras['Content-Type'] = 'application/json';
   }
   const token = obtenerToken();
-  if (token) {
+  if (token && cabeceras.Authorization === undefined) {
     cabeceras.Authorization = `Bearer ${token}`;
   }
 

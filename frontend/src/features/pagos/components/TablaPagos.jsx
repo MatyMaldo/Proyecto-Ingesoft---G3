@@ -89,9 +89,9 @@ export default function TablaPagos({ alumnos, alEmitirPension, alVerPagos, ocupa
           <thead>
             <tr>
               <th scope="col">Alumno</th>
-              <th scope="col" className={estilos.columnaCorta}>Grado</th>
-              <th scope="col" className={`${estilos.columnaCorta} ${estilos.columnaSeccion}`}>Sección</th>
-              <th scope="col" className={estilos.columnaCorta}>Matrícula</th>
+              <th scope="col">Grado</th>
+              <th scope="col">Sección</th>
+              <th scope="col">Matrícula</th>
               <th scope="col" className={estilos.columnaAcciones}>Acciones</th>
             </tr>
           </thead>

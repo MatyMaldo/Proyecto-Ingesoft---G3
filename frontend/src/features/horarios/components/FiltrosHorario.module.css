@@ -18,6 +18,8 @@
 
 .acciones {
   display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
   margin-left: auto;
 }
 

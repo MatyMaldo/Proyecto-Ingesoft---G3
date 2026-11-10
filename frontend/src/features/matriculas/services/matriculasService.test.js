@@ -21,7 +21,8 @@ import {
   obtenerSeccionesMatricula,
   crearMatricula,
   emitirCompromisoMatricula,
-  emitirCompromisosMatriculaLote
+  emitirCompromisosMatriculaLote,
+  iniciarEmisionMatriculasLoteAsync
 } from './matriculasService.js';
 
 describe('matriculasService', () => {
@@ -293,5 +294,21 @@ describe('matriculasService', () => {
       tiempoEsperaMs: 60000
     });
     expect(resultado.datos).toEqual({ emitidos: 2, omitidos: 1, errores: [] });
+  });
+
+  it('inicia la emisión masiva asíncrona con Idempotency-Key', async () => {
+    solicitar.mockResolvedValue({
+      exitoso: true,
+      datos: { jobId: 'job-matricula', estado: 'EN_COLA' }
+    });
+
+    await iniciarEmisionMatriculasLoteAsync(2, 'matricula-2026');
+
+    expect(solicitar).toHaveBeenCalledWith('/compromisos-pago/matricula/lote/async', {
+      metodo: 'POST',
+      cuerpo: { anioId: 2 },
+      cabeceras: { 'Idempotency-Key': 'matricula-2026' },
+      tiempoEsperaMs: 15000
+    });
   });
 });

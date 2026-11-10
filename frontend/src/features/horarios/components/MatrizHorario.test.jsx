@@ -92,4 +92,46 @@ describe('MatrizHorario · bloques de varias horas', () => {
     expect(bloque).toHaveTextContent('08:00 – 10:00');
     expect(bloque.closest('td')).toHaveAttribute('rowspan', '2');
   });
+
+  it('marca los bloques con conflictos devueltos por el backend', () => {
+    render(
+      <MatrizHorario
+        titulo="4to B"
+        bloques={{
+          'bloque-1': {
+            id: 1,
+            dia: 'LUNES',
+            horaInicio: '08:00',
+            horaFin: '10:00',
+            asignacionId: 21,
+            aulaId: 31
+          }
+        }}
+        bloquesGuardados={{}}
+        asignaciones={asignaciones}
+        aulas={aulas}
+        ocupaciones={[]}
+        conflictos={[{
+          clave: 'bloque-1',
+          asignacionCursoId: 21,
+          diaSemana: 'LUNES',
+          horaInicio: '08:00',
+          horaFin: '10:00',
+          tipo: 'CONFLICTO_AULA',
+          mensaje: 'El aula Aula 101 está ocupada por 3ro A (Ciencias).'
+        }]}
+        deshabilitada={false}
+        alElegirBloque={vi.fn()}
+        alQuitarBloque={vi.fn()}
+        alMoverBloque={vi.fn()}
+      />
+    );
+
+    const bloque = screen.getByRole('button', { name: /Editar Lunes 08:00 a 10:00/i });
+    expect(bloque).toHaveTextContent('Choque de aula');
+    expect(bloque).toHaveAttribute(
+      'aria-label',
+      expect.stringContaining('El aula Aula 101 está ocupada por 3ro A (Ciencias).')
+    );
+  });
 });

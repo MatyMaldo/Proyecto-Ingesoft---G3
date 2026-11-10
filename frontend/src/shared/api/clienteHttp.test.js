@@ -21,6 +21,29 @@ describe('cliente HTTP · errores con detalle', () => {
   });
 });
 
+describe('cliente HTTP · cabeceras adicionales', () => {
+  it('envía Idempotency-Key sin reemplazar Authorization ni Content-Type', async () => {
+    const fetch = vi.fn().mockResolvedValue(new Response(
+      JSON.stringify({ datos: { jobId: 'job-1' }, error: null }),
+      { status: 202, headers: { 'Content-Type': 'application/json' } }
+    ));
+    vi.stubGlobal('fetch', fetch);
+    configurarCliente({ obtenerToken: () => 'token-prueba' });
+
+    await solicitar('/compromisos-pago/pension/lote/async', {
+      metodo: 'POST',
+      cuerpo: { anioId: 2 },
+      cabeceras: { 'Idempotency-Key': 'pension-2026-03' }
+    });
+
+    expect(fetch.mock.calls[0][1].headers).toMatchObject({
+      'Content-Type': 'application/json',
+      Authorization: 'Bearer token-prueba',
+      'Idempotency-Key': 'pension-2026-03'
+    });
+  });
+});
+
 describe('cliente HTTP · formatos de respuesta exitosa del backend', () => {
   it('extrae el contenido cuando el backend responde con la propiedad datos', async () => {
     const cursos = [{ id: 1, nombre: 'Matemáticas', descripcion: 'Curso' }];

@@ -421,3 +421,23 @@ export async function emitirCompromisosMatriculaLote(anioId) {
   }
   return respuesta;
 }
+
+/** Inicia la emisión masiva como operación asíncrona. Devuelve un jobId. */
+export async function iniciarEmisionMatriculasLoteAsync(anioId, claveIdempotencia) {
+  if (USAR_MOCK) {
+    return {
+      exitoso: true,
+      datos: { jobId: 'mock-matricula-lote', estado: 'EN_COLA' },
+      mensaje: ''
+    };
+  }
+
+  return solicitar('/compromisos-pago/matricula/lote/async', {
+    metodo: 'POST',
+    cuerpo: { anioId: Number(anioId) },
+    cabeceras: claveIdempotencia
+      ? { 'Idempotency-Key': claveIdempotencia }
+      : undefined,
+    tiempoEsperaMs: 15000
+  });
+}

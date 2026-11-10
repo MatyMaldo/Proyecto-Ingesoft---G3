@@ -2,26 +2,83 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 import { fireEvent, render, screen, waitFor } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 
-const { cargarBloquesCsv, descargarPlantillaBloquesCsv, guardarArchivo } = vi.hoisted(() => ({
-  cargarBloquesCsv: vi.fn(),
-  descargarPlantillaBloquesCsv: vi.fn(),
+const {
+  previsualizarCargaMasiva,
+  iniciarConfirmacionCargaMasivaAsync,
+  descargarPlantillaBloques,
+  guardarArchivo
+} = vi.hoisted(() => ({
+  previsualizarCargaMasiva: vi.fn(),
+  iniciarConfirmacionCargaMasivaAsync: vi.fn(),
+  descargarPlantillaBloques: vi.fn(),
   guardarArchivo: vi.fn()
 }));
 
-vi.mock('../services/horariosService.js', () => ({ cargarBloquesCsv, descargarPlantillaBloquesCsv }));
+vi.mock('../services/horariosService.js', () => ({
+  previsualizarCargaMasiva,
+  iniciarConfirmacionCargaMasivaAsync,
+  descargarPlantillaBloques
+}));
 vi.mock('../utils/guardarArchivo.js', () => ({ guardarArchivo }));
 
 import DialogoCargaMasiva from './DialogoCargaMasiva.jsx';
 
 const anios = [{ id: 7, anio: 2027 }];
+const aulas = [{ id: 4, nombre: '101' }];
+
+const preview = {
+  resumen: {
+    archivos: 1,
+    filas: 1,
+    validas: 1,
+    conError: 0,
+    duplicadas: 0,
+    conflictos: 0
+  },
+  archivos: [{ nombre: 'horarios.csv', filas: 1, errores: 0 }],
+  bloques: [
+    {
+      previewId: 'p-1',
+      archivo: 'horarios.csv',
+      fila: 2,
+      asignacionCursoId: 12,
+      seccionId: 3,
+      gradoNombre: '1er Grado de Secundaria',
+      seccionNombre: 'A',
+      cursoId: 5,
+      cursoNombre: 'Matemática',
+      docenteId: 9,
+      docenteNombre: 'Luis Pérez',
+      aulaId: 4,
+      aulaNombre: '101',
+      diaSemana: 'LUNES',
+      horaInicio: '08:00',
+      horaFin: '09:00',
+      estado: 'VALIDO',
+      errores: []
+    }
+  ]
+};
 
 function renderDialogo() {
-  const alCompletar = vi.fn();
+  const operacion = {
+    job: null,
+    iniciando: false,
+    enCurso: false,
+    error: '',
+    iniciar: vi.fn(async (fn) => fn()),
+    reiniciar: vi.fn()
+  };
   const { container } = render(
-    <DialogoCargaMasiva anios={anios} alCompletar={alCompletar} alCancelar={vi.fn()} />
+    <DialogoCargaMasiva
+      anios={anios}
+      aulas={aulas}
+      alCancelar={vi.fn()}
+      operacion={operacion}
+    />
   );
   const entrada = container.querySelector('input[type="file"]');
-  return { alCompletar, entrada };
+  return { operacion, entrada };
 }
 
 function elegir(entrada, nombre) {
@@ -35,80 +92,77 @@ beforeEach(() => {
 });
 
 describe('DialogoCargaMasiva', () => {
-  it('descarga la plantilla y avisa que la descarga fue solicitada', async () => {
-    const plantilla = new Blob(['Grado;Sección']);
-    descargarPlantillaBloquesCsv.mockResolvedValue({ exitoso: true, datos: plantilla, mensaje: '' });
+  it('descarga la plantilla CSV', async () => {
+    const plantilla = new Blob(['ID Sección;Grado']);
+    descargarPlantillaBloques.mockResolvedValue({ exitoso: true, datos: plantilla, mensaje: '' });
     renderDialogo();
 
-    fireEvent.click(screen.getByRole('button', { name: 'Descargar plantilla CSV' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Plantilla CSV' }));
 
-    expect(await screen.findByText(/Descarga solicitada/)).toBeInTheDocument();
-    expect(guardarArchivo).toHaveBeenCalledWith(plantilla, 'plantilla-horarios.csv');
+    await waitFor(() => {
+      expect(descargarPlantillaBloques).toHaveBeenCalledWith('csv');
+      expect(guardarArchivo).toHaveBeenCalledWith(plantilla, 'plantilla-horarios.csv');
+    });
   });
 
-  it('mantiene deshabilitado el botón de cargar hasta elegir un archivo y rechaza otras extensiones', () => {
+  it('mantiene deshabilitado el botón de previsualizar hasta elegir un archivo', () => {
     const { entrada } = renderDialogo();
-    const cargar = screen.getByRole('button', { name: 'Cargar horarios' });
-    expect(cargar).toBeDisabled();
+    const previsualizar = screen.getByRole('button', { name: 'Previsualizar' });
+    expect(previsualizar).toBeDisabled();
 
     elegir(entrada, 'horarios.xlsx');
-    expect(screen.getByText('Selecciona un archivo con extensión .csv.')).toBeInTheDocument();
-    expect(cargar).toBeDisabled();
-
-    elegir(entrada, 'horarios.csv');
-    expect(cargar).toBeEnabled();
+    expect(previsualizar).toBeEnabled();
   });
 
-  it('envía el archivo con el año elegido y notifica al completar', async () => {
-    cargarBloquesCsv.mockResolvedValue({
+  it('previsualiza, edita y confirma la carga', async () => {
+    previsualizarCargaMasiva.mockResolvedValue({ exitoso: true, datos: preview, mensaje: '' });
+    iniciarConfirmacionCargaMasivaAsync.mockResolvedValue({
       exitoso: true,
-      datos: { filasProcesadas: 3, bloquesCreados: 3, errores: [] },
+      datos: { jobId: 'job-1', estado: 'EN_COLA' },
       mensaje: ''
     });
-    const { alCompletar, entrada } = renderDialogo();
+
+    const { operacion, entrada } = renderDialogo();
     const archivo = elegir(entrada, 'horarios.csv');
     fireEvent.change(screen.getByLabelText('Año académico'), { target: { value: '7' } });
 
-    fireEvent.click(screen.getByRole('button', { name: 'Cargar horarios' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Previsualizar' }));
 
-    await waitFor(() => expect(alCompletar).toHaveBeenCalledWith({
-      filasProcesadas: 3,
-      bloquesCreados: 3,
-      errores: []
-    }));
-    expect(cargarBloquesCsv).toHaveBeenCalledWith(archivo, '7');
+    expect(await screen.findByText('Confirmar creación')).toBeInTheDocument();
+    expect(previsualizarCargaMasiva).toHaveBeenCalledWith([archivo], '7');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar creación' }));
+
+    await waitFor(() => expect(operacion.iniciar).toHaveBeenCalled());
+    expect(iniciarConfirmacionCargaMasivaAsync).toHaveBeenCalledWith({
+      anioAcademicoId: '7',
+      bloques: [{
+        asignacionCursoId: 12,
+        aulaId: 4,
+        diaSemana: 'LUNES',
+        horaInicio: '08:00',
+        horaFin: '09:00',
+        origen: 'horarios.csv#2'
+      }]
+    }, expect.any(String));
   });
 
-  it('lista los errores por fila cuando el backend rechaza el archivo', async () => {
-    cargarBloquesCsv.mockResolvedValue({
-      exitoso: false,
-      datos: {
-        filasProcesadas: 2,
-        bloquesCreados: 0,
-        errores: [{ fila: 3, mensaje: "No existe el aula 'Z9'." }]
-      },
-      mensaje: 'No se pudo completar la operación.'
-    });
-    const { alCompletar, entrada } = renderDialogo();
-    elegir(entrada, 'horarios.csv');
-
-    fireEvent.click(screen.getByRole('button', { name: 'Cargar horarios' }));
-
-    expect(await screen.findByText("Fila 3: No existe el aula 'Z9'.")).toBeInTheDocument();
-    expect(alCompletar).not.toHaveBeenCalled();
-  });
-
-  it('muestra el mensaje del servidor cuando falla sin detalle por fila', async () => {
-    cargarBloquesCsv.mockResolvedValue({
+  it('muestra los errores del servidor al iniciar la confirmación', async () => {
+    previsualizarCargaMasiva.mockResolvedValue({ exitoso: true, datos: preview, mensaje: '' });
+    iniciarConfirmacionCargaMasivaAsync.mockResolvedValue({
       exitoso: false,
       datos: null,
-      mensaje: 'La programación de horarios está cerrada.'
+      mensaje: 'El aula ya está ocupada.'
     });
+
     const { entrada } = renderDialogo();
     elegir(entrada, 'horarios.csv');
+    fireEvent.change(screen.getByLabelText('Año académico'), { target: { value: '7' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Previsualizar' }));
+    await screen.findByText('Confirmar creación');
 
-    fireEvent.click(screen.getByRole('button', { name: 'Cargar horarios' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Confirmar creación' }));
 
-    expect(await screen.findByText('La programación de horarios está cerrada.')).toBeInTheDocument();
+    expect(await screen.findByText(/El aula ya está ocupada/)).toBeInTheDocument();
   });
 });
