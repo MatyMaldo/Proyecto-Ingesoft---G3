@@ -11,7 +11,7 @@
  * @type {string}
  */
 const URL_BASE_API_CONFIGURADA = (
-  import.meta.env.VITE_URL_BASE_API ?? 'http://localhost:8080/api/v1'
+  import.meta.env.VITE_URL_BASE_API 
 ).replace(/\/+$/, '');
 
 /**
@@ -32,7 +32,7 @@ export const URL_BASE_API = import.meta.env.DEV
  *
  * @type {boolean}
  */
-export const USAR_MOCK = import.meta.env.VITE_USAR_MOCK === 'true';
+export const USAR_MOCK = import.meta.env.VITE_USAR_MOCK;
 
 /**
  * Tiempo máximo de espera, en milisegundos, para una solicitud HTTP antes de
