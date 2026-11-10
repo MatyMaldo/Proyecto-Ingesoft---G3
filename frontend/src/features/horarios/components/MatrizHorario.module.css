@@ -212,6 +212,30 @@
   color: var(--color-peligro-texto);
 }
 
+/* Bloque rechazado por el backend al intentar guardar la sección. */
+.conflicto {
+  background: var(--color-peligro-fondo);
+  border-color: var(--color-peligro-texto);
+  border-style: dashed;
+  box-shadow: inset 5px 0 0 var(--color-peligro-texto), var(--sombra-sm);
+}
+
+.conflictoResaltado {
+  outline: 3px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.etiquetaConflicto {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-1);
+  margin-top: auto;
+  padding-top: var(--espacio-1);
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-peligro-texto);
+}
+
 .botonQuitar {
   position: absolute;
   top: var(--espacio-1);

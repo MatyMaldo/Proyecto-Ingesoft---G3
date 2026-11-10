@@ -70,6 +70,25 @@ function bloquesAMapa(lista) {
   return mapa;
 }
 
+/**
+ * Asocia cada error del backend con la clave del bloque dentro del borrador.
+ * El `indice` corresponde al orden enviado en `request.bloques`, por eso se
+ * resuelve contra la lista de claves capturada al iniciar el guardado.
+ */
+function conflictoConClaves(error, claves) {
+  const indice = Number.isInteger(error?.indice) ? error.indice : null;
+  const indiceConflicto = Number.isInteger(error?.indiceConflicto)
+    ? error.indiceConflicto
+    : null;
+  return {
+    ...error,
+    clave: indice != null && claves[indice] != null ? claves[indice] : null,
+    claveConflicto: indiceConflicto != null && claves[indiceConflicto] != null
+      ? claves[indiceConflicto]
+      : null
+  };
+}
+
 function serializarBloques(mapa) {
   return JSON.stringify(
     Object.values(mapa)
@@ -119,6 +138,7 @@ export default function useHorarios() {
 
   const [bloques, establecerBloques] = useState({});
   const [bloquesGuardados, establecerBloquesGuardados] = useState({});
+  const [conflictos, establecerConflictos] = useState([]);
   const [estadoHorario, establecerEstadoHorario] = useState('cargando');
   const [errorHorario, establecerErrorHorario] = useState('');
   const [guardando, establecerGuardando] = useState(false);
@@ -365,6 +385,7 @@ export default function useHorarios() {
     );
     establecerBloques({});
     establecerBloquesGuardados({});
+    establecerConflictos([]);
     establecerVersion(0);
     establecerParametros({ grado: gradoId, seccion });
     establecerConsulta({
@@ -381,6 +402,7 @@ export default function useHorarios() {
     if (!consulta) return;
     establecerBloques({});
     establecerBloquesGuardados({});
+    establecerConflictos([]);
     establecerVersion(0);
     establecerConsulta({ ...consulta });
   };
@@ -414,6 +436,7 @@ export default function useHorarios() {
   const quitarAsignacion = useCallback(async (idAsignacion) => {
     const resultado = await eliminarAsignacion(idAsignacion);
     if (resultado.exitoso) {
+      establecerConflictos([]);
       establecerBloquesGuardados((anteriores) =>
         Object.fromEntries(
           Object.entries(anteriores).filter(([, bloque]) => String(bloque.asignacionId) !== String(idAsignacion))
@@ -425,6 +448,7 @@ export default function useHorarios() {
   }, []);
 
   const guardarBloque = useCallback(({ clave, bloque }) => {
+    establecerConflictos([]);
     establecerBloques((anteriores) => {
       const claveFinal = clave ?? `nuevo-${++contadorNuevos.current}`;
       const anterior = anteriores[claveFinal];
@@ -442,6 +466,7 @@ export default function useHorarios() {
   }, []);
 
   const quitarBloque = useCallback((clave) => {
+    establecerConflictos([]);
     establecerBloques((anteriores) => {
       const siguientes = { ...anteriores };
       delete siguientes[clave];
@@ -500,6 +525,7 @@ export default function useHorarios() {
         && seSolapan(bloqueMovido.horaInicio, bloqueMovido.horaFin, otroBloque.horaInicio, otroBloque.horaFin)
       );
       if (colision) return 'El bloque se solapa con otro de la misma sección.';
+      establecerConflictos([]);
       establecerBloques({
         ...bloques,
         [clave]: bloqueMovido,
@@ -515,32 +541,55 @@ export default function useHorarios() {
     );
     if (colision) return 'El bloque se solapa con otro de la misma sección.';
 
+    establecerConflictos([]);
     establecerBloques({ ...bloques, [clave]: bloqueMovido });
     return null;
   }, [bloques]);
 
-  const descartarCambios = () => establecerBloques(bloquesGuardados);
+  const descartarCambios = () => {
+    establecerConflictos([]);
+    establecerBloques(bloquesGuardados);
+  };
 
   const guardar = async () => {
     if (!puedeEditarBloques) {
-      return { error: 'El periodo actual no permite modificar bloques horarios.', resumen: null };
+      return {
+        error: 'El periodo actual no permite modificar bloques horarios.',
+        resumen: null,
+        errores: []
+      };
     }
     establecerGuardando(true);
+    establecerConflictos([]);
+    const entradas = Object.entries(bloques);
     const resultado = await guardarHorario({
       ...consulta,
-      bloques: Object.values(bloques)
+      bloques: entradas.map(([, bloque]) => bloque)
     });
     establecerGuardando(false);
+
+    // El backend no guardó nada: se conserva el borrador y se exponen los
+    // conflictos por bloque para señalarlos en la matriz.
+    if (!resultado.exitoso) {
+      const claves = entradas.map(([clave]) => clave);
+      const errores = (Array.isArray(resultado.datos?.errores) ? resultado.datos.errores : [])
+        .map((error) => conflictoConClaves(error, claves));
+      establecerConflictos(errores);
+      return {
+        error: resultado.mensaje || MENSAJE_ERROR_GENERICO,
+        resumen: null,
+        errores
+      };
+    }
+
+    // Solo se recarga cuando el guardado fue exitoso.
     const respuestaActualizada = await obtenerHorario(consulta);
     if (respuestaActualizada.exitoso) {
       const guardados = bloquesAMapa(respuestaActualizada.datos ?? []);
       establecerBloquesGuardados(guardados);
       establecerBloques(guardados);
     }
-    if (!resultado.exitoso) {
-      return { error: resultado.mensaje || MENSAJE_ERROR_GENERICO, resumen: null };
-    }
-    return { error: null, resumen: resultado.datos ?? null };
+    return { error: null, resumen: resultado.datos ?? null, errores: [] };
   };
 
   const gradoConsultado = catalogos.grados.find(
@@ -590,6 +639,7 @@ export default function useHorarios() {
       bloques,
       bloquesGuardados,
       ocupaciones,
+      conflictos,
       hayCambios,
       guardando,
       soloLectura: !puedeEditarBloques,
@@ -598,6 +648,7 @@ export default function useHorarios() {
       quitarBloque,
       moverBloque,
       descartarCambios,
+      descartarConflictos: () => establecerConflictos([]),
       guardar
     }
   };

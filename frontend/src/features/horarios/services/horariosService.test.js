@@ -21,6 +21,8 @@ import {
   eliminarAsignacion,
   eliminarBloqueHorario,
   generarSesiones,
+  iniciarConfirmacionCargaMasivaAsync,
+  iniciarGeneracionSesionesAsync,
   listarAsignaciones,
   listarBloquesDocente,
   listarBloquesHorario,
@@ -254,6 +256,60 @@ describe('servicio de horarios · contrato API v1', () => {
         parametros: { seccionId: 3, fechaInicio: rango.fechaInicio, fechaFin: rango.fechaFin }
       }]
     ]);
+  });
+
+  it('inicia la confirmación de carga masiva asíncrona', async () => {
+    await iniciarConfirmacionCargaMasivaAsync({
+      anioAcademicoId: 2,
+      bloques: [{
+        asignacionCursoId: 12,
+        aulaId: 4,
+        diaSemana: 'LUNES',
+        horaInicio: '08:00',
+        horaFin: '09:00',
+        origen: '1A.xlsx#2'
+      }]
+    }, 'carga-2026');
+
+    expect(solicitar).toHaveBeenCalledWith('/bloques-horario/carga-masiva/confirmar/async', {
+      metodo: 'POST',
+      cuerpo: {
+        anioAcademicoId: 2,
+        bloques: [{
+          asignacionCursoId: 12,
+          aulaId: 4,
+          diaSemana: 'LUNES',
+          horaInicio: '08:00',
+          horaFin: '09:00',
+          origen: '1A.xlsx#2'
+        }]
+      },
+      cabeceras: { 'Idempotency-Key': 'carga-2026' },
+      tiempoEsperaMs: 15000
+    });
+  });
+
+  it('inicia la generación de sesiones asíncrona', async () => {
+    await iniciarGeneracionSesionesAsync({
+      anioAcademicoId: 2026,
+      seccionId: 3,
+      fechaInicio: '2026-01-01',
+      fechaFin: '2026-12-31',
+      sesionesOmitidas: [{ bloqueHorarioId: 100, fecha: '2026-01-15' }]
+    }, 'sesiones-2026');
+
+    expect(solicitar).toHaveBeenCalledWith('/sesiones-clase/generar/async', {
+      metodo: 'POST',
+      cuerpo: {
+        anioAcademicoId: 2026,
+        seccionId: 3,
+        fechaInicio: '2026-01-01',
+        fechaFin: '2026-12-31',
+        sesionesOmitidas: [{ bloqueHorarioId: 100, fecha: '2026-01-15' }]
+      },
+      cabeceras: { 'Idempotency-Key': 'sesiones-2026' },
+      tiempoEsperaMs: 15000
+    });
   });
 
   it('guarda la grilla con el endpoint masivo usando el estado final completo', async () => {

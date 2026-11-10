@@ -1,0 +1,162 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  padding: var(--espacio-4);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-peligro-texto);
+  border-left: 4px solid var(--color-peligro-texto);
+  border-radius: var(--radio-md);
+  box-shadow: var(--sombra-sm);
+}
+
+.cabecera {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+}
+
+.titulo {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  margin: 0;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-peligro-texto);
+}
+
+.resumen {
+  margin: var(--espacio-1) 0 0;
+  font-size: var(--texto-sm);
+  color: var(--color-texto-secundario);
+}
+
+.botonCerrar {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 2rem;
+  height: 2rem;
+  padding: 0;
+  color: var(--color-texto-suave);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radio-sm);
+  cursor: pointer;
+}
+
+.botonCerrar:hover {
+  background: var(--color-superficie-suave);
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  max-height: 18rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+}
+
+.grupo {
+  padding: var(--espacio-2) var(--espacio-3);
+  background: var(--color-peligro-fondo);
+  border: 1px solid var(--color-peligro-borde);
+  border-radius: var(--radio-sm);
+}
+
+.botonGrupo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--espacio-2);
+  width: 100%;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  color: var(--color-texto);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.botonGrupo:hover .curso {
+  text-decoration: underline;
+}
+
+.curso {
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-seminegrita);
+}
+
+.meta {
+  font-size: var(--texto-xs);
+  color: var(--color-texto-secundario);
+}
+
+.mensajes {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: var(--espacio-1) 0 0;
+  padding-left: var(--espacio-4);
+  font-size: var(--texto-xs);
+  line-height: var(--interlineado-xs);
+  color: var(--color-peligro-texto);
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: var(--espacio-2);
+}
+
+.botonPrimario,
+.botonSecundario {
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-4);
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-seminegrita);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.botonPrimario {
+  color: var(--color-marca-texto);
+  background: var(--color-marca);
+  border: 0;
+}
+
+.botonPrimario:hover {
+  background: var(--color-primario-intenso);
+}
+
+.botonSecundario {
+  color: var(--color-texto-secundario);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
+}
+
+.botonSecundario:hover {
+  background: var(--color-superficie-suave);
+}
+
+.botonPrimario:focus-visible,
+.botonSecundario:focus-visible,
+.botonCerrar:focus-visible,
+.botonGrupo:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+@media (max-width: 767px) {
+  .acciones > button {
+    flex: 1 1 100%;
+  }
+}

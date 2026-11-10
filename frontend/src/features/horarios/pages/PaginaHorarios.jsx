@@ -4,6 +4,7 @@ import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
 import Notificacion from '../../../shared/components/Notificacion.jsx';
 import useNotificacion from '../../../shared/hooks/useNotificacion.js';
+import useOperacionMasiva from '../../../shared/hooks/useOperacionMasiva.js';
 import DialogoAsignacion from '../components/DialogoAsignacion.jsx';
 import DialogoBloque from '../components/DialogoBloque.jsx';
 import DialogoCargaMasiva from '../components/DialogoCargaMasiva.jsx';
@@ -13,6 +14,7 @@ import DialogoSesiones from '../components/DialogoSesiones.jsx';
 import DialogoEliminarAsignacion from '../components/DialogoEliminarAsignacion.jsx';
 import FiltrosHorario from '../components/FiltrosHorario.jsx';
 import MatrizHorario from '../components/MatrizHorario.jsx';
+import PanelConflictosHorario from '../components/PanelConflictosHorario.jsx';
 import TablaAsignaciones from '../components/TablaAsignaciones.jsx';
 import useHorarios from '../hooks/useHorarios.js';
 import { exportarBorrador } from '../services/horariosService.js';
@@ -64,6 +66,27 @@ export default function PaginaHorarios() {
   const [dialogoSesiones, establecerDialogoSesiones] = useState(false);
   const [dialogoCargaMasiva, establecerDialogoCargaMasiva] = useState(false);
   const [dialogoCargaDocente, establecerDialogoCargaDocente] = useState(false);
+  const [bloqueResaltado, establecerBloqueResaltado] = useState(null);
+  const [versionResaltado, establecerVersionResaltado] = useState(0);
+  const [panelConflictosVisible, establecerPanelConflictosVisible] = useState(false);
+
+  const operacionCargaMasiva = useOperacionMasiva({
+    alTerminar: (job) => completarCargaMasiva(job)
+  });
+
+  const operacionSesiones = useOperacionMasiva({
+    alTerminar: (job) => {
+      const conError = job.errores > 0
+        || job.estado === 'COMPLETADO_CON_ERRORES'
+        || job.estado === 'FALLIDO';
+      mostrarNotificacion(
+        conError
+          ? `Generación de sesiones: ${job.exitosos} creadas, ${job.errores} errores.`
+          : `Se generaron ${job.exitosos} sesiones.`,
+        conError
+      );
+    }
+  });
 
   const sinRelaciones = asignaciones.lista.length === 0;
   const sinBloquesGuardados = Object.keys(horario.bloquesGuardados).length === 0;
@@ -77,11 +100,14 @@ export default function PaginaHorarios() {
   }
 
   async function guardarHorario() {
-    const { error, resumen } = await horario.guardar();
+    const { error, resumen, errores } = await horario.guardar();
+    establecerBloqueResaltado(null);
     if (error) {
+      establecerPanelConflictosVisible(Boolean(errores?.length));
       mostrarNotificacion(error, true);
       return;
     }
+    establecerPanelConflictosVisible(false);
     if (!resumen) {
       mostrarNotificacion('Horario guardado correctamente.');
       return;
@@ -93,7 +119,28 @@ export default function PaginaHorarios() {
     );
   }
 
-  function completarCargaMasiva({ bloquesCreados }) {    establecerDialogoCargaMasiva(false);
+  function seleccionarConflicto(conflicto) {
+    if (!conflicto?.clave) return;
+    establecerBloqueResaltado(conflicto.clave);
+    establecerVersionResaltado((actual) => actual + 1);
+  }
+
+  function descartarCambios() {
+    establecerBloqueResaltado(null);
+    establecerPanelConflictosVisible(false);
+    horario.descartarCambios();
+  }
+
+  function completarCargaMasiva(job = {}) {
+    const bloquesCreados = job.exitosos ?? 0;
+    establecerDialogoCargaMasiva(false);
+    if (job.errores > 0 || job.estado === 'COMPLETADO_CON_ERRORES' || job.estado === 'FALLIDO') {
+      mostrarNotificacion(
+        `Carga masiva: ${bloquesCreados} bloques creados, ${job.errores ?? 0} errores.`,
+        true
+      );
+      return;
+    }
     if (consulta && horario.hayCambios) {
       // No se pisa el borrador de la matriz: el usuario decide cuándo volver a consultar.
       mostrarNotificacion(
@@ -323,12 +370,25 @@ export default function PaginaHorarios() {
                   asignaciones={asignaciones.lista}
                   aulas={catalogos.aulas}
                   ocupaciones={horario.ocupaciones}
+                  conflictos={horario.conflictos}
+                  bloqueResaltado={horario.conflictos.length > 0 ? bloqueResaltado : null}
+                  versionResaltado={versionResaltado}
                   deshabilitada={sinRelaciones}
                   soloLectura={horario.soloLectura}
                   alElegirBloque={establecerBloqueElegido}
                   alQuitarBloque={horario.quitarBloque}
                   alMoverBloque={moverBloque}
                 />
+
+                {panelConflictosVisible && horario.conflictos.length > 0 && (
+                  <PanelConflictosHorario
+                    conflictos={horario.conflictos}
+                    asignaciones={asignaciones.lista}
+                    alSeleccionar={seleccionarConflicto}
+                    alCerrar={() => establecerPanelConflictosVisible(false)}
+                    alDescartar={() => establecerConfirmacion('descartar')}
+                  />
+                )}
 
                 <div className={estilos.pieMatriz}>
                   <button
@@ -441,6 +501,7 @@ export default function PaginaHorarios() {
           tituloSeccion={tituloConsulta}
           alCancelar={() => establecerDialogoSesiones(false)}
           alNotificar={mostrarNotificacion}
+          operacion={operacionSesiones}
         />
       )}
 
@@ -451,6 +512,7 @@ export default function PaginaHorarios() {
           anioIdInicial={anioVigente?.id}
           alCompletar={completarCargaMasiva}
           alCancelar={() => establecerDialogoCargaMasiva(false)}
+          operacion={operacionCargaMasiva}
         />
       )}
 
@@ -473,7 +535,7 @@ export default function PaginaHorarios() {
           }
           textoConfirmar="Aceptar"
           alCancelar={() => establecerConfirmacion(null)}
-          alConfirmar={confirmacion === 'cambiar' ? verHorario : horario.descartarCambios}
+          alConfirmar={confirmacion === 'cambiar' ? verHorario : descartarCambios}
         />
       )}
 

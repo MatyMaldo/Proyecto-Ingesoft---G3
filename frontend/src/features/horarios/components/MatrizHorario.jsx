@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useEffect, useMemo, useRef, useState } from 'react';
 
 import Icono from '../../../shared/components/Icono.jsx';
 import { DIAS } from '../constants/horarios.js';
@@ -22,6 +22,15 @@ const CLASES_TONO_CURSO = [
   estilos.tonoRosa,
   estilos.tonoVioleta
 ];
+
+const ETIQUETA_CONFLICTO = {
+  CONFLICTO_DOCENTE: 'Choque de docente',
+  CONFLICTO_SECCION: 'Choque de sección',
+  CONFLICTO_AULA: 'Choque de aula',
+  DUPLICADO: 'Duplicado',
+  HORARIO_INVALIDO: 'Horario inválido',
+  REFERENCIA_INVALIDA: 'Dato inválido'
+};
 
 function indiceTono(valor) {
   const texto = String(valor ?? '');
@@ -52,6 +61,9 @@ export default function MatrizHorario({
   asignaciones,
   aulas,
   ocupaciones,
+  conflictos = [],
+  bloqueResaltado = null,
+  versionResaltado = 0,
   deshabilitada,
   soloLectura = false,
   alElegirBloque,
@@ -61,6 +73,7 @@ export default function MatrizHorario({
   const [diaActivo, establecerDiaActivo] = useState(DIAS[0].id);
   const [origenArrastre, establecerOrigenArrastre] = useState(null);
   const [claveSobre, establecerClaveSobre] = useState(null);
+  const refsBloques = useRef(new Map());
 
   const puedeEditar = !deshabilitada && !soloLectura;
   const listaBloques = Object.entries(bloques).map(([clave, bloque]) => ({ ...bloque, clave }));
@@ -70,6 +83,33 @@ export default function MatrizHorario({
   );
   const aulaPorId = new Map(aulas.map((aula) => [String(aula.id), aula.nombre]));
   const claseTono = (cursoId) => CLASES_TONO_CURSO[indiceTono(cursoId)];
+
+  // Errores del guardado agrupados por bloque. `claveConflicto` permite marcar
+  // también el otro bloque cuando el choque es interno del payload.
+  const conflictosPorClave = useMemo(() => {
+    const mapa = new Map();
+    (conflictos ?? []).forEach((conflicto) => {
+      if (conflicto.clave) {
+        if (!mapa.has(conflicto.clave)) mapa.set(conflicto.clave, []);
+        mapa.get(conflicto.clave).push(conflicto);
+      }
+      if (conflicto.claveConflicto && conflicto.claveConflicto !== conflicto.clave) {
+        if (!mapa.has(conflicto.claveConflicto)) mapa.set(conflicto.claveConflicto, []);
+        mapa.get(conflicto.claveConflicto).push({ ...conflicto, relacionado: true });
+      }
+    });
+    return mapa;
+  }, [conflictos]);
+
+  useEffect(() => {
+    if (!bloqueResaltado) return;
+    const bloque = bloques[bloqueResaltado];
+    if (bloque?.dia) establecerDiaActivo(bloque.dia);
+    refsBloques.current.get(bloqueResaltado)?.scrollIntoView?.({
+      behavior: 'smooth',
+      block: 'center'
+    });
+  }, [bloqueResaltado, versionResaltado, bloques]);
 
   const claseDia = (diaId) =>
     `${estilos.dia} ${diaId === diaActivo ? estilos.diaActivo : ''}`;
@@ -167,6 +207,11 @@ export default function MatrizHorario({
                   if (bloque) {
                     const asignacion = asignacionPorId.get(String(bloque.asignacionId));
                     const cambiado = !mismoBloque(bloque, bloquesGuardados[clave]);
+                    const erroresBloque = conflictosPorClave.get(clave) ?? [];
+                    const mensajesConflicto = erroresBloque
+                      .map((error) => error.mensaje)
+                      .filter(Boolean);
+                    const resaltado = clave === bloqueResaltado;
                     const enEstaHora = ocupaciones.filter((ocupacion) =>
                       ocupacion.dia === dia.id
                       && seSolapan(segmento.inicio, segmento.fin, ocupacion.horaInicio, ocupacion.horaFin)
@@ -188,6 +233,8 @@ export default function MatrizHorario({
                       claseTono(asignacion?.cursoId),
                       choque ? estilos.choque : '',
                       cambiado ? estilos.cambiado : '',
+                      erroresBloque.length > 0 ? estilos.conflicto : '',
+                      resaltado ? estilos.conflictoResaltado : '',
                       bloqueCruzaReceso(bloque) ? estilos.choque : ''
                     ].join(' ');
 
@@ -200,10 +247,17 @@ export default function MatrizHorario({
                       >
                         <div className={estilos.envoltura}>
                           <button
+                            ref={(elemento) => {
+                              if (elemento) refsBloques.current.set(clave, elemento);
+                              else refsBloques.current.delete(clave);
+                            }}
                             type="button"
                             className={clases}
                             draggable={puedeEditar}
-                            title={`${asignacion?.cursoNombre ?? ''} · ${aulaPorId.get(String(bloque.aulaId)) ?? bloque.aulaId} · ${asignacion?.docenteNombre ?? ''}`}
+                            title={[
+                              `${asignacion?.cursoNombre ?? ''} · ${aulaPorId.get(String(bloque.aulaId)) ?? bloque.aulaId} · ${asignacion?.docenteNombre ?? ''}`,
+                              ...mensajesConflicto
+                            ].filter(Boolean).join('\n')}
                             onDragStart={(evento) => {
                               if (!puedeEditar) return;
                               evento.dataTransfer.effectAllowed = 'move';
@@ -215,7 +269,11 @@ export default function MatrizHorario({
                             }}
                             aria-label={`Editar ${dia.etiqueta} ${bloque.horaInicio} a ${bloque.horaFin}: ${asignacion?.cursoNombre ?? ''}${
                               cambiado ? ' (sin guardar)' : ''
-                            }${choque ? `. ${textoChoque}` : ''}`}
+                            }${choque ? `. ${textoChoque}` : ''}${
+                              mensajesConflicto.length > 0
+                                ? `. Conflictos: ${mensajesConflicto.join(' ')}`
+                                : ''
+                            }`}
                             onClick={() => {
                               if (!puedeEditar) return;
                               alElegirBloque({
@@ -242,6 +300,15 @@ export default function MatrizHorario({
                               <span className={estilos.avisoChoque}>
                                 <Icono nombre="alerta" tamano={12} />
                                 {textoChoque}
+                              </span>
+                            )}
+                            {erroresBloque.length > 0 && (
+                              <span className={estilos.etiquetaConflicto}>
+                                <Icono nombre="alerta" tamano={12} />
+                                {ETIQUETA_CONFLICTO[erroresBloque[0].tipo] ?? 'Conflicto'}
+                                {erroresBloque.length > 1
+                                  ? ` (+${erroresBloque.length - 1})`
+                                  : ''}
                               </span>
                             )}
                           </button>

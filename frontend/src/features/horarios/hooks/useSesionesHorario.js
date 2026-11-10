@@ -100,6 +100,13 @@ export default function useSesionesHorario(consulta) {
     establecerSesionesOmitidas({});
   };
 
+  const construirSolicitud = () => ({
+    ...parametros(),
+    gradoId: consulta?.gradoId,
+    seccion: consulta?.seccion,
+    sesionesOmitidas: Object.values(sesionesOmitidas)
+  });
+
   const generar = async () => {
     const datos = parametros();
     if (!Number.isSafeInteger(Number(datos.anioAcademicoId)) || !Number.isSafeInteger(Number(datos.seccionId))) {
@@ -150,6 +157,7 @@ export default function useSesionesHorario(consulta) {
     reiniciarPreview,
     generando,
     previsualizar,
-    generar
+    generar,
+    construirSolicitud
   };
 }

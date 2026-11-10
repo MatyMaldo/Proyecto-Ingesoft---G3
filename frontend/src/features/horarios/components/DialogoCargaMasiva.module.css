@@ -287,15 +287,72 @@
 
 .tablaPreview {
   width: 100%;
-  min-width: 68rem;
-  border-collapse: collapse;
+  min-width: 76rem;
+  table-layout: fixed;
+  border-collapse: separate;
+  border-spacing: 0;
   font-size: var(--texto-sm);
 }
 
-.tablaPreview th {
+/* Anchos equilibrados: Incluir, Origen y Estado compactos; el resto con espacio para leer. */
+.tablaPreview th:nth-child(1),
+.tablaPreview td:nth-child(1) {
+  width: 5%;
+}
+
+.tablaPreview th:nth-child(2),
+.tablaPreview td:nth-child(2) {
+  width: 8%;
+}
+
+.tablaPreview th:nth-child(3),
+.tablaPreview td:nth-child(3) {
+  width: 11%;
+}
+
+.tablaPreview th:nth-child(4),
+.tablaPreview td:nth-child(4) {
+  width: 12%;
+}
+
+.tablaPreview th:nth-child(5),
+.tablaPreview td:nth-child(5) {
+  width: 10%;
+}
+
+.tablaPreview th:nth-child(6),
+.tablaPreview td:nth-child(6) {
+  width: 9%;
+}
+
+.tablaPreview th:nth-child(7),
+.tablaPreview td:nth-child(7) {
+  width: 10%;
+}
+
+.tablaPreview th:nth-child(8),
+.tablaPreview td:nth-child(8) {
+  width: 10%;
+}
+
+.tablaPreview th:nth-child(9),
+.tablaPreview td:nth-child(9) {
+  width: 12%;
+}
+
+.tablaPreview th:nth-child(10),
+.tablaPreview td:nth-child(10) {
+  width: 13%;
+}
+
+.tablaPreview thead {
   position: sticky;
   top: 0;
-  z-index: 1;
+  z-index: 3;
+}
+
+.tablaPreview th {
+  position: static;
   padding: var(--espacio-2) var(--espacio-3);
   font-size: var(--texto-xs);
   font-weight: var(--peso-seminegrita);
@@ -306,6 +363,7 @@
   background: var(--color-superficie-suave);
   border-bottom: 1px solid var(--color-borde);
   white-space: nowrap;
+  box-shadow: 0 1px 0 var(--color-borde);
 }
 
 .tablaPreview td {
@@ -313,6 +371,18 @@
   vertical-align: middle;
   color: var(--color-texto-secundario);
   border-bottom: 1px solid var(--color-borde);
+  overflow-wrap: break-word;
+}
+
+.tablaPreview input[type="checkbox"] {
+  display: block;
+  width: 1.1rem;
+  min-height: 0;
+  height: 1.1rem;
+  margin: 0 auto;
+  padding: 0;
+  accent-color: var(--color-accion);
+  cursor: pointer;
 }
 
 .tablaPreview tbody tr:last-child td {
@@ -323,15 +393,34 @@
   opacity: 0.55;
 }
 
+.filaDetalle td {
+  padding: var(--espacio-2) var(--espacio-3);
+  background: var(--color-peligro-fondo);
+  border-bottom: 1px solid var(--color-peligro-borde);
+}
+
 .origen {
-  white-space: nowrap;
   font-size: var(--texto-xs);
   color: var(--color-texto-suave);
 }
 
+.archivoNombre {
+  display: block;
+  overflow-wrap: anywhere;
+}
+
+.archivoFila {
+  display: block;
+  margin-top: 2px;
+  color: var(--color-texto-secundario);
+}
+
 .selectCompacto {
-  min-height: 2rem;
-  padding: 0 var(--espacio-2);
+  width: 100%;
+  min-width: 0;
+  min-height: 2.25rem;
+  box-sizing: border-box;
+  padding: 0 4px;
   font: inherit;
   font-size: var(--texto-xs);
   color: var(--color-texto);
@@ -379,6 +468,18 @@
   margin-top: var(--espacio-1);
   font-size: var(--texto-xs);
   color: var(--color-peligro-texto);
+}
+
+.listaErrores {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  margin: 0;
+  padding-left: var(--espacio-4);
+  font-size: var(--texto-xs);
+  line-height: var(--interlineado-xs);
+  color: var(--color-peligro-texto);
+  text-transform: none;
 }
 
 @media (max-width: 767px) {

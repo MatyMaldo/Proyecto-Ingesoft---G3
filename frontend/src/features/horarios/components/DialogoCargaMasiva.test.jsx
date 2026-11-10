@@ -4,19 +4,19 @@ import '@testing-library/jest-dom/vitest';
 
 const {
   previsualizarCargaMasiva,
-  confirmarCargaMasiva,
+  iniciarConfirmacionCargaMasivaAsync,
   descargarPlantillaBloques,
   guardarArchivo
 } = vi.hoisted(() => ({
   previsualizarCargaMasiva: vi.fn(),
-  confirmarCargaMasiva: vi.fn(),
+  iniciarConfirmacionCargaMasivaAsync: vi.fn(),
   descargarPlantillaBloques: vi.fn(),
   guardarArchivo: vi.fn()
 }));
 
 vi.mock('../services/horariosService.js', () => ({
   previsualizarCargaMasiva,
-  confirmarCargaMasiva,
+  iniciarConfirmacionCargaMasivaAsync,
   descargarPlantillaBloques
 }));
 vi.mock('../utils/guardarArchivo.js', () => ({ guardarArchivo }));
@@ -61,17 +61,24 @@ const preview = {
 };
 
 function renderDialogo() {
-  const alCompletar = vi.fn();
+  const operacion = {
+    job: null,
+    iniciando: false,
+    enCurso: false,
+    error: '',
+    iniciar: vi.fn(async (fn) => fn()),
+    reiniciar: vi.fn()
+  };
   const { container } = render(
     <DialogoCargaMasiva
       anios={anios}
       aulas={aulas}
-      alCompletar={alCompletar}
       alCancelar={vi.fn()}
+      operacion={operacion}
     />
   );
   const entrada = container.querySelector('input[type="file"]');
-  return { alCompletar, entrada };
+  return { operacion, entrada };
 }
 
 function elegir(entrada, nombre) {
@@ -109,13 +116,13 @@ describe('DialogoCargaMasiva', () => {
 
   it('previsualiza, edita y confirma la carga', async () => {
     previsualizarCargaMasiva.mockResolvedValue({ exitoso: true, datos: preview, mensaje: '' });
-    confirmarCargaMasiva.mockResolvedValue({
+    iniciarConfirmacionCargaMasivaAsync.mockResolvedValue({
       exitoso: true,
-      datos: { bloquesCreados: 1, errores: [] },
+      datos: { jobId: 'job-1', estado: 'EN_COLA' },
       mensaje: ''
     });
 
-    const { alCompletar, entrada } = renderDialogo();
+    const { operacion, entrada } = renderDialogo();
     const archivo = elegir(entrada, 'horarios.csv');
     fireEvent.change(screen.getByLabelText('Año académico'), { target: { value: '7' } });
 
@@ -126,11 +133,8 @@ describe('DialogoCargaMasiva', () => {
 
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar creación' }));
 
-    await waitFor(() => expect(alCompletar).toHaveBeenCalledWith({
-      filasProcesadas: 1,
-      bloquesCreados: 1
-    }));
-    expect(confirmarCargaMasiva).toHaveBeenCalledWith({
+    await waitFor(() => expect(operacion.iniciar).toHaveBeenCalled());
+    expect(iniciarConfirmacionCargaMasivaAsync).toHaveBeenCalledWith({
       anioAcademicoId: '7',
       bloques: [{
         asignacionCursoId: 12,
@@ -140,21 +144,18 @@ describe('DialogoCargaMasiva', () => {
         horaFin: '09:00',
         origen: 'horarios.csv#2'
       }]
-    });
+    }, expect.any(String));
   });
 
-  it('muestra los errores del servidor al confirmar', async () => {
+  it('muestra los errores del servidor al iniciar la confirmación', async () => {
     previsualizarCargaMasiva.mockResolvedValue({ exitoso: true, datos: preview, mensaje: '' });
-    confirmarCargaMasiva.mockResolvedValue({
-      exitoso: true,
-      datos: {
-        bloquesCreados: 0,
-        errores: [{ origen: 'horarios.csv#2', mensaje: 'El aula ya está ocupada.' }]
-      },
-      mensaje: ''
+    iniciarConfirmacionCargaMasivaAsync.mockResolvedValue({
+      exitoso: false,
+      datos: null,
+      mensaje: 'El aula ya está ocupada.'
     });
 
-    const { alCompletar, entrada } = renderDialogo();
+    const { entrada } = renderDialogo();
     elegir(entrada, 'horarios.csv');
     fireEvent.change(screen.getByLabelText('Año académico'), { target: { value: '7' } });
     fireEvent.click(screen.getByRole('button', { name: 'Previsualizar' }));
@@ -163,6 +164,5 @@ describe('DialogoCargaMasiva', () => {
     fireEvent.click(screen.getByRole('button', { name: 'Confirmar creación' }));
 
     expect(await screen.findByText(/El aula ya está ocupada/)).toBeInTheDocument();
-    expect(alCompletar).not.toHaveBeenCalled();
   });
 });

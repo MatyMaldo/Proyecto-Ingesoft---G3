@@ -283,20 +283,24 @@ export async function previsualizarCargaMasiva(archivos, anioAcademicoId) {
   return respuesta;
 }
 
+function cuerpoConfirmacionCarga({ anioAcademicoId, bloques }) {
+  return {
+    anioAcademicoId: identificadorLong(anioAcademicoId),
+    bloques: (bloques ?? []).map((bloque) => ({
+      asignacionCursoId: identificadorLong(bloque.asignacionCursoId),
+      aulaId: identificadorLong(bloque.aulaId),
+      diaSemana: bloque.diaSemana,
+      horaInicio: horaCorta(bloque.horaInicio),
+      horaFin: horaCorta(bloque.horaFin),
+      origen: bloque.origen
+    }))
+  };
+}
+
 export async function confirmarCargaMasiva({ anioAcademicoId, bloques }) {
   const respuesta = await solicitar(`${BASE_BLOQUES}/carga-masiva/confirmar`, {
     metodo: 'POST',
-    cuerpo: {
-      anioAcademicoId: identificadorLong(anioAcademicoId),
-      bloques: (bloques ?? []).map((bloque) => ({
-        asignacionCursoId: identificadorLong(bloque.asignacionCursoId),
-        aulaId: identificadorLong(bloque.aulaId),
-        diaSemana: bloque.diaSemana,
-        horaInicio: horaCorta(bloque.horaInicio),
-        horaFin: horaCorta(bloque.horaFin),
-        origen: bloque.origen
-      }))
-    },
+    cuerpo: cuerpoConfirmacionCarga({ anioAcademicoId, bloques }),
     tiempoEsperaMs: 60000
   });
   if (!respuesta.exitoso) return respuesta;
@@ -308,6 +312,29 @@ export async function confirmarCargaMasiva({ anioAcademicoId, bloques }) {
     };
   }
   return respuesta;
+}
+
+/** Inicia la confirmación de bloques como operación asíncrona. */
+export async function iniciarConfirmacionCargaMasivaAsync(
+  { anioAcademicoId, bloques },
+  claveIdempotencia
+) {
+  if (USAR_MOCK) {
+    return {
+      exitoso: true,
+      datos: { jobId: 'mock-carga-horarios', estado: 'EN_COLA' },
+      mensaje: ''
+    };
+  }
+
+  return solicitar(`${BASE_BLOQUES}/carga-masiva/confirmar/async`, {
+    metodo: 'POST',
+    cuerpo: cuerpoConfirmacionCarga({ anioAcademicoId, bloques }),
+    cabeceras: claveIdempotencia
+      ? { 'Idempotency-Key': claveIdempotencia }
+      : undefined,
+    tiempoEsperaMs: 15000
+  });
 }
 
 export async function exportarBloques({
@@ -475,24 +502,51 @@ export async function previsualizarSesiones(datos) {
   });
 }
 
-export async function generarSesiones(datos) {
+function cuerpoGeneracionSesiones(datos) {
   const sesionesOmitidas = (datos.sesionesOmitidas ?? []).map((omitida) => ({
     bloqueHorarioId: identificadorLong(omitida.bloqueHorarioId),
     fecha: omitida.fecha
   }));
+  return {
+    fechaInicio: datos.fechaInicio,
+    fechaFin: datos.fechaFin,
+    anioAcademicoId: identificadorLong(datos.anioAcademicoId),
+    seccionId: identificadorLong(datos.seccionId),
+    sesionesOmitidas
+  };
+}
+
+export async function generarSesiones(datos) {
   if (USAR_MOCK) {
-    return generarSesionesContratoMock({ ...datos, sesionesOmitidas });
+    return generarSesionesContratoMock({
+      ...datos,
+      sesionesOmitidas: cuerpoGeneracionSesiones(datos).sesionesOmitidas
+    });
   }
   return solicitar(`${BASE_SESIONES}/generar`, {
     metodo: 'POST',
-    cuerpo: {
-      fechaInicio: datos.fechaInicio,
-      fechaFin: datos.fechaFin,
-      anioAcademicoId: identificadorLong(datos.anioAcademicoId),
-      seccionId: identificadorLong(datos.seccionId),
-      sesionesOmitidas
-    },
+    cuerpo: cuerpoGeneracionSesiones(datos),
     tiempoEsperaMs: 60000
+  });
+}
+
+/** Inicia la generación de sesiones como operación asíncrona. */
+export async function iniciarGeneracionSesionesAsync(datos, claveIdempotencia) {
+  if (USAR_MOCK) {
+    return {
+      exitoso: true,
+      datos: { jobId: 'mock-generar-sesiones', estado: 'EN_COLA' },
+      mensaje: ''
+    };
+  }
+
+  return solicitar(`${BASE_SESIONES}/generar/async`, {
+    metodo: 'POST',
+    cuerpo: cuerpoGeneracionSesiones(datos),
+    cabeceras: claveIdempotencia
+      ? { 'Idempotency-Key': claveIdempotencia }
+      : undefined,
+    tiempoEsperaMs: 15000
   });
 }
 

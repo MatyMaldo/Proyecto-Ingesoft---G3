@@ -1,17 +1,18 @@
-import { useMemo, useState } from 'react';
+import { Fragment, useMemo, useRef, useState } from 'react';
 
 import Icono from '../../../shared/components/Icono.jsx';
 import DialogoBase from '../../../shared/components/DialogoBase.jsx';
+import ProgresoOperacionMasiva from '../../../shared/components/ProgresoOperacionMasiva.jsx';
+import { crearClaveIdempotencia } from '../../../shared/api/operacionesMasivasService.js';
 import { DIAS } from '../constants/horarios.js';
 import {
-  confirmarCargaMasiva,
   descargarPlantillaBloques,
+  iniciarConfirmacionCargaMasivaAsync,
   previsualizarCargaMasiva
 } from '../services/horariosService.js';
 import { guardarArchivo } from '../utils/guardarArchivo.js';
 import estilos from './DialogoCargaMasiva.module.css';
 
-const MAXIMO_ERRORES_VISIBLES = 50;
 const MENSAJE_ERROR_GENERICO = 'Se registró un error inesperado';
 const EXTENSIONES = ['.csv', '.xlsx', '.xls'];
 
@@ -48,8 +49,8 @@ export default function DialogoCargaMasiva({
   anios,
   aulas = [],
   anioIdInicial,
-  alCompletar,
-  alCancelar
+  alCancelar,
+  operacion
 }) {
   const [archivos, establecerArchivos] = useState([]);
   const [anioId, establecerAnioId] = useState(
@@ -60,10 +61,9 @@ export default function DialogoCargaMasiva({
   const [incluidos, establecerIncluidos] = useState({});
   const [filtros, establecerFiltros] = useState({ seccion: '', docente: '', estado: '' });
   const [errorGeneral, establecerErrorGeneral] = useState(null);
-  const [erroresConfirmacion, establecerErroresConfirmacion] = useState([]);
   const [cargandoPreview, establecerCargandoPreview] = useState(false);
-  const [confirmando, establecerConfirmando] = useState(false);
   const [errorPlantilla, establecerErrorPlantilla] = useState('');
+  const claveRef = useRef(null);
 
   const bloques = preview?.bloques ?? [];
   const resumen = preview?.resumen ?? {};
@@ -123,10 +123,11 @@ export default function DialogoCargaMasiva({
       return;
     }
     establecerErrorGeneral(null);
-    establecerErroresConfirmacion([]);
     establecerArchivos(seleccionadosArchivos);
     establecerPreview(null);
     establecerVista('seleccion');
+    claveRef.current = null;
+    operacion?.reiniciar();
   }
 
   async function previsualizar() {
@@ -141,10 +142,8 @@ export default function DialogoCargaMasiva({
 
     establecerCargandoPreview(true);
     establecerErrorGeneral(null);
-    establecerErroresConfirmacion([]);
     const respuesta = await previsualizarCargaMasiva(archivos, anioId);
     establecerCargandoPreview(false);
-
     if (!respuesta.exitoso) {
       establecerErrorGeneral(respuesta.mensaje || MENSAJE_ERROR_GENERICO);
       return;
@@ -182,44 +181,38 @@ export default function DialogoCargaMasiva({
       return;
     }
 
-    establecerConfirmando(true);
     establecerErrorGeneral(null);
-    establecerErroresConfirmacion([]);
-    const respuesta = await confirmarCargaMasiva({
-      anioAcademicoId: anioId,
-      bloques: bloqueos.map((bloque) => ({
-        asignacionCursoId: bloque.asignacionCursoId,
-        aulaId: bloque.aulaId,
-        diaSemana: bloque.diaSemana,
-        horaInicio: bloque.horaInicio,
-        horaFin: bloque.horaFin,
-        origen: `${bloque.archivo}#${bloque.fila}`
-      }))
-    });
-    establecerConfirmando(false);
-
-    if (!respuesta.exitoso) {
-      establecerErrorGeneral(respuesta.mensaje || MENSAJE_ERROR_GENERICO);
-      return;
+    if (!claveRef.current || operacion?.job) {
+      claveRef.current = crearClaveIdempotencia('carga-horarios');
     }
 
-    const errores = Array.isArray(respuesta.datos.errores) ? respuesta.datos.errores : [];
-    if (errores.length > 0) {
-      establecerErroresConfirmacion(errores);
-      return;
-    }
+    const respuesta = await operacion.iniciar(() => (
+      iniciarConfirmacionCargaMasivaAsync({
+        anioAcademicoId: anioId,
+        bloques: bloqueos.map((bloque) => ({
+          asignacionCursoId: bloque.asignacionCursoId,
+          aulaId: bloque.aulaId,
+          diaSemana: bloque.diaSemana,
+          horaInicio: bloque.horaInicio,
+          horaFin: bloque.horaFin,
+          origen: `${bloque.archivo}#${bloque.fila}`
+        }))
+      }, claveRef.current)
+    ));
 
-    alCompletar({
-      filasProcesadas: resumen.filas ?? bloques.length,
-      bloquesCreados: respuesta.datos.bloquesCreados
-    });
+    if (respuesta && !respuesta.exitoso) {
+      establecerErrorGeneral(
+        respuesta.mensaje || 'No fue posible iniciar la confirmación de la carga masiva.'
+      );
+    }
   }
 
   const esPreview = vista === 'preview';
   const textoConfirmar = esPreview ? 'Confirmar creación' : 'Previsualizar';
-  const enviando = esPreview ? confirmando : cargandoPreview;
+  const enviando = esPreview ? (operacion?.iniciando ?? false) : cargandoPreview;
   const confirmarDeshabilitado = esPreview
-    ? seleccionados.length === 0 || bloqueSinReferencias
+    ? seleccionados.length === 0 || bloqueSinReferencias || Boolean(operacion?.enCurso)
+      || Boolean(operacion?.job)
     : archivos.length === 0;
 
   return (
@@ -227,12 +220,12 @@ export default function DialogoCargaMasiva({
       idTitulo="dialogo-carga-masiva-horarios"
       titulo={esPreview ? 'Previsualizar carga masiva' : 'Carga masiva de horarios'}
       subtitulo={esPreview ? 'Revisa y corrige los bloques antes de crear' : 'Archivos CSV o Excel'}
-      anchoMaximo="72rem"
+      anchoMaximo="86rem"
       textoConfirmar={textoConfirmar}
       textoEnviando={esPreview ? 'Creando…' : 'Validando…'}
       enviando={enviando}
       confirmarDeshabilitado={confirmarDeshabilitado}
-      error={errorGeneral}
+      error={errorGeneral || operacion?.error || null}
       cerrarAlClicFuera={false}
       alCancelar={alCancelar}
       alConfirmar={(evento) => {
@@ -393,7 +386,7 @@ export default function DialogoCargaMasiva({
               </label>
 
               <button type="button" className={estilos.botonSecundario} onClick={() => establecerVista('seleccion')}>
-                Volver a archivos
+                Volver a carga de archivos
               </button>
             </div>
 
@@ -418,78 +411,87 @@ export default function DialogoCargaMasiva({
                     const incluido = Boolean(incluidos[bloque.previewId]);
                     const sinReferencias = bloque.asignacionCursoId == null;
                     return (
-                      <tr key={bloque.previewId} className={incluido ? undefined : estilos.filaExcluida}>
-                        <td>
-                          <input
-                            type="checkbox"
-                            checked={incluido}
-                            disabled={sinReferencias}
-                            aria-label={`Incluir bloque ${bloque.previewId}`}
-                            onChange={(evento) => establecerIncluidos((actual) => ({
-                              ...actual,
-                              [bloque.previewId]: evento.target.checked
-                            }))}
-                          />
-                        </td>
-                        <td className={estilos.origen}>
-                          {bloque.archivo} #{bloque.fila}
-                        </td>
-                        <td>{[bloque.gradoNombre, bloque.seccionNombre].filter(Boolean).join(' · ')}</td>
-                        <td>{bloque.cursoNombre}</td>
-                        <td>{bloque.docenteNombre}</td>
-                        <td>
-                          <select
-                            className={estilos.selectCompacto}
-                            value={bloque.diaSemana ?? ''}
-                            disabled={sinReferencias}
-                            onChange={(evento) => actualizarBloque(bloque.previewId, 'diaSemana', evento.target.value)}
-                          >
-                            {DIAS.map((dia) => (
-                              <option key={dia.id} value={dia.id}>{dia.etiqueta}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td>
-                          <input
-                            type="time"
-                            className={estilos.selectCompacto}
-                            value={String(bloque.horaInicio ?? '').slice(0, 5)}
-                            disabled={sinReferencias}
-                            onChange={(evento) => actualizarBloque(bloque.previewId, 'horaInicio', evento.target.value)}
-                          />
-                        </td>
-                        <td>
-                          <input
-                            type="time"
-                            className={estilos.selectCompacto}
-                            value={String(bloque.horaFin ?? '').slice(0, 5)}
-                            disabled={sinReferencias}
-                            onChange={(evento) => actualizarBloque(bloque.previewId, 'horaFin', evento.target.value)}
-                          />
-                        </td>
-                        <td>
-                          <select
-                            className={estilos.selectCompacto}
-                            value={bloque.aulaId ?? ''}
-                            disabled={sinReferencias}
-                            onChange={(evento) => actualizarBloque(bloque.previewId, 'aulaId', Number(evento.target.value))}
-                          >
-                            {aulas.map((aula) => (
-                              <option key={aula.id} value={aula.id}>{aula.nombre}</option>
-                            ))}
-                          </select>
-                        </td>
-                        <td>
-                          <span className={`${estilos.estadoPreview} ${estilos[`estado${bloque.estado}`] ?? ''}`}>
-                            {etiquetaEstado(bloque.estado)}
-                          </span>
-                          {bloque.errores?.length > 0 && (
-                            <span className={estilos.errorBloque} title={bloque.errores.join(' · ')}>
-                              {bloque.errores[0]}
+                      <Fragment key={bloque.previewId}>
+                        <tr className={incluido ? undefined : estilos.filaExcluida}>
+                          <td>
+                            <input
+                              type="checkbox"
+                              checked={incluido}
+                              disabled={sinReferencias}
+                              aria-label={`Incluir bloque ${bloque.previewId}`}
+                              onChange={(evento) => establecerIncluidos((actual) => ({
+                                ...actual,
+                                [bloque.previewId]: evento.target.checked
+                              }))}
+                            />
+                          </td>
+                          <td className={estilos.origen}>
+                            <span className={estilos.archivoNombre}>{bloque.archivo}</span>
+                            <span className={estilos.archivoFila}>Fila {bloque.fila}</span>
+                          </td>
+                          <td>{[bloque.gradoNombre, bloque.seccionNombre].filter(Boolean).join(' · ')}</td>
+                          <td>{bloque.cursoNombre}</td>
+                          <td>{bloque.docenteNombre}</td>
+                          <td>
+                            <select
+                              className={estilos.selectCompacto}
+                              value={bloque.diaSemana ?? ''}
+                              disabled={sinReferencias}
+                              onChange={(evento) => actualizarBloque(bloque.previewId, 'diaSemana', evento.target.value)}
+                            >
+                              {DIAS.map((dia) => (
+                                <option key={dia.id} value={dia.id}>{dia.etiqueta}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td>
+                            <input
+                              type="time"
+                              className={estilos.selectCompacto}
+                              value={String(bloque.horaInicio ?? '').slice(0, 5)}
+                              disabled={sinReferencias}
+                              onChange={(evento) => actualizarBloque(bloque.previewId, 'horaInicio', evento.target.value)}
+                            />
+                          </td>
+                          <td>
+                            <input
+                              type="time"
+                              className={estilos.selectCompacto}
+                              value={String(bloque.horaFin ?? '').slice(0, 5)}
+                              disabled={sinReferencias}
+                              onChange={(evento) => actualizarBloque(bloque.previewId, 'horaFin', evento.target.value)}
+                            />
+                          </td>
+                          <td>
+                            <select
+                              className={estilos.selectCompacto}
+                              value={bloque.aulaId ?? ''}
+                              disabled={sinReferencias}
+                              onChange={(evento) => actualizarBloque(bloque.previewId, 'aulaId', Number(evento.target.value))}
+                            >
+                              {aulas.map((aula) => (
+                                <option key={aula.id} value={aula.id}>{aula.nombre}</option>
+                              ))}
+                            </select>
+                          </td>
+                          <td>
+                            <span className={`${estilos.estadoPreview} ${estilos[`estado${bloque.estado}`] ?? ''}`}>
+                              {etiquetaEstado(bloque.estado)}
                             </span>
-                          )}
-                        </td>
-                      </tr>
+                          </td>
+                        </tr>
+                        {bloque.errores?.length > 0 && (
+                          <tr className={estilos.filaDetalle}>
+                            <td colSpan={10}>
+                              <ul className={estilos.listaErrores}>
+                                {bloque.errores.map((error, indice) => (
+                                  <li key={`${bloque.previewId}-${indice}`}>{error}</li>
+                                ))}
+                              </ul>
+                            </td>
+                          </tr>
+                        )}
+                      </Fragment>
                     );
                   })}
                 </tbody>
@@ -499,15 +501,12 @@ export default function DialogoCargaMasiva({
               )}
             </div>
 
-            {erroresConfirmacion.length > 0 && (
-              <div role="alert" className={estilos.errores}>
-                <strong>No se creó ningún bloque. Corrige estos problemas y vuelve a intentar:</strong>
-                <ul>
-                  {erroresConfirmacion.slice(0, MAXIMO_ERRORES_VISIBLES).map((error, indice) => (
-                    <li key={`${indice}-${error.origen}`}>{error.origen}: {error.mensaje}</li>
-                  ))}
-                </ul>
-              </div>
+            {operacion?.job && (
+              <ProgresoOperacionMasiva
+                job={operacion.job}
+                error={operacion.error}
+                titulo="Confirmación de carga masiva"
+              />
             )}
           </>
         )}
