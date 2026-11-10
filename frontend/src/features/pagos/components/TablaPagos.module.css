@@ -8,7 +8,8 @@
 
 .tabla {
   width: 100%;
-  min-width: 48rem;
+  min-width: 64rem;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: var(--texto-md);
 }
@@ -42,9 +43,30 @@
   background: var(--color-superficie-suave);
 }
 
-/* Grado, sección y matrícula miden lo que su contenido; el espacio sobrante lo toma la columna del alumno. */
-.tabla thead th.columnaCorta {
-  width: 1%;
+/* Columnas equilibradas: el alumno conserva la mayor parte, sin absorber todo el espacio libre. */
+.tabla th:nth-child(1),
+.tabla td:nth-child(1) {
+  width: 28%;
+}
+
+.tabla th:nth-child(2),
+.tabla td:nth-child(2) {
+  width: 23%;
+}
+
+.tabla th:nth-child(3),
+.tabla td:nth-child(3) {
+  width: 9%;
+}
+
+.tabla th:nth-child(4),
+.tabla td:nth-child(4) {
+  width: 14%;
+}
+
+.tabla th:nth-child(5),
+.tabla td:nth-child(5) {
+  width: 26%;
 }
 
 .tabla td:nth-child(2),
@@ -53,16 +75,16 @@
   white-space: nowrap;
 }
 
-/* Un poco menos de aire entre grado y sección. */
-.tabla th.columnaSeccion,
+/* Un poco menos de aire entre grado y sección y la letra de la sección centrada. */
+.tabla th:nth-child(3),
 .tabla td.celdaSeccion {
   padding-left: var(--espacio-2);
+  text-align: center;
 }
 
-/* La columna mide lo que sus botones; cabecera y botones van a la izquierda, sin separarse al borde derecho. */
+/* La columna de acciones se alinea a la izquierda sobre el borde de sus botones. */
 .tabla thead th.columnaAcciones,
 .tabla td.columnaAcciones {
-  width: 1%;
   text-align: left;
 }
 

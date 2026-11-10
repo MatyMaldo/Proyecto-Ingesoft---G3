@@ -7,6 +7,7 @@ vi.mock('../../../shared/api/clienteHttp.js', () => ({ solicitar }));
 
 import {
   emitirCompromisosPensionLote,
+  iniciarEmisionPensionLoteAsync,
   listarPagosAdmin,
   listarPagosAgrupados,
   obtenerAlumnosMatriculados,
@@ -288,6 +289,25 @@ describe('pagosService · panel admin', () => {
         seccionId: 3
       },
       tiempoEsperaMs: 60000
+    });
+  });
+
+  it('inicia la emisión masiva de pensión asíncrona con Idempotency-Key', async () => {
+    solicitar.mockResolvedValue({
+      exitoso: true,
+      datos: { jobId: 'job-pension', estado: 'EN_COLA' }
+    });
+
+    await iniciarEmisionPensionLoteAsync(
+      { anioId: 2, mes: 'NOVIEMBRE' },
+      'pension-2026-11'
+    );
+
+    expect(solicitar).toHaveBeenCalledWith('/compromisos-pago/pension/lote/async', {
+      metodo: 'POST',
+      cuerpo: { anioId: 2, mes: 'NOVIEMBRE' },
+      cabeceras: { 'Idempotency-Key': 'pension-2026-11' },
+      tiempoEsperaMs: 15000
     });
   });
 });

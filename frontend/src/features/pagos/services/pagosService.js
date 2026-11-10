@@ -172,13 +172,7 @@ export async function emitirCompromisoPension({estudianteId,anioId,mes}) {
   return respuesta;
 }
 
-/**
- * Emisión masiva de compromisos de pensión para un año y mes.
- * Los filtros de grado y sección son opcionales.
- */
-export async function emitirCompromisosPensionLote({ anioId, mes, gradoId, seccionId } = {}) {
-  if (USAR_MOCK) return emitirCompromisosPensionLoteMock();
-
+function cuerpoPensionLote({ anioId, mes, gradoId, seccionId } = {}) {
   const cuerpo = {
     anioId: Number(anioId),
     mes
@@ -189,10 +183,19 @@ export async function emitirCompromisosPensionLote({ anioId, mes, gradoId, secci
   if (seccionId !== null && seccionId !== undefined && seccionId !== '') {
     cuerpo.seccionId = Number(seccionId);
   }
+  return cuerpo;
+}
+
+/**
+ * Emisión masiva de compromisos de pensión para un año y mes.
+ * Los filtros de grado y sección son opcionales.
+ */
+export async function emitirCompromisosPensionLote({ anioId, mes, gradoId, seccionId } = {}) {
+  if (USAR_MOCK) return emitirCompromisosPensionLoteMock();
 
   const respuesta = await solicitar('/compromisos-pago/pension/lote', {
     metodo: 'POST',
-    cuerpo,
+    cuerpo: cuerpoPensionLote({ anioId, mes, gradoId, seccionId }),
     tiempoEsperaMs: TIEMPO_ESPERA_ACCION_MS
   });
   if (!respuesta.exitoso) return respuesta;
@@ -207,6 +210,29 @@ export async function emitirCompromisosPensionLote({ anioId, mes, gradoId, secci
     return falloFormato('la emisión masiva de compromisos de pensión');
   }
   return respuesta;
+}
+
+/** Inicia la emisión masiva de pensión como operación asíncrona. */
+export async function iniciarEmisionPensionLoteAsync(
+  { anioId, mes, gradoId, seccionId } = {},
+  claveIdempotencia
+) {
+  if (USAR_MOCK) {
+    return {
+      exitoso: true,
+      datos: { jobId: 'mock-pension-lote', estado: 'EN_COLA' },
+      mensaje: ''
+    };
+  }
+
+  return solicitar('/compromisos-pago/pension/lote/async', {
+    metodo: 'POST',
+    cuerpo: cuerpoPensionLote({ anioId, mes, gradoId, seccionId }),
+    cabeceras: claveIdempotencia
+      ? { 'Idempotency-Key': claveIdempotencia }
+      : undefined,
+    tiempoEsperaMs: 15000
+  });
 }
 
 const validarPaginaPagos = (respuesta) => {

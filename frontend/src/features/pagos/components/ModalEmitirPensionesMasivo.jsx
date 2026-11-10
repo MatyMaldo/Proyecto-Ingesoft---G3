@@ -1,6 +1,9 @@
-import { useId, useState } from 'react';
+import { useId, useRef, useState } from 'react';
 
 import DialogoBase from '../../../shared/components/DialogoBase.jsx';
+import ProgresoOperacionMasiva from '../../../shared/components/ProgresoOperacionMasiva.jsx';
+import { crearClaveIdempotencia } from '../../../shared/api/operacionesMasivasService.js';
+import { iniciarEmisionPensionLoteAsync } from '../services/pagosService.js';
 import estilos from '../../../shared/styles/camposDialogo.module.css';
 import { MESES_PENSION, anioEstaVigente, mesActual } from '../utils/periodo.js';
 
@@ -12,22 +15,20 @@ import { MESES_PENSION, anioEstaVigente, mesActual } from '../utils/periodo.js';
  * @param {Array} props.anios Años académicos disponibles.
  * @param {string|number} [props.anioInicialId] Año que aparece elegido al abrir (el de la pantalla).
  * @param {() => void} props.onCerrar
- * @param {(datos: { anioId: string|number, mes: string }) => Promise<Object>} props.onEjecutar
- *   Devuelve la respuesta del servicio (`exitoso`, `datos`, `mensaje`).
+ * @param {Object} props.operacion Hook `useOperacionMasiva` de la página.
  */
 export default function ModalEmitirPensionesMasivo({
   anios,
   anioInicialId,
   onCerrar,
-  onEjecutar
+  operacion
 }) {
   const [anioId, establecerAnioId] = useState(() => (
     anioInicialId || anios?.[0]?.id || ''
   ));
   const [mes, establecerMes] = useState(mesActual);
-  const [ejecutando, establecerEjecutando] = useState(false);
   const [error, establecerError] = useState('');
-  const [resultado, establecerResultado] = useState(null);
+  const claveRef = useRef(null);
 
   const idAnio = useId();
   const idMes = useId();
@@ -42,7 +43,8 @@ export default function ModalEmitirPensionesMasivo({
     && Boolean(mes)
     && vigente !== false
     && !mesEsFuturo
-    && !ejecutando;
+    && !operacion?.enCurso
+    && !operacion?.job;
 
   // Por qué no se puede emitir, dicho en el propio diálogo (un `title` no se lee con teclado ni en táctil).
   const motivoBloqueo = (() => {
@@ -57,19 +59,19 @@ export default function ModalEmitirPensionesMasivo({
     evento.preventDefault();
     if (!puedeEmitir) return;
 
-    establecerEjecutando(true);
     establecerError('');
-    establecerResultado(null);
-
-    const respuesta = await onEjecutar({ anioId, mes });
-    establecerEjecutando(false);
-
-    if (!respuesta.exitoso) {
-      establecerError(respuesta.mensaje || 'No fue posible emitir los compromisos de pensión.');
-      return;
+    if (!claveRef.current || operacion?.job) {
+      claveRef.current = crearClaveIdempotencia('pension-lote');
     }
 
-    establecerResultado(respuesta.datos);
+    const respuesta = await operacion.iniciar(() => (
+      iniciarEmisionPensionLoteAsync({ anioId, mes }, claveRef.current)
+    ));
+    if (respuesta && !respuesta.exitoso) {
+      establecerError(
+        respuesta.mensaje || 'No fue posible iniciar la emisión masiva de pensión.'
+      );
+    }
   };
 
   return (
@@ -78,11 +80,11 @@ export default function ModalEmitirPensionesMasivo({
       titulo="Emitir compromisos de pensión"
       subtitulo="Emisión masiva por año y mes"
       textoConfirmar="Emitir pensiones del mes"
-      textoEnviando="Emitiendo..."
+      textoEnviando="Iniciando..."
       textoCancelar="Cerrar"
-      enviando={ejecutando}
+      enviando={operacion?.iniciando ?? false}
       confirmarDeshabilitado={!puedeEmitir}
-      error={error || null}
+      error={error || operacion?.error || null}
       anchoMaximo="32rem"
       botonesExpandidos
       alCancelar={onCerrar}
@@ -94,9 +96,12 @@ export default function ModalEmitirPensionesMasivo({
           id={idAnio}
           className={estilos.selector}
           value={anioId}
+          disabled={operacion?.enCurso || Boolean(operacion?.job)}
           onChange={(evento) => {
             establecerAnioId(evento.target.value);
-            establecerResultado(null);
+            claveRef.current = null;
+            operacion?.reiniciar();
+            establecerError('');
           }}
         >
           {(anios ?? []).map((anio) => (
@@ -111,9 +116,12 @@ export default function ModalEmitirPensionesMasivo({
           id={idMes}
           className={estilos.selector}
           value={mes}
+          disabled={operacion?.enCurso || Boolean(operacion?.job)}
           onChange={(evento) => {
             establecerMes(evento.target.value);
-            establecerResultado(null);
+            claveRef.current = null;
+            operacion?.reiniciar();
+            establecerError('');
           }}
         >
           <option value="">Seleccionar mes...</option>
@@ -130,26 +138,12 @@ export default function ModalEmitirPensionesMasivo({
 
       {motivoBloqueo && <p className={estilos.resumen}>{motivoBloqueo}</p>}
 
-      {resultado && (
-        <div className={estilos.aviso} role="status">
-          <p className={estilos.avisoTitulo}>Resultado de la emisión</p>
-          <p className={estilos.avisoTexto}>
-            Emitidos: <strong>{resultado.emitidos}</strong>
-            {' · '}
-            Omitidos: <strong>{resultado.omitidos}</strong>
-            {' · '}
-            Errores: <strong>{resultado.errores.length}</strong>
-          </p>
-          {resultado.errores.length > 0 && (
-            <ul className={estilos.avisoErrores}>
-              {resultado.errores.map((errorMatricula) => (
-                <li key={errorMatricula.matriculaId}>
-                  Matrícula #{errorMatricula.matriculaId}: {errorMatricula.mensaje}
-                </li>
-              ))}
-            </ul>
-          )}
-        </div>
+      {operacion?.job && (
+        <ProgresoOperacionMasiva
+          job={operacion.job}
+          error={operacion.error}
+          titulo="Emisión masiva de pensión"
+        />
       )}
     </DialogoBase>
   );
