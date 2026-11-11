@@ -70,7 +70,11 @@ export default function PaginaHorarios() {
   const [versionResaltado, establecerVersionResaltado] = useState(0);
   const [panelConflictosVisible, establecerPanelConflictosVisible] = useState(false);
 
+  // Consulta el avance cada segundo, pero la primera vez a los 250 ms: crear unas decenas de bloques tarda décimas
+  // de segundo y no debe esperar un segundo entero para mostrarse como terminado.
   const operacionCargaMasiva = useOperacionMasiva({
+    intervaloMs: 1000,
+    intervaloInicialMs: 250,
     alTerminar: (job) => completarCargaMasiva(job)
   });
 
@@ -133,12 +137,15 @@ export default function PaginaHorarios() {
 
   function completarCargaMasiva(job = {}) {
     const bloquesCreados = job.exitosos ?? 0;
-    establecerDialogoCargaMasiva(false);
+    // Con el diálogo abierto el resultado se muestra ahí; la notificación es para cuando se cerró.
+    const avisar = !dialogoCargaMasiva;
     if (job.errores > 0 || job.estado === 'COMPLETADO_CON_ERRORES' || job.estado === 'FALLIDO') {
-      mostrarNotificacion(
-        `Carga masiva: ${bloquesCreados} bloques creados, ${job.errores ?? 0} errores.`,
-        true
-      );
+      if (avisar) {
+        mostrarNotificacion(
+          `Carga masiva: ${bloquesCreados} bloques creados, ${job.errores ?? 0} errores.`,
+          true
+        );
+      }
       return;
     }
     if (consulta && horario.hayCambios) {
@@ -149,7 +156,9 @@ export default function PaginaHorarios() {
       return;
     }
     recargarConsulta();
-    mostrarNotificacion(`Carga masiva completada: se crearon ${bloquesCreados} bloques horarios.`);
+    if (avisar) {
+      mostrarNotificacion(`Carga masiva completada: se crearon ${bloquesCreados} bloques horarios.`);
+    }
   }
 
   async function exportarBorradorActual() {
@@ -510,7 +519,6 @@ export default function PaginaHorarios() {
           anios={catalogos.anios}
           aulas={catalogos.aulas}
           anioIdInicial={anioVigente?.id}
-          alCompletar={completarCargaMasiva}
           alCancelar={() => establecerDialogoCargaMasiva(false)}
           operacion={operacionCargaMasiva}
         />

@@ -1,5 +1,0 @@
-tipoUsuario,nombre,apellidoPaterno,apellidoMaterno,dni,telefono,correo,edad,fechaNacimiento,dniApoderado
-APODERADO,Carmen,Soto,Vega,10000011,900000011,carmen.soto@example.com,40,,
-DOCENTE,Pedro,Rojas,Luna,10000012,900000012,pedro.rojas@example.com,,,
-ESTUDIANTE,Diego,Soto,Ramos,10000013,900000013,diego.soto@example.com,,2012-03-15,10000011
-ESTUDIANTE,Valeria,Soto,Ramos,10000014,900000014,valeria.soto@example.com,,2014-09-02,10000011

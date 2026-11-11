@@ -287,6 +287,7 @@ function PaginaUsuarios() {
         <DialogoCargaCsv
           usuarios={usuarios}
           alImportar={setUsuarios}
+          alRecargar={recargar}
           alImportacionCompleta={importados => {
             closeModal();
             mostrarNotificacion(importados === 1

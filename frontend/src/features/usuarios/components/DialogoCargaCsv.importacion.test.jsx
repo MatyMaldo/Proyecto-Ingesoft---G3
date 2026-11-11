@@ -6,12 +6,15 @@ import userEvent from '@testing-library/user-event';
 vi.mock('../../../shared/api/configuracionApi.js', () => ({ USAR_MOCK: false }));
 vi.mock('../services/usuariosService.js', () => ({
   CODIGOS_ESTUDIANTE_HISTORICOS: [],
-  registrarApoderado: vi.fn(),
-  registrarDocente: vi.fn(),
-  registrarEstudiante: vi.fn()
+  iniciarCargaMasivaUsuarios: vi.fn()
+}));
+vi.mock('../../../shared/api/operacionesMasivasService.js', async (importarOriginal) => ({
+  ...(await importarOriginal()),
+  consultarOperacionMasiva: vi.fn()
 }));
 
-import { registrarApoderado, registrarDocente, registrarEstudiante } from '../services/usuariosService.js';
+import { consultarOperacionMasiva } from '../../../shared/api/operacionesMasivasService.js';
+import { iniciarCargaMasivaUsuarios } from '../services/usuariosService.js';
 import DialogoCargaCsv from './DialogoCargaCsv.jsx';
 
 // jsdom no implementa Blob.text() (los navegadores sí).
@@ -33,96 +36,104 @@ const CSV = [
   'ESTUDIANTE,Diego,Soto,Ramos,10000013,900000013,diego.soto@example.com,,2012-03-15,10000011'
 ].join('\r\n');
 
-const APODERADO_CREADO = { id: 26, nombre: 'Carmen', dni: '10000011', rol: 'Apoderado', activo: true, correo: 'carmen.soto@example.com' };
-const ESTUDIANTE_CREADO = { id: 28, nombre: 'Diego', dni: '10000013', rol: 'Estudiante', activo: true, correo: 'diego.soto@example.com', codigoEstudiante: 'EST016' };
+const INICIO = { exitoso: true, datos: { jobId: 'job-1', estado: 'EN_COLA' }, mensaje: '' };
+
+/** Estado de la operación tal como lo devuelve el backend. */
+function job(estado, extra = {}) {
+  return {
+    exitoso: true,
+    mensaje: '',
+    datos: { jobId: 'job-1', estado, total: 3, procesados: 0, exitosos: 0, errores: 0, fase: null, detalleErrores: [], ...extra }
+  };
+}
+
+const RESULTADO_TODAS_CREADAS = [
+  { linea: 2, estado: 'CREADO', motivo: null, codigo: null },
+  { linea: 3, estado: 'CREADO', motivo: null, codigo: null },
+  { linea: 4, estado: 'CREADO', motivo: null, codigo: 'EST001' }
+];
+
+/** Elige el archivo (paso 1) y pulsa "Previsualizar" para llegar a la revisión (paso 2). */
+async function irALaRevision(dialogo, archivo) {
+  await userEvent.upload(within(dialogo).getByLabelText(/Seleccionar archivo CSV/), archivo);
+  const previsualizar = within(dialogo).getByRole('button', { name: 'Previsualizar' });
+  await waitFor(() => expect(previsualizar).toBeEnabled());
+  await userEvent.click(previsualizar);
+  await within(dialogo).findByRole('table', { name: 'Revisión de las filas del archivo' });
+}
 
 async function prepararImportacion() {
   const alImportar = vi.fn();
+  const alRecargar = vi.fn();
   const alImportacionCompleta = vi.fn();
-  render(<DialogoCargaCsv usuarios={[]} alImportar={alImportar} alImportacionCompleta={alImportacionCompleta} alCerrar={vi.fn()} />);
-  const dialogo = screen.getByRole('dialog', { name: 'Carga masiva de usuarios' });
-  await userEvent.upload(
-    within(dialogo).getByLabelText(/Seleccionar archivo CSV/),
-    new File([CSV], 'usuarios.csv', { type: 'text/csv' })
+  render(
+    <DialogoCargaCsv
+      usuarios={[]}
+      alImportar={alImportar}
+      alRecargar={alRecargar}
+      alImportacionCompleta={alImportacionCompleta}
+      alCerrar={vi.fn()}
+    />
   );
-  await within(dialogo).findByRole('table', { name: 'Revisión de las filas del archivo' });
-  return { dialogo, alImportar, alImportacionCompleta };
+  const dialogo = screen.getByRole('dialog', { name: 'Carga masiva de usuarios' });
+  await irALaRevision(dialogo, new File([CSV], 'usuarios.csv', { type: 'text/csv' }));
+  return { dialogo, alImportar, alRecargar, alImportacionCompleta };
 }
+
+const importar = (dialogo) => userEvent.click(within(dialogo).getByRole('button', { name: 'Importar 3 usuarios' }));
 
 describe('DialogoCargaCsv · importación contra el backend', () => {
   beforeEach(() => {
     vi.clearAllMocks();
   });
 
-  it('envía el teléfono de 9 dígitos, muestra el avance mientras importa y el código del estudiante al terminar', async () => {
-    let responderApoderado;
-    registrarApoderado.mockImplementation(() => new Promise((resolver) => { responderApoderado = () => resolver({ exitoso: true, datos: APODERADO_CREADO }); }));
-    registrarDocente.mockResolvedValue({ exitoso: true, datos: { id: 27, nombre: 'Pedro', dni: '10000012', rol: 'Docente', activo: true } });
-    registrarEstudiante.mockResolvedValue({ exitoso: true, datos: ESTUDIANTE_CREADO });
-    const { dialogo, alImportacionCompleta } = await prepararImportacion();
+  it('envía todas las filas en una sola petición, muestra el avance y el código del estudiante al terminar', async () => {
+    iniciarCargaMasivaUsuarios.mockResolvedValue(INICIO);
+    consultarOperacionMasiva
+      .mockResolvedValueOnce(job('EN_PROCESO', { procesados: 1, fase: 'GUARDANDO' }))
+      .mockResolvedValue(job('COMPLETADO', { procesados: 3, exitosos: 3, fase: 'FINALIZADO', resultado: RESULTADO_TODAS_CREADAS }));
+    const { dialogo, alRecargar, alImportacionCompleta } = await prepararImportacion();
 
-    await userEvent.click(within(dialogo).getByRole('button', { name: 'Importar 3 usuarios' }));
+    await importar(dialogo);
 
-    // Con la primera respuesta pendiente se ve el avance, con el usuario en curso más antiguo.
+    // Con la operación en proceso se ve el avance y la fase actual.
     const progreso = await within(dialogo).findByRole('region', { name: 'Progreso de la importación' });
-    expect(within(progreso).getByText('Apoderado · Carmen Soto')).toBeInTheDocument();
+    expect(await within(progreso).findByText('1 de 3 usuarios procesados')).toBeInTheDocument();
+    expect(within(progreso).getByText('Guardando los usuarios…')).toBeInTheDocument();
     expect(within(progreso).getByRole('progressbar', { name: 'Avance de la importación' })).toHaveAttribute('max', '3');
-    expect(registrarApoderado).toHaveBeenCalledWith(expect.objectContaining({ telefono: '900000011', edad: 40 }));
 
-    // Los docentes no dependen de los apoderados: se registran mientras el apoderado sigue pendiente.
-    // Los estudiantes sí dependen de su apoderado: no se envían hasta que este termina.
-    await waitFor(() => expect(registrarDocente).toHaveBeenCalledTimes(1));
-    await within(progreso).findByText('1 de 3 usuarios procesados');
-    expect(registrarEstudiante).not.toHaveBeenCalled();
-
-    responderApoderado();
     const resultado = await within(dialogo).findByRole('region', { name: 'Resultado de la importación' });
-
-    expect(registrarDocente).toHaveBeenCalledWith(expect.objectContaining({ telefono: '900000012' }));
-    expect(registrarEstudiante).toHaveBeenCalledWith(expect.objectContaining({ telefono: '900000013', apoderadoId: 26, codigo: 'EST001' }));
     expect(within(resultado).getAllByText('Creada')).toHaveLength(3);
-    expect(within(resultado).getByText('EST016')).toBeInTheDocument();
+    expect(within(resultado).getByText('EST001')).toBeInTheDocument();
 
+    // Una sola petición con todas las filas (apoderados primero), y el código reservado para el estudiante.
+    expect(iniciarCargaMasivaUsuarios).toHaveBeenCalledTimes(1);
+    const [filas, clave] = iniciarCargaMasivaUsuarios.mock.calls[0];
+    expect(filas.map((fila) => [fila.linea, fila.tipoUsuario])).toEqual([[2, 'apoderado'], [3, 'docente'], [4, 'estudiante']]);
+    expect(filas[2]).toMatchObject({ dniApoderado: '10000011', codigo: 'EST001' });
+    expect(filas[0].codigo).toBeUndefined();
+    expect(clave).toMatch(/^usuarios-lote-/);
+
+    expect(alRecargar).toHaveBeenCalledTimes(1);
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Listo' }));
     expect(alImportacionCompleta).toHaveBeenCalledWith(3);
   });
 
-  it('registra varias filas a la vez, con un máximo de 5 peticiones simultáneas', async () => {
-    const filas = Array.from({ length: 12 }, (_, i) => {
-      const n = String(i + 1).padStart(2, '0');
-      return `DOCENTE,Doc${n},Perez,,200000${n},9000000${n},doc${n}@example.com,,,`;
-    });
-    const csv = [CSV.split('\r\n')[0], ...filas].join('\r\n');
-    let enVuelo = 0;
-    let maximo = 0;
-    registrarDocente.mockImplementation(async () => {
-      enVuelo += 1;
-      maximo = Math.max(maximo, enVuelo);
-      await new Promise((resolver) => { setTimeout(resolver, 10); });
-      enVuelo -= 1;
-      return { exitoso: true, datos: { id: 1, nombre: 'Doc', dni: '20000001', rol: 'Docente', activo: true } };
-    });
-    render(<DialogoCargaCsv usuarios={[]} alImportar={vi.fn()} alImportacionCompleta={vi.fn()} alCerrar={vi.fn()} />);
-    const dialogo = screen.getByRole('dialog', { name: 'Carga masiva de usuarios' });
-    await userEvent.upload(within(dialogo).getByLabelText(/Seleccionar archivo CSV/), new File([csv], 'docentes.csv', { type: 'text/csv' }));
-    await within(dialogo).findByRole('table', { name: 'Revisión de las filas del archivo' });
-
-    await userEvent.click(within(dialogo).getByRole('button', { name: 'Importar 12 usuarios' }));
-    const resultado = await within(dialogo).findByRole('region', { name: 'Resultado de la importación' });
-
-    expect(within(resultado).getAllByText('Creada')).toHaveLength(12);
-    expect(registrarDocente).toHaveBeenCalledTimes(12);
-    expect(maximo).toBeGreaterThan(1);
-    expect(maximo).toBeLessThanOrEqual(5);
-  });
-
   it('muestra qué filas rechazó el servidor y por qué, sin cerrar el diálogo', async () => {
-    registrarApoderado.mockResolvedValue({ exitoso: true, datos: APODERADO_CREADO });
-    registrarDocente.mockResolvedValue({ exitoso: false, datos: null, mensaje: 'Ya existe un usuario registrado con el correo indicado.' });
-    registrarEstudiante.mockResolvedValue({ exitoso: true, datos: ESTUDIANTE_CREADO });
-    const { dialogo, alImportar, alImportacionCompleta } = await prepararImportacion();
+    iniciarCargaMasivaUsuarios.mockResolvedValue(INICIO);
+    consultarOperacionMasiva.mockResolvedValue(job('COMPLETADO_CON_ERRORES', {
+      procesados: 3,
+      exitosos: 2,
+      errores: 1,
+      resultado: [
+        { linea: 2, estado: 'CREADO', motivo: null, codigo: null },
+        { linea: 3, estado: 'RECHAZADO', motivo: 'Ya existe un usuario registrado con el correo indicado.', codigo: null },
+        { linea: 4, estado: 'CREADO', motivo: null, codigo: 'EST001' }
+      ]
+    }));
+    const { dialogo, alRecargar, alImportacionCompleta } = await prepararImportacion();
 
-    await userEvent.click(within(dialogo).getByRole('button', { name: 'Importar 3 usuarios' }));
+    await importar(dialogo);
 
     const resultado = await within(dialogo).findByRole('region', { name: 'Resultado de la importación' });
     expect(within(resultado).getAllByText('Creada')).toHaveLength(2);
@@ -130,25 +141,74 @@ describe('DialogoCargaCsv · importación contra el backend', () => {
     expect(within(resultado).getByRole('list', { name: 'Motivo del rechazo de la fila 3' }))
       .toHaveTextContent('Ya existe un usuario registrado con el correo indicado.');
     expect(within(dialogo).getByText('2 usuarios creados y 1 fila rechazada.')).toBeInTheDocument();
-    expect(alImportar).toHaveBeenCalledTimes(1);
+    expect(alRecargar).toHaveBeenCalledTimes(1);
 
     // Con filas rechazadas, "Listo" solo cierra: no se anuncia una importación completa.
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Listo' }));
     expect(alImportacionCompleta).not.toHaveBeenCalled();
   });
 
-  it('"Cargar otro archivo" vuelve a la preparación para una nueva carga', async () => {
-    registrarApoderado.mockResolvedValue({ exitoso: true, datos: APODERADO_CREADO });
-    registrarDocente.mockResolvedValue({ exitoso: true, datos: { id: 27, nombre: 'Pedro', dni: '10000012', rol: 'Docente', activo: true } });
-    registrarEstudiante.mockResolvedValue({ exitoso: true, datos: ESTUDIANTE_CREADO });
+  it('si no se pudo iniciar, avisa el motivo, conserva el archivo y reintenta con la misma clave', async () => {
+    iniciarCargaMasivaUsuarios
+      .mockResolvedValueOnce({ exitoso: false, datos: null, mensaje: 'No hay conexión con el servidor.' })
+      .mockResolvedValueOnce(INICIO);
+    consultarOperacionMasiva.mockResolvedValue(job('COMPLETADO', { procesados: 3, exitosos: 3, resultado: RESULTADO_TODAS_CREADAS }));
     const { dialogo } = await prepararImportacion();
-    await userEvent.click(within(dialogo).getByRole('button', { name: 'Importar 3 usuarios' }));
+
+    await importar(dialogo);
+
+    await waitFor(() => expect(within(dialogo).getByRole('alert')).toHaveTextContent('No hay conexión con el servidor.'));
+    expect(within(dialogo).getByRole('table', { name: 'Revisión de las filas del archivo' })).toBeInTheDocument();
+    expect(within(dialogo).getByRole('button', { name: 'Importar 3 usuarios' })).toBeEnabled();
+
+    await importar(dialogo);
+    await within(dialogo).findByRole('region', { name: 'Resultado de la importación' });
+    const [primera, segunda] = iniciarCargaMasivaUsuarios.mock.calls;
+    expect(segunda[1]).toBe(primera[1]);
+  });
+
+  it('si la operación falla, avisa, pide revisar la lista, recarga y reintenta con una clave nueva', async () => {
+    iniciarCargaMasivaUsuarios.mockResolvedValue(INICIO);
+    consultarOperacionMasiva
+      .mockResolvedValueOnce(job('FALLIDO', { detalleErrores: ['Error inesperado del servidor.'] }))
+      .mockResolvedValue(job('COMPLETADO', { procesados: 3, exitosos: 3, resultado: RESULTADO_TODAS_CREADAS }));
+    const { dialogo, alRecargar } = await prepararImportacion();
+
+    await importar(dialogo);
+
+    await waitFor(() => expect(within(dialogo).getByRole('alert')).toHaveTextContent('Error inesperado del servidor.'));
+    expect(within(dialogo).getByRole('alert')).toHaveTextContent('Revisa la lista de usuarios antes de volver a intentarlo.');
+    expect(alRecargar).toHaveBeenCalledTimes(1);
+
+    await importar(dialogo);
+    await within(dialogo).findByRole('region', { name: 'Resultado de la importación' });
+    const [primera, segunda] = iniciarCargaMasivaUsuarios.mock.calls;
+    expect(segunda[1]).not.toBe(primera[1]);
+  });
+
+  it('si el servidor ya no conoce la operación, avisa y recarga la lista', async () => {
+    iniciarCargaMasivaUsuarios.mockResolvedValue(INICIO);
+    consultarOperacionMasiva.mockResolvedValue({ exitoso: false, datos: null, estado: 404, mensaje: 'No se encontró la operación.' });
+    const { dialogo, alRecargar } = await prepararImportacion();
+
+    await importar(dialogo);
+
+    await waitFor(() => expect(within(dialogo).getByRole('alert')).toHaveTextContent('Se perdió la conexión con el servidor.'));
+    expect(alRecargar).toHaveBeenCalledTimes(1);
+    expect(within(dialogo).getByRole('button', { name: 'Importar 3 usuarios' })).toBeEnabled();
+  });
+
+  it('"Cargar otro archivo" vuelve a la preparación para una nueva carga', async () => {
+    iniciarCargaMasivaUsuarios.mockResolvedValue(INICIO);
+    consultarOperacionMasiva.mockResolvedValue(job('COMPLETADO', { procesados: 3, exitosos: 3, resultado: RESULTADO_TODAS_CREADAS }));
+    const { dialogo } = await prepararImportacion();
+    await importar(dialogo);
     await within(dialogo).findByRole('region', { name: 'Resultado de la importación' });
 
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Cargar otro archivo' }));
 
     await waitFor(() => expect(within(dialogo).getByLabelText(/Seleccionar archivo CSV/)).toBeInTheDocument());
     expect(within(dialogo).queryByRole('region', { name: 'Resultado de la importación' })).not.toBeInTheDocument();
-    expect(within(dialogo).getByRole('button', { name: 'Importar usuarios' })).toBeDisabled();
+    expect(within(dialogo).getByRole('button', { name: 'Previsualizar' })).toBeDisabled();
   });
 });

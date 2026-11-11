@@ -35,16 +35,19 @@ const CSV_CON_ERRORES = [
   'ESTUDIANTE,Diego,Soto,Ramos,10000013,900000013,diego.soto@example.com,,2012-03-15,99999999'
 ].join('\r\n');
 
-/** Espera a que termine la lectura asíncrona del archivo: aparece la revisión o el aviso de error general. */
+/**
+ * Espera a que termine la lectura asíncrona del archivo: "Previsualizar" queda habilitado (paso 1 listo)
+ * o aparece el aviso de que el archivo no se puede usar.
+ */
 async function esperarLectura(dialogo) {
   await waitFor(() => {
-    expect(
-      within(dialogo).queryByRole('table', { name: 'Revisión de las filas del archivo' })
-        ?? within(dialogo).queryByText('No se puede usar este archivo:')
-    ).toBeInTheDocument();
+    const previsualizar = within(dialogo).queryByRole('button', { name: 'Previsualizar' });
+    const aviso = within(dialogo).queryByText('No se puede usar este archivo:');
+    expect(aviso !== null || (previsualizar !== null && !previsualizar.disabled)).toBe(true);
   });
 }
 
+/** Paso 1: elige el archivo y espera a que se lea. Todavía no se ve la revisión de las filas. */
 async function abrirConArchivo(contenido) {
   render(<DialogoCargaCsv usuarios={[]} alImportar={vi.fn()} alImportacionCompleta={vi.fn()} alCerrar={vi.fn()} />);
   const dialogo = screen.getByRole('dialog', { name: 'Carga masiva de usuarios' });
@@ -54,13 +57,50 @@ async function abrirConArchivo(contenido) {
   return dialogo;
 }
 
+/** Paso 2: además pulsa "Previsualizar" y espera a que aparezca la revisión de las filas. */
+async function abrirRevision(contenido) {
+  const dialogo = await abrirConArchivo(contenido);
+  await userEvent.click(within(dialogo).getByRole('button', { name: 'Previsualizar' }));
+  await within(dialogo).findByRole('table', { name: 'Revisión de las filas del archivo' });
+  return dialogo;
+}
+
 describe('DialogoCargaCsv · revisión del archivo', () => {
   it('antes de elegir archivo, explica qué falta y deja el botón deshabilitado', () => {
     render(<DialogoCargaCsv usuarios={[]} alImportar={vi.fn()} alImportacionCompleta={vi.fn()} alCerrar={vi.fn()} />);
     const dialogo = screen.getByRole('dialog', { name: 'Carga masiva de usuarios' });
 
     expect(within(dialogo).getByText('Selecciona un archivo CSV para continuar.')).toBeInTheDocument();
-    expect(within(dialogo).getByRole('button', { name: 'Importar usuarios' })).toBeDisabled();
+    expect(within(dialogo).getByRole('button', { name: 'Previsualizar' })).toBeDisabled();
+  });
+
+  it('en el primer paso solo lee el archivo; la revisión de las filas aparece al pulsar Previsualizar', async () => {
+    const dialogo = await abrirConArchivo(CSV_VALIDO);
+
+    // Paso 1: el archivo está elegido, pero aún no se ve la revisión ni se puede importar.
+    expect(within(dialogo).getByText('usuarios.csv')).toBeInTheDocument();
+    expect(within(dialogo).getByText('4 filas leídas. Revísalas antes de importar.')).toBeInTheDocument();
+    expect(within(dialogo).queryByRole('table', { name: 'Revisión de las filas del archivo' })).not.toBeInTheDocument();
+    expect(within(dialogo).queryByRole('button', { name: /^Importar/ })).not.toBeInTheDocument();
+    expect(within(dialogo).getByText('Ver formato del archivo')).toBeInTheDocument();
+
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Previsualizar' }));
+
+    // Paso 2: la revisión reemplaza a la preparación y el botón principal pasa a importar.
+    expect(await within(dialogo).findByRole('table', { name: 'Revisión de las filas del archivo' })).toBeInTheDocument();
+    expect(within(dialogo).getByRole('heading', { name: 'Previsualizar carga masiva' })).toBeInTheDocument();
+    expect(within(dialogo).getByRole('button', { name: 'Importar 4 usuarios' })).toBeEnabled();
+    expect(within(dialogo).queryByLabelText(/Seleccionar archivo CSV/)).not.toBeInTheDocument();
+    expect(within(dialogo).queryByText('Ver formato del archivo')).not.toBeInTheDocument();
+  });
+
+  it('un archivo con filas con errores deja avanzar a la revisión, pero no importar', async () => {
+    const dialogo = await abrirConArchivo(CSV_CON_ERRORES);
+
+    expect(within(dialogo).getByRole('button', { name: 'Previsualizar' })).toBeEnabled();
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Previsualizar' }));
+
+    expect(await within(dialogo).findByRole('button', { name: 'Importar 3 usuarios' })).toBeDisabled();
   });
 
   it('organiza el flujo en dos pasos: descargar la plantilla y subir el archivo, con sus límites', () => {
@@ -75,11 +115,22 @@ describe('DialogoCargaCsv · revisión del archivo', () => {
     expect(within(paso2).getByText('CSV UTF-8 · máx. 2 MB · 1000 filas')).toBeInTheDocument();
   });
 
+  it('avisa en el paso del archivo que cada fila se registra por separado, y no lo repite en la revisión', async () => {
+    const dialogo = await abrirConArchivo(CSV_VALIDO);
+    const aviso = 'Cada fila se registra por separado';
+
+    expect(within(dialogo).getByRole('note')).toHaveTextContent(aviso);
+
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Previsualizar' }));
+    await within(dialogo).findByRole('button', { name: /^Importar/ });
+    expect(within(dialogo).queryByText(new RegExp(aviso))).not.toBeInTheDocument();
+  });
+
   it('rechaza un archivo de más de 2 MB', async () => {
     const dialogo = await abrirConArchivo('x'.repeat(2 * 1024 * 1024 + 1));
 
     expect(within(dialogo).getByText('El archivo no debe superar los 2 MB.')).toBeInTheDocument();
-    expect(within(dialogo).getByRole('button', { name: 'Importar usuarios' })).toBeDisabled();
+    expect(within(dialogo).getByRole('button', { name: 'Previsualizar' })).toBeDisabled();
   });
 
   it('rechaza un archivo con más de 1000 filas y sugiere dividirlo', async () => {
@@ -98,7 +149,7 @@ describe('DialogoCargaCsv · revisión del archivo', () => {
   });
 
   it('con un archivo válido resume las filas por tipo, marca cada fila y anuncia qué se creará', async () => {
-    const dialogo = await abrirConArchivo(CSV_VALIDO);
+    const dialogo = await abrirRevision(CSV_VALIDO);
 
     const resumen = within(dialogo).getByRole('status');
     expect(resumen).toHaveTextContent('4filas en el archivo');
@@ -116,7 +167,7 @@ describe('DialogoCargaCsv · revisión del archivo', () => {
   });
 
   it('con errores, lista bajo cada fila el campo afectado, filtra por defecto y bloquea la importación', async () => {
-    const dialogo = await abrirConArchivo(CSV_CON_ERRORES);
+    const dialogo = await abrirRevision(CSV_CON_ERRORES);
 
     const resumen = within(dialogo).getByRole('status');
     expect(within(resumen).getByText('1 válida')).toBeInTheDocument();
@@ -125,8 +176,8 @@ describe('DialogoCargaCsv · revisión del archivo', () => {
     expect(within(dialogo).getByRole('button', { name: 'Importar 3 usuarios' })).toBeDisabled();
 
     // Por defecto solo se ven las filas con errores (3 y 4); la 2 es válida y queda oculta.
-    const filtro = within(dialogo).getByRole('checkbox', { name: 'Mostrar solo las filas con errores' });
-    expect(filtro).toBeChecked();
+    const filtro = within(dialogo).getByRole('button', { name: '2 con errores' });
+    expect(filtro).toHaveAttribute('aria-pressed', 'true');
     expect(within(dialogo).queryByText('Válida')).not.toBeInTheDocument();
 
     const erroresFila3 = within(dialogo).getByRole('list', { name: 'Errores de la fila 3' });
@@ -139,6 +190,7 @@ describe('DialogoCargaCsv · revisión del archivo', () => {
 
     // Al quitar el filtro aparece también la fila válida.
     await userEvent.click(filtro);
+    expect(filtro).toHaveAttribute('aria-pressed', 'false');
     expect(within(dialogo).getByText('Válida')).toBeInTheDocument();
   });
 
@@ -165,41 +217,70 @@ describe('DialogoCargaCsv · revisión del archivo', () => {
     expect(filaTelefono).toHaveTextContent('9 dígitos');
   });
 
-  it('en pantallas amplias muestra todas las filas del archivo, sin recortarlas', async () => {
-    const filas = Array.from({ length: 12 }, (_, i) => {
-      const n = String(i + 1).padStart(2, '0');
+  describe('paginación de la revisión', () => {
+    const docentesValidos = (cantidad, desde = 1) => Array.from({ length: cantidad }, (_, i) => {
+      const n = String(desde + i).padStart(2, '0');
       return `DOCENTE,Doc${n},Prueba,,300000${n},9000000${n},doc${n}@example.com,30,,`;
     });
-    const dialogo = await abrirConArchivo([ENCABEZADO, ...filas].join('\r\n'));
 
-    const tabla = within(dialogo).getByRole('table', { name: 'Revisión de las filas del archivo' });
-    expect(within(tabla).getAllByText('Válida')).toHaveLength(12);
-    expect(within(dialogo).getByText(/12 filas en total/)).toBeInTheDocument();
-    expect(within(dialogo).queryByRole('button', { name: /^Mostrar las/ })).not.toBeInTheDocument();
-  });
-
-  it('en pantallas compactas muestra las primeras 8 filas y permite mostrar el resto', async () => {
-    const original = window.matchMedia;
-    window.matchMedia = (consulta) => ({
-      matches: consulta.includes('max-width: 767px'),
-      media: consulta,
-      addEventListener: () => {},
-      removeEventListener: () => {}
-    });
-    try {
-      const filas = Array.from({ length: 12 }, (_, i) => {
-        const n = String(i + 1).padStart(2, '0');
-        return `DOCENTE,Doc${n},Prueba,,300000${n},9000000${n},doc${n}@example.com,30,,`;
-      });
-      const dialogo = await abrirConArchivo([ENCABEZADO, ...filas].join('\r\n'));
+    it('muestra 8 filas por página y permite navegar entre páginas', async () => {
+      const dialogo = await abrirRevision([ENCABEZADO, ...docentesValidos(12)].join('\r\n'));
       const tabla = within(dialogo).getByRole('table', { name: 'Revisión de las filas del archivo' });
 
       expect(within(tabla).getAllByText('Válida')).toHaveLength(8);
-      await userEvent.click(within(dialogo).getByRole('button', { name: 'Mostrar las 12' }));
-      expect(within(tabla).getAllByText('Válida')).toHaveLength(12);
-    } finally {
-      window.matchMedia = original;
-    }
+      expect(within(dialogo).getByText('1 – 8 de 12 filas')).toBeInTheDocument();
+      expect(within(dialogo).getByRole('spinbutton', { name: 'Número de página' })).toHaveValue(1);
+      expect(within(dialogo).getByRole('button', { name: 'Página anterior' })).toBeDisabled();
+
+      await userEvent.click(within(dialogo).getByRole('button', { name: 'Página siguiente' }));
+      expect(within(tabla).getAllByText('Válida')).toHaveLength(4);
+      expect(within(dialogo).getByText('9 – 12 de 12 filas')).toBeInTheDocument();
+      expect(within(dialogo).getByRole('spinbutton', { name: 'Número de página' })).toHaveValue(2);
+      expect(within(dialogo).getByRole('button', { name: 'Página siguiente' })).toBeDisabled();
+
+      await userEvent.click(within(dialogo).getByRole('button', { name: 'Página anterior' }));
+      expect(within(tabla).getAllByText('Válida')).toHaveLength(8);
+    });
+
+    it('permite saltar a la primera y última página, o escribir el número de página', async () => {
+      const dialogo = await abrirRevision([ENCABEZADO, ...docentesValidos(20)].join('\r\n'));
+
+      await userEvent.click(within(dialogo).getByRole('button', { name: 'Última página' }));
+      expect(within(dialogo).getByText('17 – 20 de 20 filas')).toBeInTheDocument();
+
+      await userEvent.click(within(dialogo).getByRole('button', { name: 'Primera página' }));
+      expect(within(dialogo).getByText('1 – 8 de 20 filas')).toBeInTheDocument();
+
+      const campo = within(dialogo).getByRole('spinbutton', { name: 'Número de página' });
+      await userEvent.clear(campo);
+      await userEvent.type(campo, '2');
+      await userEvent.tab();
+      expect(within(dialogo).getByText('9 – 16 de 20 filas')).toBeInTheDocument();
+    });
+
+    it('no muestra la paginación cuando todas las filas caben en una página', async () => {
+      const dialogo = await abrirRevision(CSV_VALIDO);
+
+      expect(within(dialogo).queryByRole('navigation', { name: 'Paginación de la revisión' })).not.toBeInTheDocument();
+    });
+
+    it('vuelve a la primera página al cambiar el filtro de filas con errores', async () => {
+      // 10 filas válidas y 10 con DNI inválido: por defecto se ven solo las 10 con errores (2 páginas).
+      const conError = Array.from({ length: 10 }, (_, i) => {
+        const n = String(i + 1).padStart(2, '0');
+        return `DOCENTE,Mal${n},Prueba,,12${n},9000000${n},mal${n}@example.com,30,,`;
+      });
+      const dialogo = await abrirRevision([ENCABEZADO, ...docentesValidos(10), ...conError].join('\r\n'));
+
+      expect(within(dialogo).getByText('1 – 8 de 10 filas')).toBeInTheDocument();
+      await userEvent.click(within(dialogo).getByRole('button', { name: 'Página siguiente' }));
+      expect(within(dialogo).getByRole('spinbutton', { name: 'Número de página' })).toHaveValue(2);
+
+      await userEvent.click(within(dialogo).getByRole('button', { name: '10 con errores' }));
+
+      expect(within(dialogo).getByText('1 – 8 de 20 filas')).toBeInTheDocument();
+      expect(within(dialogo).getByRole('spinbutton', { name: 'Número de página' })).toHaveValue(1);
+    });
   });
 
   it('mientras lee el archivo muestra "Leyendo archivo…" y no permite importar ni cambiarlo', async () => {
@@ -212,13 +293,13 @@ describe('DialogoCargaCsv · revisión del archivo', () => {
     await userEvent.upload(within(dialogo).getByLabelText(/Seleccionar archivo CSV/), archivo);
 
     expect(within(dialogo).getAllByText('Leyendo archivo…').length).toBeGreaterThan(0);
-    expect(within(dialogo).getByRole('button', { name: 'Importar usuarios' })).toBeDisabled();
+    expect(within(dialogo).getByRole('button', { name: 'Previsualizar' })).toBeDisabled();
     expect(within(dialogo).queryByRole('button', { name: 'Quitar archivo' })).not.toBeInTheDocument();
 
     terminarLectura();
     await esperarLectura(dialogo);
     expect(within(dialogo).queryByText('Leyendo archivo…')).not.toBeInTheDocument();
-    expect(within(dialogo).getByRole('button', { name: 'Importar 4 usuarios' })).toBeEnabled();
+    expect(within(dialogo).getByRole('button', { name: 'Previsualizar' })).toBeEnabled();
   });
 
   it('"Quitar archivo" descarta el archivo elegido y vuelve al estado inicial', async () => {
@@ -230,7 +311,7 @@ describe('DialogoCargaCsv · revisión del archivo', () => {
     expect(within(dialogo).queryByText('usuarios.csv')).not.toBeInTheDocument();
     expect(within(dialogo).queryByRole('region', { name: 'Revisión del archivo' })).not.toBeInTheDocument();
     expect(within(dialogo).getByText('Selecciona un archivo CSV para continuar.')).toBeInTheDocument();
-    expect(within(dialogo).getByRole('button', { name: 'Importar usuarios' })).toBeDisabled();
+    expect(within(dialogo).getByRole('button', { name: 'Previsualizar' })).toBeDisabled();
   });
 
   it('al importar con éxito en modo demostración llama a alImportar y alImportacionCompleta', async () => {
@@ -243,8 +324,9 @@ describe('DialogoCargaCsv · revisión del archivo', () => {
       new File([CSV_VALIDO], 'usuarios.csv', { type: 'text/csv' })
     );
     await esperarLectura(dialogo);
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Previsualizar' }));
 
-    await userEvent.click(within(dialogo).getByRole('button', { name: 'Importar 4 usuarios' }));
+    await userEvent.click(await within(dialogo).findByRole('button', { name: 'Importar 4 usuarios' }));
 
     // El resultado queda a la vista: el diálogo no se cierra solo, se cierra con "Listo".
     const resultado = await within(dialogo).findByRole('region', { name: 'Resultado de la importación' });

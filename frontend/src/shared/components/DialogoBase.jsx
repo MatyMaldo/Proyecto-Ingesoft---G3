@@ -99,6 +99,11 @@ export default function DialogoBase({
     };
     // Mientras se guarda no se permite cerrar con Esc; con `alSolicitarCierre`, Esc solo lo solicita.
     const manejarCancelacion = (evento) => {
+      // Un <input type="file"> también dispara `cancel` (y burbuja) cuando se cierra el explorador de archivos
+      // sin elegir nada. Eso no es Esc sobre el diálogo y no debe cerrarlo: solo cuenta el evento del propio diálogo.
+      if (evento.target !== dialogo) {
+        return;
+      }
       if (refEnviando.current) {
         evento.preventDefault();
         return;
