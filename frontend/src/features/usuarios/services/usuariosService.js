@@ -1,6 +1,7 @@
 import { USUARIOS_INICIAL, CODIGOS_ESTUDIANTE_HISTORICOS } from './mocks/usuariosMock.js';
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import { solicitar } from '../../../shared/api/clienteHttp.js';
+import { separarTelefono } from '../utils/telefono.js';
 
 const ROLES_API = Object.freeze({
   APODERADO: 'Apoderado',
@@ -116,6 +117,43 @@ export async function registrarApoderado(datos) {
  */
 export async function registrarDocente(datos) {
   return registrarUsuario('/usuarios/docentes', datos, 'DOCENTE', 'docente');
+}
+
+/** Una fila de la carga masiva con el contrato `CargaMasivaUsuariosRequest.Fila` del backend. */
+function filaParaCargaMasiva(fila) {
+  return {
+    linea: fila.linea,
+    tipoUsuario: String(fila.tipoUsuario).toUpperCase(),
+    nombre: fila.nombre,
+    apellidoPaterno: fila.apellidoPaterno,
+    apellidoMaterno: fila.apellidoMaterno || null,
+    dni: fila.dni,
+    email: fila.correo,
+    // El backend exige exactamente 9 dígitos, sin prefijo +51.
+    telefono: separarTelefono(fila.telefono) || null,
+    edad: fila.edad ? Number(fila.edad) : null,
+    fechaNacimiento: fila.fechaNacimiento || null,
+    dniApoderado: fila.dniApoderado || null,
+    codigo: fila.codigo || null
+  };
+}
+
+/**
+ * Inicia la carga masiva de usuarios como operación asíncrona: todas las filas viajan en una sola petición y el
+ * servidor las valida en bloque y las guarda por lotes. Responde con el `jobId` para consultar el avance y, al
+ * terminar, el desenlace de cada fila en `resultado`.
+ *
+ * @param {Array<Object>} filas Filas ya validadas, con los nombres de campo de la pantalla (`correo`, `telefono`…)
+ *   y el `codigo` reservado para cada estudiante.
+ * @param {string} [claveIdempotencia] Evita duplicar la operación si se reintenta el mismo envío.
+ */
+export async function iniciarCargaMasivaUsuarios(filas, claveIdempotencia) {
+  return solicitar('/usuarios/carga-masiva/async', {
+    metodo: 'POST',
+    cuerpo: { filas: filas.map(filaParaCargaMasiva) },
+    cabeceras: claveIdempotencia ? { 'Idempotency-Key': claveIdempotencia } : undefined,
+    tiempoEsperaMs: 15000
+  });
 }
 
 /**

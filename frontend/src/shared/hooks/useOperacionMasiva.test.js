@@ -84,4 +84,57 @@ describe('useOperacionMasiva', () => {
     expect(result.current.job).toBeNull();
     expect(consultarOperacionMasiva).not.toHaveBeenCalled();
   });
+
+  describe('momento de la primera consulta', () => {
+    const iniciarJob = (result) => act(async () => {
+      await result.current.iniciar(async () => ({
+        exitoso: true,
+        datos: { jobId: 'job-1', estado: 'EN_COLA' }
+      }));
+    });
+    const avanzar = (ms) => act(async () => {
+      await vi.advanceTimersByTimeAsync(ms);
+    });
+    const enProceso = { exitoso: true, datos: { jobId: 'job-1', estado: 'EN_PROCESO', total: 10, procesados: 1 } };
+
+    it('espera intervaloMs antes de la primera consulta cuando no hay intervalo inicial', async () => {
+      vi.useFakeTimers();
+      try {
+        consultarOperacionMasiva.mockResolvedValue(enProceso);
+        const { result } = renderHook(() => useOperacionMasiva({ intervaloMs: 1000 }));
+
+        await iniciarJob(result);
+        await avanzar(999);
+        expect(consultarOperacionMasiva).not.toHaveBeenCalled();
+
+        await avanzar(1);
+        expect(consultarOperacionMasiva).toHaveBeenCalledTimes(1);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+
+    it('con intervalo inicial consulta pronto y luego sigue cada intervaloMs', async () => {
+      vi.useFakeTimers();
+      try {
+        consultarOperacionMasiva.mockResolvedValue(enProceso);
+        const { result } = renderHook(() => useOperacionMasiva({ intervaloMs: 1000, intervaloInicialMs: 250 }));
+
+        await iniciarJob(result);
+        await avanzar(249);
+        expect(consultarOperacionMasiva).not.toHaveBeenCalled();
+
+        await avanzar(1);
+        expect(consultarOperacionMasiva).toHaveBeenCalledTimes(1);
+
+        // La segunda consulta ya espera el intervalo normal.
+        await avanzar(999);
+        expect(consultarOperacionMasiva).toHaveBeenCalledTimes(1);
+        await avanzar(1);
+        expect(consultarOperacionMasiva).toHaveBeenCalledTimes(2);
+      } finally {
+        vi.useRealTimers();
+      }
+    });
+  });
 });

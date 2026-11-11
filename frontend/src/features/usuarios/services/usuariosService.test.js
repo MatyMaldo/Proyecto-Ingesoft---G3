@@ -7,6 +7,7 @@ vi.mock('../../../shared/api/clienteHttp.js', () => ({ solicitar }));
 
 import {
   cambiarEstadoUsuario,
+  iniciarCargaMasivaUsuarios,
   listarUsuarios,
   listarSeccionesTutor,
   actualizarUsuario,
@@ -198,6 +199,41 @@ describe('usuariosService', () => {
       apellido: 'Pérez García',
       rol: rol === 'apoderado' ? 'Apoderado' : 'Docente'
     });
+  });
+
+  it('inicia la carga masiva con todas las filas en una petición y el contrato del backend', async () => {
+    solicitar.mockResolvedValue({ exitoso: true, datos: { jobId: 'job-1', estado: 'EN_COLA' }, mensaje: '' });
+
+    const respuesta = await iniciarCargaMasivaUsuarios([
+      {
+        linea: 2, tipoUsuario: 'apoderado', nombre: 'Rosa', apellidoPaterno: 'Quispe', apellidoMaterno: '',
+        dni: '71000001', correo: 'rosa@example.com', telefono: '+51 981001001', edad: '41', fechaNacimiento: '', dniApoderado: ''
+      },
+      {
+        linea: 3, tipoUsuario: 'estudiante', nombre: 'Ana', apellidoPaterno: 'Pérez', apellidoMaterno: 'Ruiz',
+        dni: '73000001', correo: 'ana@example.com', telefono: '', edad: '', fechaNacimiento: '2012-05-10',
+        dniApoderado: '71000001', codigo: 'EST001'
+      }
+    ], 'usuarios-lote-abc');
+
+    expect(respuesta.datos.jobId).toBe('job-1');
+    expect(solicitar).toHaveBeenCalledTimes(1);
+    const [ruta, opciones] = solicitar.mock.calls[0];
+    expect(ruta).toBe('/usuarios/carga-masiva/async');
+    expect(opciones.metodo).toBe('POST');
+    expect(opciones.cabeceras).toEqual({ 'Idempotency-Key': 'usuarios-lote-abc' });
+    expect(opciones.cuerpo.filas).toEqual([
+      {
+        linea: 2, tipoUsuario: 'APODERADO', nombre: 'Rosa', apellidoPaterno: 'Quispe', apellidoMaterno: null,
+        dni: '71000001', email: 'rosa@example.com', telefono: '981001001', edad: 41, fechaNacimiento: null,
+        dniApoderado: null, codigo: null
+      },
+      {
+        linea: 3, tipoUsuario: 'ESTUDIANTE', nombre: 'Ana', apellidoPaterno: 'Pérez', apellidoMaterno: 'Ruiz',
+        dni: '73000001', email: 'ana@example.com', telefono: null, edad: null, fechaNacimiento: '2012-05-10',
+        dniApoderado: '71000001', codigo: 'EST001'
+      }
+    ]);
   });
 
   it('envía PATCH únicamente al usuario seleccionado y adapta la respuesta', async () => {

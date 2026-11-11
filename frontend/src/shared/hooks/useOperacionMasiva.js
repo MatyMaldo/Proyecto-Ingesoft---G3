@@ -31,9 +31,16 @@ function jobInicial(datos) {
  * Inicia y sigue una operación masiva asíncrona.
  * El hook debe vivir en la página, no dentro del modal, para que el seguimiento
  * continúe aunque el usuario cierre el diálogo.
+ *
+ * @param {Object} [opciones]
+ * @param {number} [opciones.intervaloMs] Espera entre consultas del estado.
+ * @param {number} [opciones.intervaloInicialMs] Espera antes de la primera consulta (por defecto, `intervaloMs`).
+ *   Un valor corto evita que una operación que termina en décimas de segundo parezca tardar un `intervaloMs` entero.
+ * @param {(job: Object) => void} [opciones.alTerminar] Se llama una vez al llegar a un estado terminal.
  */
 export default function useOperacionMasiva({
   intervaloMs = INTERVALO_DEFECTO_MS,
+  intervaloInicialMs = intervaloMs,
   alTerminar
 } = {}) {
   const [job, establecerJob] = useState(null);
@@ -99,12 +106,12 @@ export default function useOperacionMasiva({
       temporizador = setTimeout(consultar, intervaloMs);
     };
 
-    temporizador = setTimeout(consultar, intervaloMs);
+    temporizador = setTimeout(consultar, intervaloInicialMs);
     return () => {
       cancelado = true;
       clearTimeout(temporizador);
     };
-  }, [jobId, intervaloMs]);
+  }, [jobId, intervaloMs, intervaloInicialMs]);
 
   const iniciar = useCallback(async (solicitarInicio) => {
     if (iniciando || (jobId && !esEstadoTerminal(job?.estado))) {

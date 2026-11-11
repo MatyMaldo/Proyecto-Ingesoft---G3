@@ -490,24 +490,29 @@
   gap: var(--espacio-1);
 }
 
-.filtro {
+/* Chip de errores que filtra la tabla: la insignia sigue igual, el botón solo añade el anillo al estar activo. */
+.chipFiltro {
   display: inline-flex;
-  align-items: center;
-  gap: var(--espacio-2);
-  min-height: var(--tactil-min);
-  font-size: var(--texto-md);
-  color: var(--color-texto-secundario);
+  min-height: 0;
+  padding: 0;
+  font: inherit;
+  background: none;
+  border: 0;
+  border-radius: var(--radio-pildora);
   cursor: pointer;
 }
 
-.filtro input {
-  /* Anula el min-height táctil global de los input: un checkbox no debe medir 44 px de alto. */
-  flex-shrink: 0;
-  width: 1rem;
-  min-height: 0;
-  height: 1rem;
-  margin: 0;
-  accent-color: var(--color-accion);
+.chipFiltro:hover > span {
+  filter: brightness(0.96);
+}
+
+.chipFiltro:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.chipFiltro[aria-pressed="true"] > span {
+  box-shadow: 0 0 0 2px var(--color-accion);
 }
 
 .vistaPrevia,
@@ -521,6 +526,43 @@
 .desplazable {
   max-height: 22rem;
   overflow: auto;
+  scrollbar-width: thin;
+}
+
+/* Previsualización (pantallas amplias): el resumen y el filtro quedan fijos y la tabla ocupa todo el alto que
+   deje el diálogo, sin su tope de 22 rem. La barra de desplazamiento solo aparece si las filas no caben, y es
+   la única: el cuerpo del diálogo no se desplaza. */
+@media (min-width: 768px) {
+  .contenidoRevision {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .contenidoRevision > * {
+    flex-shrink: 0;
+  }
+
+  .contenidoRevision > .revision {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .contenidoRevision .revision > * {
+    flex-shrink: 0;
+  }
+
+  .contenidoRevision .revision > .vistaPrevia {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+
+  .contenidoRevision .desplazable {
+    flex: 1 1 auto;
+    min-height: 10rem;
+    max-height: none;
+  }
 }
 
 .contenedorFormato {
@@ -602,30 +644,6 @@
   line-height: var(--interlineado-xs);
   color: var(--color-peligro-texto);
   border-left: 3px solid var(--color-peligro-acento);
-}
-
-.pieVistaPrevia {
-  margin: 0;
-  padding: var(--espacio-2);
-  font-size: var(--texto-xs);
-  color: var(--color-texto-suave);
-  border-top: 1px solid var(--color-borde);
-}
-
-.botonEnlace {
-  padding: 0;
-  font: inherit;
-  font-weight: var(--peso-seminegrita);
-  color: var(--color-accion);
-  text-decoration: underline;
-  background: none;
-  border: 0;
-  cursor: pointer;
-}
-
-.botonEnlace:focus-visible {
-  outline: 2px solid var(--color-foco);
-  outline-offset: 2px;
 }
 
 /* Compacta (< 768 px): la tabla se convierte en tarjetas, sin scroll horizontal (GUI §11). */
@@ -712,10 +730,5 @@
     content: attr(data-label);
     font-weight: var(--peso-seminegrita);
     color: var(--color-texto-suave);
-  }
-
-  .pieVistaPrevia {
-    border-top: 0;
-    padding-left: 0;
   }
 }
