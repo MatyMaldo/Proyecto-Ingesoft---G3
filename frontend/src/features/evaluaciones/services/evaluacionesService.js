@@ -4,9 +4,9 @@ import {
   crearEvaluacionMock,
   guardarNotaEvaluacionMock,
   listarContextoDocenteMock,
-  listarEstudiantesEvaluacionMock,
+  listarEstudiantesAsignacionMock,
+  listarBimestresAnioMock,
   listarNotasEvaluacionMock,
-  listarBimestresCompetenciasMock,
   listarNotasCompetenciasMock,
   guardarNotasCompetenciasMock,
   listarEvaluacionesMock
@@ -16,87 +16,248 @@ export const ESCALA_NOTAS_EVALUACION = Object.freeze(['AD', 'A', 'B', 'C']);
 export const LONGITUD_MAXIMA_CONCLUSION_COMPETENCIA = 120;
 
 const fallo = (mensaje) => ({ exitoso: false, datos: null, mensaje });
+const NOMBRES_BIMESTRE = {
+  BIM_1: 'I Bimestre',
+  BIM_2: 'II Bimestre',
+  BIM_3: 'III Bimestre',
+  BIM_4: 'IV Bimestre'
+};
 
-/**
- * El backend debe devolver solo asignaciones del docente autenticado, el año vigente
- * y sus fechas de bimestre. El mock reproduce ese contrato para el prototipo.
- */
-export function listarContextoDocenteEvaluaciones(usuario) {
-  return USAR_MOCK
-    ? listarContextoDocenteMock(usuario)
-    : solicitar('/evaluaciones/contexto-docente');
-}
-
-export function listarEvaluaciones() {
-  return USAR_MOCK ? listarEvaluacionesMock() : solicitar('/evaluaciones');
-}
-
-export function listarBimestresCompetencias(usuario, cursoId, seccionId) {
-  return USAR_MOCK
-    ? listarBimestresCompetenciasMock(usuario, cursoId, seccionId)
-    : solicitar('/evaluaciones/notas-competencias/bimestres-disponibles', {
-      parametros: { cursoId, seccionId }
+function normalizarContexto(contexto, usuario) {
+  const competencias = contexto.competencias ?? [];
+  const asignaciones = (contexto.asignaciones ?? []).reduce((resultado, item) => {
+    let curso = resultado.find((actual) => String(actual.cursoId) === String(item.idCurso));
+    if (!curso) {
+      curso = {
+        cursoId: item.idCurso,
+        cursoNombre: item.nombreCurso,
+        gradoId: item.idGrado,
+        competencias: competencias
+          .filter((competencia) => String(competencia.idCurso) === String(item.idCurso))
+          .map((competencia) => ({ id: competencia.id, nombre: competencia.nombre })),
+        secciones: []
+      };
+      resultado.push(curso);
+    }
+    curso.secciones.push({
+      id: item.idSeccion,
+      idAsignacionCurso: item.idAsignacionCurso,
+      nombre: item.nombreSeccion,
+      gradoId: item.idGrado,
+      gradoNombre: item.nombreGrado
     });
+    return resultado;
+  }, []);
+
+  return {
+    docente: { id: usuario?.id, nombre: usuario?.nombre ?? 'Docente' },
+    anioAcademico: {
+      ...contexto.anioAcademico,
+      vigente: contexto.anioAcademico?.vigente ?? true
+    },
+    asignaciones,
+    secciones: contexto.secciones ?? [],
+    competencias,
+    bimestres: (contexto.bimestres ?? []).map((bimestre) => ({
+      ...bimestre,
+      inicio: bimestre.fechaInicio ?? bimestre.inicio,
+      fin: bimestre.fechaFin ?? bimestre.fin
+    }))
+  };
 }
 
-export function listarEstudiantesSeccionCompetencias(usuario, cursoId, seccionId) {
-  return USAR_MOCK
-    ? listarEstudiantesEvaluacionMock({ cursoId, seccionId })
-    : solicitar('/evaluaciones/notas-competencias/estudiantes', {
-      parametros: { cursoId, seccionId, activo: true, estadoMatricula: 'CONFIRMADA' }
-    });
+function normalizarEvaluacion(evaluacion, asignacion, anioAcademico) {
+  return {
+    ...evaluacion,
+    id: evaluacion.id ?? evaluacion.idEvaluacion,
+    cursoId: asignacion.cursoId,
+    cursoNombre: evaluacion.nombreCurso ?? asignacion.cursoNombre,
+    seccionId: asignacion.seccionId,
+    seccionNombre: evaluacion.nombreSeccion ?? asignacion.seccionNombre,
+    competenciaNombre: evaluacion.nombreCompetencia,
+    bimestreNombre: evaluacion.nombreBimestre,
+    idAsignacionCurso: asignacion.idAsignacionCurso,
+    anioAcademicoId: anioAcademico?.id,
+    anioAcademico: anioAcademico?.anio
+  };
 }
 
-export function listarNotasCompetencias(usuario, cursoId, seccionId, bimestreId, estudianteId) {
-  return USAR_MOCK
-    ? listarNotasCompetenciasMock(cursoId, seccionId, bimestreId, estudianteId)
-    : solicitar('/evaluaciones/notas-competencias', {
-      parametros: { cursoId, seccionId, bimestreId, estudianteId }
+function normalizarNota(nota) {
+  return {
+    ...nota,
+    idNota: nota.idNota ?? nota.id,
+    evaluacionId: nota.idEvaluacion ?? nota.evaluacionId,
+    estudianteId: nota.idEstudiante ?? nota.estudianteId,
+    estudianteNombre: nota.nombreEstudiante ?? nota.estudianteNombre,
+    nota: nota.valorNota ?? nota.nota
+  };
+}
+
+function normalizarNotasCompetencias(respuesta, competencias) {
+  if (!respuesta.exitoso || !Array.isArray(respuesta.datos)) return respuesta;
+  return {
+    ...respuesta,
+    datos: respuesta.datos.map((nota) => {
+      const competencia = competencias.find((item) =>
+        String(item.nombre) === String(nota.nombreCompetencia)
+      );
+      return {
+        ...nota,
+        competenciaId: nota.idCompetencia ?? competencia?.id,
+        nombre: nota.nombreCompetencia ?? competencia?.nombre,
+        nota: nota.valorNota ?? nota.nota
+      };
+    })
+  };
+}
+
+/** El backend limita el contexto al docente autenticado y al año académico vigente. */
+export async function listarContextoDocenteEvaluaciones(usuario) {
+  const respuesta = USAR_MOCK
+    ? await listarContextoDocenteMock(usuario)
+    : await solicitar('/evaluaciones/contexto-docente');
+  if (!respuesta.exitoso) return respuesta;
+  if (!respuesta.datos?.anioAcademico
+    || !Array.isArray(respuesta.datos.asignaciones)
+    || !Array.isArray(respuesta.datos.bimestres)
+    || !Array.isArray(respuesta.datos.competencias)) {
+    return fallo('El backend devolvió un formato de contexto docente no válido.');
+  }
+  return { ...respuesta, datos: normalizarContexto(respuesta.datos, usuario) };
+}
+
+export async function listarBimestresAnio(anioId) {
+  const respuesta = USAR_MOCK
+    ? await listarBimestresAnioMock(anioId)
+    : await solicitar(`/anios-academicos/${encodeURIComponent(anioId)}/bimestres`);
+  if (!respuesta.exitoso) return respuesta;
+  if (!Array.isArray(respuesta.datos)) {
+    return fallo('El backend devolvió un formato de bimestres no válido.');
+  }
+  return {
+    ...respuesta,
+    datos: respuesta.datos.map((bimestre) => ({
+      ...bimestre,
+      nombre: NOMBRES_BIMESTRE[bimestre.nombre] ?? bimestre.nombre,
+      inicio: bimestre.fechaInicio ?? bimestre.inicio,
+      fin: bimestre.fechaFin ?? bimestre.fin
+    }))
+  };
+}
+
+export async function listarEvaluaciones(idAsignacionCurso, asignacion, anioAcademico) {
+  const respuesta = USAR_MOCK
+    ? await listarEvaluacionesMock(idAsignacionCurso)
+    : await solicitar('/evaluaciones', {
+      parametros: { idAsignacionCurso }
     });
+  if (!respuesta.exitoso) return respuesta;
+  if (!Array.isArray(respuesta.datos)) {
+    return fallo('El backend devolvió un formato de evaluaciones no válido.');
+  }
+  return {
+    ...respuesta,
+    datos: respuesta.datos.map((item) => normalizarEvaluacion(item, asignacion, anioAcademico))
+  };
+}
+
+export async function listarEstudiantesAsignacion(idAsignacionCurso) {
+  const respuesta = USAR_MOCK
+    ? await listarEstudiantesAsignacionMock(idAsignacionCurso)
+    : await solicitar(`/asignaciones-curso/${encodeURIComponent(idAsignacionCurso)}/estudiantes`);
+  if (!respuesta.exitoso) return respuesta;
+  if (!Array.isArray(respuesta.datos)) {
+    return fallo('El backend devolvió un formato de estudiantes no válido.');
+  }
+  return {
+    ...respuesta,
+    datos: respuesta.datos
+      .filter((estudiante) => estudiante.estadoMatricula === 'CONFIRMADA')
+      .map((estudiante) => ({
+        ...estudiante,
+        id: estudiante.idEstudiante ?? estudiante.id,
+        nombre: [estudiante.nombre, estudiante.apellidoPaterno, estudiante.apellidoMaterno]
+          .filter(Boolean)
+          .join(' '),
+        codigo: String(estudiante.idEstudiante ?? estudiante.id),
+        activo: true
+      }))
+  };
+}
+
+export function listarEstudiantesSeccionCompetencias(idAsignacionCurso) {
+  return listarEstudiantesAsignacion(idAsignacionCurso);
+}
+
+export async function listarNotasCompetencias(cursoId, bimestreId, estudianteId, competencias) {
+  const respuesta = USAR_MOCK
+    ? await listarNotasCompetenciasMock(cursoId, bimestreId, estudianteId)
+    : await solicitar('/notas-competencias', {
+      parametros: { idEstudiante: estudianteId, idBimestre: bimestreId, idCurso: cursoId }
+    });
+  if (respuesta.exitoso && !Array.isArray(respuesta.datos)) {
+    return fallo('El backend devolvió un formato de notas de competencias no válido.');
+  }
+  return normalizarNotasCompetencias(respuesta, competencias);
 }
 
 export function guardarNotasCompetencias(usuario, datos) {
-  const competencias = Array.isArray(datos?.competencias) ? datos.competencias : [];
-  for (const competencia of competencias) {
-    if (!ESCALA_NOTAS_EVALUACION.includes(competencia.nota)) {
-      return Promise.resolve(fallo(`La nota de "${competencia.nombre}" debe ser AD, A, B o C.`));
+  const calificaciones = Array.isArray(datos?.calificaciones) ? datos.calificaciones : [];
+  if (!datos.idAsignacionCurso || !datos.idEstudiante || !datos.idBimestre || !calificaciones.length) {
+    return Promise.resolve(fallo('Selecciona una asignación, un estudiante, un bimestre y al menos una competencia.'));
+  }
+  for (const calificacion of calificaciones) {
+    if (!ESCALA_NOTAS_EVALUACION.includes(calificacion.valorNota)) {
+      return Promise.resolve(fallo(`La nota de "${calificacion.nombre}" debe ser AD, A, B o C.`));
     }
-    const conclusion = String(competencia.conclusionDescriptiva ?? '').trim();
+    const conclusion = String(calificacion.conclusionDescriptiva ?? '').trim();
     if (!conclusion) {
-      return Promise.resolve(fallo(`${competencia.nombre}: La conclusión descriptiva es obligatoria.`));
+      return Promise.resolve(fallo(`${calificacion.nombre}: La conclusión descriptiva es obligatoria.`));
     }
     if (conclusion.length > LONGITUD_MAXIMA_CONCLUSION_COMPETENCIA) {
-      return Promise.resolve(fallo(`${competencia.nombre}: La conclusión descriptiva no puede superar los 120 caracteres.`));
+      return Promise.resolve(fallo(`${calificacion.nombre}: La conclusión descriptiva no puede superar los 120 caracteres.`));
     }
   }
+  const cuerpo = {
+    idAsignacionCurso: USAR_MOCK ? datos.idAsignacionCurso : Number(datos.idAsignacionCurso),
+    idEstudiante: USAR_MOCK ? datos.idEstudiante : Number(datos.idEstudiante),
+    idBimestre: USAR_MOCK ? datos.idBimestre : Number(datos.idBimestre),
+    calificaciones: calificaciones.map(({ nombre, ...item }) => ({
+      ...item,
+      idCompetencia: USAR_MOCK ? item.idCompetencia : Number(item.idCompetencia),
+      conclusionDescriptiva: item.conclusionDescriptiva.trim()
+    }))
+  };
   return USAR_MOCK
-    ? guardarNotasCompetenciasMock(usuario, { ...datos, competencias: competencias.map((item) => ({ ...item, conclusionDescriptiva: item.conclusionDescriptiva.trim() })) })
-    : solicitar('/evaluaciones/notas-competencias', { metodo: 'PUT', cuerpo: datos });
+    ? guardarNotasCompetenciasMock(usuario, {
+      ...cuerpo,
+      calificaciones: cuerpo.calificaciones.map((item, index) => ({
+        ...item,
+        nombre: calificaciones[index].nombre
+      })),
+      idCurso: datos.idCurso,
+      idSeccion: datos.idSeccion,
+      cursoNombre: datos.cursoNombre,
+      estudianteNombre: datos.estudianteNombre,
+      bimestreNombre: datos.bimestreNombre
+    })
+    : solicitar('/notas-competencias', { metodo: 'POST', cuerpo });
 }
 
 /** Solo devuelve alumnos activos cuya matrícula confirmada corresponde a la sección evaluada. */
 export async function listarEstudiantesEvaluacion(evaluacion) {
-  const respuesta = USAR_MOCK
-    ? listarEstudiantesEvaluacionMock(evaluacion)
-    : solicitar(`/evaluaciones/${encodeURIComponent(evaluacion.id)}/estudiantes`, {
-      parametros: { activo: true, estadoMatricula: 'CONFIRMADA' }
-    });
-  const resultado = await respuesta;
-  if (!resultado.exitoso) return resultado;
-  if (!Array.isArray(resultado.datos)) {
-    return fallo('El backend devolvió un formato de estudiantes no válido.');
-  }
-  return {
-    ...resultado,
-    datos: resultado.datos.filter((estudiante) => estudiante.activo === true
-      && estudiante.estadoMatricula === 'CONFIRMADA')
-  };
+  return listarEstudiantesAsignacion(evaluacion.idAsignacionCurso);
 }
 
-export function listarNotasEvaluacion(evaluacion) {
-  return USAR_MOCK
-    ? listarNotasEvaluacionMock(evaluacion.id)
-    : solicitar(`/evaluaciones/${encodeURIComponent(evaluacion.id)}/notas`);
+export async function listarNotasEvaluacion(evaluacion) {
+  const respuesta = USAR_MOCK
+    ? await listarNotasEvaluacionMock(evaluacion.id)
+    : await solicitar(`/evaluaciones/${encodeURIComponent(evaluacion.id)}/notas`);
+  if (!respuesta.exitoso) return respuesta;
+  if (!Array.isArray(respuesta.datos)) {
+    return fallo('El backend devolvió un formato de notas no válido.');
+  }
+  return { ...respuesta, datos: respuesta.datos.map(normalizarNota) };
 }
 
 function evaluacionEsDelAnioVigente(evaluacion, anioVigente) {
@@ -106,25 +267,51 @@ function evaluacionEsDelAnioVigente(evaluacion, anioVigente) {
   return String(evaluacion.anioAcademico) === String(anioVigente?.anio);
 }
 
-/** Valida en la capa de servicio y deja que el servidor vuelva a aplicar las mismas reglas. */
-export function guardarNotaEvaluacion(evaluacion, estudiante, nota, usuario, anioVigente) {
-  if (!ESCALA_NOTAS_EVALUACION.includes(nota)) {
+export function guardarNotaEvaluacion(evaluacion, estudiante, valorNota, usuario, anioVigente) {
+  if (!ESCALA_NOTAS_EVALUACION.includes(valorNota)) {
     return Promise.resolve(fallo('La nota debe ser uno de los valores permitidos: AD, A, B o C.'));
   }
   if (!evaluacionEsDelAnioVigente(evaluacion, anioVigente)) {
     return Promise.resolve(fallo('Las notas de las evaluaciones solo se registran con el año académico vigente.'));
   }
-  if (USAR_MOCK) return guardarNotaEvaluacionMock(evaluacion, estudiante, nota, usuario);
-
-  return solicitar(
-    `/evaluaciones/${encodeURIComponent(evaluacion.id)}/estudiantes/${encodeURIComponent(estudiante.id)}/nota`,
-    { metodo: 'PUT', cuerpo: { nota } }
-  );
+  const cuerpo = {
+    idEstudiante: USAR_MOCK ? estudiante.id : Number(estudiante.id),
+    valorNota
+  };
+  const respuesta = USAR_MOCK
+    ? guardarNotaEvaluacionMock(evaluacion, estudiante, valorNota, usuario)
+    : solicitar(`/evaluaciones/${encodeURIComponent(evaluacion.id)}/notas`, {
+      metodo: 'POST',
+      cuerpo
+    });
+  return Promise.resolve(respuesta).then((resultado) => resultado.exitoso
+    ? { ...resultado, datos: normalizarNota(resultado.datos) }
+    : resultado);
 }
 
-/** El servidor debe determinar el docente creador desde la sesión autenticada. */
-export function crearEvaluacion(datos, docente) {
-  return USAR_MOCK
-    ? crearEvaluacionMock(datos, docente)
-    : solicitar('/evaluaciones', { metodo: 'POST', cuerpo: datos });
+export async function crearEvaluacion(datos, asignacion, docente, competencia) {
+  const cuerpo = {
+    ...datos,
+    idCompetencia: USAR_MOCK ? datos.idCompetencia : Number(datos.idCompetencia),
+    idAsignacionCurso: USAR_MOCK ? datos.idAsignacionCurso : Number(datos.idAsignacionCurso)
+  };
+  const respuesta = USAR_MOCK
+    ? await crearEvaluacionMock({
+      ...cuerpo,
+      cursoId: asignacion.cursoId,
+      cursoNombre: asignacion.cursoNombre,
+      seccionId: asignacion.seccionId,
+      seccionNombre: asignacion.seccionNombre,
+      anioAcademicoId: asignacion.anioAcademico?.id,
+      anioAcademico: asignacion.anioAcademico?.anio,
+      nombreCompetencia: competencia?.nombre,
+      nombreCurso: asignacion.cursoNombre,
+      nombreSeccion: asignacion.seccionNombre
+    }, docente, asignacion)
+    : await solicitar('/evaluaciones', { metodo: 'POST', cuerpo });
+  if (!respuesta.exitoso) return respuesta;
+  return {
+    ...respuesta,
+    datos: normalizarEvaluacion(respuesta.datos, asignacion, asignacion.anioAcademico)
+  };
 }

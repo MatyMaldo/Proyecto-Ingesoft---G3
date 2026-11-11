@@ -5,9 +5,10 @@ import {
   crearEvaluacion,
   guardarNotasCompetencias,
   guardarNotaEvaluacion,
-  listarBimestresCompetencias,
+  listarBimestresAnio,
   listarContextoDocenteEvaluaciones,
   listarEstudiantesEvaluacion,
+  listarEstudiantesSeccionCompetencias,
   listarNotasEvaluacion,
   listarNotasCompetencias,
   listarEvaluaciones
@@ -55,17 +56,40 @@ export default function PaginaEvaluaciones() {
   async function cargar() {
     setEstado('cargando');
     setErrorCarga('');
-    const [respuestaContexto, respuestaEvaluaciones] = await Promise.all([
-      listarContextoDocenteEvaluaciones(usuario), listarEvaluaciones()
+    const respuestaContexto = await listarContextoDocenteEvaluaciones(usuario);
+    if (!respuestaContexto.exitoso) {
+      setErrorCarga(respuestaContexto.mensaje || 'No se pudo cargar la información de evaluaciones.');
+      setEstado('error');
+      return;
+    }
+    const anioAcademico = respuestaContexto.datos.anioAcademico;
+    const asignaciones = (respuestaContexto.datos.asignaciones ?? []).flatMap((curso) =>
+      curso.secciones.map((seccion) => ({
+        idAsignacionCurso: seccion.idAsignacionCurso,
+        cursoId: curso.cursoId,
+        cursoNombre: curso.cursoNombre,
+        seccionId: seccion.id,
+        seccionNombre: seccion.nombre,
+        gradoId: seccion.gradoId,
+        gradoNombre: seccion.gradoNombre,
+        anioAcademico
+      }))
+    );
+    const [respuestaBimestres, respuestasEvaluaciones] = await Promise.all([
+      listarBimestresAnio(anioAcademico.id),
+      Promise.all(asignaciones.map((item) =>
+        listarEvaluaciones(item.idAsignacionCurso, item, anioAcademico)
+      ))
     ]);
-    const error = [respuestaContexto, respuestaEvaluaciones].find((respuesta) => !respuesta.exitoso);
+    const error = [respuestaBimestres, ...respuestasEvaluaciones]
+      .find((respuesta) => !respuesta.exitoso);
     if (error) {
       setErrorCarga(error.mensaje || 'No se pudo cargar la información de evaluaciones.');
       setEstado('error');
       return;
     }
-    setContexto(respuestaContexto.datos);
-    setEvaluaciones(respuestaEvaluaciones.datos ?? []);
+    setContexto({ ...respuestaContexto.datos, bimestres: respuestaBimestres.datos });
+    setEvaluaciones(respuestasEvaluaciones.flatMap((respuesta) => respuesta.datos ?? []));
     const primeraAsignacion = respuestaContexto.datos.asignaciones?.[0];
     setCursoId((actual) => actual || String(primeraAsignacion?.cursoId ?? ''));
     setSeccionId((actual) => actual || String(primeraAsignacion?.secciones?.[0]?.id ?? ''));
@@ -79,6 +103,16 @@ export default function PaginaEvaluaciones() {
   const seccion = secciones.find((item) => String(item.id) === seccionId);
   const competencias = asignacion?.competencias ?? [];
   const bimestreFecha = encontrarBimestre(formulario.fecha, contexto?.bimestres);
+  const asignacionSeleccionada = seccion ? {
+    idAsignacionCurso: seccion.idAsignacionCurso,
+    cursoId: asignacion.cursoId,
+    cursoNombre: asignacion.cursoNombre,
+    seccionId: seccion.id,
+    seccionNombre: seccion.nombre,
+    gradoId: seccion.gradoId,
+    gradoNombre: seccion.gradoNombre,
+    anioAcademico: contexto?.anioAcademico
+  } : null;
 
   const evaluacionesVisibles = useMemo(() => evaluaciones.filter((item) =>
     String(item.cursoId) === cursoId && String(item.seccionId) === seccionId
@@ -117,7 +151,9 @@ export default function PaginaEvaluaciones() {
   function validar() {
     const nuevosErrores = {};
     if (!formulario.nombre.trim()) nuevosErrores.nombre = 'Ingresa el nombre de la evaluación.';
+    else if (formulario.nombre.trim().length > 160) nuevosErrores.nombre = 'El nombre no puede superar los 160 caracteres.';
     if (!formulario.descripcion.trim()) nuevosErrores.descripcion = 'Ingresa una descripción.';
+    else if (formulario.descripcion.trim().length > 1000) nuevosErrores.descripcion = 'La descripción no puede superar los 1000 caracteres.';
     if (!formulario.fecha) nuevosErrores.fecha = 'Selecciona la fecha de la evaluación.';
     else if (!formulario.fecha.startsWith(`${contexto?.anioAcademico?.anio}-`)) {
       nuevosErrores.fecha = `La fecha debe estar dentro del año académico ${contexto?.anioAcademico?.anio}.`;
@@ -139,17 +175,9 @@ export default function PaginaEvaluaciones() {
       nombre: formulario.nombre,
       descripcion: formulario.descripcion,
       fecha: formulario.fecha,
-      cursoId: asignacion.cursoId,
-      cursoNombre: asignacion.cursoNombre,
-      seccionId: seccion.id,
-      seccionNombre: seccion.nombre,
-      gradoId: seccion.gradoId,
-      gradoNombre: seccion.gradoNombre,
-      anioAcademicoId: contexto.anioAcademico.id,
-      anioAcademico: contexto.anioAcademico.anio,
-      competenciaId: competencia.id,
-      competenciaNombre: competencia.nombre
-    }, contexto.docente);
+      idCompetencia: competencia.id,
+      idAsignacionCurso: asignacionSeleccionada.idAsignacionCurso
+    }, asignacionSeleccionada, contexto.docente, competencia);
     setGuardando(false);
     if (!respuesta.exitoso) {
       setAviso(respuesta.mensaje || 'No se pudo registrar la evaluación.');
@@ -231,15 +259,22 @@ export default function PaginaEvaluaciones() {
     setErrorCompetencias('');
     setAvisoCompetencias('');
     setCargandoCompetencias(true);
-    const respuesta = await listarBimestresCompetencias(usuario, cursoId, seccionId);
+    const [respuestaEstudiantes, respuestaBimestres] = await Promise.all([
+      listarEstudiantesSeccionCompetencias(asignacionSeleccionada?.idAsignacionCurso),
+      listarBimestresAnio(contexto.anioAcademico.id)
+    ]);
     setCargandoCompetencias(false);
-    if (!respuesta.exitoso) {
-      setErrorCompetencias(respuesta.mensaje || 'No se pudieron cargar los bimestres finalizados.');
+    const error = [respuestaEstudiantes, respuestaBimestres].find((respuesta) => !respuesta.exitoso);
+    if (error) {
+      setErrorCompetencias(error.mensaje || 'No se pudieron cargar los datos de notas de competencias.');
       return;
     }
-    setBimestresFinalizados(respuesta.datos ?? []);
-    setBimestreCompetenciasId(respuesta.datos?.[0]?.id ?? '');
+    setEstudiantes(respuestaEstudiantes.datos ?? []);
+    const bimestresFinalizados = respuestaBimestres.datos.filter((item) => item.finalizado);
+    setBimestresFinalizados(bimestresFinalizados);
+    setBimestreCompetenciasId(bimestresFinalizados[0]?.id ?? '');
     setEstudianteCompetenciasId('');
+    setFormNotasCompetencias([]);
   }
 
   async function cargarNotasCompetencias(bimestreId, idEstudiante) {
@@ -249,7 +284,7 @@ export default function PaginaEvaluaciones() {
     }
     setCargandoCompetencias(true);
     setErrorCompetencias('');
-    const respuesta = await listarNotasCompetencias(cursoId, seccionId, bimestreId, idEstudiante);
+    const respuesta = await listarNotasCompetencias(cursoId, bimestreId, idEstudiante, competencias);
     setCargandoCompetencias(false);
     if (!respuesta.exitoso) {
       setErrorCompetencias(respuesta.mensaje || 'No se pudieron cargar las notas de competencias.');
@@ -257,7 +292,8 @@ export default function PaginaEvaluaciones() {
     }
     const registradas = respuesta.datos ?? [];
     setFormNotasCompetencias(competencias.map((competencia) => {
-      const nota = registradas.find((item) => String(item.competenciaId) === String(competencia.id));
+      const nota = registradas.find((item) => String(item.competenciaId) === String(competencia.id)
+        || String(item.nombre) === String(competencia.nombre));
       return {
         competenciaId: competencia.id,
         nombre: competencia.nombre,
@@ -286,20 +322,23 @@ export default function PaginaEvaluaciones() {
         return;
       }
     }
-    const bimestre = bimestresFinalizados.find((item) => item.id === bimestreCompetenciasId);
+    const bimestre = bimestresFinalizados.find((item) => String(item.id) === String(bimestreCompetenciasId));
     setGuardandoCompetencias(true);
     const respuesta = await guardarNotasCompetencias(usuario, {
-      cursoId,
-      cursoNombre: asignacion?.cursoNombre,
-      seccionId,
-      seccionNombre: seccion?.nombre,
-      estudianteId: estudianteCompetenciasId,
+      idAsignacionCurso: asignacionSeleccionada?.idAsignacionCurso,
+      idEstudiante: estudianteCompetenciasId,
+      idBimestre: bimestreCompetenciasId,
+      idCurso: cursoId,
+      idSeccion: seccionId,
       estudianteNombre: estudianteCompetencias?.nombre,
-      bimestreId: bimestreCompetenciasId,
       bimestreNombre: bimestre?.nombre,
-      anioAcademicoId: contexto.anioAcademico.id,
-      anioAcademico: contexto.anioAcademico.anio,
-      competencias: formNotasCompetencias
+      cursoNombre: asignacion?.cursoNombre,
+      calificaciones: formNotasCompetencias.map((item) => ({
+        idCompetencia: item.competenciaId,
+        nombre: item.nombre,
+        valorNota: item.nota,
+        conclusionDescriptiva: item.conclusionDescriptiva
+      }))
     });
     setGuardandoCompetencias(false);
     if (!respuesta.exitoso) {
@@ -371,11 +410,11 @@ export default function PaginaEvaluaciones() {
                   ) : (
                     <div className={estilos.campos}>
                       <label className={estilos.anchoCompleto}>Nombre de la evaluación <span aria-hidden="true">*</span>
-                        <input value={formulario.nombre} onChange={(evento) => setFormulario({ ...formulario, nombre: evento.target.value })} aria-invalid={Boolean(errores.nombre)} aria-describedby={errores.nombre ? 'error-nombre' : undefined} />
+                        <input maxLength={160} value={formulario.nombre} onChange={(evento) => setFormulario({ ...formulario, nombre: evento.target.value })} aria-invalid={Boolean(errores.nombre)} aria-describedby={errores.nombre ? 'error-nombre' : undefined} />
                         {errores.nombre && <small id="error-nombre" className={estilos.error}>{errores.nombre}</small>}
                       </label>
                       <label className={estilos.anchoCompleto}>Descripción <span aria-hidden="true">*</span>
-                        <textarea rows="3" value={formulario.descripcion} onChange={(evento) => setFormulario({ ...formulario, descripcion: evento.target.value })} aria-invalid={Boolean(errores.descripcion)} aria-describedby={errores.descripcion ? 'error-descripcion' : undefined} />
+                        <textarea maxLength={1000} rows="3" value={formulario.descripcion} onChange={(evento) => setFormulario({ ...formulario, descripcion: evento.target.value })} aria-invalid={Boolean(errores.descripcion)} aria-describedby={errores.descripcion ? 'error-descripcion' : undefined} />
                         {errores.descripcion && <small id="error-descripcion" className={estilos.error}>{errores.descripcion}</small>}
                       </label>
                       <label>Fecha <span aria-hidden="true">*</span>
