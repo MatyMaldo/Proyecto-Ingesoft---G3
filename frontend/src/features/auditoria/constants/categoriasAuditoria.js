@@ -68,7 +68,9 @@ const MAPA_ETIQUETAS_ROL = Object.freeze({
   TUTOR: 'Tutor',
   ESTUDIANTE: 'Estudiante',
   APODERADO: 'Apoderado',
-  SISTEMA: 'Sistema'
+  SISTEMA: 'Sistema',
+  // Intento fallido de inicio de sesión con un correo que no pertenece a ninguna cuenta (HU-SAT-04).
+  NO_DETERMINADO: 'No determinado'
 });
 
 /**

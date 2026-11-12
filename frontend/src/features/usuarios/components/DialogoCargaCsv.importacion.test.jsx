@@ -119,6 +119,23 @@ describe('DialogoCargaCsv · importación contra el backend', () => {
     expect(alImportacionCompleta).toHaveBeenCalledWith(3);
   });
 
+  it('muestra la barra indeterminada mientras el servidor valida y aún no hay filas procesadas', async () => {
+    iniciarCargaMasivaUsuarios.mockResolvedValue(INICIO);
+    consultarOperacionMasiva
+      .mockResolvedValueOnce(job('EN_PROCESO', { procesados: 0, fase: 'VALIDANDO' }))
+      .mockResolvedValue(job('COMPLETADO', { procesados: 3, exitosos: 3, fase: 'FINALIZADO', resultado: RESULTADO_TODAS_CREADAS }));
+    const { dialogo } = await prepararImportacion();
+
+    await importar(dialogo);
+
+    const progreso = await within(dialogo).findByRole('region', { name: 'Progreso de la importación' });
+    expect(await within(progreso).findByText('Validando las filas…')).toBeInTheDocument();
+    const barra = within(progreso).getByRole('progressbar', { name: 'Avance de la importación' });
+    expect(barra).not.toHaveAttribute('value');
+    expect(barra).not.toHaveAttribute('max');
+    await within(dialogo).findByRole('region', { name: 'Resultado de la importación' });
+  });
+
   it('muestra qué filas rechazó el servidor y por qué, sin cerrar el diálogo', async () => {
     iniciarCargaMasivaUsuarios.mockResolvedValue(INICIO);
     consultarOperacionMasiva.mockResolvedValue(job('COMPLETADO_CON_ERRORES', {

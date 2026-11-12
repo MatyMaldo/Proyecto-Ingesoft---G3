@@ -51,8 +51,8 @@ function crearResultadoPagina(respuesta) {
 
 /**
  * Lista auditorías usando los nombres de filtros y formato de paginación del API.
- * La búsqueda libre no forma parte del contrato y se limita a la página recibida
- * en el hook.
+ * La búsqueda libre (usuario o descripción) la resuelve el backend sobre todos los registros,
+ * no solo sobre la página recibida.
  */
 export async function listarRegistrosAuditoria(filtros = {}, opciones = {}) {
   if (USAR_MOCK) {
@@ -70,6 +70,7 @@ export async function listarRegistrosAuditoria(filtros = {}, opciones = {}) {
     accion: filtros.tipoAccion,
     fechaInicio: filtros.fechaDesde ? `${filtros.fechaDesde}T00:00:00` : undefined,
     fechaFin: filtros.fechaHasta ? `${filtros.fechaHasta}T23:59:59` : undefined,
+    busqueda: filtros.busqueda?.trim() || undefined,
     page: filtros.pagina ?? 0,
     size: TAMANIO_PAGINA_AUDITORIA,
     sort: 'fechaHora,desc'

@@ -144,13 +144,13 @@ describe('HU-SAT-04 · Búsqueda, "Actualizar" y "Limpiar filtros"', () => {
 
     await usuario.selectOptions(screen.getByLabelText('Módulo'), 'NOTAS');
     await usuario.selectOptions(screen.getByLabelText('Tipo de acción'), 'CREAR');
-    await usuario.type(screen.getByLabelText('Buscar usuario o descripción en la página'), 'zzz');
+    await usuario.type(screen.getByLabelText('Buscar usuario o descripción'), 'zzz');
     fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '2026-09-17' } });
     await usuario.click(await screen.findByRole('button', { name: 'Limpiar filtros' }));
 
     expect(screen.getByLabelText('Módulo')).toHaveValue('TODOS');
     expect(screen.getByLabelText('Tipo de acción')).toHaveValue('');
-    expect(screen.getByLabelText('Buscar usuario o descripción en la página')).toHaveValue('');
+    expect(screen.getByLabelText('Buscar usuario o descripción')).toHaveValue('');
     expect(screen.getByLabelText('Desde')).toHaveValue('');
     expect(screen.getByLabelText('Hasta')).toHaveValue('');
     expect(screen.queryByRole('button', { name: 'Limpiar filtros' })).not.toBeInTheDocument();
@@ -176,7 +176,7 @@ describe('HU-SAT-04 · Búsqueda, "Actualizar" y "Limpiar filtros"', () => {
     const usuario = userEvent.setup();
     await renderizarYEsperar();
 
-    const buscador = screen.getByLabelText('Buscar usuario o descripción en la página');
+    const buscador = screen.getByLabelText('Buscar usuario o descripción');
     const actualizar = screen.getByRole('button', { name: 'Actualizar' });
     const desde = screen.getByLabelText('Desde');
     const hasta = screen.getByLabelText('Hasta');

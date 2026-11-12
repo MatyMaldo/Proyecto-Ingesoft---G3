@@ -3,7 +3,12 @@ import { fireEvent, render, screen, waitFor, within } from '@testing-library/rea
 import userEvent from '@testing-library/user-event';
 import { MemoryRouter } from 'react-router-dom';
 
-vi.mock('../../../shared/api/configuracionApi.js', () => ({ USAR_MOCK: true }));
+// La pantalla siempre consulta al backend; en las pruebas se sustituye el servicio por datos fijos.
+vi.mock('../services/logErroresService.js', async (importarOriginal) => {
+  const real = await importarOriginal();
+  const { obtenerErroresDePrueba } = await import('../pruebas/logErroresDePrueba.js');
+  return { ...real, obtenerErrores: obtenerErroresDePrueba };
+});
 
 import PaginaLogErrores from './PaginaLogErrores.jsx';
 
@@ -30,111 +35,170 @@ function renderizarPagina(ruta = '/') {
   );
 }
 
-const paginadorSuperior = () => screen.getByRole('navigation', { name: /superior/ });
-const paginadorInferior = () => screen.getByRole('navigation', { name: /inferior/ });
+const paginador = () => screen.getByRole('navigation', { name: 'Paginación de logs de errores' });
+const esperarListado = () => screen.findByRole('columnheader', { name: 'Mensaje' });
 
 describe('HU-SAT-05 · Logs de errores según el contrato paginado', () => {
-  it('muestra los campos del contrato y controles para la página siguiente', async () => {
+  it('muestra las columnas del listado, con el mensaje y sin operación ni estado HTTP', async () => {
     renderizarPagina();
+    await esperarListado();
 
-    await screen.findByRole('columnheader', { name: 'Operación' }, { timeout: 3000 });
-    expect(screen.getByRole('columnheader', { name: 'Módulo' })).toBeInTheDocument();
-    expect(screen.queryByRole('columnheader', { name: 'Mensaje' })).not.toBeInTheDocument();
-    expect(screen.queryByRole('columnheader', { name: 'Estado HTTP' })).not.toBeInTheDocument();
     const encabezados = screen.getAllByRole('columnheader').map((columna) => columna.textContent);
-    expect(encabezados.slice(-2)).toEqual(['Usuario', 'Detalle']);
-    // El mismo paginador (resumen + campo de página) aparece arriba y abajo, sincronizado.
-    for (const paginador of [paginadorSuperior(), paginadorInferior()]) {
-      expect(within(paginador).getByText('1 – 10 de 18 errores')).toBeInTheDocument();
-      expect(within(paginador).getByLabelText('Número de página')).toHaveValue(1);
-      expect(within(paginador).getByText('de 2')).toBeInTheDocument();
-      expect(within(paginador).getByRole('button', { name: 'Primera página' })).toBeDisabled();
-      expect(within(paginador).getByRole('button', { name: 'Página anterior' })).toBeDisabled();
-    }
-    expect(screen.queryByText('18 errores')).not.toBeInTheDocument();
+    expect(encabezados).toEqual(['Fecha y hora', 'Módulo', 'Tipo de error', 'Mensaje', 'Usuario', 'Detalle']);
 
-    await userEvent.click(within(paginadorSuperior()).getByRole('button', { name: 'Página siguiente' }));
+    const tabla = screen.getByRole('table');
+    expect(within(tabla).getByText('Valor fuera de rango: se esperaba AD/A/B/C')).toBeInTheDocument();
+    expect(within(tabla).queryByText('PUT /api/v1/notas')).not.toBeInTheDocument();
+    expect(within(tabla).queryByText('500')).not.toBeInTheDocument();
+  });
 
-    await waitFor(() => expect(within(paginadorInferior()).getByText('11 – 18 de 18 errores')).toBeInTheDocument(), { timeout: 3000 });
-    for (const paginador of [paginadorSuperior(), paginadorInferior()]) {
-      expect(within(paginador).getByLabelText('Número de página')).toHaveValue(2);
-      expect(within(paginador).getByRole('button', { name: 'Página siguiente' })).toBeDisabled();
-      expect(within(paginador).getByRole('button', { name: 'Última página' })).toBeDisabled();
-    }
+  it('muestra el total arriba y un único paginador al pie, sin repetir el resumen', async () => {
+    renderizarPagina();
+    await esperarListado();
+
+    expect(screen.getAllByRole('navigation')).toHaveLength(1);
+    expect(screen.getAllByText('1 – 10 de 18 errores')).toHaveLength(1);
+    expect(within(paginador()).queryByText('1 – 10 de 18 errores')).not.toBeInTheDocument();
+    expect(within(paginador()).getByLabelText('Número de página')).toHaveValue(1);
+    expect(within(paginador()).getByText('de 2')).toBeInTheDocument();
+    expect(within(paginador()).getByRole('button', { name: 'Primera página' })).toBeDisabled();
+    expect(within(paginador()).getByRole('button', { name: 'Página anterior' })).toBeDisabled();
+
+    await userEvent.click(within(paginador()).getByRole('button', { name: 'Página siguiente' }));
+
+    expect(await screen.findByText('11 – 18 de 18 errores')).toBeInTheDocument();
+    expect(within(paginador()).getByLabelText('Número de página')).toHaveValue(2);
+    expect(within(paginador()).getByRole('button', { name: 'Página siguiente' })).toBeDisabled();
+    expect(within(paginador()).getByRole('button', { name: 'Última página' })).toBeDisabled();
   });
 
   it('abre en la página indicada por la URL y anuncia la página actual', async () => {
     renderizarPagina('/?pagina=2');
 
-    await waitFor(() => expect(within(paginadorInferior()).getByText('11 – 18 de 18 errores')).toBeInTheDocument(), {
-      timeout: 3000
-    });
-    expect(within(paginadorInferior()).getByLabelText('Número de página')).toHaveValue(2);
-    expect(screen.getByRole('status')).toHaveTextContent('Página 2 de 2. Mostrando 8 errores');
+    expect(await screen.findByText('11 – 18 de 18 errores')).toBeInTheDocument();
+    expect(within(paginador()).getByLabelText('Número de página')).toHaveValue(2);
+    expect(screen.getByText('Página 2 de 2. Mostrando 8 errores')).toBeInTheDocument();
   });
 
-  it('permite escribir el número de página (se confirma al salir del campo) en cualquiera de los dos paginadores', async () => {
+  it('permite escribir el número de página (se confirma al salir del campo) y ajusta los fuera de rango', async () => {
     renderizarPagina();
-    await waitFor(() => expect(within(paginadorInferior()).getByText('1 – 10 de 18 errores')).toBeInTheDocument(), {
-      timeout: 3000
-    });
+    await esperarListado();
 
-    await userEvent.clear(within(paginadorInferior()).getByLabelText('Número de página'));
-    await userEvent.type(within(paginadorInferior()).getByLabelText('Número de página'), '2');
+    await userEvent.clear(within(paginador()).getByLabelText('Número de página'));
+    await userEvent.type(within(paginador()).getByLabelText('Número de página'), '2');
     await userEvent.tab();
-    await waitFor(() => expect(within(paginadorSuperior()).getByText('11 – 18 de 18 errores')).toBeInTheDocument(), { timeout: 3000 });
+    expect(await screen.findByText('11 – 18 de 18 errores')).toBeInTheDocument();
 
-    // Un número fuera de rango se ajusta al límite.
-    await userEvent.clear(within(paginadorSuperior()).getByLabelText('Número de página'));
-    await userEvent.type(within(paginadorSuperior()).getByLabelText('Número de página'), '99');
+    await userEvent.clear(within(paginador()).getByLabelText('Número de página'));
+    await userEvent.type(within(paginador()).getByLabelText('Número de página'), '99');
     await userEvent.tab();
-    expect(within(paginadorSuperior()).getByLabelText('Número de página')).toHaveValue(2);
+    expect(within(paginador()).getByLabelText('Número de página')).toHaveValue(2);
 
-    await userEvent.clear(within(paginadorSuperior()).getByLabelText('Número de página'));
-    await userEvent.type(within(paginadorSuperior()).getByLabelText('Número de página'), '0');
+    await userEvent.clear(within(paginador()).getByLabelText('Número de página'));
+    await userEvent.type(within(paginador()).getByLabelText('Número de página'), '0');
     await userEvent.tab();
-    await waitFor(() => expect(within(paginadorInferior()).getByText('1 – 10 de 18 errores')).toBeInTheDocument(), { timeout: 3000 });
+    expect(await screen.findByText('1 – 10 de 18 errores')).toBeInTheDocument();
   });
 
   it('filtra por módulo y por texto, y los combina', async () => {
     renderizarPagina();
-    await waitFor(() => expect(within(paginadorInferior()).getByText('1 – 10 de 18 errores')).toBeInTheDocument(), { timeout: 3000 });
+    await esperarListado();
 
     await userEvent.selectOptions(screen.getByLabelText('Módulo'), 'AUTENTICACION');
-    await waitFor(() => expect(within(paginadorSuperior()).getByText('1 – 2 de 2 errores')).toBeInTheDocument(), { timeout: 3000 });
-    expect(screen.getAllByText('Iniciar sesión').length).toBeGreaterThan(0);
+    expect(await screen.findByText('1 – 2 de 2 errores')).toBeInTheDocument();
+    expect(screen.getAllByText('Tiempo de espera agotado al validar las credenciales').length).toBeGreaterThan(0);
 
     await userEvent.type(screen.getByLabelText('Buscar por mensaje, tipo de error o usuario'), 'garcia');
-    await waitFor(() => expect(screen.queryAllByText('Iniciar sesión')).toHaveLength(0), { timeout: 3000 });
-    expect(screen.getAllByText('Cerrar sesión').length).toBeGreaterThan(0);
+    await waitFor(
+      () => expect(screen.queryAllByText('Tiempo de espera agotado al validar las credenciales')).toHaveLength(0),
+      { timeout: 3000 }
+    );
+    expect(screen.getAllByText('Error al invalidar la sesión').length).toBeGreaterThan(0);
   });
 
-  it('abre el detalle con el ojo y muestra mensaje y detalle técnico en un panel de solo lectura', async () => {
+  it('abre el detalle con el ojo y muestra operación, estado HTTP, mensaje y detalle técnico', async () => {
     renderizarPagina();
-    await screen.findAllByRole('button', { name: /^Ver detalle/ }, { timeout: 3000 });
+    await esperarListado();
 
     await userEvent.click(screen.getAllByRole('button', { name: /^Ver detalle: Excepción no controlada/ })[0]);
 
-    expect(screen.getByRole('heading', { name: 'Detalle del error 9' })).toBeInTheDocument();
-    expect(screen.getAllByText('Valor fuera de rango: se esperaba AD/A/B/C').length).toBeGreaterThan(0);
-    expect(screen.getByText(/IllegalArgumentException/)).toBeInTheDocument();
-    expect(screen.getByText('PUT /api/v1/notas')).toBeInTheDocument();
-    expect(screen.getByText('500')).toBeInTheDocument();
+    const panel = screen.getByRole('dialog');
+    expect(within(panel).getByRole('heading', { name: 'Detalle del error' })).toBeInTheDocument();
+    expect(within(panel).getByText('ID 9')).toBeInTheDocument();
+    expect(within(panel).queryByText('Endpoint')).not.toBeInTheDocument();
+    const operacion = within(panel).getByText('Operación').nextElementSibling;
+    expect(within(operacion).getByText('PUT')).toBeInTheDocument();
+    expect(within(operacion).getByText('/api/v1/notas')).toBeInTheDocument();
+    expect(within(panel).getByText('500')).toBeInTheDocument();
+    expect(within(panel).getByText('Valor fuera de rango: se esperaba AD/A/B/C')).toBeInTheDocument();
+    expect(within(panel).getByText(/IllegalArgumentException/)).toBeInTheDocument();
   });
 
-  it('muestra la operación en la tabla y deja endpoint y estado HTTP solo en el detalle', async () => {
+  it('abre el detalle con un clic en cualquier parte de la fila', async () => {
     renderizarPagina();
+    await esperarListado();
 
-    await screen.findAllByText('Guardar calificación', {}, { timeout: 3000 });
-    expect(screen.queryByText('PUT /api/v1/notas')).not.toBeInTheDocument();
-    expect(screen.queryByText('500')).not.toBeInTheDocument();
+    const tabla = screen.getByRole('table');
+    await userEvent.click(within(tabla).getByText('No se pudo almacenar el comprobante en el servidor'));
+
+    expect(screen.getByRole('heading', { name: 'Detalle del error' })).toBeInTheDocument();
+    expect(screen.getByText('ID 7')).toBeInTheDocument();
+  });
+
+  it('en un proceso automático la operación del detalle es «—»', async () => {
+    renderizarPagina();
+    await esperarListado();
+
+    await userEvent.click(screen.getAllByRole('button', { name: /^Ver detalle: Proceso automático/ })[0]);
+
+    const panel = screen.getByRole('dialog');
+    const operacion = within(panel).getByText('Operación');
+    expect(operacion.nextElementSibling).toHaveTextContent('—');
+  });
+
+  it('copia el detalle técnico al portapapeles y lo confirma', async () => {
+    const usuario = userEvent.setup();
+    const escribir = vi.spyOn(navigator.clipboard, 'writeText').mockResolvedValue();
+    renderizarPagina();
+    await esperarListado();
+
+    await usuario.click(screen.getAllByRole('button', { name: /^Ver detalle: Excepción no controlada/ })[0]);
+    await usuario.click(screen.getByRole('button', { name: 'Copiar detalle' }));
+
+    expect(escribir).toHaveBeenCalledWith(expect.stringContaining('IllegalArgumentException'));
+    expect(await screen.findByRole('button', { name: 'Detalle copiado' })).toBeInTheDocument();
+    expect(within(screen.getByRole('dialog')).getByRole('status')).toHaveTextContent('Detalle copiado al portapapeles');
+    escribir.mockRestore();
+  });
+
+  it('muestra la fecha sin año si es del año en curso y con año si es anterior', async () => {
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2027-03-01T12:00:00-05:00') });
+    try {
+      renderizarPagina();
+      await esperarListado();
+      const tabla = screen.getByRole('table');
+      expect(within(tabla).getByText('19/09/2026')).toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
+
+    vi.useFakeTimers({ toFake: ['Date'], now: new Date('2026-11-12T12:00:00-05:00') });
+    try {
+      renderizarPagina();
+      await waitFor(() => expect(screen.getAllByRole('table')).toHaveLength(2));
+      const tabla = screen.getAllByRole('table')[1];
+      expect(within(tabla).getByText('19/09')).toBeInTheDocument();
+      expect(within(tabla).queryByText('19/09/2026')).not.toBeInTheDocument();
+    } finally {
+      vi.useRealTimers();
+    }
   });
 });
 
 describe('Log de errores · coherencia con Usuarios y Auditorías', () => {
   it('muestra título y descripción de solo lectura, sin el rótulo repetido del breadcrumb', async () => {
     renderizarPagina();
-    await screen.findByRole('columnheader', { name: 'Operación' }, { timeout: 3000 });
+    await esperarListado();
 
     expect(screen.getByRole('heading', { level: 1, name: 'Log de Errores del Sistema' })).toBeInTheDocument();
     expect(screen.queryByText(/Módulo de administración/i)).not.toBeInTheDocument();
@@ -143,7 +207,7 @@ describe('Log de errores · coherencia con Usuarios y Auditorías', () => {
 
   it('no muestra los filtros elegidos como chips; "Limpiar filtros" aparece solo con algún criterio y lo restablece todo', async () => {
     renderizarPagina();
-    await screen.findByRole('columnheader', { name: 'Operación' }, { timeout: 3000 });
+    await esperarListado();
     expect(screen.queryByRole('button', { name: 'Limpiar filtros' })).not.toBeInTheDocument();
 
     await userEvent.selectOptions(screen.getByLabelText('Módulo'), 'PAGOS');
@@ -158,7 +222,7 @@ describe('Log de errores · coherencia con Usuarios y Auditorías', () => {
 
   it('sin resultados muestra solo el mensaje: el único "Limpiar filtros" es el de la barra del buscador', async () => {
     renderizarPagina();
-    await screen.findByRole('columnheader', { name: 'Operación' }, { timeout: 3000 });
+    await esperarListado();
 
     fireEvent.change(screen.getByLabelText('Desde'), { target: { value: '2001-01-01' } });
     fireEvent.change(screen.getByLabelText('Hasta'), { target: { value: '2001-01-02' } });
@@ -170,13 +234,13 @@ describe('Log de errores · coherencia con Usuarios y Auditorías', () => {
     const botones = screen.getAllByRole('button', { name: 'Limpiar filtros' });
     expect(botones).toHaveLength(1);
     await userEvent.click(botones[0]);
-    expect(await screen.findByRole('columnheader', { name: 'Operación' }, { timeout: 3000 })).toBeInTheDocument();
+    expect(await esperarListado()).toBeInTheDocument();
     expect(screen.getByLabelText('Desde')).toHaveValue('');
   });
 
   it('pone el buscador con "Actualizar" en la primera línea y las fechas antes que el módulo', async () => {
     renderizarPagina();
-    await screen.findByRole('columnheader', { name: 'Operación' }, { timeout: 3000 });
+    await esperarListado();
 
     const buscador = screen.getByLabelText('Buscar por mensaje, tipo de error o usuario');
     const actualizar = screen.getByRole('button', { name: 'Actualizar' });
@@ -191,27 +255,28 @@ describe('Log de errores · coherencia con Usuarios y Auditorías', () => {
     expect(viene(hasta, modulo)).toBe(true);
 
     await userEvent.click(actualizar);
-    expect(await screen.findByRole('columnheader', { name: 'Operación' }, { timeout: 3000 })).toBeInTheDocument();
+    expect(await esperarListado()).toBeInTheDocument();
   });
 
-  it('con una sola página no repite el paginador abajo', async () => {
+  it('con una sola página no muestra el paginador, solo el total', async () => {
     renderizarPagina();
-    await screen.findByRole('columnheader', { name: 'Operación' }, { timeout: 3000 });
+    await esperarListado();
     await userEvent.selectOptions(screen.getByLabelText('Módulo'), 'AUTENTICACION');
-    await waitFor(() => expect(within(paginadorSuperior()).getByText('1 – 2 de 2 errores')).toBeInTheDocument(), { timeout: 3000 });
-    expect(screen.queryByRole('navigation', { name: /inferior/ })).not.toBeInTheDocument();
+
+    expect(await screen.findByText('1 – 2 de 2 errores')).toBeInTheDocument();
+    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
   });
 
   it('no muestra tarjetas de resumen', async () => {
     renderizarPagina();
-    await screen.findByRole('columnheader', { name: 'Operación' }, { timeout: 3000 });
+    await esperarListado();
 
     expect(screen.queryByRole('list', { name: 'Resumen de errores' })).not.toBeInTheDocument();
   });
 
   it('usa módulo neutro; rojo para la excepción, azul para el correo y gris para el proceso automático', async () => {
     renderizarPagina();
-    await screen.findByRole('columnheader', { name: 'Operación' }, { timeout: 3000 });
+    await esperarListado();
 
     const tabla = screen.getByRole('table');
     const filas = within(tabla).getAllByRole('row').slice(1);
@@ -227,13 +292,13 @@ describe('Log de errores · coherencia con Usuarios y Auditorías', () => {
     expect(screen.queryByRole('columnheader', { name: /HTTP|código/i })).not.toBeInTheDocument();
   });
 
-  it('muestra el avatar con iniciales junto al usuario, incluido "Sistema"', async () => {
+  it('muestra el usuario solo con su nombre, sin avatar de iniciales', async () => {
     renderizarPagina();
-    await screen.findByRole('columnheader', { name: 'Operación' }, { timeout: 3000 });
+    await esperarListado();
 
     const filas = within(screen.getByRole('table')).getAllByRole('row').slice(1);
     const filaSistema = filas.find((fila) => within(fila).queryByText('Sistema'));
     expect(filaSistema).toBeDefined();
-    expect(within(filaSistema).getByText('S')).toBeInTheDocument();
+    expect(within(filaSistema).queryByText('S')).not.toBeInTheDocument();
   });
 });

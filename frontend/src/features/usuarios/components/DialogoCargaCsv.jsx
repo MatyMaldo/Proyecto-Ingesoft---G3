@@ -27,10 +27,12 @@ import DialogoDescartarCambios from './DialogoDescartarCambios.jsx';
 // La revisión se pagina: con 8 filas por página la tabla cabe en el diálogo sin desplazarse (las tarjetas de las
 // pantallas compactas son más altas, y el archivo puede traer hasta 1000 filas).
 const FILAS_POR_PAGINA = 8;
-// Consulta del avance de la importación: la primera enseguida (un archivo pequeño termina en décimas de segundo) y las
-// siguientes cada segundo. Tras varios fallos seguidos se da la consulta por perdida.
-const PRIMERA_CONSULTA_MS = 250;
+// Consulta del avance de la importación: cada 250 ms durante los primeros segundos (1000 filas se importan en ~2 s y
+// con un intervalo mayor la barra saltaba de vacía a llena) y cada segundo si la operación se alarga, para no saturar
+// al servidor. Tras varios fallos seguidos se da la consulta por perdida.
+const INTERVALO_RAPIDO_MS = 250;
 const INTERVALO_CONSULTA_MS = 1000;
+const DURACION_INTERVALO_RAPIDO_MS = 5000;
 const MAX_FALLOS_CONSULTA = 3;
 const ETIQUETA_FASE = Object.freeze({
   VALIDANDO: 'Validando las filas…',
@@ -317,10 +319,9 @@ export default function DialogoCargaCsv({ usuarios, alImportar, alRecargar, alIm
 
     let job = null;
     let fallos = 0;
-    let espera = PRIMERA_CONSULTA_MS;
+    const inicioConsulta = Date.now();
     while (montadoRef.current) {
-      await esperar(espera);
-      espera = INTERVALO_CONSULTA_MS;
+      await esperar(Date.now() - inicioConsulta < DURACION_INTERVALO_RAPIDO_MS ? INTERVALO_RAPIDO_MS : INTERVALO_CONSULTA_MS);
       const respuesta = await consultarOperacionMasiva(inicio.datos.jobId);
       if (!montadoRef.current) return;
       if (!respuesta.exitoso) {
@@ -652,10 +653,10 @@ export default function DialogoCargaCsv({ usuarios, alImportar, alRecargar, alIm
                 </span>
                 <span className={estilos.zonaAyuda}>{progreso.etiqueta}</span>
               </div>
+              {/* Sin `value` la barra es indeterminada: mientras el servidor valida aún no hay filas procesadas. */}
               <progress
                 className={estilos.barra}
-                value={progreso.hechas}
-                max={progreso.total}
+                {...(progreso.hechas > 0 ? { value: progreso.hechas, max: progreso.total } : {})}
                 aria-label="Avance de la importación"
               />
               <p className={estilos.nota}>Esto puede tardar unos minutos. No cierres esta ventana hasta que termine.</p>

@@ -10,6 +10,7 @@ import { ROLES } from '../../../shared/auth/roles.js';
 import ConsultaNotasFamilia from '../../evaluaciones/components/ConsultaNotasFamilia.jsx';
 import { puedeGestionarCursos } from '../constants/permisosCursos.js';
 import useCursos from '../hooks/useCursos.js';
+import PaginaCursosEstudiante from './PaginaCursosEstudiante.jsx';
 import estilos from './PaginaCursos.module.css';
 
 const ID_TITULO_LISTA = 'cursos-titulo-lista';
@@ -21,7 +22,11 @@ const ID_TITULO_LISTA = 'cursos-titulo-lista';
 export default function PaginaCursos() {
   const { usuario } = useAuth();
 
-  if (usuario?.rol === ROLES.ESTUDIANTE || usuario?.rol === ROLES.APODERADO) {
+  if (usuario?.rol === ROLES.ESTUDIANTE) {
+    return <PaginaCursosEstudiante />;
+  }
+
+  if (usuario?.rol === ROLES.APODERADO) {
     return <ConsultaNotasFamilia />;
   }
 

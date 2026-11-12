@@ -1,5 +1,3 @@
-import { obtenerErroresMock } from './mocks/logErroresMock.js';
-import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import { solicitar } from '../../../shared/api/clienteHttp.js';
 
 /** Errores por página: 10 en 10, igual que el resto de listados del panel (antes 15). */
@@ -7,13 +5,13 @@ export const TAMANIO_PAGINA_LOG_ERRORES = 10;
 
 /**
  * Indica si el origen de datos soporta el filtro de módulo y el buscador.
- * Lo soportan los mocks y el backend real (`GET /admin/logs-error` acepta `modulo` y
- * `busqueda`, y devuelve `modulo` y `moduloEtiqueta`). Se conserva por si algún origen no los admite.
+ * El backend (`GET /admin/logs-error`) acepta `modulo` y `busqueda`, y devuelve `modulo` y
+ * `moduloEtiqueta`. Se conserva por si algún origen no los admite.
  */
 export const SOPORTA_FILTRO_MODULO_Y_BUSQUEDA = true;
 
 /**
- * El front usa los códigos de módulo de sus mocks y del selector; el backend usa los del enum
+ * El front usa los códigos de módulo de su selector; el backend usa los del enum
  * `Modulo`. Solo difieren estos dos (el resto coincide).
  */
 const MODULO_FRONT_A_BACKEND = Object.freeze({
@@ -53,47 +51,11 @@ function normalizarPagina(datos) {
 }
 
 /**
- * Lista logs de errores con el contrato GET /api/admin/logs-error.
+ * Lista logs de errores con el contrato GET /api/admin/logs-error. Este módulo siempre consulta
+ * al backend: no tiene datos simulados en memoria.
  * Las fechas recibidas son inclusivas y se convierten al inicio/final del día.
  */
 export async function obtenerErrores(filtros = {}, opciones = {}) {
-  if (USAR_MOCK) {
-    const respuesta = await obtenerErroresMock(filtros);
-    if (!respuesta.exitoso) {
-      return respuesta;
-    }
-
-    const todos = respuesta.datos.map((registro) => ({
-      id: registro.id,
-      fechaHora: registro.fechaHora,
-      usuarioId: registro.usuarioId ?? null,
-      nombreUsuario: registro.nombreUsuario ?? registro.usuario ?? null,
-      modulo: registro.modulo ?? null,
-      operacion: registro.operacion ?? null,
-      tipoError: registro.tipoError,
-      mensaje: registro.mensaje,
-      detalle: registro.detalle ?? '',
-      endpoint: registro.endpoint ?? null,
-      metodoHttp: registro.metodoHttp ?? null,
-      codigoEstado: registro.codigoEstado ?? null
-    }));
-    const pagina = filtros.page ?? 0;
-    const totalElementos = todos.length;
-    const totalPaginas = Math.ceil(totalElementos / TAMANIO_PAGINA_LOG_ERRORES);
-    const inicio = pagina * TAMANIO_PAGINA_LOG_ERRORES;
-
-    return {
-      exitoso: true,
-      datos: {
-        registros: todos.slice(inicio, inicio + TAMANIO_PAGINA_LOG_ERRORES),
-        pagina,
-        totalPaginas,
-        totalElementos
-      },
-      mensaje: ''
-    };
-  }
-
   const respuesta = await solicitar('/admin/logs-error', {
     sinVersionApi: true,
     parametros: {

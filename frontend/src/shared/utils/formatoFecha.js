@@ -61,3 +61,22 @@ export function formatearFechaVisible(fecha) {
   const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fecha ?? '');
   return partes ? `${partes[3]}/${partes[2]}/${partes[1]}` : fecha;
 }
+
+/**
+ * Fecha corta para listados: `DD/MM` si la fecha es del año en curso (zona America/Lima) y
+ * `DD/MM/AAAA` si es de otro año, para que los registros antiguos no se confundan.
+ *
+ * @param {string} fecha Fecha `AAAA-MM-DD`.
+ * @param {Date} [hoy] Fecha de referencia; por defecto, la actual.
+ * @returns {string} La misma cadena si no tiene el formato esperado.
+ */
+export function formatearFechaCompacta(fecha, hoy = new Date()) {
+  const partes = /^(\d{4})-(\d{2})-(\d{2})$/.exec(fecha ?? '');
+  if (!partes) {
+    return fecha;
+  }
+
+  const anioActual = FORMATEADOR_FECHA.format(hoy).slice(0, 4);
+  const diaMes = `${partes[3]}/${partes[2]}`;
+  return partes[1] === anioActual ? diaMes : `${diaMes}/${partes[1]}`;
+}
