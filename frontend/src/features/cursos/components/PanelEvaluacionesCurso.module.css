@@ -1,0 +1,224 @@
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+
+.controles {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-3);
+}
+
+.insigniaIcono {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-2);
+}
+
+.vacio {
+  margin: 0;
+  padding: var(--espacio-4);
+  font-size: var(--texto-md);
+  color: var(--color-texto-suave);
+  background: var(--color-superficie-suave);
+  border-radius: var(--radio-md);
+}
+
+.tablaDesbordable {
+  overflow-x: auto;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-sm);
+}
+
+.tabla {
+  width: 100%;
+  min-width: 36rem;
+  border-collapse: collapse;
+  font-size: var(--texto-md);
+}
+
+.tabla th,
+.tabla td {
+  padding: var(--espacio-3);
+  text-align: left;
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.tabla thead th {
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+  background: var(--color-superficie-suave);
+}
+
+.tabla tbody tr:last-child th,
+.tabla tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tabla tbody th {
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+}
+
+.colCompetencia {
+  min-width: 11rem;
+}
+
+/* Evaluaciones del bimestre elegido y logro por competencia: columnas centradas y separadas de la competencia. */
+.tabla th.grupoEvaluaciones,
+.tabla th.grupoLogro,
+.tabla th.colEvaluacion,
+.tabla th.colBimestre,
+.tabla td.colEvaluacion,
+.tabla td.colBimestre {
+  text-align: center;
+}
+
+.grupoEvaluaciones,
+.grupoLogro,
+.colEvaluacion,
+.colBimestre {
+  border-left: 1px solid var(--color-borde);
+}
+
+.colEvaluacion {
+  min-width: 4.5rem;
+}
+
+.colBimestre {
+  min-width: 5.5rem;
+}
+
+/* El grupo "Logro por competencia" se distingue como en el prototipo (tinte azul en el encabezado). */
+.tabla thead .grupoLogro {
+  color: var(--color-primario-intenso);
+  background: var(--tono-azul-fondo);
+}
+
+.sinDato,
+.sinNota {
+  font-size: var(--texto-md);
+  color: var(--color-texto-suave);
+}
+
+.sinNota {
+  font-style: italic;
+}
+
+.bloque {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  padding: var(--espacio-5);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-sm);
+}
+
+.tituloBloque {
+  margin: 0;
+  font-size: var(--texto-base);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+}
+
+.listaEvaluaciones {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.evaluacion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  padding: var(--espacio-4);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+}
+
+.resumenEvaluacion {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+}
+
+.nombreEvaluacion {
+  display: block;
+  font-size: var(--texto-base);
+  color: var(--color-texto);
+}
+
+.fechaEvaluacion {
+  font-size: var(--texto-md);
+  color: var(--color-texto-suave);
+}
+
+.desplegable summary {
+  width: fit-content;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-primario-intenso);
+  cursor: pointer;
+}
+
+.desplegable summary:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.desplegable[open] summary {
+  margin-bottom: var(--espacio-3);
+}
+
+.datosEvaluacion {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(14rem, 100%), 1fr));
+  gap: var(--espacio-3);
+  margin: 0;
+}
+
+.datosEvaluacion > div {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1);
+  padding: var(--espacio-3);
+  background: var(--color-superficie-suave);
+  border-radius: var(--radio-md);
+}
+
+.datosEvaluacion dt {
+  font-size: var(--texto-xs);
+  color: var(--color-texto-suave);
+}
+
+.datosEvaluacion dd {
+  margin: 0;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 767px) {
+  .bloque {
+    padding: var(--espacio-4);
+  }
+
+  .resumenEvaluacion {
+    flex-direction: column;
+  }
+}

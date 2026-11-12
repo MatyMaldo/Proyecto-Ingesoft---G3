@@ -2,7 +2,6 @@ import { beforeEach, describe, expect, it, vi } from 'vitest';
 
 const { solicitar } = vi.hoisted(() => ({ solicitar: vi.fn() }));
 
-vi.mock('../../../shared/api/configuracionApi.js', () => ({ USAR_MOCK: false }));
 vi.mock('../../../shared/api/clienteHttp.js', () => ({ solicitar }));
 
 import { obtenerErrores } from './logErroresService.js';

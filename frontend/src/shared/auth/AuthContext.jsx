@@ -10,6 +10,7 @@ import {
   obtenerTokenAlmacenado
 } from './almacenSesion.js';
 import { configurarCliente } from '../api/clienteHttp.js';
+import { registrarCierreSesion } from './sesionService.js';
 
 /**
  * Contexto de autenticación. Valor por defecto `null` para que `useAuth` pueda
@@ -90,6 +91,9 @@ export function AuthProvider({ children }) {
         establecerSesionEstado(nuevaSesion);
       },
       cerrarSesion() {
+        // Cierre voluntario: se avisa al backend para la auditoría antes de borrar el token y sin esperar su
+        // respuesta, para que la salida de la aplicación sea inmediata.
+        registrarCierreSesion();
         borrarSesionAlmacenada();
         establecerSesionEstado(null);
         navigate(RUTA_LOGIN, { replace: true });

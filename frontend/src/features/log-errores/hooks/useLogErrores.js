@@ -80,7 +80,6 @@ function adaptarFilaError(registro) {
       : '',
     // El módulo es neutro: solo el tipo de error y el código HTTP grave llevan color.
     moduloTono: 'gris',
-    operacion: registro.operacion ?? '',
     tipoError: registro.tipoError ?? 'Error',
     tipoErrorTono: TONOS_TIPO_ERROR[registro.tipoError] ?? 'gris',
     mensaje: registro.mensaje ?? '',
@@ -92,8 +91,7 @@ function adaptarFilaError(registro) {
 
 /**
  * Datos y comportamiento de la pantalla de Logs de Errores.
- * El backend pagina y solo filtra por rango de fechas, según su contrato. El módulo y la
- * búsqueda solo se envían si el origen de datos los soporta (hoy, los mocks).
+ * El backend pagina y filtra por rango de fechas, módulo y texto de búsqueda.
  */
 export default function useLogErrores() {
   const [errores, establecerErrores] = useState([]);

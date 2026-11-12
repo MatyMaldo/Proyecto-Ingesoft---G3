@@ -168,6 +168,10 @@ const CATALOGO_ICONOS = {
   verificar: [
     { tag: 'polyline', props: { points: '20 6 9 17 4 12' } }
   ],
+  copiar: [
+    { tag: 'rect', props: { width: 14, height: 14, x: 8, y: 8, rx: 2, ry: 2 } },
+    { tag: 'path', props: { d: 'M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2' } }
+  ],
   informacion: [
     { tag: 'circle', props: { cx: 12, cy: 12, r: 10 } },
     { tag: 'path', props: { d: 'M12 16v-4' } },
@@ -197,6 +201,10 @@ const CATALOGO_ICONOS = {
     { tag: 'path', props: { d: 'M16 21v-2a4 4 0 0 0-4-4H6a4 4 0 0 0-4 4v2' } },
     { tag: 'circle', props: { cx: 9, cy: 7, r: 4 } },
     { tag: 'polyline', props: { points: '16 11 18 13 22 9' } }
+  ],
+  aula: [
+    { tag: 'path', props: { d: 'M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8' } },
+    { tag: 'path', props: { d: 'M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' } }
   ]
 };
 
