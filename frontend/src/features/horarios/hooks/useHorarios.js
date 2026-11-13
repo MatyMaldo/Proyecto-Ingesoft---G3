@@ -15,6 +15,7 @@ import {
   eliminarAsignacion,
   guardarHorario,
   listarAsignaciones,
+  listarBimestres,
   listarOcupaciones,
   listarSeccionesHorario,
   obtenerHorario,
@@ -145,6 +146,7 @@ export default function useHorarios() {
   const contadorNuevos = useRef(0);
 
   const [periodo, establecerPeriodo] = useState(null);
+  const [bimestres, establecerBimestres] = useState([]);
   const [estadoPeriodo, establecerEstadoPeriodo] = useState('inactivo');
   const [errorPeriodo, establecerErrorPeriodo] = useState('');
 
@@ -193,7 +195,10 @@ export default function useHorarios() {
     async function cargarPeriodo() {
       establecerEstadoPeriodo('cargando');
       establecerErrorPeriodo('');
-      const resultado = await obtenerPeriodoMatricula(anioVigente.id);
+      const [resultado, respuestaBimestres] = await Promise.all([
+        obtenerPeriodoMatricula(anioVigente.id),
+        listarBimestres(anioVigente.id)
+      ]);
       if (cancelado) return;
       if (!resultado.exitoso) {
         establecerPeriodo(null);
@@ -204,6 +209,11 @@ export default function useHorarios() {
         return;
       }
       establecerPeriodo(resultado.datos ?? null);
+      establecerBimestres(
+        respuestaBimestres.exitoso && Array.isArray(respuestaBimestres.datos)
+          ? respuestaBimestres.datos
+          : []
+      );
       establecerEstadoPeriodo('listo');
     }
 
@@ -366,6 +376,9 @@ export default function useHorarios() {
   }, [hayCambios]);
 
   const anioVigente = buscarAnioAcademicoVigente(catalogos.anios);
+  const primerBimestre = bimestres.find((bimestre) => bimestre.nombre === 'BIM_1')
+    ?? bimestres[0]
+    ?? null;
   const puedeEditarAsignaciones = periodo?.asignacionCursoDocenteAbierta === true;
   const puedeEditarBloques = periodo?.crudBloquesHorarioAbierta === true;
   const puedeGenerarSesiones = periodo?.generacionSesionesAbierta === true;
@@ -383,6 +396,11 @@ export default function useHorarios() {
     const seccionSeleccionada = catalogos.secciones.find(
       (elemento) => String(elemento.id) === String(seccion)
     );
+    const anioSeleccionado = catalogos.anios.find(
+      (elemento) => String(elemento.id) === String(
+        seccionSeleccionada?.anioAcademicoId ?? seccionSeleccionada?.anioId
+      )
+    );
     establecerBloques({});
     establecerBloquesGuardados({});
     establecerConflictos([]);
@@ -394,7 +412,9 @@ export default function useHorarios() {
       seccionId: seccion,
       anioAcademicoId: seccionSeleccionada?.anioAcademicoId ?? seccionSeleccionada?.anioId,
       anioId: seccionSeleccionada?.anioAcademicoId ?? seccionSeleccionada?.anioId,
-      anioAcademico: seccionSeleccionada?.anioAcademico
+      anioAcademico: seccionSeleccionada?.anioAcademico,
+      fechaInicioAnio: anioSeleccionado?.fechaInicio,
+      fechaFinAnio: anioSeleccionado?.fechaFin
     });
   };
 
@@ -611,6 +631,7 @@ export default function useHorarios() {
     estadoPeriodo,
     errorPeriodo,
     anioVigente,
+    primerBimestre,
     puedeEditarAsignaciones,
     puedeEditarBloques,
     puedeGenerarSesiones,

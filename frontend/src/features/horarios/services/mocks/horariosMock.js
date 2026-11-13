@@ -267,6 +267,16 @@ export async function obtenerPeriodoMatriculaMock(anioId) {
   });
 }
 
+export async function listarBimestresMock(anioId) {
+  await esperar();
+  return ok([
+    { id: 1, nombre: 'BIM_1', fechaInicio: '2026-03-09', fechaFin: '2026-05-08' },
+    { id: 2, nombre: 'BIM_2', fechaInicio: '2026-05-18', fechaFin: '2026-07-17' },
+    { id: 3, nombre: 'BIM_3', fechaInicio: '2026-08-03', fechaFin: '2026-10-02' },
+    { id: 4, nombre: 'BIM_4', fechaInicio: '2026-10-12', fechaFin: '2026-12-18' }
+  ].map((bimestre) => ({ ...bimestre, anioAcademicoId: anioId })));
+}
+
 function fechasEntre(inicio, fin) {
   const fechas = [];
   const final = new Date(`${fin}T00:00:00Z`);
@@ -300,7 +310,8 @@ function crearVistaPreviaContrato({ gradoId, seccion, fechaInicio, fechaFin }) {
         cursoNombre: nombreDe(CURSOS, asignacion?.cursoId),
         docenteId: asignacion?.docenteId,
         docenteNombre: nombreDe(DOCENTES, asignacion?.docenteId),
-        yaExiste: false
+        yaExiste: false,
+        estado: null
       });
     });
   });
@@ -321,17 +332,69 @@ export async function generarSesionesContratoMock(datos) {
   const omisiones = new Set(
     (datos.sesionesOmitidas ?? []).map(({ bloqueHorarioId, fecha }) => `${bloqueHorarioId}|${fecha}`)
   );
-  const generadas = preview
-    .filter((sesion) => !omisiones.has(`${sesion.bloqueHorarioId}|${sesion.fecha}`))
-    .map((sesion, indice) => ({
-      ...sesion,
-      id: `${sesion.fecha}-${indice + 1}`,
-      estado: 'PROGRAMADA'
-    }));
-  const sesionesOmitidas = preview.length - generadas.length;
   const clave = `${datos.seccionId}|${datos.fechaInicio}|${datos.fechaFin}`;
+  const existentes = new Map(
+    (sesionesContrato.get(clave) ?? []).map((sesion) => [
+      `${sesion.bloqueHorarioId}|${sesion.fecha}`,
+      sesion
+    ])
+  );
+
+  let sesionesCreadas = 0;
+  let sesionesOmitidasCreadas = 0;
+  let sesionesOmitidasExistentes = 0;
+  let sesionesYaExistentes = 0;
+
+  const generadas = preview.map((sesion, indice) => {
+    const claveSesion = `${sesion.bloqueHorarioId}|${sesion.fecha}`;
+    const existente = existentes.get(claveSesion);
+    if (existente) {
+      if (omisiones.has(claveSesion) && existente.estado === 'OMITIDA') {
+        sesionesOmitidasExistentes += 1;
+      } else {
+        sesionesYaExistentes += 1;
+      }
+      return existente;
+    }
+
+    const estado = omisiones.has(claveSesion) ? 'OMITIDA' : 'PROGRAMADA';
+    if (estado === 'OMITIDA') sesionesOmitidasCreadas += 1;
+    else sesionesCreadas += 1;
+
+    return {
+      ...sesion,
+      id: `${sesion.fecha}-${sesion.bloqueHorarioId}-${indice + 1}`,
+      estado
+    };
+  });
+
   sesionesContrato.set(clave, generadas);
-  return ok({ sesionesCreadas: generadas.length, sesionesOmitidas });
+  return ok({
+    totalBloquesProcesados: new Set(preview.map((sesion) => sesion.bloqueHorarioId)).size,
+    sesionesCreadas,
+    sesionesYaExistentes,
+    sesionesOmitidas: sesionesOmitidasCreadas + sesionesOmitidasExistentes,
+    sesionesOmitidasCreadas,
+    sesionesOmitidasExistentes,
+    errores: []
+  });
+}
+
+export async function cambiarOmisionSesionMock(sesionId, omitida) {
+  await esperar();
+  for (const [clave, lista] of sesionesContrato.entries()) {
+    const indice = lista.findIndex((sesion) => String(sesion.id) === String(sesionId));
+    if (indice < 0) continue;
+    const actualizada = {
+      ...lista[indice],
+      estado: omitida ? 'OMITIDA' : 'PROGRAMADA'
+    };
+    const siguiente = [...lista];
+    siguiente[indice] = actualizada;
+    sesionesContrato.set(clave, siguiente);
+    return ok(actualizada);
+  }
+  return { exitoso: false, datos: null, mensaje: 'No se encontró la sesión en el mock.' };
 }
 
 export async function listarSesionesContratoMock({ seccionId, fechaInicio, fechaFin }) {

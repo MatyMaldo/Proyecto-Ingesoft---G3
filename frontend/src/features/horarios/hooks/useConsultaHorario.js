@@ -7,6 +7,7 @@ import {
   semanasDelRango
 } from '../utils/tiempo.js';
 import {
+  cambiarOmisionSesion,
   horarioApoderado,
   horarioDocente,
   horarioSeccion,
@@ -103,6 +104,7 @@ export default function useConsultaHorario(rol, nombreUsuario) {
   const [error, establecerError] = useState('');
   const [recarga, establecerRecarga] = useState(0);
   const [semanaSeleccionada, establecerSemanaSeleccionada] = useState(null);
+  const [cambiandoOmision, establecerCambiandoOmision] = useState([]);
 
   // Año académico vigente: define el rango por defecto y las secciones que se ofrecen.
   useEffect(() => {
@@ -385,6 +387,34 @@ export default function useConsultaHorario(rol, nombreUsuario) {
     if (semanaDeHoy) establecerSemanaSeleccionada(semanaDeHoy.inicio);
   };
 
+  /**
+   * Omite o restaura una sesión puntual. Solo el administrador llega a esta
+   * acción desde la matriz de consulta.
+   */
+  const cambiarOmision = async (sesion, omitida) => {
+    const id = sesion?.id;
+    if (id == null) {
+      return { exitoso: false, datos: null, mensaje: 'No se identificó la sesión.' };
+    }
+    const clave = String(id);
+    if (cambiandoOmision.includes(clave)) {
+      return { exitoso: false, datos: null, mensaje: 'La operación ya está en curso.' };
+    }
+
+    establecerCambiandoOmision((actual) => [...actual, clave]);
+    const respuesta = await cambiarOmisionSesion(id, omitida);
+    establecerCambiandoOmision((actual) => actual.filter((elemento) => elemento !== clave));
+
+    if (!respuesta?.exitoso) return respuesta;
+
+    establecerDatos((actual) => actual.map((elemento) => (
+      String(elemento.id) === clave
+        ? { ...elemento, ...(respuesta.datos ?? {}) }
+        : elemento
+    )));
+    return respuesta;
+  };
+
   /** Cambia de mes y deja seleccionada la semana de ese mes más cercana a hoy. */
   const seleccionarMes = (clave) => {
     const mes = meses.find((elemento) => elemento.clave === clave);
@@ -501,6 +531,8 @@ export default function useConsultaHorario(rol, nombreUsuario) {
     rangoPersonalizado,
     restablecerRango,
     limpiarFiltros,
+    cambiandoOmision,
+    cambiarOmision,
     recargar: () => establecerRecarga((actual) => actual + 1)
   };
 }

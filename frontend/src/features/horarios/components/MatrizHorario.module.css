@@ -327,6 +327,24 @@
   white-space: normal;
 }
 
+/* Sesión omitida: se mantiene visible, pero atenuada para no confundirla con un error. */
+.sesionOmitida {
+  opacity: 0.6;
+  border-style: dashed;
+  filter: grayscale(0.25);
+}
+
+.sesionSeleccionable {
+  width: 100%;
+  font: inherit;
+  text-align: left;
+}
+
+.sesionSeleccionable:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
 /* Celda sobre la que se suelta un bloque arrastrado. */
 .celda.destino {
   background: var(--color-accion-suave);

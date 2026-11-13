@@ -21,6 +21,7 @@ function jobInicial(datos) {
     porcentaje: datos.porcentaje ?? 0,
     fase: datos.fase ?? null,
     detalleErrores: datos.detalleErrores ?? [],
+    resultado: datos.resultado ?? null,
     creadoEn: datos.creadoEn ?? null,
     iniciadoEn: datos.iniciadoEn ?? null,
     finalizadoEn: datos.finalizadoEn ?? null

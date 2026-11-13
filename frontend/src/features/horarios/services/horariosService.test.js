@@ -14,6 +14,7 @@ import {
   actualizarBloqueHorario,
   actualizarAsignacion,
   cargarBloquesCsv,
+  cambiarOmisionSesion,
   crearBloqueHorario,
   crearAsignacion,
   descargarPlantillaBloquesCsv,
@@ -24,6 +25,7 @@ import {
   iniciarConfirmacionCargaMasivaAsync,
   iniciarGeneracionSesionesAsync,
   listarAsignaciones,
+  listarBimestres,
   listarBloquesDocente,
   listarBloquesHorario,
   listarSeccionesHorario,
@@ -258,8 +260,22 @@ describe('servicio de horarios · contrato API v1', () => {
     ]);
   });
 
-  it('inicia la confirmación de carga masiva asíncrona', async () => {
-    await iniciarConfirmacionCargaMasivaAsync({
+  it('consulta los bimestres del año académico', async () => {
+    await listarBimestres(2027);
+
+    expect(solicitar).toHaveBeenCalledWith('/anios-academicos/2027/bimestres');
+  });
+
+  it('cambia la omisión de una sesión con PATCH', async () => {
+    await cambiarOmisionSesion(12, true);
+
+    expect(solicitar).toHaveBeenCalledWith('/sesiones-clase/12/omision', {
+      metodo: 'PATCH',
+      cuerpo: { omitida: true }
+    });
+  });
+
+  it('inicia la confirmación de carga masiva asíncrona', async () => {    await iniciarConfirmacionCargaMasivaAsync({
       anioAcademicoId: 2,
       bloques: [{
         asignacionCursoId: 12,

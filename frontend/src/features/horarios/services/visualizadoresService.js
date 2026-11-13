@@ -1,5 +1,6 @@
 import { solicitar } from '../../../shared/api/clienteHttp.js';
 import {
+  cambiarOmisionSesion as cambiarOmisionSesionBase,
   listarSesiones,
   listarSesionesDocente,
   listarSesionesApoderado,
@@ -31,6 +32,10 @@ export function miHorarioEstudiante(parametros) {
 
 export function horarioApoderado(estudianteId, parametros) {
   return listarSesionesApoderado(estudianteId, parametros);
+}
+
+export function cambiarOmisionSesion(sesionId, omitida) {
+  return cambiarOmisionSesionBase(sesionId, omitida);
 }
 
 export function obtenerPeriodo(anioId) {

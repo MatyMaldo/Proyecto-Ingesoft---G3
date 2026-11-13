@@ -42,6 +42,7 @@ export default function PaginaHorarios() {
     estadoPeriodo,
     errorPeriodo,
     anioVigente,
+    primerBimestre,
     puedeEditarAsignaciones,
     puedeEditarBloques,
     puedeGenerarSesiones,
@@ -80,15 +81,24 @@ export default function PaginaHorarios() {
 
   const operacionSesiones = useOperacionMasiva({
     alTerminar: (job) => {
-      const conError = job.errores > 0
+      const resultado = job.resultado ?? {};
+      const errores = resultado.errores?.length ?? job.errores ?? 0;
+      const conError = errores > 0
         || job.estado === 'COMPLETADO_CON_ERRORES'
         || job.estado === 'FALLIDO';
-      mostrarNotificacion(
-        conError
-          ? `Generación de sesiones: ${job.exitosos} creadas, ${job.errores} errores.`
-          : `Se generaron ${job.exitosos} sesiones.`,
-        conError
-      );
+
+      const creadas = resultado.sesionesCreadas ?? job.exitosos ?? 0;
+      const omitidasCreadas = resultado.sesionesOmitidasCreadas ?? 0;
+      const omitidasExistentes = resultado.sesionesOmitidasExistentes ?? 0;
+      const yaExistian = resultado.sesionesYaExistentes ?? 0;
+
+      const partes = [`${creadas} creadas`];
+      if (omitidasCreadas > 0) partes.push(`${omitidasCreadas} omitidas`);
+      if (yaExistian > 0) partes.push(`${yaExistian} ya existían`);
+      if (omitidasExistentes > 0) partes.push(`${omitidasExistentes} ya estaban omitidas`);
+      if (errores > 0) partes.push(`${errores} errores`);
+
+      mostrarNotificacion(`Generación de sesiones: ${partes.join(', ')}.`, conError);
     }
   });
 
@@ -422,7 +432,7 @@ export default function PaginaHorarios() {
                     disabled={sinBloquesGuardados || horario.hayCambios || !puedeGenerarSesiones}
                     title={
                       !puedeGenerarSesiones
-                        ? 'La generación de sesiones solo está disponible con el periodo FINALIZADO.'
+                        ? 'La generación de sesiones se habilita desde el inicio del primer bimestre.'
                         : horario.hayCambios
                           ? 'Guarda el horario antes de generar sesiones.'
                           : sinBloquesGuardados
@@ -507,6 +517,8 @@ export default function PaginaHorarios() {
       {dialogoSesiones && (
         <DialogoSesiones
           consulta={consulta}
+          periodo={periodo}
+          primerBimestre={primerBimestre}
           tituloSeccion={tituloConsulta}
           alCancelar={() => establecerDialogoSesiones(false)}
           alNotificar={mostrarNotificacion}
