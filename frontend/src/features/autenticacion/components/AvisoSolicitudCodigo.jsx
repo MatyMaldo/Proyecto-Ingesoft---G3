@@ -1,5 +1,5 @@
 import Icono from '../../../shared/components/Icono.jsx';
-import { MENSAJE_SOLICITUD_CODIGO } from '../constants/mensajesRestablecimiento.js';
+import { MENSAJE_SOLICITUD_CODIGO, MENSAJE_VIGENCIA_CODIGO } from '../constants/mensajesRestablecimiento.js';
 import estilos from './AvisoSolicitudCodigo.module.css';
 
 /**
@@ -7,6 +7,7 @@ import estilos from './AvisoSolicitudCodigo.module.css';
  * confirma ni niega si la cuenta existe. El contenedor `role="status"` está
  * siempre montado para que el lector lo anuncie al aparecer; el contenido
  * solo se pinta si `visible` (docs/planes/restablecer-contrasena.md §4.6).
+ * Incluye la vigencia del código para que el usuario sepa cuánto tiempo tiene.
  *
  * @param {Object} props
  * @param {boolean} props.visible
@@ -17,7 +18,9 @@ export default function AvisoSolicitudCodigo({ visible }) {
       {visible && (
         <>
           <Icono nombre="informacion" tamano={18} className={estilos.icono} />
-          <span>{MENSAJE_SOLICITUD_CODIGO}</span>
+          <div>
+            <span>{MENSAJE_SOLICITUD_CODIGO}</span> <span>{MENSAJE_VIGENCIA_CODIGO}</span>
+          </div>
         </>
       )}
     </div>

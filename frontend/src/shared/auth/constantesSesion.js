@@ -34,7 +34,7 @@ export const RUTA_RESTABLECER_CONTRASENA = '/restablecer-contrasena';
 export const CLAVE_SESION = 'educoders.sesion';
 
 /**
- * Clave de `localStorage` para las preferencias de "Recordar mi sesión" (solo
+ * Clave de `localStorage` para las preferencias de "Recordar mi correo" (solo
  * el correo electrónico). Nunca se guarda aquí la contraseña ni ningún token
  * (decisión del usuario 2026-11-01, docs/planes/login.md D26).
  *

@@ -13,15 +13,35 @@ import estilos from './CampoCorreo.module.css';
  * @param {import('react').RefObject<HTMLInputElement>} props.refInput
  * @param {(valor: string) => void} props.alCambiar
  * @param {() => void} props.alSalir Validación de formato al perder el foco.
+ * @param {boolean} [props.soloLectura] Muestra el correo fijo, sin edición.
+ * @param {string} [props.textoAccion] Texto de la acción junto a la etiqueta (p. ej. "Cambiar correo").
+ * @param {() => void} [props.alAccion] Se llama al pulsar esa acción. Sin ambos, no se muestra.
  */
-export default function CampoCorreo({ id, valor, error, refInput, alCambiar, alSalir }) {
+export default function CampoCorreo({
+  id,
+  valor,
+  error,
+  refInput,
+  alCambiar,
+  alSalir,
+  soloLectura = false,
+  textoAccion,
+  alAccion
+}) {
   const idError = `${id}-error`;
 
   return (
     <div className={estilos.campo}>
-      <label htmlFor={id} className={estilos.etiqueta}>
-        Correo electrónico
-      </label>
+      <div className={estilos.filaEtiqueta}>
+        <label htmlFor={id} className={estilos.etiqueta}>
+          Correo electrónico
+        </label>
+        {textoAccion && alAccion && (
+          <button type="button" className={estilos.accion} onClick={alAccion}>
+            {textoAccion}
+          </button>
+        )}
+      </div>
       <div className={estilos.contenedor}>
         <Icono nombre="usuario" tamano={18} className={estilos.icono} />
         <input
@@ -33,6 +53,7 @@ export default function CampoCorreo({ id, valor, error, refInput, alCambiar, alS
           placeholder="Ingresa tu correo electrónico"
           className={estilos.entrada}
           value={valor}
+          readOnly={soloLectura}
           autoComplete="username"
           autoCapitalize="none"
           autoCorrect="off"

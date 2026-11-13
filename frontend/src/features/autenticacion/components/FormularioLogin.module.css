@@ -125,6 +125,22 @@
   outline-offset: 2px;
 }
 
+.avisoExito {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  padding: var(--espacio-3) var(--espacio-4);
+  font-size: var(--texto-md);
+  color: var(--color-exito-texto);
+  background: var(--color-exito-fondo);
+  border: 1px solid var(--color-exito-borde);
+  border-radius: var(--radio-md);
+}
+
+.avisoVacio {
+  display: none;
+}
+
 .alertaGeneral {
   display: flex;
   align-items: center;

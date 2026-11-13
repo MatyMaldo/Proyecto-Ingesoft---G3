@@ -3,9 +3,10 @@ import { useLocation, useNavigate } from 'react-router-dom';
 
 import { RUTA_LOGIN } from '../../../shared/auth/constantesSesion.js';
 import { MENSAJE_ERROR_INESPERADO } from '../constants/mensajesLogin.js';
-import { ESPERA_REENVIO_SEGUNDOS } from '../constants/reglasRestablecimiento.js';
+import { ESPERA_REENVIO_SEGUNDOS, LONGITUD_CODIGO, MAX_INTENTOS_CODIGO } from '../constants/reglasRestablecimiento.js';
 import {
   MENSAJE_CODIGO_INVALIDO,
+  MENSAJE_CODIGO_BLOQUEADO,
   MENSAJE_CONTRASENAS_NO_COINCIDEN,
   MENSAJES_POLITICA_CONTRASENA,
   ORDEN_REQUISITOS_POLITICA
@@ -19,7 +20,12 @@ import {
   evaluarPoliticaContrasena
 } from '../utils/validacionRestablecimiento.js';
 import { leerInstanteUltimaSolicitud, guardarInstanteUltimaSolicitud } from '../utils/esperaSolicitudCodigo.js';
-import { solicitarCodigo, restablecerContrasena, MOTIVOS_RECHAZO_RESTABLECIMIENTO } from '../services/restablecimientoService.js';
+import {
+  solicitarCodigo,
+  verificarCodigo,
+  restablecerContrasena,
+  MOTIVOS_RECHAZO_RESTABLECIMIENTO
+} from '../services/restablecimientoService.js';
 import useCuentaRegresiva from './useCuentaRegresiva.js';
 
 const VALORES_INICIALES = Object.freeze({
@@ -69,7 +75,7 @@ function validarCampo(nombre, valores) {
 /**
  * Estado y lógica de la pantalla "Restablecer contraseña" (HU-SAT-03,
  * pantalla (b)): valores de los cuatro campos, validación en cliente, llamada
- * a `restablecerContrasena` / `solicitarCodigo` y el aviso del Esc. 2
+ * a `verificarCodigo` (paso 1) / `restablecerContrasena` (paso 2) / `solicitarCodigo` y el aviso del Esc. 2
  * (docs/planes/restablecer-contrasena.md §7.4).
  */
 export default function useRestablecerContrasena() {
@@ -84,6 +90,13 @@ export default function useRestablecerContrasena() {
   const [errores, establecerErrores] = useState({});
   const [errorGeneral, establecerErrorGeneral] = useState(null);
   const [codigoRechazado, establecerCodigoRechazado] = useState(false);
+  // El correo llega fijado desde "Solicitar código": se muestra de solo lectura hasta que el usuario pide cambiarlo.
+  const [correoFijo, establecerCorreoFijo] = useState(
+    () => typeof location.state?.correo === 'string' && location.state.correo.length > 0
+  );
+  // Conteo local de códigos rechazados, solo para avisar del bloqueo; el conteo real lo lleva el backend.
+  const [intentosFallidos, establecerIntentosFallidos] = useState(0);
+  const codigoBloqueado = intentosFallidos >= MAX_INTENTOS_CODIGO;
   const [avisoSolicitud, establecerAvisoSolicitud] = useState(() => location.state?.avisoSolicitud === true);
   const [enviando, establecerEnviando] = useState(false);
   const [solicitandoCodigo, establecerSolicitandoCodigo] = useState(false);
@@ -132,11 +145,27 @@ export default function useRestablecerContrasena() {
     establecerErrorGeneral(null);
     establecerCodigoRechazado(false);
 
-    const valor = nombre === 'codigo' ? valorCrudo.trim() : valorCrudo;
+    // El código solo admite dígitos: así se puede pegar "123 456" o "123-456" tal como llega en el correo.
+    const valor = nombre === 'codigo' ? valorCrudo.replace(/\D/g, '').slice(0, LONGITUD_CODIGO) : valorCrudo;
     const valoresActualizados = { ...valores, [nombre]: valor };
     establecerValores(valoresActualizados);
 
+    if (nombre === 'correo') {
+      // Otro correo es otra cuenta: el conteo de intentos ya no aplica.
+      establecerIntentosFallidos(0);
+    }
+
     establecerErrores((anteriores) => {
+      if (nombre === 'codigo') {
+        // Al reescribir el código se quita su error; el formato se revisa al salir del campo o al enviar.
+        if (!anteriores.codigo) {
+          return anteriores;
+        }
+        const sinCodigo = { ...anteriores };
+        delete sinCodigo.codigo;
+        return sinCodigo;
+      }
+
       if (!anteriores[nombre] && !(nombre === 'nuevaContrasena' && anteriores.confirmacionContrasena)) {
         return anteriores;
       }
@@ -163,6 +192,59 @@ export default function useRestablecerContrasena() {
 
       return siguientes;
     });
+
+    // Al completar los 6 dígitos se verifica sin esperar a "Continuar".
+    const codigoRecienCompleto =
+      nombre === 'codigo' && valor.length === LONGITUD_CODIGO && valor !== valores.codigo;
+    if (codigoRecienCompleto && paso === 1 && !enviando && !codigoBloqueado && !validarCorreo(valores.correo)) {
+      verificarPaso1(valoresActualizados);
+    }
+  }
+
+  /**
+   * Paso 1: comprueba el código con el backend (no lo consume; se vuelve a enviar al restablecer) y avanza al
+   * paso 2 solo si es válido.
+   */
+  async function verificarPaso1(valoresActuales) {
+    establecerErrores({});
+    establecerEnviando(true);
+
+    const verificacion = await verificarCodigo({
+      correo: valoresActuales.correo.trim(),
+      codigo: valoresActuales.codigo.trim()
+    });
+
+    establecerEnviando(false);
+
+    if (verificacion.valido) {
+      establecerPaso(2);
+      return;
+    }
+
+    if (verificacion.exitoso) {
+      rechazarCodigo();
+      establecerIntentosFallidos((anteriores) => anteriores + 1);
+      return;
+    }
+
+    if (verificacion.motivo === MOTIVOS_RECHAZO_RESTABLECIMIENTO.DATOS_INVALIDOS) {
+      establecerErrorGeneral(verificacion.mensaje || MENSAJE_ERROR_INESPERADO);
+    } else {
+      establecerErrorGeneral(MENSAJE_ERROR_INESPERADO);
+    }
+  }
+
+  /** Deja el paso 1 listo para otro código: mensaje junto al campo, campo vacío y atajo de reenvío resaltado. */
+  function rechazarCodigo() {
+    establecerValores((anteriores) => ({ ...anteriores, codigo: '' }));
+    establecerErrores((anteriores) => ({ ...anteriores, codigo: MENSAJE_CODIGO_INVALIDO }));
+    establecerCodigoRechazado(true);
+    refCodigo.current?.focus();
+  }
+
+  function manejarCambiarCorreo() {
+    establecerCorreoFijo(false);
+    refCorreo.current?.focus();
   }
 
   function manejarSalidaCampo(nombre) {
@@ -207,6 +289,10 @@ export default function useRestablecerContrasena() {
     establecerAvisoSolicitud(false);
 
     if (paso === 1) {
+      if (codigoBloqueado) {
+        return;
+      }
+
       const erroresPaso1 = {};
       const errorCorreo = validarCorreo(valores.correo);
       const errorCodigo = validarCodigo(valores.codigo);
@@ -223,8 +309,7 @@ export default function useRestablecerContrasena() {
         return;
       }
 
-      establecerErrores({});
-      establecerPaso(2);
+      await verificarPaso1(valores);
       return;
     }
 
@@ -248,7 +333,11 @@ export default function useRestablecerContrasena() {
 
     if (resultado.exitoso) {
       // El componente se desmonta con la redirección: no se actualiza más estado.
-      navigate(RUTA_LOGIN, { replace: true });
+      // El login avisa que la contraseña se actualizó y precarga el correo.
+      navigate(RUTA_LOGIN, {
+        replace: true,
+        state: { contrasenaRestablecida: true, correo: valores.correo.trim() }
+      });
       return;
     }
 
@@ -256,9 +345,8 @@ export default function useRestablecerContrasena() {
 
     switch (resultado.motivo) {
       case MOTIVOS_RECHAZO_RESTABLECIMIENTO.CODIGO_INVALIDO:
-        establecerErrorGeneral(MENSAJE_CODIGO_INVALIDO);
-        establecerCodigoRechazado(true);
         establecerPaso(1);
+        rechazarCodigo();
         break;
 
       case MOTIVOS_RECHAZO_RESTABLECIMIENTO.POLITICA_CONTRASENA:
@@ -312,6 +400,7 @@ export default function useRestablecerContrasena() {
       guardarInstanteUltimaSolicitud(ahora);
       establecerInstanteUltimaSolicitud(ahora);
       establecerAvisoSolicitud(true);
+      establecerIntentosFallidos(0);
       establecerErrorGeneral(null);
       establecerCodigoRechazado(false);
       establecerValores((anteriores) => ({ ...anteriores, codigo: '' }));
@@ -334,9 +423,11 @@ export default function useRestablecerContrasena() {
   return {
     paso,
     valores,
-    errores,
+    errores: codigoBloqueado ? { ...errores, codigo: MENSAJE_CODIGO_BLOQUEADO } : errores,
     errorGeneral,
-    codigoRechazado,
+    codigoRechazado: codigoRechazado || codigoBloqueado,
+    codigoBloqueado,
+    correoFijo,
     avisoSolicitud,
     enviando,
     solicitandoCodigo,
@@ -346,6 +437,7 @@ export default function useRestablecerContrasena() {
     manejarSalidaCampo,
     manejarEnvio,
     manejarSolicitudNuevoCodigo,
-    manejarVolverAlPaso1
+    manejarVolverAlPaso1,
+    manejarCambiarCorreo
   };
 }

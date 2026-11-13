@@ -21,6 +21,7 @@ const ID_CONTRASENA = 'login-contrasena';
  * @param {{ correo: string, contrasena: string, recordar: boolean }} props.valores
  * @param {{ correo?: string, contrasena?: string }} props.errores
  * @param {string|null} props.errorGeneral
+ * @param {string|null} [props.avisoExito] Confirmación (p. ej. contraseña actualizada) sobre los campos.
  * @param {boolean} props.enviando
  * @param {import('react').RefObject<HTMLInputElement>} props.refCorreo
  * @param {import('react').RefObject<HTMLInputElement>} props.refContrasena
@@ -32,6 +33,7 @@ export default function FormularioLogin({
   valores,
   errores,
   errorGeneral,
+  avisoExito = null,
   enviando,
   refCorreo,
   refContrasena,
@@ -44,6 +46,15 @@ export default function FormularioLogin({
 
   return (
     <form noValidate onSubmit={alEnviar} aria-busy={enviando} aria-labelledby="login-titulo" className={estilos.formulario}>
+      <div role="status" className={avisoExito ? estilos.avisoExito : estilos.avisoVacio}>
+        {avisoExito && (
+          <>
+            <Icono nombre="verificar" tamano={18} />
+            <span>{avisoExito}</span>
+          </>
+        )}
+      </div>
+
       <div className={estilos.campo}>
         <label htmlFor={ID_CORREO} className={estilos.etiquetaCampo}>
           Correo electrónico
@@ -98,7 +109,7 @@ export default function FormularioLogin({
             checked={valores.recordar}
             onChange={(evento) => alCambiarCampo('recordar', evento.target.checked)}
           />
-          Recordar mi sesión
+          Recordar mi correo
         </label>
         <Link
           to={RUTA_SOLICITAR_CODIGO}

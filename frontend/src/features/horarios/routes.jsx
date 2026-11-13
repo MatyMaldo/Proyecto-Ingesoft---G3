@@ -1,6 +1,10 @@
-import PaginaHorarios from './pages/PaginaHorarios.jsx';
+import { lazy } from 'react';
+
 import { ROLES_QUE_VEN_HORARIOS } from './constants/horarios.js';
-import PaginaVisualizadorHorario from './pages/PaginaVisualizadorHorario.jsx';
+
+// Carga diferida: el código de cada página se descarga al entrar a su ruta, no con el inicio de sesión.
+const PaginaHorarios = lazy(() => import('./pages/PaginaHorarios.jsx'));
+const PaginaVisualizadorHorario = lazy(() => import('./pages/PaginaVisualizadorHorario.jsx'));
 
 /**
  * Rutas de la feature Horarios. La ruta coincide con el ítem "Horarios" de
