@@ -20,7 +20,8 @@ export default function PanelSesionHorario({
   sesion,
   cambiando = false,
   alCerrar,
-  alCambiarOmision
+  alCambiarOmision,
+  acciones = null
 }) {
   const panel = useRef(null);
   const cerrar = useRef(null);
@@ -34,6 +35,11 @@ export default function PanelSesionHorario({
       if (evento.key === 'Escape') alCerrar();
     };
     const alHacerClic = (evento) => {
+      // Los diálogos modales viven en la capa superior: un clic dentro de ellos
+      // no debe cerrar el drawer que los abrió.
+      if (evento.target instanceof Element && evento.target.closest('dialog[open]')) {
+        return;
+      }
       if (panel.current && !panel.current.contains(evento.target)) {
         alCerrar();
       }
@@ -125,22 +131,24 @@ export default function PanelSesionHorario({
         </div>
 
         <footer className={estilos.pie}>
-          {puedeCambiar ? (
-            <button
-              type="button"
-              className={omitida ? estilos.botonRestaurar : estilos.botonOmitir}
-              disabled={cambiando}
-              onClick={() => alCambiarOmision(sesion, !omitida)}
-            >
-              <Icono nombre={omitida ? 'ojo' : 'ojo-tachado'} tamano={18} />
-              {cambiando
-                ? 'Actualizando…'
-                : omitida ? 'Restaurar sesión' : 'Omitir sesión'}
-            </button>
-          ) : (
-            <button type="button" className={estilos.botonSecundario} onClick={alCerrar}>
-              Cerrar
-            </button>
+          {acciones ?? (
+            puedeCambiar ? (
+              <button
+                type="button"
+                className={omitida ? estilos.botonRestaurar : estilos.botonOmitir}
+                disabled={cambiando}
+                onClick={() => alCambiarOmision(sesion, !omitida)}
+              >
+                <Icono nombre={omitida ? 'ojo' : 'ojo-tachado'} tamano={18} />
+                {cambiando
+                  ? 'Actualizando…'
+                  : omitida ? 'Restaurar sesión' : 'Omitir sesión'}
+              </button>
+            ) : (
+              <button type="button" className={estilos.botonSecundario} onClick={alCerrar}>
+                Cerrar
+              </button>
+            )
           )}
         </footer>
       </aside>

@@ -25,6 +25,13 @@ export const SECCIONES_NAVEGACION = Object.freeze([
       }),
       Object.freeze({ id: 'cursos', etiqueta: 'Cursos', ruta: '/cursos', icono: 'libro' }),
       Object.freeze({
+        id: 'asistencia',
+        etiqueta: 'Asistencia',
+        ruta: '/asistencia',
+        icono: 'calendario',
+        roles: Object.freeze([ROLES.DOCENTE, ROLES.ESTUDIANTE, ROLES.APODERADO])
+      }),
+      Object.freeze({
         id: 'libreta-notas',
         etiqueta: 'Libreta de notas',
         ruta: '/libreta-notas',
