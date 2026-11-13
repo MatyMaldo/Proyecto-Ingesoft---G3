@@ -11,6 +11,16 @@ export default defineConfig(({ mode }) => {
     plugins: [react()],
     server: {
       port: 5173,
+      // Transforma al arrancar las páginas y el layout más usados, para que la primera visita a cada módulo no
+      // pague la transformación (en desarrollo Vite sirve cada archivo por separado). Solo afecta al servidor de desarrollo.
+      warmup: {
+        clientFiles: [
+          './src/principal.jsx',
+          './src/app/layout/*.jsx',
+          './src/features/*/pages/*.jsx',
+          './src/features/*/routes.jsx'
+        ]
+      },
       proxy: {
         '/api': {
           target: destinoApi.origin,

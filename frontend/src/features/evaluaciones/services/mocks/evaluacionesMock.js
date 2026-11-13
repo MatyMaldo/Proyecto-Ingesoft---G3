@@ -1,6 +1,5 @@
 import { listarCursosMock } from '../../../cursos/services/mocks/cursosMock.js';
 import { consultarEstructuraMock } from '../../../grados-secciones/services/mocks/estructuraEscolarMock.js';
-import { registrarRegistroAuditoriaMock } from '../../../auditoria/services/mocks/auditoriaMock.js';
 
 const PAUSA = 220;
 const ANIO_VIGENTE = 2026;
@@ -208,6 +207,7 @@ export async function guardarNotasCompetenciasMock(usuario, datos) {
   notasCompetencias = anterior
     ? notasCompetencias.map((item) => clave(item) ? registro : item)
     : [...notasCompetencias, registro];
+<<<<<<< Updated upstream
   for (const competencia of registro.competencias) {
     registrarRegistroAuditoriaMock({
       idElemento: `COMP-${datos.idCurso}-${datos.idSeccion}-${datos.idBimestre}-${datos.idEstudiante}-${competencia.competenciaId}`,
@@ -227,6 +227,8 @@ export async function guardarNotasCompetenciasMock(usuario, datos) {
       ]
     });
   }
+=======
+>>>>>>> Stashed changes
   return { exitoso: true, datos: copiar(registro), mensaje: '' };
 }
 
@@ -262,22 +264,6 @@ export async function guardarNotaEvaluacionMock(evaluacion, estudiante, valor, u
   notas = existente
     ? notas.map((nota) => nota === existente ? actualizada : nota)
     : [...notas, actualizada];
-  registrarRegistroAuditoriaMock({
-    idElemento: `NOTA-${evaluacion.id}-${estudiante.id}`,
-    fechaHora: eventoAuditoria.fechaHora,
-    usuario: { nombre: eventoAuditoria.usuarioNombre, rol: 'DOCENTE' },
-    categoria: 'EVALUACIONES',
-    tipoAccion: existente ? 'ACTUALIZAR' : 'CREAR',
-    tipoTransaccion: existente ? 'Modificación de nota de evaluación' : 'Registro de nota de evaluación',
-    valoresAntes: existente ? [{ campo: 'Nota', valor: existente.nota }] : null,
-    valoresDespues: [
-      { campo: 'Evaluación', valor: evaluacion.nombre },
-      { campo: 'Estudiante', valor: estudiante.nombre },
-      { campo: 'Curso', valor: evaluacion.cursoNombre },
-      { campo: 'Sección', valor: evaluacion.seccionNombre },
-      { campo: 'Nota', valor }
-    ]
-  });
   return { exitoso: true, datos: copiar(actualizada), mensaje: '' };
 }
 

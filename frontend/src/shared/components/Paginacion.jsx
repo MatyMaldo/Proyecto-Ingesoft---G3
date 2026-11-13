@@ -72,9 +72,13 @@ export default function Paginacion({
     }
   };
 
-  const manejarEnvio = (evento) => {
-    evento.preventDefault();
-    confirmarPagina();
+  // No es un <form>: el paginador se usa dentro de diálogos que ya son formularios y un <form> anidado es HTML
+  // inválido. Enter confirma la página y no debe enviar el formulario que lo contiene.
+  const manejarTecla = (evento) => {
+    if (evento.key === 'Enter') {
+      evento.preventDefault();
+      confirmarPagina();
+    }
   };
 
   return (
@@ -86,7 +90,7 @@ export default function Paginacion({
       )}
 
       {hayVariasPaginas && (
-        <form className={estilos.controles} onSubmit={manejarEnvio} noValidate>
+        <div className={estilos.controles} role="group" aria-label="Controles de paginación">
           <button
             type="button"
             className={estilos.control}
@@ -123,6 +127,7 @@ export default function Paginacion({
             value={texto}
             onChange={(evento) => establecerTexto(evento.target.value)}
             onBlur={confirmarPagina}
+            onKeyDown={manejarTecla}
           />
           <span className={estilos.total}>de {totalPaginas}</span>
 
@@ -144,7 +149,7 @@ export default function Paginacion({
           >
             <Icono nombre="chevrones-derecha" tamano={16} />
           </button>
-        </form>
+        </div>
       )}
     </nav>
   );
