@@ -66,6 +66,7 @@ vi.mock('../services/visualizadoresService.js', () => {
     })),
     miHorarioEstudiante: vi.fn(),
     horarioApoderado: vi.fn(),
+    cambiarOmisionSesion: vi.fn(),
     listarSecciones: vi.fn(),
     listarDocentes: vi.fn(),
     listarMisEstudiantes: vi.fn(),

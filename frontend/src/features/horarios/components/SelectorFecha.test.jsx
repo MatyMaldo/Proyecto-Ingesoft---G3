@@ -39,4 +39,24 @@ describe('SelectorFecha', () => {
 
     expect(screen.getByRole('button', { name: '5' })).toBeDisabled();
   });
+
+  it('renderiza el calendario dentro del diálogo cuando se usa en un modal', () => {
+    render(
+      <dialog open>
+        <SelectorFecha
+          id="fecha"
+          etiqueta="Desde"
+          valor="2026-11-06"
+          enDialogo
+          alCambiar={vi.fn()}
+        />
+      </dialog>
+    );
+
+    fireEvent.click(screen.getByRole('button', { name: /Desde/i }));
+
+    expect(screen.getByText('noviembre 2026')).toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Calendario de Desde' }).closest('dialog'))
+      .toBeInTheDocument();
+  });
 });

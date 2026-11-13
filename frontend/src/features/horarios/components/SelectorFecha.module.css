@@ -47,6 +47,15 @@
   box-shadow: var(--sombra-lg, 0 12px 30px rgba(15, 23, 42, 0.18));
 }
 
+/* Dentro de un <dialog>, el popover se posiciona de forma fija para que el
+   cuerpo con scroll no lo recorte. Las coordenadas vienen del componente. */
+.popoverFijo {
+  position: fixed;
+  top: 0;
+  left: 0;
+  z-index: 5;
+}
+
 .cabecera {
   display: flex;
   align-items: center;

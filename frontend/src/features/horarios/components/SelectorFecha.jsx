@@ -1,4 +1,5 @@
-import { useEffect, useMemo, useRef, useState } from 'react';
+import { useEffect, useLayoutEffect, useMemo, useRef, useState } from 'react';
+import { createPortal } from 'react-dom';
 
 import Icono from '../../../shared/components/Icono.jsx';
 import { fechaISO, formatearFecha } from '../utils/tiempo.js';
@@ -23,13 +24,59 @@ function etiquetaMes(fecha) {
  * que el calendario no dependa del idioma del navegador y tenga un tamaño
  * cómodo en las pantallas de horarios.
  */
-export default function SelectorFecha({ id, etiqueta, valor, min, max, alCambiar }) {
+export default function SelectorFecha({
+  id,
+  etiqueta,
+  valor,
+  min,
+  max,
+  alCambiar,
+  enDialogo = false
+}) {
   const [abierto, establecerAbierto] = useState(false);
   const [mesVisible, establecerMesVisible] = useState(() => {
     const fecha = fechaLocal(valor);
     return new Date(fecha.getFullYear(), fecha.getMonth(), 1);
   });
+  const [posicion, establecerPosicion] = useState(null);
   const contenedor = useRef(null);
+  const popover = useRef(null);
+
+  const calcularPosicion = () => {
+    if (!enDialogo || !contenedor.current) return;
+    const rect = contenedor.current.getBoundingClientRect();
+    const ancho = Math.min(320, window.innerWidth - 32);
+    const alto = popover.current?.offsetHeight ?? 340;
+    const espacioAbajo = window.innerHeight - rect.bottom;
+    const abrirArriba = espacioAbajo < alto + 12 && rect.top > espacioAbajo;
+
+    establecerPosicion({
+      top: abrirArriba
+        ? Math.max(16, rect.top - alto - 8)
+        : Math.min(window.innerHeight - alto - 16, rect.bottom + 8),
+      left: Math.max(16, Math.min(rect.left, window.innerWidth - ancho - 16)),
+      width: ancho
+    });
+  };
+
+  useLayoutEffect(() => {
+    if (!abierto || !enDialogo) {
+      establecerPosicion(null);
+      return;
+    }
+    calcularPosicion();
+  }, [abierto, enDialogo, mesVisible]);
+
+  useEffect(() => {
+    if (!abierto || !enDialogo) return undefined;
+    const actualizar = () => calcularPosicion();
+    window.addEventListener('resize', actualizar);
+    document.addEventListener('scroll', actualizar, true);
+    return () => {
+      window.removeEventListener('resize', actualizar);
+      document.removeEventListener('scroll', actualizar, true);
+    };
+  }, [abierto, enDialogo, mesVisible]);
 
   useEffect(() => {
     const fecha = fechaLocal(valor);
@@ -39,7 +86,10 @@ export default function SelectorFecha({ id, etiqueta, valor, min, max, alCambiar
   useEffect(() => {
     if (!abierto) return undefined;
     const alHacerClic = (evento) => {
-      if (!contenedor.current?.contains(evento.target)) {
+      if (
+        !contenedor.current?.contains(evento.target)
+        && !popover.current?.contains(evento.target)
+      ) {
         establecerAbierto(false);
       }
     };
@@ -95,6 +145,83 @@ export default function SelectorFecha({ id, etiqueta, valor, min, max, alCambiar
     ));
   };
 
+  const dialogoDestino = enDialogo ? contenedor.current?.closest('dialog') : null;
+  const contenidoPopover = abierto ? (
+    <div
+      ref={popover}
+      className={`${estilos.popover}${enDialogo ? ` ${estilos.popoverFijo}` : ''}`}
+      style={enDialogo ? {
+        top: posicion?.top ?? 0,
+        left: posicion?.left ?? 0,
+        width: posicion?.width ?? 320,
+        visibility: posicion ? 'visible' : 'hidden'
+      } : undefined}
+      role="dialog"
+      aria-label={`Calendario de ${etiqueta}`}
+    >
+      <div className={estilos.cabecera}>
+        <button
+          type="button"
+          className={estilos.botonMes}
+          aria-label="Mes anterior"
+          onClick={() => cambiarMes(-1)}
+        >
+          <Icono nombre="flecha-izquierda" tamano={14} />
+        </button>
+        <span className={estilos.mes}>{etiquetaMes(mesVisible)}</span>
+        <button
+          type="button"
+          className={estilos.botonMes}
+          aria-label="Mes siguiente"
+          onClick={() => cambiarMes(1)}
+        >
+          <Icono nombre="flecha-derecha" tamano={14} />
+        </button>
+      </div>
+
+      <div className={estilos.semana}>
+        {DIAS_SEMANA.map((dia) => <span key={dia}>{dia}</span>)}
+      </div>
+
+      <div className={estilos.dias}>
+        {dias.map((celda, indice) => {
+          if (!celda) return <span key={`vacio-${indice}`} className={estilos.vacio} />;
+          const deshabilitada = estaDeshabilitada(celda.fecha);
+          const clases = [
+            estilos.dia,
+            celda.fecha === valor ? estilos.seleccionado : '',
+            celda.fecha === hoy ? estilos.hoy : '',
+            deshabilitada ? estilos.deshabilitado : ''
+          ].join(' ');
+          return (
+            <button
+              key={celda.fecha}
+              type="button"
+              className={clases}
+              disabled={deshabilitada}
+              onClick={() => seleccionar(celda.fecha)}
+            >
+              {celda.dia}
+            </button>
+          );
+        })}
+      </div>
+
+      <div className={estilos.pie}>
+        <button
+          type="button"
+          className={estilos.limpiar}
+          onClick={() => {
+            alCambiar('');
+            establecerAbierto(false);
+          }}
+        >
+          Limpiar
+        </button>
+      </div>
+    </div>
+  ) : null;
+
   return (
     <div className={estilos.contenedor} ref={contenedor}>
       <button
@@ -116,69 +243,10 @@ export default function SelectorFecha({ id, etiqueta, valor, min, max, alCambiar
         <Icono nombre="calendario" tamano={18} />
       </button>
 
-      {abierto && (
-        <div className={estilos.popover} role="dialog" aria-label={`Calendario de ${etiqueta}`}>
-          <div className={estilos.cabecera}>
-            <button
-              type="button"
-              className={estilos.botonMes}
-              aria-label="Mes anterior"
-              onClick={() => cambiarMes(-1)}
-            >
-              <Icono nombre="flecha-izquierda" tamano={14} />
-            </button>
-            <span className={estilos.mes}>{etiquetaMes(mesVisible)}</span>
-            <button
-              type="button"
-              className={estilos.botonMes}
-              aria-label="Mes siguiente"
-              onClick={() => cambiarMes(1)}
-            >
-              <Icono nombre="flecha-derecha" tamano={14} />
-            </button>
-          </div>
-
-          <div className={estilos.semana}>
-            {DIAS_SEMANA.map((dia) => <span key={dia}>{dia}</span>)}
-          </div>
-
-          <div className={estilos.dias}>
-            {dias.map((celda, indice) => {
-              if (!celda) return <span key={`vacio-${indice}`} className={estilos.vacio} />;
-              const deshabilitada = estaDeshabilitada(celda.fecha);
-              const clases = [
-                estilos.dia,
-                celda.fecha === valor ? estilos.seleccionado : '',
-                celda.fecha === hoy ? estilos.hoy : '',
-                deshabilitada ? estilos.deshabilitado : ''
-              ].join(' ');
-              return (
-                <button
-                  key={celda.fecha}
-                  type="button"
-                  className={clases}
-                  disabled={deshabilitada}
-                  onClick={() => seleccionar(celda.fecha)}
-                >
-                  {celda.dia}
-                </button>
-              );
-            })}
-          </div>
-
-          <div className={estilos.pie}>
-            <button
-              type="button"
-              className={estilos.limpiar}
-              onClick={() => {
-                alCambiar('');
-                establecerAbierto(false);
-              }}
-            >
-              Limpiar
-            </button>
-          </div>
-        </div>
+      {contenidoPopover && (
+        dialogoDestino
+          ? createPortal(contenidoPopover, dialogoDestino)
+          : contenidoPopover
       )}
     </div>
   );

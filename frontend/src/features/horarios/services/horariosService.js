@@ -9,6 +9,8 @@ import {
   obtenerHorarioMock,
   listarOcupacionesMock,
   generarSesionesContratoMock,
+  cambiarOmisionSesionMock,
+  listarBimestresMock,
   listarSesionesContratoMock,
   previsualizarSesionesContratoMock,
   guardarHorarioMock,
@@ -477,9 +479,24 @@ export async function obtenerPeriodoMatricula(anioId) {
   return solicitar(`/anios-academicos/${encodeURIComponent(anioId)}/periodo-matricula`);
 }
 
+/** Bimestres del año académico, ordenados por fecha de inicio. */
+export async function listarBimestres(anioId) {
+  if (USAR_MOCK) return listarBimestresMock(anioId);
+  return solicitar(`/anios-academicos/${encodeURIComponent(anioId)}/bimestres`);
+}
+
 export async function listarSesiones({ seccionId, fechaInicio, fechaFin }) {
   if (USAR_MOCK) return listarSesionesContratoMock({ seccionId, fechaInicio, fechaFin });
   return solicitar(BASE_SESIONES, { parametros: { seccionId, fechaInicio, fechaFin } });
+}
+
+/** Marca una sesión como omitida o la restaura. Solo administrador y antes de que empiece. */
+export async function cambiarOmisionSesion(sesionId, omitida) {
+  if (USAR_MOCK) return cambiarOmisionSesionMock(sesionId, omitida);
+  return solicitar(`${BASE_SESIONES}/${encodeURIComponent(sesionId)}/omision`, {
+    metodo: 'PATCH',
+    cuerpo: { omitida: Boolean(omitida) }
+  });
 }
 
 export async function previsualizarSesiones(datos) {

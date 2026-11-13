@@ -32,6 +32,17 @@ const sesionesPreview = [
     cursoNombre: 'Historia',
     docenteNombre: 'Juan Perez',
     yaExiste: false
+  },
+  {
+    bloqueHorarioId: 4,
+    fecha: '2026-01-07',
+    diaSemana: 'MIERCOLES',
+    horaInicio: '11:00',
+    horaFin: '12:00',
+    cursoNombre: 'Ciencias',
+    docenteNombre: 'Ana Torres',
+    yaExiste: true,
+    estado: 'PROGRAMADA'
   }
 ];
 
@@ -39,6 +50,8 @@ vi.mock('../hooks/useSesionesHorario.js', () => ({
   default: () => ({
     fechaInicio: '2026-01-01',
     fechaFin: '2026-02-28',
+    fechaMinima: '2026-03-01',
+    fechaMaxima: '2026-12-20',
     establecerFechaInicio: vi.fn(),
     establecerFechaFin: vi.fn(),
     sesionesPreview,
@@ -79,5 +92,22 @@ describe('DialogoSesiones · agrupación por mes y semana', () => {
     const tablas = screen.getAllByRole('table');
     expect(tablas.length).toBeGreaterThanOrEqual(3);
     expect(within(tablas.at(-1)).getByText('Historia')).toBeInTheDocument();
+  });
+
+  it('muestra el estado de las sesiones existentes y no permite omitirlas', () => {
+    render(
+      <DialogoSesiones
+        consulta={{ seccionId: 3, anioAcademicoId: 2 }}
+        tituloSeccion="1er Grado A"
+        alCancelar={vi.fn()}
+        alNotificar={vi.fn()}
+      />
+    );
+
+    const grupo = screen.getByLabelText('Sesiones del 07/01/2026');
+    expect(within(grupo).getByText('Ya existe · Programada')).toBeInTheDocument();
+    expect(within(grupo).getByLabelText('Omitir Ciencias del 07/01/2026')).toBeDisabled();
+    expect(within(grupo).getByRole('button', { name: /Omitir todas las de esta fecha/i }))
+      .toBeDisabled();
   });
 });

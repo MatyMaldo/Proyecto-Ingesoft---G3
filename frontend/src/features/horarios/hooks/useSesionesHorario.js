@@ -5,17 +5,78 @@ import {
   listarSesiones,
   previsualizarSesiones
 } from '../services/horariosService.js';
+import { formatearFecha, sumarDias } from '../utils/tiempo.js';
 
 const MENSAJE_ERROR_GENERICO = 'Se registró un error inesperado';
+
+function fechaCorta(valor) {
+  return valor ? String(valor).slice(0, 10) : null;
+}
+
+function mayor(fechas) {
+  const validas = fechas.filter(Boolean).sort();
+  return validas.at(-1) ?? null;
+}
+
+function menor(fechas) {
+  const validas = fechas.filter(Boolean).sort();
+  return validas[0] ?? null;
+}
+
+/**
+ * Calcula el rango permitido para generar sesiones.
+ *
+ * Prioridad del inicio:
+ * 1. Inicio del primer bimestre, cuando backend lo expone.
+ * 2. Día siguiente al fin del periodo de matrícula, sin salir del año académico.
+ * 3. Inicio del año académico o, como último respaldo, el 1 de marzo.
+ *
+ * El fin nunca supera el 20 de diciembre.
+ */
+export function calcularRangoSesiones({
+  anio,
+  fechaInicioAnio,
+  fechaFinAnio,
+  fechaInicioPrimerBimestre,
+  fechaFinPeriodo
+} = {}) {
+  const anioNumerico = Number(anio) || new Date().getFullYear();
+  const inicioAnio = fechaCorta(fechaInicioAnio);
+  const finAnio = fechaCorta(fechaFinAnio);
+  const inicioBimestre = fechaCorta(fechaInicioPrimerBimestre);
+  const finPeriodo = fechaCorta(fechaFinPeriodo);
+
+  const topeDiciembre = `${anioNumerico}-12-20`;
+  const fechaMaxima = menor([finAnio, topeDiciembre]) ?? topeDiciembre;
+  const marzo = `${anioNumerico}-03-01`;
+  const respaldo = mayor([inicioAnio, marzo]) ?? marzo;
+  const trasPeriodo = finPeriodo ? sumarDias(finPeriodo, 1) : null;
+
+  let fechaMinima = inicioBimestre
+    ?? (trasPeriodo ? mayor([trasPeriodo, respaldo]) : respaldo);
+
+  if (!fechaMinima || fechaMinima > fechaMaxima) {
+    fechaMinima = respaldo <= fechaMaxima ? respaldo : fechaMaxima;
+  }
+
+  return { fechaMinima, fechaMaxima };
+}
 
 function claveSesion(sesion) {
   return `${sesion.bloqueHorarioId}|${sesion.fecha}`;
 }
 
-export default function useSesionesHorario(consulta) {
+export default function useSesionesHorario(consulta, periodo, primerBimestre) {
   const anio = consulta?.anioAcademico ?? new Date().getFullYear();
-  const [fechaInicio, establecerFechaInicio] = useState(`${anio}-01-01`);
-  const [fechaFin, establecerFechaFin] = useState(`${anio}-12-31`);
+  const { fechaMinima, fechaMaxima } = calcularRangoSesiones({
+    anio,
+    fechaInicioAnio: consulta?.fechaInicioAnio,
+    fechaFinAnio: consulta?.fechaFinAnio,
+    fechaInicioPrimerBimestre: primerBimestre?.fechaInicio,
+    fechaFinPeriodo: periodo?.fechaFin
+  });
+  const [fechaInicio, establecerFechaInicio] = useState(fechaMinima);
+  const [fechaFin, establecerFechaFin] = useState(fechaMaxima);
   const [sesionesPreview, establecerSesionesPreview] = useState([]);
   const [sesiones, establecerSesiones] = useState([]);
   const [totalPreview, establecerTotalPreview] = useState(0);
@@ -30,6 +91,11 @@ export default function useSesionesHorario(consulta) {
     fechaFin
   });
 
+  const fueraDeRango = (datos) =>
+    datos.fechaInicio < fechaMinima || datos.fechaFin > fechaMaxima;
+
+  const MENSAJE_RANGO = `El rango debe estar entre ${formatearFecha(fechaMinima)} y ${formatearFecha(fechaMaxima)}.`;
+
   const previsualizar = async () => {
     const datos = parametros();
     if (!Number.isSafeInteger(Number(datos.anioAcademicoId)) || !Number.isSafeInteger(Number(datos.seccionId))) {
@@ -37,6 +103,9 @@ export default function useSesionesHorario(consulta) {
     }
     if (!fechaInicio || !fechaFin || fechaFin < fechaInicio) {
       return 'Selecciona un rango de fechas válido.';
+    }
+    if (fueraDeRango(datos)) {
+      return MENSAJE_RANGO;
     }
 
     establecerEstadoPreview('cargando');
@@ -64,6 +133,7 @@ export default function useSesionesHorario(consulta) {
   };
 
   const alternarOmitida = (sesion) => {
+    if (sesion?.yaExiste) return;
     const clave = claveSesion(sesion);
     establecerSesionesOmitidas((actuales) => {
       const siguientes = { ...actuales };
@@ -79,7 +149,9 @@ export default function useSesionesHorario(consulta) {
   const omitirTodasDeFecha = (fecha) => {
     establecerSesionesOmitidas((actuales) => {
       const siguientes = { ...actuales };
-      const sesionesDeFecha = sesionesPreview.filter((sesion) => sesion.fecha === fecha);
+      const sesionesDeFecha = sesionesPreview.filter(
+        (sesion) => sesion.fecha === fecha && !sesion.yaExiste
+      );
       const todasOmitidas = sesionesDeFecha.every((sesion) => Object.hasOwn(siguientes, claveSesion(sesion)));
       sesionesDeFecha.forEach((sesion) => {
         const clave = claveSesion(sesion);
@@ -100,11 +172,20 @@ export default function useSesionesHorario(consulta) {
     establecerSesionesOmitidas({});
   };
 
+  const omitidasSolicitadas = () => {
+    const existentes = new Set(
+      sesionesPreview.filter((sesion) => sesion.yaExiste).map(claveSesion)
+    );
+    return Object.entries(sesionesOmitidas)
+      .filter(([clave]) => !existentes.has(clave))
+      .map(([, omitida]) => omitida);
+  };
+
   const construirSolicitud = () => ({
     ...parametros(),
     gradoId: consulta?.gradoId,
     seccion: consulta?.seccion,
-    sesionesOmitidas: Object.values(sesionesOmitidas)
+    sesionesOmitidas: omitidasSolicitadas()
   });
 
   const generar = async () => {
@@ -115,13 +196,16 @@ export default function useSesionesHorario(consulta) {
     if (!fechaInicio || !fechaFin || fechaFin < fechaInicio) {
       return 'Selecciona un rango de fechas válido.';
     }
+    if (fueraDeRango(datos)) {
+      return MENSAJE_RANGO;
+    }
 
     establecerGenerando(true);
     const resultado = await generarSesiones({
       ...datos,
       gradoId: consulta.gradoId,
       seccion: consulta.seccion,
-      sesionesOmitidas: Object.values(sesionesOmitidas)
+      sesionesOmitidas: omitidasSolicitadas()
     });
     establecerGenerando(false);
     if (!resultado.exitoso) return resultado.mensaje || MENSAJE_ERROR_GENERICO;
@@ -147,6 +231,8 @@ export default function useSesionesHorario(consulta) {
     establecerFechaInicio,
     fechaFin,
     establecerFechaFin,
+    fechaMinima,
+    fechaMaxima,
     sesionesPreview,
     sesiones,
     totalPreview,
