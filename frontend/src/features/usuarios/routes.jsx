@@ -1,5 +1,9 @@
+import { lazy } from 'react';
+
 import { ROLES } from '../../shared/auth/roles.js';
-import PaginaUsuarios from './pages/PaginaUsuarios.jsx';
+
+// Carga diferida: el código de cada página se descarga al entrar a su ruta, no con el inicio de sesión.
+const PaginaUsuarios = lazy(() => import('./pages/PaginaUsuarios.jsx'));
 
 export default [
   {

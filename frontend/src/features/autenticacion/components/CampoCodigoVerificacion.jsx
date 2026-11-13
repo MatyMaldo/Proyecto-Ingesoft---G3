@@ -1,13 +1,11 @@
 import Icono from '../../../shared/components/Icono.jsx';
-import { LONGITUD_CODIGO } from '../constants/reglasRestablecimiento.js';
 import { PLACEHOLDER_CODIGO } from '../constants/mensajesRestablecimiento.js';
 import estilos from './CampoCodigoVerificacion.module.css';
 
 /**
  * Campo "Código de verificación" de la pantalla "Restablecer contraseña"
- * (HU-SAT-03). No filtra caracteres mientras el usuario escribe: la
- * validación de formato (6 dígitos) da el mensaje correspondiente (docs/
- * planes/restablecer-contrasena.md §4.3).
+ * (HU-SAT-03). No lleva `maxLength`: quien lo usa conserva solo los dígitos
+ * (hasta 6), para que se pueda pegar un código con espacios o guiones.
  *
  * @param {Object} props
  * @param {string} props.id `id` del input; el error usa `${id}-error`.
@@ -31,7 +29,6 @@ export default function CampoCodigoVerificacion({ id, valor, error, refInput, al
         name="codigo"
         type="text"
         inputMode="numeric"
-        maxLength={LONGITUD_CODIGO}
         placeholder={PLACEHOLDER_CODIGO}
         className={estilos.entrada}
         value={valor}

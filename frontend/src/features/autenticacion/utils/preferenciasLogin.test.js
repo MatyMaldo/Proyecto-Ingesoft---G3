@@ -3,7 +3,7 @@ import { describe, it, expect, beforeEach } from 'vitest';
 import { leerPreferenciasLogin, guardarPreferenciasLogin, borrarPreferenciasLogin } from './preferenciasLogin.js';
 import { CLAVE_PREFERENCIAS_LOGIN } from '../../../shared/auth/constantesSesion.js';
 
-describe('HU-SAT-07 · Escenario "Recordar mi sesión": persistencia solo del correo electrónico', () => {
+describe('HU-SAT-07 · Escenario "Recordar mi correo": persistencia solo del correo electrónico', () => {
   beforeEach(() => {
     window.localStorage.clear();
   });

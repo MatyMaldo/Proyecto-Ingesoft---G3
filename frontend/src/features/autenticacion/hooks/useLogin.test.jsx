@@ -132,7 +132,7 @@ describe('HU-SAT-07 · Escenario 1: inicio de sesión exitoso', () => {
   });
 });
 
-describe('HU-SAT-07 · "Recordar mi sesión": persistencia solo del correo electrónico', () => {
+describe('HU-SAT-07 · "Recordar mi correo": persistencia solo del correo electrónico', () => {
   beforeEach(() => {
     window.localStorage.clear();
     establecerSesionMock.mockClear();
@@ -239,6 +239,19 @@ describe('HU-SAT-07 · Esc. 9-11: aviso de cierre de sesión por invalidación',
 
   it('no muestra ningún mensaje sin motivoCierre', () => {
     const { result } = renderizarHook();
+    expect(result.current.errorGeneral).toBeNull();
+    expect(result.current.avisoExito).toBeNull();
+  });
+
+  it('al llegar desde "Restablecer contraseña" confirma el cambio y precarga el correo', async () => {
+    const { result } = renderizarHook([
+      { pathname: '/iniciar-sesion', state: { contrasenaRestablecida: true, correo: 'admin@sanmarcos.edu.pe' } }
+    ]);
+
+    await waitFor(() => {
+      expect(result.current.avisoExito).toBe('Contraseña actualizada. Inicia sesión con tu nueva contraseña.');
+    });
+    expect(result.current.valores.correo).toBe('admin@sanmarcos.edu.pe');
     expect(result.current.errorGeneral).toBeNull();
   });
 });

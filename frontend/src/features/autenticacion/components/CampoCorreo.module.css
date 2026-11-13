@@ -3,8 +3,35 @@
   flex-direction: column;
 }
 
-.etiqueta {
+.filaEtiqueta {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--espacio-2);
   margin: 0 0 var(--espacio-2);
+}
+
+.accion {
+  padding: 0;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-accion);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.accion:hover {
+  text-decoration: underline;
+}
+
+.accion:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.etiqueta {
+  margin: 0;
   font-size: var(--texto-md);
   font-weight: var(--peso-medio);
   color: var(--color-texto);
@@ -45,6 +72,11 @@
   outline: 2px solid var(--color-foco);
   outline-offset: 2px;
   border-color: var(--color-foco);
+}
+
+.entrada[readonly] {
+  color: var(--color-texto-suave);
+  background: var(--color-superficie-suave);
 }
 
 .entrada[aria-invalid='true'] {

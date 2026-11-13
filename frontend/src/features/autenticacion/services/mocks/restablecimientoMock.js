@@ -1,5 +1,5 @@
-// TEMPORAL — TODO(backend): mock de HU-SAT-03. Eliminar al integrar POST /auth/codigos-verificacion y
-// POST /auth/restablecimientos-contrasena (docs/planes/restablecer-contrasena.md §9). Ningún componente debe
+// TEMPORAL — TODO(backend): mock de HU-SAT-03. Simula POST /auth/password/solicitar,
+// POST /auth/password/verificar y POST /auth/password/restablecer para desarrollar sin backend. Ningún componente debe
 // importarlo directamente: solo lo usa `restablecimientoService.js` cuando `USAR_MOCK` está activo.
 //
 // Estado en memoria del módulo (se reinicia al recargar la página), **separado** del mock de
@@ -15,7 +15,7 @@ import { esCodigoValido, evaluarPoliticaContrasena } from '../../utils/validacio
 const ESPERA_SIMULADA_MS = 400;
 const ESPERA_REENVIO_MS = 60 * 1000;
 const LIMITE_SOLICITUDES_POR_HORA = 5;
-const VIGENCIA_CODIGO_MS = 30 * 60 * 1000;
+const VIGENCIA_CODIGO_MS = 15 * 60 * 1000;
 const MAX_INTENTOS_FALLIDOS = 5;
 
 const CORREO_ERROR_INESPERADO = 'error500@sanmarcos.edu.pe';
@@ -150,7 +150,7 @@ function superoLimitePorHora(cuenta) {
 }
 
 /**
- * Simula `POST /auth/codigos-verificacion`. Responde siempre 200 con el mismo
+ * Simula `POST /auth/password/solicitar`. Responde siempre 200 con el mismo
  * cuerpo para cualquier correo con formato válido (Esc. 2, 3, 4, 13); solo
  * emite un código nuevo cuando la cuenta existe, está activa y no excede los
  * límites de reenvío.
@@ -235,7 +235,44 @@ function evaluarCodigo(cuenta, codigo) {
 }
 
 /**
- * Simula `POST /auth/restablecimientos-contrasena`. Valida en este orden:
+ * Simula `POST /auth/password/verificar`. Responde 200 con `valido` en ambos
+ * casos y no consume el código; un código incorrecto sí cuenta como intento
+ * fallido.
+ *
+ * @param {{ correo: string, codigo: string }} datos
+ * @returns {Promise<{ exitoso: boolean, datos: Object|null, mensaje: string, estado?: number, codigo?: string }>}
+ */
+export function verificarCodigoMock({ correo, codigo }) {
+  return simularLatencia(() => {
+    const normalizado = normalizarCorreo(correo);
+    const codigoRecortado = codigo.trim();
+
+    if (normalizado === CORREO_ERROR_INESPERADO) {
+      return { exitoso: false, datos: null, mensaje: 'Error simulado.', estado: 500 };
+    }
+
+    if (!esCorreoValido(normalizado) || !esCodigoValido(codigoRecortado)) {
+      return {
+        exitoso: false,
+        datos: null,
+        mensaje: 'Revisa los datos ingresados.',
+        estado: 400,
+        codigo: MOTIVOS_RECHAZO_RESTABLECIMIENTO.DATOS_INVALIDOS
+      };
+    }
+
+    const valido = evaluarCodigo(cuentas.get(normalizado), codigoRecortado);
+
+    return {
+      exitoso: true,
+      datos: { valido, mensaje: valido ? 'Código válido.' : 'El código es inválido o ha expirado.' },
+      mensaje: ''
+    };
+  });
+}
+
+/**
+ * Simula `POST /auth/password/restablecer`. Valida en este orden:
  * datos obligatorios y formato, política de contraseña, coincidencia y,
  * solo al final, el código (para que los Esc. 8 y 9 no consuman intentos,
  * R9 del plan).

@@ -131,3 +131,16 @@
   outline: 2px solid var(--color-foco);
   outline-offset: 2px;
 }
+
+.coincide {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-1);
+  margin: calc(var(--espacio-2) * -1) 0 0;
+  font-size: var(--texto-md);
+  color: var(--color-exito-texto);
+}
+
+.coincideVacio {
+  display: none;
+}
