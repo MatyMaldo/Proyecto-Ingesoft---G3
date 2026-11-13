@@ -77,7 +77,7 @@ export default function MatrizSesiones({
   });
   const claseDia = (diaId) => `${estilos.dia} ${diaId === diaActivo ? estilos.diaActivo : ''}`;
 
-  const eje = construirEjeTemporal(sesiones);
+  const eje = construirEjeTemporal(sesiones, { expandirFueraDeJornada: true });
   const claseTono = (sesion) => CLASES_TONO_CURSO[
     indiceTono(sesion.cursoId ?? sesion.cursoNombre)
   ];

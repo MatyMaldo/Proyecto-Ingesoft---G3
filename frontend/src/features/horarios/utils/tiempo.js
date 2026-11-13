@@ -62,10 +62,30 @@ export function rangoHorarioValido(horaInicio, horaFin) {
  * Construye las filas de la matriz a partir de las horas reales de los bloques.
  * Incluye los límites de la jornada y el recreo, y devuelve segmentos consecutivos.
  *
+ * Por defecto el eje termina en `HORA_FIN_JORNADA`. Con `expandirFueraDeJornada`
+ * se extiende hasta la hora de fin más tardía de los bloques recibidos, para
+ * poder visualizar datos de prueba o sesiones movidas fuera de la jornada.
+ *
  * @param {Array<{ horaInicio: string, horaFin: string }>} bloques
+ * @param {{ expandirFueraDeJornada?: boolean }} [opciones]
  * @returns {Array<{ inicio: string, fin: string, esReceso: boolean }>}
  */
-export function construirEjeTemporal(bloques = []) {
+export function construirEjeTemporal(
+  bloques = [],
+  { expandirFueraDeJornada = false } = {}
+) {
+  const inicioJornada = aMinutos(HORA_INICIO_JORNADA);
+  let finEje = aMinutos(HORA_FIN_JORNADA);
+
+  if (expandirFueraDeJornada) {
+    bloques.forEach((bloque) => {
+      const inicio = aMinutos(bloque?.horaInicio);
+      const fin = aMinutos(bloque?.horaFin);
+      if (inicio !== null) finEje = Math.max(finEje, inicio);
+      if (fin !== null) finEje = Math.max(finEje, fin);
+    });
+  }
+
   const horas = new Set([
     HORA_INICIO_JORNADA,
     RECREO.inicio,
@@ -75,11 +95,7 @@ export function construirEjeTemporal(bloques = []) {
 
   // Filas base de una hora: mantienen la matriz legible aunque todavía no haya
   // bloques y permiten que los bloques de varias horas ocupen varias filas.
-  for (
-    let minutos = aMinutos(HORA_INICIO_JORNADA);
-    minutos < aMinutos(HORA_FIN_JORNADA);
-    minutos += 60
-  ) {
+  for (let minutos = inicioJornada; minutos < finEje; minutos += 60) {
     horas.add(aHora(minutos));
   }
 
@@ -88,12 +104,10 @@ export function construirEjeTemporal(bloques = []) {
     if (bloque?.horaFin) horas.add(String(bloque.horaFin).slice(0, 5));
   });
 
-  const inicioJornada = aMinutos(HORA_INICIO_JORNADA);
-  const finJornada = aMinutos(HORA_FIN_JORNADA);
   const ordenadas = [...horas]
     .filter((hora) => {
       const minutos = aMinutos(hora);
-      return minutos !== null && minutos >= inicioJornada && minutos <= finJornada;
+      return minutos !== null && minutos >= inicioJornada && minutos <= finEje;
     })
     .sort(compararHoras);
 

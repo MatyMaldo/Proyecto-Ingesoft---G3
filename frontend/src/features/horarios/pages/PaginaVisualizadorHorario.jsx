@@ -8,10 +8,13 @@ import Icono from '../../../shared/components/Icono.jsx';
 import Notificacion from '../../../shared/components/Notificacion.jsx';
 import SelectFiltro from '../../../shared/components/SelectFiltro.jsx';
 import useNotificacion from '../../../shared/hooks/useNotificacion.js';
+import AccionesAsistenciaDocente from '../../asistencia/components/AccionesAsistenciaDocente.jsx';
+import DialogoAsistenciaSesion from '../../asistencia/components/DialogoAsistenciaSesion.jsx';
+import useAsistenciaSesion from '../../asistencia/hooks/useAsistenciaSesion.js';
 import MatrizSesiones from '../components/MatrizSesiones.jsx';
 import PanelSesionHorario from '../components/PanelSesionHorario.jsx';
 import SelectorFecha from '../components/SelectorFecha.jsx';
-import useConsultaHorario, { ADMIN, APODERADO } from '../hooks/useConsultaHorario.js';
+import useConsultaHorario, { ADMIN, APODERADO, DOCENTE } from '../hooks/useConsultaHorario.js';
 import { formatearFecha } from '../utils/tiempo.js';
 import estilos from './PaginaVisualizadorHorario.module.css';
 
@@ -46,8 +49,11 @@ export default function PaginaVisualizadorHorario() {
   const { usuario } = useAuth();
   const { notificacion, mostrarNotificacion } = useNotificacion();
   const [sesionSeleccionada, establecerSesionSeleccionada] = useState(null);
+  const [dialogoAsistencia, establecerDialogoAsistencia] = useState(false);
+  const [errorAsistencia, establecerErrorAsistencia] = useState(null);
   const rol = usuario?.rol;
   const esAdmin = rol === ADMIN;
+  const esDocente = rol === DOCENTE;
   const esApoderado = rol === APODERADO;
 
   const {
@@ -95,6 +101,8 @@ export default function PaginaVisualizadorHorario() {
     recargar
   } = useConsultaHorario(rol, usuario?.nombre);
 
+  const asistenciaSesion = useAsistenciaSesion(esDocente ? sesionSeleccionada : null);
+
   const necesitaSeleccion = (esAdmin || esApoderado) && !id;
   const consultaPorSeccion = esAdmin && tipo === 'seccion';
   const hayFiltros = rangoPersonalizado || Boolean(id) || Boolean(gradoId);
@@ -102,6 +110,29 @@ export default function PaginaVisualizadorHorario() {
   useEffect(() => {
     establecerSesionSeleccionada(null);
   }, [tipo, id, fechaInicio, fechaFin, semanaActual?.inicio]);
+
+  useEffect(() => {
+    establecerDialogoAsistencia(false);
+    establecerErrorAsistencia(null);
+  }, [sesionSeleccionada?.id]);
+
+  function abrirDialogoAsistencia() {
+    establecerErrorAsistencia(null);
+    establecerDialogoAsistencia(true);
+  }
+
+  async function guardarAsistencia(filas) {
+    establecerErrorAsistencia(null);
+    const respuesta = await asistenciaSesion.guardarEstudiantes(filas);
+    if (!respuesta?.exitoso) {
+      establecerErrorAsistencia(
+        respuesta?.mensaje || 'No se pudo guardar la asistencia.'
+      );
+      return;
+    }
+    establecerDialogoAsistencia(false);
+    mostrarNotificacion('Asistencia de estudiantes guardada.');
+  }
 
   async function alternarOmisionSesion(sesion, omitida) {
     const respuesta = await cambiarOmision(sesion, omitida);
@@ -277,7 +308,7 @@ export default function PaginaVisualizadorHorario() {
           titulo={`${tituloConsulta} ${formatearFecha(semanaActual.inicio)}`}
           sesiones={semanaActual.sesiones}
           mostrarSeccion={!esAdmin || tipo === 'docente'}
-          alSeleccionarSesion={esAdmin ? establecerSesionSeleccionada : undefined}
+          alSeleccionarSesion={(esAdmin || esDocente) ? establecerSesionSeleccionada : undefined}
         />
       )}
     </div>
@@ -444,6 +475,32 @@ export default function PaginaVisualizadorHorario() {
           cambiando={cambiandoOmision.includes(String(sesionSeleccionada.id))}
           alCerrar={() => establecerSesionSeleccionada(null)}
           alCambiarOmision={alternarOmisionSesion}
+        />
+      )}
+
+      {esDocente && sesionSeleccionada && (
+        <PanelSesionHorario
+          sesion={sesionSeleccionada}
+          alCerrar={() => establecerSesionSeleccionada(null)}
+          acciones={(
+            <AccionesAsistenciaDocente
+              sesion={sesionSeleccionada}
+              asistencia={asistenciaSesion}
+              alAbrirModal={abrirDialogoAsistencia}
+              alNotificar={mostrarNotificacion}
+            />
+          )}
+        />
+      )}
+
+      {dialogoAsistencia && asistenciaSesion.detalle && (
+        <DialogoAsistenciaSesion
+          sesion={sesionSeleccionada}
+          detalle={asistenciaSesion.detalle}
+          guardando={asistenciaSesion.guardando}
+          error={errorAsistencia || asistenciaSesion.errorGuardado || null}
+          alCerrar={() => establecerDialogoAsistencia(false)}
+          alGuardar={guardarAsistencia}
         />
       )}
     </div>

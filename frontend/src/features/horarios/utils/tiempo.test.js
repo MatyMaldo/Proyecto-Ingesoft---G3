@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { semanaMasCercana, semanasDelRango } from './tiempo.js';
+import { semanaMasCercana, semanasDelRango, construirEjeTemporal } from './tiempo.js';
 
 describe('semanasDelRango', () => {
   it('recorta la primera y la última semana al rango consultado', () => {
@@ -28,8 +28,36 @@ describe('semanasDelRango', () => {
   });
 });
 
-describe('semanaMasCercana', () => {
-  const semanas = semanasDelRango('2026-03-02', '2026-03-27');
+describe('construirEjeTemporal', () => {
+  it('mantiene el fin de jornada cuando no hay sesiones fuera de rango', () => {
+    const eje = construirEjeTemporal(
+      [{ horaInicio: '08:00', horaFin: '10:00' }],
+      { expandirFueraDeJornada: true }
+    );
+
+    expect(eje.at(-1).fin).toBe('13:30');
+    expect(eje.some((segmento) => segmento.inicio === '14:00')).toBe(false);
+  });
+
+  it('expande el eje hasta una sesión posterior al fin de jornada', () => {
+    const eje = construirEjeTemporal(
+      [{ horaInicio: '15:00', horaFin: '16:00' }],
+      { expandirFueraDeJornada: true }
+    );
+
+    expect(eje).toContainEqual(expect.objectContaining({ inicio: '15:00', fin: '16:00' }));
+    expect(eje.at(-1).fin).toBe('16:00');
+  });
+
+  it('no expande el eje si la opción está desactivada', () => {
+    const eje = construirEjeTemporal([{ horaInicio: '15:00', horaFin: '16:00' }]);
+
+    expect(eje.at(-1).fin).toBe('13:30');
+    expect(eje.some((segmento) => segmento.inicio === '15:00')).toBe(false);
+  });
+});
+
+describe('semanaMasCercana', () => {  const semanas = semanasDelRango('2026-03-02', '2026-03-27');
 
   it('elige la semana que contiene la fecha', () => {
     expect(semanaMasCercana(semanas, '2026-03-11').inicio).toBe('2026-03-09');

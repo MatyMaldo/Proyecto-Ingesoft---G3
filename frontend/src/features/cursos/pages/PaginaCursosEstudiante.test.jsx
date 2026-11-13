@@ -82,7 +82,7 @@ const DETALLE = {
 
 async function abrirDetalleDeMatematicas() {
   await userEvent.click(await screen.findByRole('button', { name: 'Ver detalle de Matemáticas' }));
-  await screen.findByRole('heading', { level: 2 });
+  await screen.findByRole('heading', { name: /Matemáticas/ });
 }
 
 describe('PaginaCursosEstudiante (HU-EVAL-03)', () => {
@@ -135,7 +135,7 @@ describe('PaginaCursosEstudiante (HU-EVAL-03)', () => {
     expect(consultarCursosEstudiante).toHaveBeenCalledTimes(2);
   });
 
-  it('abre el detalle con la cabecera del curso, el aviso de solo lectura y las dos pestañas', async () => {
+  it('abre el detalle con la cabecera del curso, el aviso de solo lectura y evaluaciones', async () => {
     consultarCursosEstudiante.mockResolvedValue(LISTA);
     consultarNotasCursoEstudiante.mockResolvedValue(DETALLE);
     render(<PaginaCursosEstudiante />);
@@ -154,11 +154,9 @@ describe('PaginaCursosEstudiante (HU-EVAL-03)', () => {
     expect(within(datos).getByText('Aula 101')).toBeInTheDocument();
     expect(within(datos).getByText('1er Grado de Secundaria')).toBeInTheDocument();
 
-    const pestanas = screen.getByRole('tablist', { name: 'Secciones del curso' });
-    expect(within(pestanas).getAllByRole('tab')).toHaveLength(2);
-    expect(within(pestanas).getByRole('tab', { name: /Asistencia Diaria/ })).toHaveAttribute('aria-selected', 'false');
-    // Solo evaluaciones y notas tiene API hoy, así que es la pestaña que se abre.
-    expect(within(pestanas).getByRole('tab', { name: /Evaluaciones y Notas/ })).toHaveAttribute('aria-selected', 'true');
+    expect(screen.getByRole('heading', { name: 'Evaluaciones y Notas', level: 2 })).toBeInTheDocument();
+    expect(screen.queryByRole('tablist')).not.toBeInTheDocument();
+    expect(screen.queryByText('Asistencia Diaria')).not.toBeInTheDocument();
 
     await userEvent.click(screen.getByRole('button', { name: 'Volver a Mis Cursos' }));
     expect(await screen.findByRole('list', { name: 'Mis cursos' })).toBeInTheDocument();
@@ -213,27 +211,6 @@ describe('PaginaCursosEstudiante (HU-EVAL-03)', () => {
 
     await userEvent.selectOptions(selector, 'BIM_3');
     expect(screen.getByText('No hay evaluaciones registradas en este bimestre.')).toBeInTheDocument();
-  });
-
-  it('cambia entre pestañas con el mouse y con las flechas; la asistencia aún no está disponible', async () => {
-    consultarCursosEstudiante.mockResolvedValue(LISTA);
-    consultarNotasCursoEstudiante.mockResolvedValue(DETALLE);
-    render(<PaginaCursosEstudiante />);
-    await abrirDetalleDeMatematicas();
-
-    const evaluaciones = screen.getByRole('tab', { name: /Evaluaciones y Notas/ });
-    evaluaciones.focus();
-    await userEvent.keyboard('{ArrowLeft}');
-
-    const asistencia = screen.getByRole('tab', { name: /Asistencia Diaria/ });
-    expect(asistencia).toHaveAttribute('aria-selected', 'true');
-    expect(asistencia).toHaveFocus();
-    expect(screen.getByRole('tabpanel')).toHaveAttribute('aria-labelledby', asistencia.id);
-    expect(screen.getByText('La asistencia de este curso aún no está disponible.')).toBeInTheDocument();
-    expect(screen.queryByLabelText('Bimestre')).not.toBeInTheDocument();
-
-    await userEvent.click(screen.getByRole('tab', { name: /Evaluaciones y Notas/ }));
-    expect(await screen.findByLabelText('Bimestre')).toBeInTheDocument();
   });
 
   it('muestra el mensaje de negocio si el detalle falla y reintenta la consulta', async () => {

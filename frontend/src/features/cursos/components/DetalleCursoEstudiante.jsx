@@ -1,20 +1,16 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useRef } from 'react';
 
 import Icono from '../../../shared/components/Icono.jsx';
 import Insignia from '../../../shared/components/Insignia.jsx';
 import { obtenerIconoCurso } from '../constants/iconosCurso.js';
-import { textoDocente, textoHoy } from '../utils/formatoCursoEstudiante.js';
-import PanelAsistenciaCurso from './PanelAsistenciaCurso.jsx';
+import { textoDocente } from '../utils/formatoCursoEstudiante.js';
 import PanelEvaluacionesCurso from './PanelEvaluacionesCurso.jsx';
-import PestanasCurso from './PestanasCurso.jsx';
 import estilos from './DetalleCursoEstudiante.module.css';
 
-const ID_BASE_PESTANAS = 'detalle-curso';
-
 /**
- * Detalle de un curso del estudiante (prototipo "Mis cursos › curso"): cabecera con el curso y dos pestañas,
- * "Asistencia Diaria" (HU-ASI-03) y "Evaluaciones y Notas" (HU-EVAL-03). Cada pestaña sale de su propia API, por eso
- * los datos de evaluaciones llegan por props y la asistencia tendrá su propio hook. Solo lectura.
+ * Detalle de un curso del estudiante (prototipo "Mis cursos › curso"): cabecera con el curso y
+ * la sección de "Evaluaciones y Notas" (HU-EVAL-03). La asistencia se consulta en su propia
+ * pantalla. Solo lectura.
  *
  * @param {Object} props
  * @param {{ id: string, nombre: string, docenteNombre: string, aulas: string[] }} props.curso Tarjeta del curso abierto.
@@ -37,8 +33,6 @@ export default function DetalleCursoEstudiante({
   alReintentar
 }) {
   const titulo = useRef(null);
-  // Solo "Evaluaciones y Notas" tiene hoy API, así que es la que se abre primero.
-  const [pestana, establecerPestana] = useState('evaluaciones');
 
   // Al abrir el detalle el foco pasa al título: el estudiante de teclado o lector de pantalla no queda en el vacío.
   useEffect(() => {
@@ -83,27 +77,11 @@ export default function DetalleCursoEstudiante({
             </ul>
           )}
         </header>
-        <PestanasCurso
-          idBase={ID_BASE_PESTANAS}
-          etiqueta="Secciones del curso"
-          pestanas={[
-            { id: 'asistencia', etiqueta: 'Asistencia Diaria', insignia: textoHoy() },
-            { id: 'evaluaciones', etiqueta: 'Evaluaciones y Notas' }
-          ]}
-          activa={pestana}
-          alCambiar={establecerPestana}
-        />
+        <h2 className={estilos.tituloSeccion}>Evaluaciones y Notas</h2>
       </div>
 
-      <div
-        role="tabpanel"
-        id={`${ID_BASE_PESTANAS}-panel`}
-        aria-labelledby={`${ID_BASE_PESTANAS}-${pestana}`}
-        className={estilos.panel}
-      >
-        {pestana === 'asistencia'
-          ? <PanelAsistenciaCurso />
-          : <PanelEvaluacionesCurso datos={datos} cargando={cargando} error={error} alReintentar={alReintentar} />}
+      <div className={estilos.panel}>
+        <PanelEvaluacionesCurso datos={datos} cargando={cargando} error={error} alReintentar={alReintentar} />
       </div>
     </section>
   );

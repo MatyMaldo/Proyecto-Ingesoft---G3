@@ -1,0 +1,212 @@
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-5);
+}
+
+.cabecera {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1);
+}
+
+.sobretitulo {
+  margin: 0;
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--texto-titulo);
+  font-weight: var(--peso-negrita);
+  color: var(--color-texto);
+}
+
+.descripcion {
+  margin: 0;
+  font-size: var(--texto-md);
+  color: var(--color-texto-suave);
+}
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espacio-3);
+  padding: var(--espacio-4);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+}
+
+.campoFecha {
+  display: flex;
+  flex: 0 1 11rem;
+  flex-direction: column;
+  gap: var(--espacio-1);
+  min-width: 9rem;
+}
+
+.etiqueta {
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto-secundario);
+}
+
+.botonActualizar {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-4);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-accion);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.botonActualizar:hover:not(:disabled) {
+  background: var(--color-superficie-suave);
+}
+
+.botonActualizar:disabled {
+  opacity: var(--opacidad-deshabilitado);
+  cursor: wait;
+}
+
+.resumen {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: var(--espacio-3);
+}
+
+.notaResumen {
+  grid-column: 1 / -1;
+  margin: 0;
+  font-size: var(--texto-xs);
+  color: var(--color-texto-suave);
+}
+
+.tarjetaResumen {
+  padding: var(--espacio-4);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+}
+
+.tarjetaPorcentaje {
+  background: var(--color-accion-suave);
+  border-color: var(--tono-azul-borde);
+}
+
+.tarjetaPresente {
+  background: var(--tono-verde-fondo);
+  border-color: var(--tono-verde-borde);
+}
+
+.tarjetaTardanza {
+  background: var(--tono-ambar-fondo);
+  border-color: var(--tono-ambar-borde);
+}
+
+.tarjetaFalta {
+  background: var(--color-peligro-fondo);
+  border-color: var(--color-peligro-borde);
+}
+
+.etiquetaResumen {
+  margin: 0;
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+.valorResumen {
+  margin: var(--espacio-1) 0 0;
+  font-size: var(--texto-xl);
+  font-weight: var(--peso-negrita);
+  color: var(--color-texto);
+}
+
+.tablaContenedor {
+  overflow-x: auto;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+}
+
+.tabla {
+  width: 100%;
+  min-width: 56rem;
+  border-collapse: collapse;
+  font-size: var(--texto-sm);
+}
+
+.tabla th {
+  padding: var(--espacio-3) var(--espacio-4);
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-align: left;
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+  background: var(--color-superficie-suave);
+  border-bottom: 1px solid var(--color-borde);
+  white-space: nowrap;
+}
+
+.tabla td {
+  padding: var(--espacio-3) var(--espacio-4);
+  color: var(--color-texto-secundario);
+  border-bottom: 1px solid var(--color-borde);
+  vertical-align: middle;
+}
+
+.tabla tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.fecha,
+.curso {
+  color: var(--color-texto);
+  font-weight: var(--peso-seminegrita);
+}
+
+.observaciones {
+  max-width: 18rem;
+  overflow-wrap: anywhere;
+}
+
+@media (max-width: 900px) {
+  .resumen {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 767px) {
+  .filtros {
+    align-items: stretch;
+  }
+
+  .campoFecha {
+    flex: 1 1 100%;
+  }
+
+  .botonActualizar {
+    justify-content: center;
+    width: 100%;
+  }
+
+  .resumen {
+    grid-template-columns: 1fr;
+  }
+}
