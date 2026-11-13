@@ -16,7 +16,6 @@ let evaluaciones = [];
 let notas = [];
 let notasCompetencias = [];
 const BIMESTRES_FINALIZADOS = BIMESTRES.filter((item) => item.id !== 'B4');
-const LIBRETAS_GENERADAS = new Set(['EST-001:1:B1']);
 const ESCALA_NOTAS = Object.freeze(['AD', 'A', 'B', 'C']);
 const ESTUDIANTES_DEMO = [
   { id: 'EST-001', nombre: 'María López García', codigo: 'EST-001', activo: true, seccionId: 1, matriculaEstado: 'CONFIRMADA' },
@@ -54,37 +53,60 @@ export async function listarContextoDocenteMock(usuario) {
       gradoNombre: respuestaEstructura.datos.grados.find((grado) => String(grado.id) === String(seccion.gradoId))?.nombre ?? ''
     }));
 
+  const asignaciones = respuestaCursos.datos
+    .filter((curso) => cursosAsignados.includes(String(curso.id)))
+    .flatMap((curso) => secciones
+      .filter((seccion) => String(seccion.gradoId) === String(curso.grado))
+      .map((seccion) => ({
+        idAsignacionCurso: `${curso.id}-${seccion.id}`,
+        idCurso: curso.id,
+        nombreCurso: curso.nombre,
+        idSeccion: seccion.id,
+        nombreSeccion: seccion.nombre,
+        idGrado: seccion.gradoId,
+        nombreGrado: seccion.gradoNombre
+      })));
+
   return {
     exitoso: true,
     mensaje: '',
     datos: {
-      docente: { id: usuario?.id, nombre: usuario?.nombre ?? 'Docente' },
-      anioAcademico: { id: anio.id, anio: anio.anio, vigente: true },
-      bimestres: copiar(BIMESTRES),
-      asignaciones: respuestaCursos.datos
+      anioAcademico: {
+        id: anio.id,
+        anio: anio.anio,
+        fechaInicio: `${anio.anio}-01-01`,
+        fechaFin: `${anio.anio}-12-31`
+      },
+      asignaciones,
+      bimestres: BIMESTRES.map((bimestre, indice) => ({
+        id: bimestre.id,
+        nombre: bimestre.nombre,
+        fechaInicio: bimestre.inicio,
+        fechaFin: bimestre.fin,
+        finalizado: indice < 3
+      })),
+      secciones,
+      competencias: respuestaCursos.datos
         .filter((curso) => cursosAsignados.includes(String(curso.id)))
-        .map((curso) => ({
-          cursoId: curso.id,
-          cursoNombre: curso.nombre,
-          gradoId: curso.grado,
-          competencias: curso.competencias ?? [],
-          secciones: secciones.filter((seccion) => String(seccion.gradoId) === String(curso.grado))
-        }))
+        .flatMap((curso) => (curso.competencias ?? []).map((competencia) => ({
+          id: competencia.id,
+          nombre: competencia.nombre,
+          idCurso: curso.id
+        })))
     }
   };
 }
 
-export async function listarEvaluacionesMock() {
+export async function listarEvaluacionesMock(idAsignacionCurso) {
   await esperar();
-  return { exitoso: true, datos: copiar(evaluaciones), mensaje: '' };
-}
-
-export async function listarEstudiantesEvaluacionMock(evaluacion) {
-  await esperar();
-  const datos = ESTUDIANTES_DEMO.filter((estudiante) => estudiante.activo
-    && estudiante.matriculaEstado === 'CONFIRMADA'
-    && String(estudiante.seccionId) === String(evaluacion.seccionId));
-  return { exitoso: true, datos: copiar(datos), mensaje: '' };
+  return {
+    exitoso: true,
+    datos: copiar(evaluaciones.filter((item) =>
+      idAsignacionCurso == null
+        || String(item.idAsignacionCurso) === String(idAsignacionCurso)
+    )),
+    mensaje: ''
+  };
 }
 
 export async function listarNotasEvaluacionMock(evaluacionId) {
@@ -96,48 +118,84 @@ export async function listarNotasEvaluacionMock(evaluacionId) {
   };
 }
 
-export async function listarBimestresCompetenciasMock(usuario, cursoId, seccionId) {
+export async function listarEstudiantesAsignacionMock(idAsignacionCurso) {
   await esperar();
-  return { exitoso: true, datos: copiar(BIMESTRES_FINALIZADOS), mensaje: '' };
+  const seccionId = String(idAsignacionCurso).split('-').at(-1);
+  const datos = ESTUDIANTES_DEMO.filter((estudiante) => estudiante.activo
+    && estudiante.matriculaEstado === 'CONFIRMADA'
+    && String(estudiante.seccionId) === seccionId)
+    .map((estudiante) => ({
+      idEstudiante: estudiante.id,
+      codigo: estudiante.codigo,
+      nombre: estudiante.nombre.split(' ')[0],
+      apellidoPaterno: estudiante.nombre.split(' ')[1] ?? '',
+      apellidoMaterno: estudiante.nombre.split(' ').slice(2).join(' '),
+      estadoMatricula: estudiante.matriculaEstado
+    }));
+  return { exitoso: true, datos: copiar(datos), mensaje: '' };
 }
 
-export async function listarNotasCompetenciasMock(cursoId, seccionId, bimestreId, estudianteId) {
+export async function listarBimestresAnioMock() {
   await esperar();
-  if (LIBRETAS_GENERADAS.has(`${estudianteId}:${seccionId}:${bimestreId}`)) {
-    return fallo('Las notas están bloqueadas porque la libreta ya fue generada.');
-  }
+  return {
+    exitoso: true,
+    datos: copiar(BIMESTRES.map((bimestre) => ({
+      id: bimestre.id,
+      nombre: bimestre.nombre,
+      fechaInicio: bimestre.inicio,
+      fechaFin: bimestre.fin,
+      finalizado: BIMESTRES_FINALIZADOS.some((item) => item.id === bimestre.id)
+    }))),
+    mensaje: ''
+  };
+}
+
+export async function listarNotasCompetenciasMock(cursoId, bimestreId, estudianteId) {
+  await esperar();
   return {
     exitoso: true,
     datos: copiar(notasCompetencias.find((registro) => String(registro.cursoId) === String(cursoId)
-      && String(registro.seccionId) === String(seccionId)
       && String(registro.bimestreId) === String(bimestreId)
-      && String(registro.estudianteId) === String(estudianteId))?.competencias ?? []),
+      && String(registro.estudianteId) === String(estudianteId))?.competencias.map((item) => ({
+        idCompetencia: item.competenciaId,
+        nombreCompetencia: item.nombre,
+        nombreBimestre: registro.bimestreNombre,
+        valorNota: item.nota,
+        conclusionDescriptiva: item.conclusionDescriptiva
+      })) ?? []),
     mensaje: ''
   };
 }
 
 export async function guardarNotasCompetenciasMock(usuario, datos) {
   await esperar();
-  if (!BIMESTRES_FINALIZADOS.some((item) => item.id === datos.bimestreId)) {
+  const bimestre = BIMESTRES.find((item) => String(item.id) === String(datos.idBimestre));
+  if (!BIMESTRES_FINALIZADOS.some((item) => String(item.id) === String(datos.idBimestre))) {
     return fallo('Las notas de competencias se registran una vez finalizado el bimestre.');
   }
-  if (LIBRETAS_GENERADAS.has(`${datos.estudianteId}:${datos.seccionId}:${datos.bimestreId}`)) {
-    return fallo('Las notas están bloqueadas porque la libreta ya fue generada.');
-  }
-  for (const competencia of datos.competencias ?? []) {
-    if (!ESCALA_NOTAS.includes(competencia.nota)) return fallo(`${competencia.nombre}: la nota debe ser AD, A, B o C.`);
+  for (const competencia of datos.calificaciones ?? []) {
+    if (!ESCALA_NOTAS.includes(competencia.valorNota)) return fallo('La nota debe ser AD, A, B o C.');
     const conclusion = String(competencia.conclusionDescriptiva ?? '').trim();
     if (!conclusion) return fallo(`${competencia.nombre}: La conclusión descriptiva es obligatoria.`);
     if (conclusion.length > 120) return fallo(`${competencia.nombre}: La conclusión descriptiva no puede superar los 120 caracteres.`);
   }
-  const clave = (item) => String(item.cursoId) === String(datos.cursoId)
-    && String(item.seccionId) === String(datos.seccionId)
-    && String(item.bimestreId) === String(datos.bimestreId)
-    && String(item.estudianteId) === String(datos.estudianteId);
+  const clave = (item) => String(item.cursoId) === String(datos.idCurso)
+    && String(item.bimestreId) === String(datos.idBimestre)
+    && String(item.estudianteId) === String(datos.idEstudiante);
   const anterior = notasCompetencias.find(clave);
   const registro = {
     ...datos,
-    competencias: datos.competencias.map((item) => ({ ...item, conclusionDescriptiva: item.conclusionDescriptiva.trim() })),
+    cursoId: datos.idCurso,
+    seccionId: datos.idSeccion,
+    bimestreId: datos.idBimestre,
+    bimestreNombre: bimestre?.nombre,
+    estudianteId: datos.idEstudiante,
+    competencias: datos.calificaciones.map((item) => ({
+      competenciaId: item.idCompetencia,
+      nombre: item.nombre ?? `Competencia ${item.idCompetencia}`,
+      nota: item.valorNota,
+      conclusionDescriptiva: item.conclusionDescriptiva.trim()
+    })),
     docenteId: usuario?.id,
     docenteNombre: usuario?.nombre ?? 'Docente',
     auditoria: [...(anterior?.auditoria ?? []), {
@@ -152,7 +210,7 @@ export async function guardarNotasCompetenciasMock(usuario, datos) {
     : [...notasCompetencias, registro];
   for (const competencia of registro.competencias) {
     registrarRegistroAuditoriaMock({
-      idElemento: `COMP-${datos.cursoId}-${datos.seccionId}-${datos.bimestreId}-${datos.estudianteId}-${competencia.competenciaId}`,
+      idElemento: `COMP-${datos.idCurso}-${datos.idSeccion}-${datos.idBimestre}-${datos.idEstudiante}-${competencia.competenciaId}`,
       fechaHora: new Date().toISOString(),
       usuario: { nombre: registro.docenteNombre, rol: 'DOCENTE' },
       categoria: 'EVALUACIONES',
@@ -163,7 +221,7 @@ export async function guardarNotasCompetenciasMock(usuario, datos) {
         { campo: 'Estudiante', valor: datos.estudianteNombre },
         { campo: 'Curso', valor: datos.cursoNombre },
         { campo: 'Competencia', valor: competencia.nombre },
-        { campo: 'Bimestre', valor: datos.bimestreId },
+        { campo: 'Bimestre', valor: datos.idBimestre },
         { campo: 'Nota', valor: competencia.nota },
         { campo: 'Conclusión descriptiva', valor: competencia.conclusionDescriptiva }
       ]
@@ -225,7 +283,7 @@ export async function guardarNotaEvaluacionMock(evaluacion, estudiante, valor, u
 
 export async function crearEvaluacionMock(datos, docente) {
   await esperar();
-  if (!datos.nombre?.trim() || !datos.descripcion?.trim() || !datos.fecha || !datos.competenciaId) {
+  if (!datos.nombre?.trim() || !datos.descripcion?.trim() || !datos.fecha || !datos.idCompetencia) {
     return fallo('Completa el nombre, la descripción, la fecha y la competencia.');
   }
   if (!datos.fecha.startsWith(`${ANIO_VIGENTE}-`)) {
@@ -238,8 +296,16 @@ export async function crearEvaluacionMock(datos, docente) {
     ...datos,
     nombre: datos.nombre.trim(),
     descripcion: datos.descripcion.trim(),
-    bimestreId: bimestre.id,
     bimestreNombre: bimestre.nombre,
+    nombreBimestre: bimestre.nombre,
+    nombreCompetencia: datos.nombreCompetencia,
+    nombreCurso: datos.nombreCurso,
+    nombreSeccion: datos.nombreSeccion,
+    idAsignacionCurso: datos.idAsignacionCurso,
+    cursoId: datos.cursoId,
+    seccionId: datos.seccionId,
+    anioAcademicoId: datos.anioAcademicoId,
+    anioAcademico: datos.anioAcademico,
     docenteCreadorId: docente?.id,
     docenteCreadorNombre: docente?.nombre ?? 'Docente',
     id: `EVA-${String(siguientesId++).padStart(4, '0')}`,
