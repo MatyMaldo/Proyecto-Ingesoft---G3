@@ -98,9 +98,12 @@ function normalizarNotasCompetencias(respuesta, competencias) {
   return {
     ...respuesta,
     datos: respuesta.datos.map((nota) => {
-      const competencia = competencias.find((item) =>
+      const competenciasConNombre = competencias.filter((item) =>
         String(item.nombre) === String(nota.nombreCompetencia)
       );
+      const competencia = nota.idCompetencia == null && competenciasConNombre.length === 1
+        ? competenciasConNombre[0]
+        : undefined;
       return {
         ...nota,
         competenciaId: nota.idCompetencia ?? competencia?.id,
@@ -179,7 +182,7 @@ export async function listarEstudiantesAsignacion(idAsignacionCurso) {
         nombre: [estudiante.nombre, estudiante.apellidoPaterno, estudiante.apellidoMaterno]
           .filter(Boolean)
           .join(' '),
-        codigo: String(estudiante.idEstudiante ?? estudiante.id),
+        codigo: estudiante.codigo ?? '',
         activo: true
       }))
   };

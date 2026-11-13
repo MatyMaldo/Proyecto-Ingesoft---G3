@@ -102,7 +102,8 @@ export async function listarEvaluacionesMock(idAsignacionCurso) {
   return {
     exitoso: true,
     datos: copiar(evaluaciones.filter((item) =>
-      String(item.idAsignacionCurso) === String(idAsignacionCurso)
+      idAsignacionCurso == null
+        || String(item.idAsignacionCurso) === String(idAsignacionCurso)
     )),
     mensaje: ''
   };
@@ -125,6 +126,7 @@ export async function listarEstudiantesAsignacionMock(idAsignacionCurso) {
     && String(estudiante.seccionId) === seccionId)
     .map((estudiante) => ({
       idEstudiante: estudiante.id,
+      codigo: estudiante.codigo,
       nombre: estudiante.nombre.split(' ')[0],
       apellidoPaterno: estudiante.nombre.split(' ')[1] ?? '',
       apellidoMaterno: estudiante.nombre.split(' ').slice(2).join(' '),
@@ -155,6 +157,7 @@ export async function listarNotasCompetenciasMock(cursoId, bimestreId, estudiant
     datos: copiar(notasCompetencias.find((registro) => String(registro.cursoId) === String(cursoId)
       && String(registro.bimestreId) === String(bimestreId)
       && String(registro.estudianteId) === String(estudianteId))?.competencias.map((item) => ({
+        idCompetencia: item.competenciaId,
         nombreCompetencia: item.nombre,
         nombreBimestre: registro.bimestreNombre,
         valorNota: item.nota,

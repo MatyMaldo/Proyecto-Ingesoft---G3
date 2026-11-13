@@ -292,8 +292,9 @@ export default function PaginaEvaluaciones() {
     }
     const registradas = respuesta.datos ?? [];
     setFormNotasCompetencias(competencias.map((competencia) => {
-      const nota = registradas.find((item) => String(item.competenciaId) === String(competencia.id)
-        || String(item.nombre) === String(competencia.nombre));
+      const nota = registradas.find((item) =>
+        String(item.competenciaId) === String(competencia.id)
+      );
       return {
         competenciaId: competencia.id,
         nombre: competencia.nombre,
@@ -460,7 +461,7 @@ export default function PaginaEvaluaciones() {
                         cargarNotasCompetencias(bimestreCompetenciasId, evento.target.value);
                       }} disabled={cargandoCompetencias || !estudiantes.length}>
                         <option value="">Selecciona un estudiante</option>
-                        {estudiantes.map((item) => <option key={item.id} value={item.id}>{item.nombre} · {item.codigo}</option>)}
+                        {estudiantes.map((item) => <option key={item.id} value={item.id}>{item.nombre}{item.codigo ? ` · ${item.codigo}` : ''}</option>)}
                       </select>
                     </label>
                   </div>
@@ -533,7 +534,7 @@ export default function PaginaEvaluaciones() {
                         <form className={estilos.formularioNota} onSubmit={guardarNota}>
                           <label>Estudiante
                             <select value={estudianteId} onChange={(evento) => seleccionarEstudiante(evento.target.value)}>
-                              {estudiantes.map((item) => <option key={item.id} value={item.id}>{item.nombre} · {item.codigo}</option>)}
+                              {estudiantes.map((item) => <option key={item.id} value={item.id}>{item.nombre}{item.codigo ? ` · ${item.codigo}` : ''}</option>)}
                             </select>
                           </label>
                           <label>Nota

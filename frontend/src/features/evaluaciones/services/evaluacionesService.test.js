@@ -96,6 +96,7 @@ describe('contratos del servicio de evaluaciones', () => {
       datos: [
         {
           idEstudiante: 8,
+          codigo: 'MAT-2026-008',
           nombre: 'Ana',
           apellidoPaterno: 'Pérez',
           apellidoMaterno: 'Díaz',
@@ -117,7 +118,7 @@ describe('contratos del servicio de evaluaciones', () => {
     expect(respuesta.datos).toEqual([expect.objectContaining({
       id: 8,
       nombre: 'Ana Pérez Díaz',
-      codigo: '8',
+      codigo: 'MAT-2026-008',
       estadoMatricula: 'CONFIRMADA',
       activo: true
     })]);
@@ -247,6 +248,7 @@ describe('contratos del servicio de evaluaciones', () => {
     solicitar.mockResolvedValue({
       exitoso: true,
       datos: [{
+        idCompetencia: 5,
         nombreCompetencia: 'Resuelve problemas',
         nombreBimestre: 'I_BIMESTRE',
         valorNota: 'A',
@@ -264,6 +266,26 @@ describe('contratos del servicio de evaluaciones', () => {
       nota: 'A',
       nombre: 'Resuelve problemas'
     });
+  });
+
+  it('asocia notas de competencias por ID aunque existan nombres repetidos', async () => {
+    solicitar.mockResolvedValue({
+      exitoso: true,
+      datos: [{
+        idCompetencia: 6,
+        nombreCompetencia: 'Resuelve problemas',
+        nombreBimestre: 'I_BIMESTRE',
+        valorNota: 'AD',
+        conclusionDescriptiva: 'Avance destacado'
+      }]
+    });
+
+    const respuesta = await listarNotasCompetencias(3, 4, 8, [
+      { id: 5, nombre: 'Resuelve problemas' },
+      { id: 6, nombre: 'Resuelve problemas' }
+    ]);
+
+    expect(respuesta.datos[0].competenciaId).toBe(6);
   });
 
   it('registra notas finales con el método, ruta y contrato implementados', async () => {
