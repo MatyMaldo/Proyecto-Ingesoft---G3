@@ -2,7 +2,12 @@ import { useEffect, useRef, useState } from 'react';
 import { useLocation, useNavigate } from 'react-router-dom';
 
 import useAuth from '../../../shared/auth/useAuth.js';
-import { MENSAJES_RECHAZO, MENSAJES_CIERRE_SESION, MENSAJE_ERROR_INESPERADO } from '../constants/mensajesLogin.js';
+import {
+  MENSAJES_RECHAZO,
+  MENSAJES_CIERRE_SESION,
+  MENSAJE_ERROR_INESPERADO,
+  MENSAJE_CONTRASENA_ACTUALIZADA
+} from '../constants/mensajesLogin.js';
 import { validarCredenciales, validarCorreo, validarContrasena } from '../utils/validacionLogin.js';
 import { iniciarSesion, MOTIVOS_RECHAZO } from '../services/autenticacionService.js';
 import {
@@ -11,7 +16,7 @@ import {
   borrarPreferenciasLogin
 } from '../utils/preferenciasLogin.js';
 
-// La casilla "Recordar mi sesión" arranca desmarcada por defecto; solo
+// La casilla "Recordar mi correo" arranca desmarcada por defecto; solo
 // aparece marcada cuando hay preferencias guardadas (`calcularValoresIniciales`).
 const VALORES_INICIALES = Object.freeze({
   correo: '',
@@ -21,22 +26,20 @@ const VALORES_INICIALES = Object.freeze({
 
 /**
  * Valores iniciales del formulario: si hay preferencias guardadas de
- * "Recordar mi sesión" (solo el correo electrónico, nunca la contraseña), se
+ * "Recordar mi correo" (solo el correo electrónico, nunca la contraseña), se
  * precargan y la casilla aparece marcada (docs/planes/login.md §U7, D26,
  * decisión del usuario 2026-11-01).
  */
-function calcularValoresIniciales() {
+function calcularValoresIniciales(correoLlegada) {
   const preferencias = leerPreferenciasLogin();
+  const base = preferencias ? { correo: preferencias.correo, contrasena: '', recordar: true } : VALORES_INICIALES;
 
-  if (!preferencias) {
-    return VALORES_INICIALES;
+  // Tras restablecer la contraseña se precarga el correo con el que se hizo.
+  if (typeof correoLlegada === 'string' && correoLlegada.length > 0) {
+    return { ...base, correo: correoLlegada };
   }
 
-  return {
-    correo: preferencias.correo,
-    contrasena: '',
-    recordar: true
-  };
+  return base;
 }
 
 /**
@@ -57,6 +60,7 @@ function obtenerValidadorFormato(nombre) {
  *   valores: { correo: string, contrasena: string, recordar: boolean },
  *   errores: { correo?: string, contrasena?: string },
  *   errorGeneral: string | null,
+ *   avisoExito: string | null,
  *   enviando: boolean,
  *   refCorreo: import('react').RefObject<HTMLInputElement>,
  *   refContrasena: import('react').RefObject<HTMLInputElement>,
@@ -70,9 +74,10 @@ export default function useLogin() {
   const location = useLocation();
   const navigate = useNavigate();
 
-  const [valores, establecerValores] = useState(calcularValoresIniciales);
+  const [valores, establecerValores] = useState(() => calcularValoresIniciales(location.state?.correo));
   const [errores, establecerErrores] = useState({});
   const [errorGeneral, establecerErrorGeneral] = useState(null);
+  const [avisoExito, establecerAvisoExito] = useState(null);
   const [enviando, establecerEnviando] = useState(false);
 
   const refCorreo = useRef(null);
@@ -89,6 +94,14 @@ export default function useLogin() {
     if (texto) {
       establecerErrorGeneral(texto);
       navigate(location.pathname, { replace: true, state: null });
+      return;
+    }
+
+    // Llegada desde "Restablecer contraseña": confirma el cambio y deja el foco en la contraseña.
+    if (location.state?.contrasenaRestablecida === true) {
+      establecerAvisoExito(MENSAJE_CONTRASENA_ACTUALIZADA);
+      navigate(location.pathname, { replace: true, state: null });
+      refContrasena.current?.focus();
     }
     // Solo al montar: el efecto limpia el `state`, así que no debe repetirse
     // ante cambios posteriores de `location`.
@@ -154,6 +167,7 @@ export default function useLogin() {
     }
 
     establecerErrorGeneral(null);
+    establecerAvisoExito(null);
 
     const erroresEncontrados = validarCredenciales(valores);
 
@@ -178,7 +192,7 @@ export default function useLogin() {
     });
 
     if (resultado.exitoso) {
-      // "Recordar mi sesión" marcada: guarda el correo (nunca la contraseña ni
+      // "Recordar mi correo" marcada: guarda el correo (nunca la contraseña ni
       // el token) tras un login correcto (D26).
       if (valores.recordar) {
         guardarPreferenciasLogin({ correo: valores.correo.trim() });
@@ -203,6 +217,7 @@ export default function useLogin() {
     valores,
     errores,
     errorGeneral,
+    avisoExito,
     enviando,
     refCorreo,
     refContrasena,

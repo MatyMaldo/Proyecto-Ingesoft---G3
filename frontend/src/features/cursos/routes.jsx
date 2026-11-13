@@ -1,5 +1,9 @@
-import PaginaCursos from './pages/PaginaCursos.jsx';
+import { lazy } from 'react';
+
 import { ROLES_QUE_VEN_CURSOS } from './constants/permisosCursos.js';
+
+// Carga diferida: el código de cada página se descarga al entrar a su ruta, no con el inicio de sesión.
+const PaginaCursos = lazy(() => import('./pages/PaginaCursos.jsx'));
 
 /**
  * Rutas de la feature Cursos (HU-EVAL-08). Contrato: docs/planes/shell.md §4.2.

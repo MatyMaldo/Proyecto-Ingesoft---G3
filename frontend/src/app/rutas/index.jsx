@@ -1,3 +1,4 @@
+import { lazy, Suspense, useEffect } from 'react';
 import { Routes, Route, Link, Navigate } from 'react-router-dom';
 
 import PaginaLogin from '../../features/autenticacion/pages/PaginaLogin.jsx';
@@ -7,12 +8,20 @@ import RutaProtegida from '../../shared/auth/RutaProtegida.jsx';
 import RutaPublica from '../../shared/auth/RutaPublica.jsx';
 import { RUTA_LOGIN, RUTA_SOLICITAR_CODIGO, RUTA_RESTABLECER_CONTRASENA } from '../../shared/auth/constantesSesion.js';
 import useAuth from '../../shared/auth/useAuth.js';
+import EstadoConsulta from '../../shared/components/EstadoConsulta.jsx';
 import LimiteErrores from '../../shared/components/LimiteErrores.jsx';
 import ModuloEnConstruccion from '../../shared/components/ModuloEnConstruccion.jsx';
 import Icono from '../../shared/components/Icono.jsx';
 import estilosAviso from '../../shared/components/AvisoPagina.module.css';
-import LayoutPrincipal from '../layout/LayoutPrincipal.jsx';
 import { obtenerItemsNavegacion, RUTA_INICIO_POR_ROL } from '../navegacion/navegacion.config.js';
+
+// El layout autenticado y las páginas de cada feature se cargan de forma diferida: quien abre el inicio de sesión
+// solo descarga las pantallas públicas.
+const importarLayout = () => import('../layout/LayoutPrincipal.jsx');
+const LayoutPrincipal = lazy(importarLayout);
+
+/** Estado de carga mientras se descarga el código de una página diferida. */
+const cargaPagina = <EstadoConsulta tipo="carga" />;
 
 const RUTAS_RESERVADAS = new Set([
   '/',
@@ -173,6 +182,18 @@ function PaginaNoEncontrada() {
  * Árbol de rutas de toda la aplicación. Ver `docs/planes/shell.md` §4.3.
  */
 export default function RutasAplicacion() {
+  // Precarga el layout autenticado cuando el navegador queda libre, para que tras iniciar sesión solo falte
+  // descargar la página del rol.
+  useEffect(() => {
+    const programar = window.requestIdleCallback ?? ((tarea) => setTimeout(tarea, 1500));
+    const cancelar = window.cancelIdleCallback ?? clearTimeout;
+    const identificador = programar(() => {
+      importarLayout().catch(() => {});
+    });
+
+    return () => cancelar(identificador);
+  }, []);
+
   return (
     <Routes>
       <Route
@@ -214,7 +235,9 @@ export default function RutasAplicacion() {
           path={ruta.path}
           element={
             <RutaProtegida rolesPermitidos={ruta.rolesPermitidos}>
-              <LimiteErrores clave={ruta.path}>{ruta.element}</LimiteErrores>
+              <LimiteErrores clave={ruta.path}>
+                <Suspense fallback={cargaPagina}>{ruta.element}</Suspense>
+              </LimiteErrores>
             </RutaProtegida>
           }
         />
@@ -223,7 +246,9 @@ export default function RutasAplicacion() {
       <Route
         element={
           <RutaProtegida>
-            <LayoutPrincipal metadatosRutas={METADATOS_RUTAS} />
+            <Suspense fallback={null}>
+              <LayoutPrincipal metadatosRutas={METADATOS_RUTAS} />
+            </Suspense>
           </RutaProtegida>
         }
       >
@@ -233,7 +258,9 @@ export default function RutasAplicacion() {
             key={ruta.path}
             path={ruta.path}
             element={
-              <RutaProtegida rolesPermitidos={ruta.rolesPermitidos}>{ruta.element}</RutaProtegida>
+              <RutaProtegida rolesPermitidos={ruta.rolesPermitidos}>
+                <Suspense fallback={cargaPagina}>{ruta.element}</Suspense>
+              </RutaProtegida>
             }
           />
         ))}

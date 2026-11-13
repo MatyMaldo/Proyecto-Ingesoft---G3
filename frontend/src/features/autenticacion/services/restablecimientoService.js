@@ -6,7 +6,7 @@
 //
 // Prohibido registrar en consola el correo, el código o las contraseñas (ni aquí ni en el mock).
 
-import { solicitarCodigoMock, restablecerContrasenaMock } from './mocks/restablecimientoMock.js';
+import { solicitarCodigoMock, verificarCodigoMock, restablecerContrasenaMock } from './mocks/restablecimientoMock.js';
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import { solicitar } from '../../../shared/api/clienteHttp.js';
 
@@ -27,13 +27,15 @@ const CLAVES_POLITICA_CONOCIDAS = new Set(['LONGITUD', 'CARACTERES', 'LETRA', 'N
 /**
  * Interpreta la respuesta cruda del adaptador (mock o HTTP) y la lleva a una
  * forma única para los hooks. `estado 400` con un `codigo` conocido devuelve
- * ese motivo; `estado 400` sin código conocido se trata como `DATOS_INVALIDOS`;
- * el resto (5xx, red, tiempo agotado, cancelada) se trata como `ERROR_INESPERADO`.
+ * ese motivo; `estado 400` sin código conocido se trata como `motivo400` (por
+ * defecto `DATOS_INVALIDOS`); el resto (5xx, red, tiempo agotado, cancelada) se
+ * trata como `ERROR_INESPERADO`.
  *
  * @param {{ exitoso: boolean, datos: *, mensaje: string, estado?: number, codigo?: string|null }} respuesta
+ * @param {string} [motivo400] Motivo de un 400 que no trae `codigo` conocido.
  * @returns {{ exitoso: boolean, mensaje: string, motivo: string|null, requisitosIncumplidos: string[] }}
  */
-function interpretarRespuesta(respuesta) {
+function interpretarRespuesta(respuesta, motivo400 = MOTIVOS_RECHAZO_RESTABLECIMIENTO.DATOS_INVALIDOS) {
   if (respuesta.exitoso) {
     return { exitoso: true, mensaje: respuesta.mensaje ?? '', motivo: null, requisitosIncumplidos: [] };
   }
@@ -55,7 +57,7 @@ function interpretarRespuesta(respuesta) {
     return {
       exitoso: false,
       mensaje: respuesta.mensaje ?? '',
-      motivo: MOTIVOS_RECHAZO_RESTABLECIMIENTO.DATOS_INVALIDOS,
+      motivo: motivo400,
       requisitosIncumplidos: []
     };
   }
@@ -81,10 +83,30 @@ function interpretarRespuesta(respuesta) {
 export async function solicitarCodigo({ correo }) {
   const respuesta = USAR_MOCK
     ? await solicitarCodigoMock({ correo })
-    : await solicitar('/auth/codigos-verificacion', { metodo: 'POST', cuerpo: { correo } });
+    : await solicitar('/auth/password/solicitar', { metodo: 'POST', cuerpo: { email: correo } });
 
   const { exitoso, mensaje, motivo } = interpretarRespuesta(respuesta);
   return { exitoso, mensaje, motivo };
+}
+
+/**
+ * Comprueba si el código de verificación sirve para el correo indicado, sin
+ * consumirlo: solo permite avanzar al paso 2. El backend responde 200 tanto
+ * si el código es válido como si no (`valido: false`), así que `exitoso`
+ * indica que la consulta se completó y `valido`, su resultado. Nunca lanza.
+ *
+ * Prohibido registrar en consola el cuerpo de esta solicitud.
+ *
+ * @param {{ correo: string, codigo: string }} datos
+ * @returns {Promise<{ exitoso: boolean, valido: boolean, mensaje: string, motivo: string|null }>}
+ */
+export async function verificarCodigo({ correo, codigo }) {
+  const respuesta = USAR_MOCK
+    ? await verificarCodigoMock({ correo, codigo })
+    : await solicitar('/auth/password/verificar', { metodo: 'POST', cuerpo: { email: correo, codigo } });
+
+  const { exitoso, mensaje, motivo } = interpretarRespuesta(respuesta);
+  return { exitoso, valido: exitoso && respuesta.datos?.valido === true, mensaje, motivo };
 }
 
 /**
@@ -100,10 +122,13 @@ export async function solicitarCodigo({ correo }) {
 export async function restablecerContrasena({ correo, codigo, nuevaContrasena, confirmacionContrasena }) {
   const respuesta = USAR_MOCK
     ? await restablecerContrasenaMock({ correo, codigo, nuevaContrasena, confirmacionContrasena })
-    : await solicitar('/auth/restablecimientos-contrasena', {
+    : await solicitar('/auth/password/restablecer', {
         metodo: 'POST',
-        cuerpo: { correo, codigo, nuevaContrasena, confirmacionContrasena }
+        // El backend no recibe la confirmación: la coincidencia se valida en el cliente antes de llamar.
+        cuerpo: { email: correo, codigo, nuevaPassword: nuevaContrasena }
       });
 
-  return interpretarRespuesta(respuesta);
+  // El backend responde 400 sin `codigo` de negocio. El hook ya validó correo, formato del código y contraseña
+  // antes de llamar, así que un 400 aquí corresponde a un código inválido, vencido, bloqueado o ya usado.
+  return interpretarRespuesta(respuesta, MOTIVOS_RECHAZO_RESTABLECIMIENTO.CODIGO_INVALIDO);
 }

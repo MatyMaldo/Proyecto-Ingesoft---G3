@@ -1,7 +1,7 @@
 import { CLAVE_PREFERENCIAS_LOGIN } from '../../../shared/auth/constantesSesion.js';
 
 /**
- * Preferencias de "Recordar mi sesión": solo el correo electrónico, guardado
+ * Preferencias de "Recordar mi correo": solo el correo electrónico, guardado
  * en `localStorage` tras un inicio de sesión correcto con la casilla marcada.
  * Nunca se guarda la contraseña ni ningún token (decisión del usuario
  * 2026-11-01, docs/planes/login.md D26).
@@ -47,7 +47,7 @@ export function leerPreferenciasLogin() {
 
 /**
  * Guarda el correo electrónico tras un inicio de sesión correcto con
- * "Recordar mi sesión" marcada. Nunca guarda la contraseña.
+ * "Recordar mi correo" marcada. Nunca guarda la contraseña.
  *
  * @param {{ correo: string }} preferencias
  */

@@ -228,4 +228,49 @@ describe('DialogoCargaCsv · importación contra el backend', () => {
     expect(within(dialogo).queryByRole('region', { name: 'Resultado de la importación' })).not.toBeInTheDocument();
     expect(within(dialogo).getByRole('button', { name: 'Previsualizar' })).toBeDisabled();
   });
+
+  it('pagina el resultado (8 filas por página) y permite ver solo las filas rechazadas', async () => {
+    const TOTAL = 12;
+    const csvGrande = [
+      'tipoUsuario,nombre,apellidoPaterno,apellidoMaterno,dni,telefono,correo,edad,fechaNacimiento,dniApoderado',
+      ...Array.from({ length: TOTAL }, (_, i) => {
+        const n = String(i + 1).padStart(2, '0');
+        return `APODERADO,Nombre${n},Apellido${n},Materno${n},200000${n},9000000${n},persona${n}@example.com,40,,`;
+      })
+    ].join('\r\n');
+    // Las filas del archivo son las líneas 2 a 13: se rechazan la 3 y la 12.
+    const rechazadas = new Set([3, 12]);
+    iniciarCargaMasivaUsuarios.mockResolvedValue(INICIO);
+    consultarOperacionMasiva.mockResolvedValue(job('COMPLETADO_CON_ERRORES', {
+      total: TOTAL,
+      procesados: TOTAL,
+      resultado: Array.from({ length: TOTAL }, (_, i) => (rechazadas.has(i + 2)
+        ? { linea: i + 2, estado: 'RECHAZADO', motivo: 'Ya existe un usuario registrado con ese identificador.', codigo: null }
+        : { linea: i + 2, estado: 'CREADO', motivo: null, codigo: null }))
+    }));
+    render(
+      <DialogoCargaCsv usuarios={[]} alImportar={vi.fn()} alRecargar={vi.fn()} alImportacionCompleta={vi.fn()} alCerrar={vi.fn()} />
+    );
+    const dialogo = screen.getByRole('dialog', { name: 'Carga masiva de usuarios' });
+    await irALaRevision(dialogo, new File([csvGrande], 'usuarios.csv', { type: 'text/csv' }));
+    await userEvent.click(within(dialogo).getByRole('button', { name: `Importar ${TOTAL} usuarios` }));
+
+    const resultado = await within(dialogo).findByRole('region', { name: 'Resultado de la importación' });
+    const tabla = within(resultado).getByRole('table', { name: 'Resultado por fila' });
+    const filasDeDatos = () => within(tabla).getAllByRole('row').filter((fila) => within(fila).queryAllByRole('cell').length > 1);
+
+    // Solo se dibuja la primera página; el resto está detrás de la paginación.
+    expect(filasDeDatos()).toHaveLength(8);
+    expect(within(resultado).getByRole('navigation', { name: 'Paginación del resultado' })).toBeInTheDocument();
+
+    // Filtrar por rechazadas muestra solo esas filas y ya no hace falta paginar.
+    await userEvent.click(within(resultado).getByRole('button', { name: /2 rechazadas/ }));
+    expect(filasDeDatos()).toHaveLength(2);
+    expect(within(resultado).queryByRole('navigation', { name: 'Paginación del resultado' })).not.toBeInTheDocument();
+    expect(within(resultado).getAllByText('Rechazada')).toHaveLength(2);
+
+    // Quitar el filtro vuelve a la primera página con todas las filas.
+    await userEvent.click(within(resultado).getByRole('button', { name: /2 rechazadas/ }));
+    expect(filasDeDatos()).toHaveLength(8);
+  });
 });

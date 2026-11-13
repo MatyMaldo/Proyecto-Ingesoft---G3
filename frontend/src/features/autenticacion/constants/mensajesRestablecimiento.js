@@ -1,4 +1,9 @@
-import { ESPERA_REENVIO_SEGUNDOS } from './reglasRestablecimiento.js';
+import {
+  ESPERA_REENVIO_SEGUNDOS,
+  VIGENCIA_CODIGO_MINUTOS,
+  CONTRASENA_LONGITUD_MIN,
+  CONTRASENA_LONGITUD_MAX
+} from './reglasRestablecimiento.js';
 
 /**
  * Textos de las pantallas "Solicitar código" y "Restablecer contraseña"
@@ -53,6 +58,9 @@ export const TEXTO_ENVIANDO = 'Enviando…';
 /** Texto del botón "Aceptar" mientras se envía el restablecimiento. Confirmado (R2). */
 export const TEXTO_GUARDANDO = 'Guardando…';
 
+/** Texto del botón "Continuar" mientras se verifica el código en el paso 1. */
+export const TEXTO_VERIFICANDO = 'Verificando…';
+
 /** Placeholder del campo "Código de verificación". Confirmado (R2). */
 export const PLACEHOLDER_CODIGO = 'Ingresa el código de 6 dígitos';
 
@@ -70,6 +78,18 @@ export const DESCRIPCION_ESPERA = 'Disponible cuando termine la cuenta regresiva
  * Deliberadamente condicional: no confirma ni niega que la cuenta exista.
  */
 export const MENSAJE_SOLICITUD_CODIGO = 'Si el correo corresponde a una cuenta activa, enviamos un código de verificación a ese correo.';
+
+/** Vigencia del código, junto al aviso de envío. */
+export const MENSAJE_VIGENCIA_CODIGO = `El código vence en ${VIGENCIA_CODIGO_MINUTOS} minutos.`;
+
+/** El código quedó bloqueado por intentos fallidos: solo sirve pedir otro. */
+export const MENSAJE_CODIGO_BLOQUEADO = 'Código bloqueado por intentos fallidos. Solicita uno nuevo.';
+
+/** Acción para editar el correo cuando llega fijado desde "Solicitar código". */
+export const TEXTO_CAMBIAR_CORREO = 'Cambiar correo';
+
+/** Indicador en vivo bajo "Confirmar contraseña". */
+export const MENSAJE_CONTRASENAS_COINCIDEN = 'Las contraseñas coinciden';
 
 /** Literal HU (Esc. 11, 12; lista de verificación "Mensajes"). */
 export const MENSAJE_CODIGO_INVALIDO = 'Código inválido o vencido. Solicita uno nuevo.';
@@ -90,7 +110,7 @@ export const NUEVA_CONTRASENA_OBLIGATORIA = 'Ingresa la nueva contraseña.';
 export const CONFIRMACION_OBLIGATORIA = 'Confirma la nueva contraseña.';
 
 /** Texto de ayuda permanente bajo la etiqueta "Nueva contraseña". Confirmado (R2). */
-export const AYUDA_POLITICA_CONTRASENA = 'Entre 9 y 15 letras y números, con al menos una letra y un número.';
+export const AYUDA_POLITICA_CONTRASENA = `Entre ${CONTRASENA_LONGITUD_MIN} y ${CONTRASENA_LONGITUD_MAX} letras y números, con al menos una letra y un número.`;
 
 /** Anuncio para lector de pantalla al empezar la cuenta regresiva. Confirmado (R2). */
 export const ANUNCIO_ESPERA_INICIO = `Podrás solicitar un nuevo código en ${ESPERA_REENVIO_SEGUNDOS} segundos.`;
@@ -103,7 +123,7 @@ export const ANUNCIO_ESPERA_FIN = 'Ya puedes solicitar un nuevo código.';
  * contraseñas (lista de verificación "Política"). Literales de la HU.
  */
 export const MENSAJES_POLITICA_CONTRASENA = Object.freeze({
-  LONGITUD: 'Debe tener entre 9 y 15 caracteres.',
+  LONGITUD: `Debe tener entre ${CONTRASENA_LONGITUD_MIN} y ${CONTRASENA_LONGITUD_MAX} caracteres.`,
   CARACTERES: 'Solo puede contener letras (A-Z, a-z) y números (0-9), sin tildes, ñ, espacios ni símbolos.',
   LETRA: 'Debe incluir al menos una letra.',
   NUMERO: 'Debe incluir al menos un número.'
@@ -127,7 +147,7 @@ export const TEXTO_REQUISITOS_CONTRASENA = 'Tu contraseña debe cumplir:';
 
 /** Versión corta de la política, solo para la lista que se marca al escribir. */
 export const REQUISITOS_CORTOS_CONTRASENA = Object.freeze({
-  LONGITUD: 'Entre 9 y 15 caracteres',
+  LONGITUD: `Entre ${CONTRASENA_LONGITUD_MIN} y ${CONTRASENA_LONGITUD_MAX} caracteres`,
   CARACTERES: 'Solo letras y números, sin tildes, ñ, espacios ni símbolos',
   LETRA: 'Al menos una letra',
   NUMERO: 'Al menos un número'

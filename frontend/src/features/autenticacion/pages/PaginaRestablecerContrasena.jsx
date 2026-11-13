@@ -25,6 +25,8 @@ export default function PaginaRestablecerContrasena() {
     errores,
     errorGeneral,
     codigoRechazado,
+    codigoBloqueado,
+    correoFijo,
     avisoSolicitud,
     enviando,
     solicitandoCodigo,
@@ -34,7 +36,8 @@ export default function PaginaRestablecerContrasena() {
     manejarSalidaCampo,
     manejarEnvio,
     manejarSolicitudNuevoCodigo,
-    manejarVolverAlPaso1
+    manejarVolverAlPaso1,
+    manejarCambiarCorreo
   } = useRestablecerContrasena();
 
   useEffect(() => {
@@ -50,6 +53,8 @@ export default function PaginaRestablecerContrasena() {
         errores={errores}
         errorGeneral={errorGeneral}
         codigoRechazado={codigoRechazado}
+        codigoBloqueado={codigoBloqueado}
+        correoFijo={correoFijo}
         avisoSolicitud={avisoSolicitud}
         enviando={enviando}
         solicitandoCodigo={solicitandoCodigo}
@@ -60,6 +65,7 @@ export default function PaginaRestablecerContrasena() {
         alEnviar={manejarEnvio}
         alSolicitarNuevoCodigo={manejarSolicitudNuevoCodigo}
         alVolverAlPaso1={manejarVolverAlPaso1}
+        alCambiarCorreo={manejarCambiarCorreo}
       />
     </MarcoAccesoPublico>
   );

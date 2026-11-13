@@ -35,7 +35,7 @@ describe('HU-SAT-07 · Lista de verificación: formulario solo con correo y cont
     renderizar();
     expect(screen.getByLabelText('Correo electrónico')).toBeInTheDocument();
     expect(screen.getByLabelText('Contraseña')).toBeInTheDocument();
-    expect(screen.getByLabelText('Recordar mi sesión')).toBeInTheDocument();
+    expect(screen.getByLabelText('Recordar mi correo')).toBeInTheDocument();
     expect(screen.queryByText('Perfil de acceso')).not.toBeInTheDocument();
     expect(screen.queryByText('Ingresando como')).not.toBeInTheDocument();
   });

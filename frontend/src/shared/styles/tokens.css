@@ -1,4 +1,4 @@
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap');
+/* La fuente Inter se carga desde index.html (preconnect + <link>), no con @import, para no encadenar peticiones. */
 
 :root {
   /* Marca y neutros */
