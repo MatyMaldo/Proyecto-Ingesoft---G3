@@ -56,15 +56,12 @@ export async function listarUsuarios(filtros = {}) {
     return { exitoso: true, datos: USUARIOS_INICIAL, mensaje: '' };
   }
 
-  const usuarios = [];
-  let page = filtros.page ?? 0;
-  let ultimaPagina = false;
-
-  do {
+  const paginaInicial = filtros.page ?? 0;
+  const pedirPagina = async (page) => {
     const respuesta = await solicitar('/usuarios', {
       parametros: {
         page,
-        size: filtros.size ?? 100,
+        size: filtros.size ?? TAMANO_PAGINA_LISTADO,
         tipoUsuario: filtros.tipoUsuario,
         activo: filtros.activo
       }
@@ -82,12 +79,72 @@ export async function listarUsuarios(filtros = {}) {
       };
     }
 
-    usuarios.push(...respuesta.datos.content.map(transformarUsuario));
-    ultimaPagina = respuesta.datos.last;
-    page += 1;
-  } while (!ultimaPagina);
+    return respuesta;
+  };
 
-  return { exitoso: true, datos: usuarios, mensaje: '' };
+  const primera = await pedirPagina(paginaInicial);
+  if (!primera.exitoso) {
+    return primera;
+  }
+
+  const paginas = [primera.datos.content];
+  const totalPaginas = primera.datos.totalPages;
+
+  if (!primera.datos.last && Number.isInteger(totalPaginas) && totalPaginas > paginaInicial + 1) {
+    // Con el total de páginas conocido, las demás se piden a la vez (con un tope) en vez de una tras otra:
+    // cada petición cuesta más de un segundo con la base de datos remota, y en serie se sumaban.
+    const pendientes = Array.from({ length: totalPaginas - paginaInicial - 1 }, (_, i) => paginaInicial + 1 + i);
+    const respuestas = await pedirEnParalelo(pendientes, pedirPagina, MAX_PAGINAS_SIMULTANEAS);
+    const fallida = respuestas.find((respuesta) => !respuesta.exitoso);
+    if (fallida) {
+      return fallida;
+    }
+    respuestas.forEach((respuesta) => paginas.push(respuesta.datos.content));
+  } else if (!primera.datos.last) {
+    // Sin `totalPages` no se sabe cuántas faltan: se sigue pidiendo hasta la última.
+    let ultima = primera;
+    let page = paginaInicial + 1;
+    while (!ultima.datos.last) {
+      ultima = await pedirPagina(page);
+      if (!ultima.exitoso) {
+        return ultima;
+      }
+      paginas.push(ultima.datos.content);
+      page += 1;
+    }
+  }
+
+  return { exitoso: true, datos: paginas.flat().map(transformarUsuario), mensaje: '' };
+}
+
+/**
+ * Usuarios por página al pedir el listado completo: con la base de datos remota cada petición cuesta más de un
+ * segundo, así que conviene pedir pocas páginas grandes en vez de muchas pequeñas.
+ */
+const TAMANO_PAGINA_LISTADO = 500;
+
+/** Páginas del listado que se piden a la vez: acota la carga sobre el backend (su pool de conexiones es de 10). */
+const MAX_PAGINAS_SIMULTANEAS = 4;
+
+/**
+ * Ejecuta `tarea` para cada elemento con a lo sumo `limite` en vuelo y devuelve los resultados en el mismo orden.
+ *
+ * @param {Array} elementos
+ * @param {(elemento: *) => Promise<*>} tarea
+ * @param {number} limite
+ */
+async function pedirEnParalelo(elementos, tarea, limite) {
+  const resultados = new Array(elementos.length);
+  let siguiente = 0;
+  const trabajador = async () => {
+    while (siguiente < elementos.length) {
+      const indice = siguiente;
+      siguiente += 1;
+      resultados[indice] = await tarea(elementos[indice]);
+    }
+  };
+  await Promise.all(Array.from({ length: Math.min(limite, elementos.length) }, trabajador));
+  return resultados;
 }
 
 /**

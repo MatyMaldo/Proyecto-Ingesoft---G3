@@ -94,6 +94,9 @@ export default function DialogoCargaCsv({ usuarios, alImportar, alRecargar, alIm
   const [erroresArchivo, setErroresArchivo] = useState([]);
   const [soloErrores, setSoloErrores] = useState(false);
   const [pagina, setPagina] = useState(0);
+  // El resultado también se pagina: con 1000 filas, dibujarlas todas de golpe retrasa la pantalla final.
+  const [paginaResultado, setPaginaResultado] = useState(0);
+  const [soloRechazadas, setSoloRechazadas] = useState(false);
   const [arrastrando, setArrastrando] = useState(false);
   const [progreso, setProgreso] = useState(null);
   const [resultado, setResultado] = useState(null);
@@ -140,6 +143,8 @@ export default function DialogoCargaCsv({ usuarios, alImportar, alRecargar, alIm
     setErroresArchivo([]);
     setSoloErrores(false);
     setPagina(0);
+    setPaginaResultado(0);
+    setSoloRechazadas(false);
     setResultado(null);
     if (!archivo) return;
     if (!archivo.name.toLowerCase().endsWith('.csv')) {
@@ -393,6 +398,13 @@ export default function DialogoCargaCsv({ usuarios, alImportar, alRecargar, alIm
   const inicioPagina = paginaActual * FILAS_POR_PAGINA;
   const filasVisibles = filasFiltradas.slice(inicioPagina, inicioPagina + FILAS_POR_PAGINA);
   const hayCodigos = resultado?.filas.some((fila) => fila.codigo) ?? false;
+  const filasResultado = soloRechazadas
+    ? (resultado?.filas ?? []).filter((fila) => fila.estado === 'rechazado')
+    : (resultado?.filas ?? []);
+  const totalPaginasResultado = Math.max(1, Math.ceil(filasResultado.length / FILAS_POR_PAGINA));
+  const paginaResultadoActual = Math.min(paginaResultado, totalPaginasResultado - 1);
+  const inicioPaginaResultado = paginaResultadoActual * FILAS_POR_PAGINA;
+  const filasResultadoVisibles = filasResultado.slice(inicioPaginaResultado, inicioPaginaResultado + FILAS_POR_PAGINA);
 
   return (
     <>
@@ -679,10 +691,18 @@ export default function DialogoCargaCsv({ usuarios, alImportar, alRecargar, alIm
                         {plural(resultado.importados, 'creada', 'creadas')}
                       </Insignia>
                       {resultado.rechazados > 0 && (
-                        <Insignia tono="rojo" className={estilos.insigniaIcono}>
-                          <Icono nombre="alerta" tamano={14} />
-                          {plural(resultado.rechazados, 'rechazada', 'rechazadas')}
-                        </Insignia>
+                        <button
+                          type="button"
+                          className={estilos.chipFiltro}
+                          aria-pressed={soloRechazadas}
+                          title={soloRechazadas ? 'Mostrar todas las filas' : 'Mostrar solo las filas rechazadas'}
+                          onClick={() => { setSoloRechazadas(!soloRechazadas); setPaginaResultado(0); }}
+                        >
+                          <Insignia tono="rojo" className={estilos.insigniaIcono}>
+                            <Icono nombre="alerta" tamano={14} />
+                            {plural(resultado.rechazados, 'rechazada', 'rechazadas')}
+                          </Insignia>
+                        </button>
                       )}
                     </dd>
                   </div>
@@ -705,13 +725,27 @@ export default function DialogoCargaCsv({ usuarios, alImportar, alRecargar, alIm
                       </tr>
                     </thead>
                     <tbody>
-                      {resultado.filas.map((fila) => (
+                      {filasResultadoVisibles.map((fila) => (
                         <FilaResultado key={fila.linea} fila={fila} hayCodigos={hayCodigos} />
                       ))}
                     </tbody>
                   </table>
                 </div>
               </div>
+
+              {filasResultado.length > FILAS_POR_PAGINA && (
+                <Paginacion
+                  pagina={paginaResultadoActual}
+                  totalPaginas={totalPaginasResultado}
+                  totalElementos={filasResultado.length}
+                  tamanioPagina={FILAS_POR_PAGINA}
+                  cantidadEnPagina={filasResultadoVisibles.length}
+                  alCambiarPagina={setPaginaResultado}
+                  etiqueta="Paginación del resultado"
+                  unidadSingular="fila"
+                  unidadPlural="filas"
+                />
+              )}
 
               <div className={estilos.accionesResultado}>
                 <button type="button" className={estilos.botonSecundario} onClick={reiniciar}>
