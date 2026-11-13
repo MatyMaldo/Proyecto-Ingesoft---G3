@@ -1,0 +1,81 @@
+.resumenSesion {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2) var(--espacio-4);
+  padding: var(--espacio-3) var(--espacio-4);
+  font-size: var(--texto-sm);
+  color: var(--color-texto-secundario);
+  background: var(--color-superficie-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+}
+
+.tablaContenedor {
+  overflow-x: auto;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+}
+
+.tabla {
+  width: 100%;
+  min-width: 42rem;
+  border-collapse: collapse;
+  font-size: var(--texto-sm);
+}
+
+.tabla th {
+  padding: var(--espacio-2) var(--espacio-3);
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-align: left;
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+  background: var(--color-superficie-suave);
+  border-bottom: 1px solid var(--color-borde);
+  white-space: nowrap;
+}
+
+.tabla td {
+  padding: var(--espacio-2) var(--espacio-3);
+  color: var(--color-texto-secundario);
+  border-bottom: 1px solid var(--color-borde);
+  vertical-align: middle;
+}
+
+.tabla tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.nombre {
+  color: var(--color-texto);
+  font-weight: var(--peso-seminegrita);
+}
+
+.selectorEstado,
+.observaciones {
+  width: 100%;
+  min-height: 2.25rem;
+  box-sizing: border-box;
+  padding: 0 var(--espacio-2);
+  font: inherit;
+  font-size: var(--texto-sm);
+  color: var(--color-texto);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio-sm);
+}
+
+.selectorEstado {
+  min-width: 9rem;
+}
+
+.observaciones::placeholder {
+  color: var(--color-texto-suave);
+}
+
+.vacio {
+  margin: 0;
+  font-size: var(--texto-md);
+  color: var(--color-texto-suave);
+}

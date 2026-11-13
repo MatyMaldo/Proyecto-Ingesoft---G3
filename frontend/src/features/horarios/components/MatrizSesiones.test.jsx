@@ -75,4 +75,22 @@ describe('MatrizSesiones · selección para el panel de detalle', () => {
 
     expect(screen.getByText('Finalizada')).toBeInTheDocument();
   });
+
+  it('expande la matriz para mostrar una sesión posterior al fin de jornada', () => {
+    render(
+      <MatrizSesiones
+        titulo="1er Grado A"
+        sesiones={[{
+          ...sesionBase,
+          horaInicio: '15:00',
+          horaFin: '16:00'
+        }]}
+        lunes="2099-01-05"
+        alSeleccionarSesion={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('Matemáticas')).toBeInTheDocument();
+    expect(screen.getByRole('rowheader', { name: '15:00 – 16:00' })).toBeInTheDocument();
+  });
 });
