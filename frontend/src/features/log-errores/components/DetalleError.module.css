@@ -103,6 +103,9 @@
   gap: var(--espacio-6);
   padding: var(--espacio-6);
   overflow-y: auto;
+  /* Contiene a los hijos absolutos (aviso de copia, botón de copiar): sin esto se ubican respecto al
+     <dialog> y, con la traza expandida, lo agrandan y aparece un segundo scroll con espacio vacío. */
+  position: relative;
 }
 
 .cuerpo:focus-visible {
@@ -144,6 +147,46 @@
   overflow-wrap: anywhere;
 }
 
+.parApilado {
+  flex-direction: column;
+  gap: var(--espacio-1);
+}
+
+.parApilado .valor {
+  text-align: left;
+}
+
+.contenedorOperacion {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espacio-2);
+}
+
+/* Método + ruta en monoespaciado; los parámetros de la consulta, atenuados. */
+.operacion {
+  display: block;
+  flex: 1 1 auto;
+  min-width: 0;
+  padding: var(--espacio-2) var(--espacio-3);
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-medio);
+  line-height: 1.6;
+  overflow-wrap: anywhere;
+  background: var(--color-superficie-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+}
+
+.metodo {
+  margin-right: var(--espacio-2);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-accion);
+}
+
+.consulta {
+  color: var(--color-texto-suave);
+}
+
 .subtitulo {
   margin: 0 0 var(--espacio-2);
   font-size: var(--texto-base);
@@ -158,21 +201,113 @@
   overflow-wrap: anywhere;
 }
 
+.contenedorTraza {
+  position: relative;
+}
+
+/* Un solo scroll vertical (el del panel): la traza resumida es corta y la completa crece con el panel.
+   Las líneas largas no se parten para que cada «at …» quede en una sola línea. */
 .detalle {
   margin: 0;
   padding: var(--espacio-3);
-  max-height: 24rem;
-  overflow: auto;
-  white-space: pre-wrap;
-  overflow-wrap: anywhere;
+  padding-right: calc(var(--tactil-min) + var(--espacio-2));
+  overflow-x: auto;
+  white-space: pre;
+  tab-size: 2;
   font-size: var(--texto-xs);
+  line-height: 1.6;
   background: var(--color-superficie-suave);
   border: 1px solid var(--color-borde);
   border-radius: var(--radio-md);
+}
+
+.detalle:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
 }
 
 .vacio {
   margin: 0;
   font-size: var(--texto-md);
   color: var(--color-texto-suave);
+}
+
+/* Ícono fijo en la esquina de la traza: no se desplaza con el scroll horizontal del <pre>. */
+.botonCopiar {
+  position: absolute;
+  top: var(--espacio-1);
+  right: var(--espacio-1);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tactil-min);
+  height: var(--tactil-min);
+  color: var(--color-texto-suave);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+  transition: color var(--transicion), background var(--transicion);
+}
+
+.botonCopiar:hover {
+  color: var(--color-accion);
+  background: var(--color-accion-suave);
+}
+
+.botonCopiar:active {
+  background: var(--color-accion-suave-activo);
+}
+
+.botonCopiar:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+/* En la operación el botón va al lado del bloque, no superpuesto. */
+.botonCopiarEnLinea {
+  position: static;
+  flex-shrink: 0;
+}
+
+.copia_copiado,
+.copia_copiado:hover {
+  color: var(--color-exito-texto);
+}
+
+.copia_fallo,
+.copia_fallo:hover {
+  color: var(--color-peligro);
+}
+
+.botonExpandir {
+  min-height: var(--tactil-min);
+  margin-top: var(--espacio-1);
+  padding: 0;
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-medio);
+  color: var(--color-accion);
+  background: none;
+  border: 0;
+  cursor: pointer;
+}
+
+.botonExpandir:hover {
+  text-decoration: underline;
+}
+
+.botonExpandir:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+/* Anuncio para lectores de pantalla; el botón ya cambia su texto a «Copiado». */
+.avisoCopiado {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }

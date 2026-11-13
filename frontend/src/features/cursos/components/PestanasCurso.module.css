@@ -1,0 +1,50 @@
+.lista {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0 var(--espacio-5);
+  padding: 0 var(--espacio-5);
+  border-top: 1px solid var(--color-borde);
+}
+
+.pestana {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--espacio-2);
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-1);
+  margin-bottom: -1px;
+  font-size: var(--texto-base);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto-suave);
+  background: transparent;
+  border: 0;
+  border-bottom: 3px solid transparent;
+  cursor: pointer;
+  transition: color var(--transicion), border-color var(--transicion);
+}
+
+.pestana:hover {
+  color: var(--color-texto);
+}
+
+.activa {
+  color: var(--color-marca);
+  border-bottom-color: var(--color-marca);
+}
+
+.pestana:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: -2px;
+}
+
+.insignia {
+  padding: 0 var(--espacio-2);
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  white-space: nowrap;
+  color: var(--color-marca);
+  background: var(--tono-azul-fondo);
+  border: 1px solid var(--tono-azul-borde);
+  border-radius: var(--radio-pildora);
+}

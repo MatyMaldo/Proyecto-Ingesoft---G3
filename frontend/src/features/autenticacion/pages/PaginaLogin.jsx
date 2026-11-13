@@ -16,6 +16,7 @@ export default function PaginaLogin() {
     valores,
     errores,
     errorGeneral,
+    avisoExito,
     enviando,
     refCorreo,
     refContrasena,
@@ -45,6 +46,7 @@ export default function PaginaLogin() {
             valores={valores}
             errores={errores}
             errorGeneral={errorGeneral}
+            avisoExito={avisoExito}
             enviando={enviando}
             refCorreo={refCorreo}
             refContrasena={refContrasena}

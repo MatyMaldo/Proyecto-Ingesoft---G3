@@ -342,6 +342,12 @@
   color: var(--color-texto-suave);
 }
 
+.ayudaRango {
+  margin: calc(var(--espacio-2) * -1) 0 0;
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}
+
 .botonesMeses {
   display: flex;
   gap: var(--espacio-2);
@@ -459,6 +465,14 @@
   outline-offset: 2px;
 }
 
+.botonOmitirFecha:disabled {
+  color: var(--color-texto-suave);
+  background: var(--color-superficie-suave);
+  border-color: var(--color-borde);
+  cursor: not-allowed;
+  filter: none;
+}
+
 .columnaOmitir {
   width: 1%;
   text-align: right;
@@ -482,6 +496,18 @@
 .omitirEtiqueta:focus-within {
   outline: 2px solid var(--color-foco);
   outline-offset: 2px;
+}
+
+.omitirDeshabilitada {
+  color: var(--color-texto-suave);
+  background: var(--color-superficie-suave);
+  border-color: var(--color-borde);
+  cursor: not-allowed;
+}
+
+.omitirDeshabilitada .casillaOmitir {
+  cursor: not-allowed;
+  accent-color: var(--color-borde-fuerte);
 }
 
 .casillaOmitir {

@@ -26,7 +26,7 @@ describe('servicio de auditoría · contrato backend', () => {
       tipoAccion: 'CAMBIO_ESTADO',
       fechaDesde: '2026-11-03',
       fechaHasta: '2026-11-04',
-      busqueda: 'ignorada por el API',
+      busqueda: '  Quispe ',
       pagina: 0
     });
 
@@ -36,6 +36,7 @@ describe('servicio de auditoría · contrato backend', () => {
         accion: 'CAMBIO_ESTADO',
         fechaInicio: '2026-11-03T00:00:00',
         fechaFin: '2026-11-04T23:59:59',
+        busqueda: 'Quispe',
         page: 0,
         size: 10,
         sort: 'fechaHora,desc'
@@ -48,6 +49,18 @@ describe('servicio de auditoría · contrato backend', () => {
       totalPaginas: 0,
       totalElementos: 0
     });
+  });
+
+  it('no envía el parámetro busqueda cuando el texto está vacío', async () => {
+    solicitar.mockResolvedValue({
+      exitoso: true,
+      datos: { content: [], number: 0, totalPages: 0, totalElements: 0 },
+      mensaje: ''
+    });
+
+    await listarRegistrosAuditoria({ busqueda: '   ', pagina: 0 });
+
+    expect(solicitar.mock.calls[0][1].parametros.busqueda).toBeUndefined();
   });
 
   it('consulta historial por entidad e ID con paginación cronológica', async () => {

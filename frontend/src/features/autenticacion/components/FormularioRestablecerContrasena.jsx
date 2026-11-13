@@ -6,6 +6,7 @@ import { RUTA_LOGIN } from '../../../shared/auth/constantesSesion.js';
 import {
   TEXTO_ACEPTAR,
   TEXTO_GUARDANDO,
+  TEXTO_VERIFICANDO,
   TEXTO_SOLICITAR_NUEVO_CODIGO,
   TEXTO_CONTINUAR,
   TEXTO_VOLVER_PASO_1,
@@ -13,6 +14,8 @@ import {
   TEXTO_PASO_2,
   TEXTO_ENVIANDO,
   TEXTO_VOLVER_LOGIN,
+  TEXTO_CAMBIAR_CORREO,
+  MENSAJE_CONTRASENAS_COINCIDEN,
   PLACEHOLDER_NUEVA_CONTRASENA,
   PLACEHOLDER_CONFIRMACION
 } from '../constants/mensajesRestablecimiento.js';
@@ -40,11 +43,10 @@ const ID_CONFIRMACION = 'restablecer-confirmacion';
  * @param {{ correo: string, codigo: string, nuevaContrasena: string, confirmacionContrasena: string }} props.valores
  * @param {{ correo?: string, codigo?: string, nuevaContrasena?: string|string[], confirmacionContrasena?: string }} props.errores
  * @param {string|null} props.errorGeneral
- * @param {boolean} props.codigoRechazado El último rechazo fue de código (§5.2). El botón "Solicitar un nuevo
- *   código" ya está siempre visible en el orden de la pantalla; esta prop se recibe para quien la necesite, pero
- *   hoy no cambia el render.
- *   TODO(pregunta): el plan (§4.8) dice que `codigoRechazado` "muestra el atajo para pedir otro" sin precisar un
- *   elemento visual adicional al botón ya siempre presente; confirmar si falta algo (p. ej. resaltar el botón).
+ * @param {boolean} props.codigoRechazado El último código fue rechazado o quedó bloqueado: "Solicitar un nuevo
+ *   código" se resalta como botón.
+ * @param {boolean} props.codigoBloqueado Se agotaron los intentos: "Continuar" queda no disponible.
+ * @param {boolean} props.correoFijo El correo llegó desde "Solicitar código": se muestra de solo lectura.
  * @param {boolean} props.avisoSolicitud
  * @param {boolean} props.enviando
  * @param {boolean} props.solicitandoCodigo
@@ -55,6 +57,7 @@ const ID_CONFIRMACION = 'restablecer-confirmacion';
  * @param {(evento: SubmitEvent) => void} props.alEnviar
  * @param {() => void} props.alSolicitarNuevoCodigo
  * @param {() => void} props.alVolverAlPaso1
+ * @param {() => void} props.alCambiarCorreo
  */
 export default function FormularioRestablecerContrasena({
   idTitulo,
@@ -62,6 +65,9 @@ export default function FormularioRestablecerContrasena({
   valores,
   errores,
   errorGeneral,
+  codigoRechazado,
+  codigoBloqueado,
+  correoFijo,
   avisoSolicitud,
   enviando,
   solicitandoCodigo,
@@ -71,8 +77,17 @@ export default function FormularioRestablecerContrasena({
   alSalirDeCampo,
   alEnviar,
   alSolicitarNuevoCodigo,
-  alVolverAlPaso1
+  alVolverAlPaso1,
+  alCambiarCorreo
 }) {
+  const textoEnviando = paso === 1 ? TEXTO_VERIFICANDO : TEXTO_GUARDANDO;
+  const noDisponible = enviando || (paso === 1 && codigoBloqueado);
+  const contrasenasCoinciden =
+    paso === 2 &&
+    valores.confirmacionContrasena.length > 0 &&
+    valores.confirmacionContrasena === valores.nuevaContrasena &&
+    !errores.confirmacionContrasena;
+
   return (
     <form noValidate onSubmit={alEnviar} aria-busy={enviando} aria-labelledby={idTitulo} className={estilos.formulario}>
       <div className={estilos.filaPaso}>
@@ -105,6 +120,9 @@ export default function FormularioRestablecerContrasena({
             refInput={refs.correo}
             alCambiar={(valor) => alCambiarCampo('correo', valor)}
             alSalir={() => alSalirDeCampo('correo')}
+            soloLectura={correoFijo}
+            textoAccion={correoFijo ? TEXTO_CAMBIAR_CORREO : undefined}
+            alAccion={correoFijo ? alCambiarCorreo : undefined}
           />
 
           <CampoCodigoVerificacion
@@ -116,10 +134,9 @@ export default function FormularioRestablecerContrasena({
             alSalir={() => alSalirDeCampo('codigo')}
           />
 
-
           <BotonConEspera
             tipo="button"
-            variante="enlace"
+            variante={codigoRechazado ? 'secundario' : 'enlace'}
             texto={TEXTO_SOLICITAR_NUEVO_CODIGO}
             textoEnviando={TEXTO_ENVIANDO}
             segundosRestantes={segundosEspera}
@@ -159,10 +176,17 @@ export default function FormularioRestablecerContrasena({
             alSalir={() => alSalirDeCampo('confirmacionContrasena')}
             etiqueta="Confirmar contraseña"
             nombre="confirmacionContrasena"
-            conOjo={false}
             placeholder={PLACEHOLDER_CONFIRMACION}
           />
 
+          <p role="status" className={contrasenasCoinciden ? estilos.coincide : estilos.coincideVacio}>
+            {contrasenasCoinciden && (
+              <>
+                <Icono nombre="verificar" tamano={14} />
+                {MENSAJE_CONTRASENAS_COINCIDEN}
+              </>
+            )}
+          </p>
         </>
       )}
 
@@ -175,11 +199,11 @@ export default function FormularioRestablecerContrasena({
         )}
       </div>
 
-      <button type="submit" className={estilos.botonAceptar} aria-disabled={enviando ? 'true' : undefined}>
+      <button type="submit" className={estilos.botonAceptar} aria-disabled={noDisponible ? 'true' : undefined}>
         {enviando ? (
           <>
             <Icono nombre="cargando" tamano={18} className={estilos.iconoCargando} />
-            {TEXTO_GUARDANDO}
+            {textoEnviando}
           </>
         ) : paso === 1 ? (
           TEXTO_CONTINUAR
@@ -188,7 +212,7 @@ export default function FormularioRestablecerContrasena({
         )}
       </button>
       <span role="status" className={estilosUtil.ocultoVisualmente}>
-        {enviando ? TEXTO_GUARDANDO : ''}
+        {enviando ? textoEnviando : ''}
       </span>
 
       {paso === 2 && (

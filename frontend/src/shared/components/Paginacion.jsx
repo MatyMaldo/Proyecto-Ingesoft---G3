@@ -21,6 +21,8 @@ import estilos from './Paginacion.module.css';
  * @param {string} [props.etiqueta] Nombre accesible del `<nav>`.
  * @param {string} [props.unidadSingular] Nombre de un registro en el resumen.
  * @param {string} [props.unidadPlural] Nombre de varios registros en el resumen.
+ * @param {boolean} [props.mostrarResumen] Si es `false`, no pinta el resumen (`1 – 10 de 37…`): para
+ *   pantallas que ya muestran ese total en otro lugar y solo necesitan los controles.
  * @param {boolean} [props.anunciarTotal] Si es `true`, el resumen es una región de estado y un lector de
  *   pantalla anuncia el nuevo total al cambiar la búsqueda o los filtros. Actívalo solo si la pantalla
  *   no anuncia ya sus resultados por otra vía (y en un único paginador).
@@ -35,6 +37,7 @@ export default function Paginacion({
   etiqueta = 'Paginación',
   unidadSingular = 'registro',
   unidadPlural = 'registros',
+  mostrarResumen = true,
   anunciarTotal = false
 }) {
   const idCampo = useId();
@@ -76,9 +79,11 @@ export default function Paginacion({
 
   return (
     <nav className={estilos.paginacion} aria-label={etiqueta}>
-      <p className={estilos.resumen} role={anunciarTotal ? 'status' : undefined}>
-        {inicio} – {fin} de {totalElementos} {unidad}
-      </p>
+      {mostrarResumen && (
+        <p className={estilos.resumen} role={anunciarTotal ? 'status' : undefined}>
+          {inicio} – {fin} de {totalElementos} {unidad}
+        </p>
+      )}
 
       {hayVariasPaginas && (
         <form className={estilos.controles} onSubmit={manejarEnvio} noValidate>

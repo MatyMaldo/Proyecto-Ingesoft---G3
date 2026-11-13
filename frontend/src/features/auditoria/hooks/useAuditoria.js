@@ -120,21 +120,6 @@ function transformarRegistro(registroApi) {
   };
 }
 
-function normalizarTextoBusqueda(texto) {
-  return texto.normalize('NFD').replace(/[\u0300-\u036f]/g, '').toLowerCase();
-}
-
-function filtrarBusqueda(registros, busqueda) {
-  const termino = normalizarTextoBusqueda(busqueda.trim());
-  if (!termino) {
-    return registros;
-  }
-  return registros.filter((registro) =>
-    [registro.usuario.nombre, registro.tipoTransaccion]
-      .some((texto) => normalizarTextoBusqueda(texto ?? '').includes(termino))
-  );
-}
-
 /**
  * Orden defensivo y estable por `fechaHoraIso` (docs/planes/auditorias.md §6.2):
  * aunque el backend ya ordena, el hook no asume que siempre lo haga bien.
@@ -148,9 +133,9 @@ function ordenarAscendentePorFecha(lista) {
 }
 
 /**
- * Lógica de la página de Auditorías: carga el listado, aplica los filtros
- * soportados por el API y una búsqueda local sobre la página recibida, y
- * gestiona el panel de detalle con el historial del elemento afectado.
+ * Lógica de la página de Auditorías: carga el listado aplicando los filtros y la
+ * búsqueda por usuario o descripción en el API, y gestiona el panel de detalle con
+ * el historial del elemento afectado.
  * Ver docs/planes/auditorias.md §6.
  *
  * @returns {Object} Ver docs/planes/auditorias.md §6.1 para la forma completa.
@@ -230,11 +215,10 @@ export default function useAuditoria() {
     const registrosPagina = ordenarDescendentePorFecha(
       (resultadoListado.datos?.registros ?? []).map(transformarRegistro)
     );
-    const registrosVista = filtrarBusqueda(registrosPagina, busquedaActual);
-    establecerRegistros(registrosVista);
+    establecerRegistros(registrosPagina);
     establecerResumen({ totalAcciones: resultadoListado.datos?.totalElementos ?? 0 });
-    // Los totales son los del backend. La búsqueda de texto solo recorta la página recibida
-    // (TODO(backend): parámetro de búsqueda en GET /auditorias), por eso `cantidadPagina` es la cantidad sin recortar.
+    // La búsqueda de texto la resuelve el backend sobre todos los registros, así que los totales y
+    // la paginación ya reflejan el filtro.
     establecerPaginacion({
       totalPaginas: resultadoListado.datos?.totalPaginas ?? 0,
       totalElementos: resultadoListado.datos?.totalElementos ?? 0,
@@ -281,8 +265,8 @@ export default function useAuditoria() {
   }
 
   /**
-   * Actualiza el texto de búsqueda en cada tecla (campo controlado) y refiltra
-   * localmente la página recibida 300 ms después de que el usuario deja de escribir.
+   * Actualiza el texto de búsqueda en cada tecla (campo controlado) y consulta al API
+   * 300 ms después de que el usuario deja de escribir, volviendo a la primera página.
    *
    * @param {string} texto
    */

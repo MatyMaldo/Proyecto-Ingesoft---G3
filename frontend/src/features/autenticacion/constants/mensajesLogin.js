@@ -33,6 +33,9 @@ export const MENSAJE_SESION_CONTRASENA_RESTABLECIDA = 'Tu contraseña fue restab
 /** Literal de HU-SAT-07 Esc. 11 y HU-SAT-08: cierre de sesión por cambio de rol de la cuenta. */
 export const MENSAJE_SESION_ROL_MODIFICADO = 'Tu rol fue modificado. Inicia sesión nuevamente.';
 
+/** Aviso en el login tras definir o restablecer la contraseña desde "Restablecer contraseña". */
+export const MENSAJE_CONTRASENA_ACTUALIZADA = 'Contraseña actualizada. Inicia sesión con tu nueva contraseña.';
+
 /** Propuesto (D28): acceso de un rol aún no habilitado en esta iteración (alcance Sprint 1). */
 export const MENSAJE_ROL_NO_HABILITADO = 'El acceso para tu rol aún no está habilitado.';
 

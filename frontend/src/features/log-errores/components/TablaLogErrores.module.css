@@ -24,10 +24,15 @@
   white-space: nowrap;
 }
 
+.fila {
+  cursor: pointer;
+}
+
 .fila td {
   padding: var(--espacio-3);
-  vertical-align: top;
+  vertical-align: middle;
   border-bottom: 1px solid var(--color-borde);
+  white-space: nowrap;
 }
 
 .fila:last-child td {
@@ -38,9 +43,11 @@
   background: var(--color-superficie-suave);
 }
 
+/* Fecha y hora en una sola línea: `11/11 · 20:37`. */
 .tiempo {
-  display: flex;
-  flex-direction: column;
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--espacio-2);
 }
 
 .fecha {
@@ -52,14 +59,34 @@
 }
 
 .hora {
-  font-size: var(--texto-xs);
+  font-size: var(--texto-md);
   color: var(--color-texto-suave);
+  font-variant-numeric: tabular-nums;
 }
 
-.operacion {
-  min-width: 10rem;
+/* El mensaje toma el ancho que sobra y se corta en una línea con puntos suspensivos. */
+.tabla thead th.columnaMensaje,
+.celdaMensaje {
+  width: 100%;
+}
+
+.celdaMensaje {
+  max-width: 0;
+  min-width: 8rem;
+}
+
+.mensaje {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: var(--texto-md);
   color: var(--color-texto);
+}
+
+.celdaUsuario {
+  font-size: var(--texto-md);
+  color: var(--color-texto-suave);
 }
 
 .tabla thead th.columnaDetalle,
@@ -111,21 +138,6 @@
   outline-offset: 2px;
 }
 
-.usuario {
-  display: flex;
-  align-items: center;
-  gap: var(--espacio-2);
-  margin: var(--espacio-1) 0 0;
-  font-size: var(--texto-md);
-  color: var(--color-texto-suave);
-}
-
-/* En la tabla el usuario va en su propia columna, en una sola línea. */
-.tabla .usuario {
-  margin: 0;
-  white-space: nowrap;
-}
-
 .listaTarjetas {
   display: none;
   flex-direction: column;
@@ -161,6 +173,19 @@
   font-variant-numeric: tabular-nums;
 }
 
+/* En la tarjeta el mensaje ocupa hasta dos líneas. */
+.mensajeTarjeta {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--texto-md);
+  color: var(--color-texto);
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+}
+
 .campo {
   margin: 0;
   font-size: var(--texto-md);
@@ -179,5 +204,17 @@
 
   .listaTarjetas {
     display: flex;
+  }
+}
+
+/* Anchos intermedios (panel lateral visible y poco espacio): celdas más ajustadas para que entren las seis columnas. */
+@media (min-width: 768px) and (max-width: 1100px) {
+  .tabla thead th,
+  .fila td {
+    padding-inline: var(--espacio-2);
+  }
+
+  .celdaMensaje {
+    min-width: 6rem;
   }
 }

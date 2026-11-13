@@ -475,6 +475,33 @@
   border-radius: var(--radio-pildora);
 }
 
+/* Sin filas procesadas todavía (el servidor está validando): un tramo que va y viene indica que sigue trabajando. */
+.barra:indeterminate {
+  background-color: var(--color-borde);
+  background-image: linear-gradient(90deg, var(--color-accion), var(--color-accion));
+  background-repeat: no-repeat;
+  background-size: 35% 100%;
+  animation: recorrerBarra 1.1s ease-in-out infinite alternate;
+}
+
+.barra:indeterminate::-webkit-progress-bar,
+.barra:indeterminate::-webkit-progress-value,
+.barra:indeterminate::-moz-progress-bar {
+  background: transparent;
+}
+
+@keyframes recorrerBarra {
+  from { background-position: 0% 0; }
+  to { background-position: 100% 0; }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .barra:indeterminate {
+    animation: none;
+    background-position: 50% 0;
+  }
+}
+
 .accionesResultado {
   display: flex;
   justify-content: flex-start;

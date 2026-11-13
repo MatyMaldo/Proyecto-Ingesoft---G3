@@ -1,12 +1,13 @@
 import { useRef, useState } from 'react';
 
-import Avatar, { obtenerInicialesDeNombre } from '../../../shared/components/Avatar.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
-import { formatearFechaVisible } from '../../../shared/utils/formatoFecha.js';
+import { formatearFechaCompacta, formatearFechaVisible } from '../../../shared/utils/formatoFecha.js';
 import Insignia from '../../../shared/components/Insignia.jsx';
 import estilosUtil from '../../../shared/styles/utilidades.module.css';
 import DetalleError from './DetalleError.jsx';
 import estilos from './TablaLogErrores.module.css';
+
+const SIN_MENSAJE = 'Sin mensaje';
 
 function construirEtiquetaDetalle(error) {
   return `Ver detalle: ${error.tipoError}, ${formatearFechaVisible(error.fecha)} ${error.hora}`;
@@ -17,6 +18,10 @@ function construirEtiquetaDetalle(error) {
  * filtra y no decide estados de carga, vacío o error: solo se monta cuando hay
  * al menos una fila.
  *
+ * Columnas: fecha y hora, módulo, tipo de error, mensaje y usuario. La operación
+ * (método y ruta) y el estado HTTP se consultan en el panel de detalle, que se
+ * abre con un clic en cualquier parte de la fila o con el botón del ojo.
+ *
  * Renderiza las dos variantes (tabla y tarjetas) y una media query en el CSS
  * module oculta una según el ancho de pantalla (ver `docs/planes/shell.md` §19.3).
  *
@@ -25,16 +30,25 @@ function construirEtiquetaDetalle(error) {
  * @param {boolean} [props.ocupado] `true` mientras se recalcula por un cambio de filtro.
  */
 export default function TablaLogErrores({ errores, ocupado = false }) {
-  // Estas columnas solo existen si el origen de datos las entrega (hoy, los mocks).
-  const hayModulo = errores.some((error) => error.moduloEtiqueta);
-  const hayOperacion = errores.some((error) => error.operacion);
-
   const [seleccionado, establecerSeleccionado] = useState(null);
   const origenRef = useRef(null);
 
-  const abrirDetalle = (error, evento) => {
-    origenRef.current = evento.currentTarget;
+  const abrirDetalle = (error, origen) => {
+    origenRef.current = origen;
     establecerSeleccionado(error);
+  };
+
+  // El clic en la fila equivale al botón del ojo; el foco vuelve a ese botón al cerrar.
+  const abrirDesdeFila = (error, evento) => {
+    if (window.getSelection?.()?.toString()) {
+      return;
+    }
+    abrirDetalle(error, evento.currentTarget.querySelector('button'));
+  };
+
+  const abrirDesdeBoton = (error, evento) => {
+    evento.stopPropagation();
+    abrirDetalle(error, evento.currentTarget);
   };
 
   const cerrarDetalle = () => {
@@ -55,9 +69,11 @@ export default function TablaLogErrores({ errores, ocupado = false }) {
           <thead>
             <tr>
               <th scope="col">Fecha y hora</th>
-              {hayModulo && <th scope="col">Módulo</th>}
-              {hayOperacion && <th scope="col">Operación</th>}
+              <th scope="col">Módulo</th>
               <th scope="col">Tipo de error</th>
+              <th scope="col" className={estilos.columnaMensaje}>
+                Mensaje
+              </th>
               <th scope="col">Usuario</th>
               <th scope="col" className={estilos.columnaDetalle}>
                 Detalle
@@ -66,33 +82,38 @@ export default function TablaLogErrores({ errores, ocupado = false }) {
           </thead>
           <tbody>
             {errores.map((error) => (
-              <tr key={error.id} className={estilos.fila}>
+              <tr key={error.id} className={estilos.fila} onClick={(evento) => abrirDesdeFila(error, evento)}>
                 <td className={estilos.celdaFecha}>
-                  <time dateTime={error.fechaHora} className={estilos.tiempo}>
-                    <span className={estilos.fecha}>{formatearFechaVisible(error.fecha)}</span>
+                  <time
+                    dateTime={error.fechaHora}
+                    className={estilos.tiempo}
+                    title={`${formatearFechaVisible(error.fecha)} ${error.hora}`}
+                  >
+                    <span className={estilos.fecha}>{formatearFechaCompacta(error.fecha)}</span>
                     <span className={estilos.hora}>{error.hora}</span>
                   </time>
                 </td>
-                {hayModulo && (
-                  <td>
-                    {error.moduloEtiqueta && <Insignia tono={error.moduloTono}>{error.moduloEtiqueta}</Insignia>}
-                  </td>
-                )}
-                {hayOperacion && <td className={estilos.operacion}>{error.operacion}</td>}
+                <td>
+                  {error.moduloEtiqueta ? (
+                    <Insignia tono={error.moduloTono}>{error.moduloEtiqueta}</Insignia>
+                  ) : (
+                    '—'
+                  )}
+                </td>
                 <td>
                   <Insignia tono={error.tipoErrorTono}>{error.tipoError}</Insignia>
                 </td>
-                <td>
-                  <p className={estilos.usuario}>
-                    <Avatar iniciales={obtenerInicialesDeNombre(error.usuario)} />
-                    {error.usuario}
-                  </p>
+                <td className={estilos.celdaMensaje}>
+                  <span className={estilos.mensaje} title={error.mensaje || undefined}>
+                    {error.mensaje || SIN_MENSAJE}
+                  </span>
                 </td>
+                <td className={estilos.celdaUsuario}>{error.usuario}</td>
                 <td className={estilos.celdaDetalle}>
                   <button
                     type="button"
                     className={estilos.botonDetalle}
-                    onClick={(evento) => abrirDetalle(error, evento)}
+                    onClick={(evento) => abrirDesdeBoton(error, evento)}
                     aria-label={construirEtiquetaDetalle(error)}
                     title="Ver detalle"
                   >
@@ -110,30 +131,26 @@ export default function TablaLogErrores({ errores, ocupado = false }) {
           <li key={error.id} className={estilos.tarjeta}>
             <div className={estilos.filaSuperior}>
               <time dateTime={error.fechaHora} className={estilos.fechaHoraTarjeta}>
-                {formatearFechaVisible(error.fecha)} · {error.hora}
+                {formatearFechaCompacta(error.fecha)} · {error.hora}
               </time>
               {error.moduloEtiqueta && <Insignia tono={error.moduloTono}>{error.moduloEtiqueta}</Insignia>}
             </div>
 
-            {error.operacion && (
-              <p className={estilos.campo}>
-                <span className={estilos.rotuloCampo}>Operación:</span> {error.operacion}
-              </p>
-            )}
+            <p className={estilos.mensajeTarjeta}>{error.mensaje || SIN_MENSAJE}</p>
 
             <p className={estilos.campo}>
               <span className={estilos.rotuloCampo}>Tipo de error:</span>{' '}
               <Insignia tono={error.tipoErrorTono}>{error.tipoError}</Insignia>
             </p>
 
-            <p className={estilos.usuario}>
-              <Avatar iniciales={obtenerInicialesDeNombre(error.usuario)} />
-              {error.usuario}
+            <p className={estilos.campo}>
+              <span className={estilos.rotuloCampo}>Usuario:</span> {error.usuario}
             </p>
+
             <button
               type="button"
               className={estilos.botonDetalleTarjeta}
-              onClick={(evento) => abrirDetalle(error, evento)}
+              onClick={(evento) => abrirDetalle(error, evento.currentTarget)}
               aria-label={construirEtiquetaDetalle(error)}
             >
               <Icono nombre="ojo" tamano={18} />

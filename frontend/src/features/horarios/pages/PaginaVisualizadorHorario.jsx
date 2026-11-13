@@ -1,10 +1,15 @@
+import { useEffect, useState } from 'react';
+
 import useAuth from '../../../shared/auth/useAuth.js';
 import ControlSegmentado from '../../../shared/components/ControlSegmentado.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import FiltrosActivos from '../../../shared/components/FiltrosActivos.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
+import Notificacion from '../../../shared/components/Notificacion.jsx';
 import SelectFiltro from '../../../shared/components/SelectFiltro.jsx';
+import useNotificacion from '../../../shared/hooks/useNotificacion.js';
 import MatrizSesiones from '../components/MatrizSesiones.jsx';
+import PanelSesionHorario from '../components/PanelSesionHorario.jsx';
 import SelectorFecha from '../components/SelectorFecha.jsx';
 import useConsultaHorario, { ADMIN, APODERADO } from '../hooks/useConsultaHorario.js';
 import { formatearFecha } from '../utils/tiempo.js';
@@ -39,6 +44,8 @@ function mensajeSinSeleccion(rol, tipo) {
  */
 export default function PaginaVisualizadorHorario() {
   const { usuario } = useAuth();
+  const { notificacion, mostrarNotificacion } = useNotificacion();
+  const [sesionSeleccionada, establecerSesionSeleccionada] = useState(null);
   const rol = usuario?.rol;
   const esAdmin = rol === ADMIN;
   const esApoderado = rol === APODERADO;
@@ -83,12 +90,37 @@ export default function PaginaVisualizadorHorario() {
     rangoPersonalizado,
     restablecerRango,
     limpiarFiltros,
+    cambiandoOmision,
+    cambiarOmision,
     recargar
   } = useConsultaHorario(rol, usuario?.nombre);
 
   const necesitaSeleccion = (esAdmin || esApoderado) && !id;
   const consultaPorSeccion = esAdmin && tipo === 'seccion';
   const hayFiltros = rangoPersonalizado || Boolean(id) || Boolean(gradoId);
+
+  useEffect(() => {
+    establecerSesionSeleccionada(null);
+  }, [tipo, id, fechaInicio, fechaFin, semanaActual?.inicio]);
+
+  async function alternarOmisionSesion(sesion, omitida) {
+    const respuesta = await cambiarOmision(sesion, omitida);
+    if (!respuesta?.exitoso) {
+      mostrarNotificacion(
+        respuesta?.mensaje || 'No se pudo actualizar la omisión de la sesión.',
+        true
+      );
+      return;
+    }
+    establecerSesionSeleccionada((actual) => (
+      actual && String(actual.id) === String(sesion.id)
+        ? { ...actual, ...(respuesta.datos ?? {}) }
+        : actual
+    ));
+    mostrarNotificacion(
+      omitida ? 'Sesión marcada como omitida.' : 'Sesión restaurada.'
+    );
+  }
 
   const etiquetaConsulta = esApoderado ? 'Estudiante' : tipo === 'seccion' ? 'Sección' : 'Docente';
   const valorConsulta = consultaPorSeccion ? seccionSeleccionada?.nombre : tituloConsulta;
@@ -245,6 +277,7 @@ export default function PaginaVisualizadorHorario() {
           titulo={`${tituloConsulta} ${formatearFecha(semanaActual.inicio)}`}
           sesiones={semanaActual.sesiones}
           mostrarSeccion={!esAdmin || tipo === 'docente'}
+          alSeleccionarSesion={esAdmin ? establecerSesionSeleccionada : undefined}
         />
       )}
     </div>
@@ -276,7 +309,9 @@ export default function PaginaVisualizadorHorario() {
         <p className={estilos.descripcion}>
           <Icono nombre="candado" tamano={16} />
           <span>
-            Consulta de solo lectura. Selecciona un rango de fechas para consultar las sesiones programadas.
+            {esAdmin
+              ? 'Consulta las sesiones programadas. Como administrador, puedes omitir o restaurar sesiones que aún no han comenzado.'
+              : 'Consulta de solo lectura. Selecciona un rango de fechas para consultar las sesiones programadas.'}
           </span>
         </p>
       </header>
@@ -400,6 +435,17 @@ export default function PaginaVisualizadorHorario() {
       <section className={estilos.tarjetaResultados} aria-label="Horario" aria-busy={cargando || undefined}>
         {contenido}
       </section>
+
+      {notificacion && <Notificacion mensaje={notificacion.mensaje} error={notificacion.error} />}
+
+      {esAdmin && sesionSeleccionada && (
+        <PanelSesionHorario
+          sesion={sesionSeleccionada}
+          cambiando={cambiandoOmision.includes(String(sesionSeleccionada.id))}
+          alCerrar={() => establecerSesionSeleccionada(null)}
+          alCambiarOmision={alternarOmisionSesion}
+        />
+      )}
     </div>
   );
 }

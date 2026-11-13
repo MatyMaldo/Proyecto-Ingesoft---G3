@@ -2,7 +2,12 @@ import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 import { MemoryRouter } from 'react-router-dom';
 
-vi.mock('../../../shared/api/configuracionApi.js', () => ({ USAR_MOCK: true }));
+// El hook siempre consulta al backend; en las pruebas se sustituye el servicio por datos fijos.
+vi.mock('../services/logErroresService.js', async (importarOriginal) => {
+  const real = await importarOriginal();
+  const { obtenerErroresDePrueba } = await import('../pruebas/logErroresDePrueba.js');
+  return { ...real, obtenerErrores: obtenerErroresDePrueba };
+});
 
 import useLogErrores, { obtenerTonoCodigoEstado } from './useLogErrores.js';
 

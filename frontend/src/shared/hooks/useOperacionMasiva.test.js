@@ -47,7 +47,8 @@ describe('useOperacionMasiva', () => {
           exitosos: 9,
           omitidos: 1,
           errores: 0,
-          porcentaje: 100
+          porcentaje: 100,
+          resultado: { sesionesCreadas: 9 }
         }
       });
 
@@ -64,7 +65,12 @@ describe('useOperacionMasiva', () => {
     await waitFor(() => expect(result.current.job?.estado).toBe('COMPLETADO'));
     expect(consultarOperacionMasiva).toHaveBeenCalledWith('job-1');
     expect(alTerminar).toHaveBeenCalledWith(
-      expect.objectContaining({ jobId: 'job-1', estado: 'COMPLETADO', exitosos: 9 })
+      expect.objectContaining({
+        jobId: 'job-1',
+        estado: 'COMPLETADO',
+        exitosos: 9,
+        resultado: { sesionesCreadas: 9 }
+      })
     );
     expect(result.current.enCurso).toBe(false);
   });

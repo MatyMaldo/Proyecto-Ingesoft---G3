@@ -47,7 +47,7 @@ export default function PaginaLogErrores() {
 
   const refInicioListado = useRef(null);
 
-  // Al cambiar de página, devuelve la vista al inicio del listado (paginador superior).
+  // Al cambiar de página, devuelve la vista al inicio del listado (contador de resultados).
   const cambiarPagina = (nuevaPagina) => {
     irAPagina(nuevaPagina);
     const reducirMovimiento = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
@@ -69,20 +69,10 @@ export default function PaginaLogErrores() {
     mensajeRegion = totalPaginas > 1 ? `Página ${pagina + 1} de ${totalPaginas}. ${cantidad}` : cantidad;
   }
 
-  // El mismo paginador (con resumen y campo de página) va arriba y abajo del listado.
-  const pieDePaginacion = (posicion) => (
-    <Paginacion
-      pagina={pagina}
-      totalPaginas={totalPaginas}
-      totalElementos={totalElementos}
-      tamanioPagina={TAMANIO_PAGINA_LOG_ERRORES}
-      cantidadEnPagina={errores.length}
-      alCambiarPagina={cambiarPagina}
-      etiqueta={`Paginación de logs de errores (${posicion})`}
-      unidadSingular="error"
-      unidadPlural="errores"
-    />
-  );
+  // Arriba solo va el contador; el paginador (sin repetir el resumen) queda al pie del listado.
+  const inicio = pagina * TAMANIO_PAGINA_LOG_ERRORES + 1;
+  const fin = pagina * TAMANIO_PAGINA_LOG_ERRORES + errores.length;
+  const unidad = totalElementos === 1 ? 'error' : 'errores';
 
   return (
     <div className={estilos.pagina}>
@@ -144,9 +134,13 @@ export default function PaginaLogErrores() {
         </div>
       </section>
 
-      {/* Total y paginación arriba del listado, como en Usuarios y Auditorías. */}
-      <div ref={refInicioListado} className={estilos.barraPaginacion}>
-        {estado === 'listo' && errores.length > 0 && pieDePaginacion('superior')}
+      {/* Arriba del listado solo el total: con 10 filas por página, el paginador basta al pie. */}
+      <div ref={refInicioListado} className={estilos.barraContador}>
+        {estado === 'listo' && errores.length > 0 && (
+          <p className={estilos.contador}>
+            {inicio} – {fin} de {totalElementos} {unidad}
+          </p>
+        )}
       </div>
 
       <p className={estilosUtil.ocultoVisualmente} role="status" aria-live="polite">
@@ -166,8 +160,20 @@ export default function PaginaLogErrores() {
           <>
             {recargando && <p className={estilos.actualizando}>Actualizando resultados…</p>}
             <TablaLogErrores errores={errores} ocupado={recargando} />
-            {/* Con una sola página el total ya está arriba: no se repite abajo. */}
-            {totalPaginas > 1 && <div className={estilos.pie}>{pieDePaginacion('inferior')}</div>}
+            {totalPaginas > 1 && (
+              <div className={estilos.pie}>
+                <Paginacion
+                  pagina={pagina}
+                  totalPaginas={totalPaginas}
+                  totalElementos={totalElementos}
+                  tamanioPagina={TAMANIO_PAGINA_LOG_ERRORES}
+                  cantidadEnPagina={errores.length}
+                  alCambiarPagina={cambiarPagina}
+                  etiqueta="Paginación de logs de errores"
+                  mostrarResumen={false}
+                />
+              </div>
+            )}
           </>
         )}
       </section>

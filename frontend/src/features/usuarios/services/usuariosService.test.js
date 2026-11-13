@@ -44,7 +44,7 @@ describe('usuariosService', () => {
     const resultado = await listarUsuarios({ activo: true });
 
     expect(solicitar).toHaveBeenCalledWith('/usuarios', {
-      parametros: { page: 0, size: 100, tipoUsuario: undefined, activo: true }
+      parametros: { page: 0, size: 500, tipoUsuario: undefined, activo: true }
     });
     expect(resultado.datos).toEqual([{
       id: 12,
@@ -109,12 +109,58 @@ describe('usuariosService', () => {
     const resultado = await listarUsuarios();
 
     expect(solicitar).toHaveBeenNthCalledWith(1, '/usuarios', {
-      parametros: { page: 0, size: 100, tipoUsuario: undefined, activo: undefined }
+      parametros: { page: 0, size: 500, tipoUsuario: undefined, activo: undefined }
     });
     expect(solicitar).toHaveBeenNthCalledWith(2, '/usuarios', {
-      parametros: { page: 1, size: 100, tipoUsuario: undefined, activo: undefined }
+      parametros: { page: 1, size: 500, tipoUsuario: undefined, activo: undefined }
     });
     expect(resultado.datos.map(usuario => usuario.id)).toEqual([1, 2]);
+  });
+
+  describe('con el total de páginas conocido', () => {
+    const TOTAL_PAGINAS = 10;
+    const paginaDe = (page) => ({
+      exitoso: true,
+      datos: {
+        content: [{ id: page, tipoUsuario: 'ESTUDIANTE' }],
+        last: page === TOTAL_PAGINAS - 1,
+        totalPages: TOTAL_PAGINAS
+      },
+      mensaje: ''
+    });
+
+    it('pide las demás páginas a la vez (con un tope) y conserva el orden', async () => {
+      let enVuelo = 0;
+      let maxEnVuelo = 0;
+      solicitar.mockImplementation(async (ruta, { parametros }) => {
+        enVuelo += 1;
+        maxEnVuelo = Math.max(maxEnVuelo, enVuelo);
+        // Las páginas más altas responden antes: el orden de llegada no debe alterar el del resultado.
+        await new Promise((resolver) => { setTimeout(resolver, (TOTAL_PAGINAS - parametros.page) * 2); });
+        enVuelo -= 1;
+        return paginaDe(parametros.page);
+      });
+
+      const resultado = await listarUsuarios();
+
+      expect(solicitar).toHaveBeenCalledTimes(TOTAL_PAGINAS);
+      expect(resultado.datos.map(usuario => usuario.id)).toEqual(Array.from({ length: TOTAL_PAGINAS }, (_, i) => i));
+      // Más de una a la vez (no en serie) pero sin pasar del tope.
+      expect(maxEnVuelo).toBeGreaterThan(1);
+      expect(maxEnVuelo).toBeLessThanOrEqual(4);
+    });
+
+    it('si una página falla, devuelve ese error y no datos parciales', async () => {
+      solicitar.mockImplementation(async (ruta, { parametros }) => (
+        parametros.page === 5
+          ? { exitoso: false, datos: null, mensaje: 'No hay conexión con el servidor.' }
+          : paginaDe(parametros.page)
+      ));
+
+      const resultado = await listarUsuarios();
+
+      expect(resultado).toMatchObject({ exitoso: false, mensaje: 'No hay conexión con el servidor.' });
+    });
   });
 
   it('registra estudiante con el DTO esperado y adapta la respuesta', async () => {

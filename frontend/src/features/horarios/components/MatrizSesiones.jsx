@@ -3,6 +3,11 @@ import { useState } from 'react';
 import Insignia from '../../../shared/components/Insignia.jsx';
 import { DIAS } from '../constants/horarios.js';
 import {
+  etiquetaEstadoSesion,
+  normalizarEstadoSesion,
+  tonoEstadoSesion
+} from '../utils/estadosSesion.js';
+import {
   aMinutos,
   construirEjeTemporal,
   fechaISO,
@@ -31,35 +36,6 @@ function indiceTono(valor) {
   return Math.abs(hash) % CLASES_TONO_CURSO.length;
 }
 
-const ETIQUETAS_ESTADO = {
-  PROGRAMADA: 'Programada',
-  REALIZADA: 'Realizada',
-  COMPLETADA: 'Completada',
-  DICTADA: 'Dictada',
-  EN_CURSO: 'En curso',
-  CANCELADA: 'Cancelada',
-  SUSPENDIDA: 'Suspendida',
-  OMITIDA: 'Omitida'
-};
-
-function etiquetaEstado(estado) {
-  const normalizado = String(estado ?? '').toUpperCase();
-  if (ETIQUETAS_ESTADO[normalizado]) return ETIQUETAS_ESTADO[normalizado];
-  return normalizado
-    .toLowerCase()
-    .replaceAll('_', ' ')
-    .replace(/^./, (letra) => letra.toUpperCase());
-}
-
-function tonoEstado(estado) {
-  const normalizado = String(estado ?? '').toUpperCase();
-  if (normalizado === 'CANCELADA' || normalizado === 'SUSPENDIDA') return 'rojo';
-  if (normalizado === 'OMITIDA') return 'ambar';
-  if (['REALIZADA', 'COMPLETADA', 'DICTADA'].includes(normalizado)) return 'verde';
-  if (normalizado === 'PROGRAMADA' || normalizado === 'EN_CURSO') return 'azul';
-  return 'gris';
-}
-
 /** Día y mes de una fecha `YYYY-MM-DD`: "02/11". */
 function diaYMes(fecha) {
   return `${fecha.slice(8)}/${fecha.slice(5, 7)}`;
@@ -85,7 +61,13 @@ function acortarGrado(grado) {
  * @param {string} [props.lunes] Fecha `YYYY-MM-DD` del lunes de la semana: pone la fecha en cada columna y
  *   marca la de hoy. Si cambia la semana, quien la usa debe darle otra `key` para reiniciar el día activo.
  */
-export default function MatrizSesiones({ titulo, sesiones, mostrarSeccion = false, lunes }) {
+export default function MatrizSesiones({
+  titulo,
+  sesiones,
+  mostrarSeccion = false,
+  lunes,
+  alSeleccionarSesion
+}) {
   const hoy = fechaISO(new Date());
   const fechaDeDia = (indice) => (lunes ? sumarDias(lunes, indice) : null);
   const [diaActivo, establecerDiaActivo] = useState(() => {
@@ -189,6 +171,40 @@ export default function MatrizSesiones({ titulo, sesiones, mostrarSeccion = fals
                       `${String(sesion.horaInicio).slice(0, 5)} – ${String(sesion.horaFin).slice(0, 5)}`,
                       formatearFecha(sesion.fecha)
                     ].filter(Boolean).join(' · ');
+                    const estado = normalizarEstadoSesion(sesion.estado);
+                    const omitida = estado === 'OMITIDA';
+                    const seleccionable = Boolean(alSeleccionarSesion);
+                    const contenidoBloque = (
+                      <>
+                        <span className={`${estilos.curso} ${estilos.cursoSesion}`}>
+                          {sesion.cursoNombre}
+                        </span>
+                        <span className={estilos.detalle}>{sesion.docenteNombre}</span>
+                        <span className={estilos.detalle}>{sesion.aulaNombre}</span>
+                        {mostrarSeccion && etiquetaSeccion && (
+                          <span className={`${estilos.detalle} ${estilos.detalleSeccion}`}>
+                            {etiquetaSeccion}
+                          </span>
+                        )}
+                        {!bloqueCorto && (
+                          <span className={estilos.detalle}>
+                            {String(sesion.horaInicio).slice(0, 5)} – {String(sesion.horaFin).slice(0, 5)}
+                          </span>
+                        )}
+                        {sesion.estado && (
+                          <Insignia tono={tonoEstadoSesion(sesion.estado)} className={estilos.estadoSesion}>
+                            {etiquetaEstadoSesion(sesion.estado)}
+                          </Insignia>
+                        )}
+                      </>
+                    );
+                    const clasesBloque = [
+                      estilos.bloque,
+                      estilos.bloqueSesion,
+                      claseTono(sesion),
+                      omitida ? estilos.sesionOmitida : '',
+                      seleccionable ? estilos.sesionSeleccionable : ''
+                    ].filter(Boolean).join(' ');
 
                     return (
                       <td
@@ -197,31 +213,21 @@ export default function MatrizSesiones({ titulo, sesiones, mostrarSeccion = fals
                         className={`${estilos.celda} ${claseDia(dia.id)}`}
                       >
                         <div className={estilos.envoltura}>
-                          <div
-                            className={`${estilos.bloque} ${estilos.bloqueSesion} ${claseTono(sesion)}`}
-                            title={descripcion}
-                          >
-                            <span className={`${estilos.curso} ${estilos.cursoSesion}`}>
-                              {sesion.cursoNombre}
-                            </span>
-                            <span className={estilos.detalle}>{sesion.docenteNombre}</span>
-                            <span className={estilos.detalle}>{sesion.aulaNombre}</span>
-                            {mostrarSeccion && etiquetaSeccion && (
-                              <span className={`${estilos.detalle} ${estilos.detalleSeccion}`}>
-                                {etiquetaSeccion}
-                              </span>
-                            )}
-                            {!bloqueCorto && (
-                              <span className={estilos.detalle}>
-                                {String(sesion.horaInicio).slice(0, 5)} – {String(sesion.horaFin).slice(0, 5)}
-                              </span>
-                            )}
-                            {sesion.estado && (
-                              <Insignia tono={tonoEstado(sesion.estado)} className={estilos.estadoSesion}>
-                                {etiquetaEstado(sesion.estado)}
-                              </Insignia>
-                            )}
-                          </div>
+                          {seleccionable ? (
+                            <button
+                              type="button"
+                              className={clasesBloque}
+                              title={`${descripcion}. Ver detalle`}
+                              aria-label={`Ver detalle de ${sesion.cursoNombre} del ${formatearFecha(sesion.fecha)}`}
+                              onClick={() => alSeleccionarSesion(sesion)}
+                            >
+                              {contenidoBloque}
+                            </button>
+                          ) : (
+                            <div className={clasesBloque} title={descripcion}>
+                              {contenidoBloque}
+                            </div>
+                          )}
                         </div>
                       </td>
                     );

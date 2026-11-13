@@ -7,6 +7,7 @@ import ProgresoOperacionMasiva from '../../../shared/components/ProgresoOperacio
 import { crearClaveIdempotencia } from '../../../shared/api/operacionesMasivasService.js';
 import useSesionesHorario from '../hooks/useSesionesHorario.js';
 import { iniciarGeneracionSesionesAsync } from '../services/horariosService.js';
+import { etiquetaEstadoSesion, normalizarEstadoSesion } from '../utils/estadosSesion.js';
 import { fechaISO, formatearFecha, lunesDeFecha } from '../utils/tiempo.js';
 import SelectorFecha from './SelectorFecha.jsx';
 import estilos from './DialogoSesiones.module.css';
@@ -66,12 +67,14 @@ function construirGrupos(sesionesPreview) {
 
 export default function DialogoSesiones({
   consulta,
+  periodo,
+  primerBimestre,
   tituloSeccion,
   alCancelar,
   alNotificar,
   operacion
 }) {
-  const sesiones = useSesionesHorario(consulta);
+  const sesiones = useSesionesHorario(consulta, periodo, primerBimestre);
   const [errorGeneral, establecerErrorGeneral] = useState(null);
   const [mesesAbiertos, establecerMesesAbiertos] = useState({});
   const claveRef = useRef(null);
@@ -121,8 +124,11 @@ export default function DialogoSesiones({
   }
 
   const faltaAnio = !consulta?.anioAcademicoId && !consulta?.anioId;
+  const omitidasNuevas = Object.keys(sesiones.sesionesOmitidas).length;
+  const existentes = sesiones.sesionesPreview.filter((sesion) => sesion.yaExiste).length;
   const resumen = sesiones.estadoPreview === 'listo'
-    ? `${sesiones.totalPreview} sesiones previstas · ${Object.keys(sesiones.sesionesOmitidas).length} omitidas`
+    ? `${sesiones.totalPreview} sesiones previstas · ${omitidasNuevas} por omitir`
+      + (existentes > 0 ? ` · ${existentes} ya existen` : '')
     : undefined;
 
   const expandirTodos = () => {
@@ -159,7 +165,9 @@ export default function DialogoSesiones({
             id="sesiones-desde"
             etiqueta="Desde"
             valor={sesiones.fechaInicio}
+            min={sesiones.fechaMinima}
             max={sesiones.fechaFin}
+            enDialogo
             alCambiar={(valor) => {
               sesiones.establecerFechaInicio(valor);
               sesiones.reiniciarPreview();
@@ -173,6 +181,8 @@ export default function DialogoSesiones({
             etiqueta="Hasta"
             valor={sesiones.fechaFin}
             min={sesiones.fechaInicio}
+            max={sesiones.fechaMaxima}
+            enDialogo
             alCambiar={(valor) => {
               sesiones.establecerFechaFin(valor);
               sesiones.reiniciarPreview();
@@ -189,6 +199,12 @@ export default function DialogoSesiones({
         </button>
       </div>
 
+      <p className={estilos.ayudaRango}>
+        Rango permitido para el año académico: {formatearFecha(sesiones.fechaMinima)}
+        {' al '}
+        {formatearFecha(sesiones.fechaMaxima)}.
+      </p>
+
       {faltaAnio && (
         <p role="alert">La sección seleccionada no tiene un año académico asociado.</p>
       )}
@@ -202,6 +218,7 @@ export default function DialogoSesiones({
           <div className={estilos.accionesMeses}>
             <p className={estilos.ayudaOmitir}>
               Marca la columna <strong>Omitir</strong> para las sesiones que no quieres generar.
+              {' '}Las sesiones que ya existen se omiten o restauran desde Consulta de horario.
             </p>
             <div className={estilos.botonesMeses}>
               <button type="button" className={estilos.botonRango} onClick={expandirTodos}>
@@ -249,70 +266,90 @@ export default function DialogoSesiones({
                           Semana del {formatearFecha(semana.inicio)} al {formatearFecha(semana.fin)}
                         </h4>
 
-                        {semana.fechas.map((grupo) => (
-                          <section
-                            key={grupo.fecha}
-                            className={estilos.grupoFecha}
-                            aria-label={`Sesiones del ${formatearFecha(grupo.fecha)}`}
-                          >
-                            <div className={estilos.cabeceraFecha}>
-                              <h5 className={estilos.fecha}>{formatearFecha(grupo.fecha)}</h5>
-                              <button
-                                type="button"
-                                className={estilos.botonOmitirFecha}
-                                onClick={() => sesiones.omitirTodasDeFecha(grupo.fecha)}
-                              >
-                                Omitir todas las de esta fecha
-                              </button>
-                            </div>
+                        {semana.fechas.map((grupo) => {
+                          const nuevasDeFecha = grupo.sesiones.filter((sesion) => !sesion.yaExiste);
+                          return (
+                            <section
+                              key={grupo.fecha}
+                              className={estilos.grupoFecha}
+                              aria-label={`Sesiones del ${formatearFecha(grupo.fecha)}`}
+                            >
+                              <div className={estilos.cabeceraFecha}>
+                                <h5 className={estilos.fecha}>{formatearFecha(grupo.fecha)}</h5>
+                                <button
+                                  type="button"
+                                  className={estilos.botonOmitirFecha}
+                                  disabled={nuevasDeFecha.length === 0}
+                                  title={
+                                    nuevasDeFecha.length === 0
+                                      ? 'Todas las sesiones de esta fecha ya existen.'
+                                      : undefined
+                                  }
+                                  onClick={() => sesiones.omitirTodasDeFecha(grupo.fecha)}
+                                >
+                                  Omitir todas las de esta fecha
+                                </button>
+                              </div>
 
-                            <div className={estilos.contenedorLista}>
-                              <table className={estilos.tabla}>
-                                <thead>
-                                  <tr>
-                                    <th scope="col">Hora</th>
-                                    <th scope="col">Curso</th>
-                                    <th scope="col">Docente</th>
-                                    <th scope="col">Estado</th>
-                                    <th scope="col">Omitir</th>
-                                  </tr>
-                                </thead>
-                                <tbody>
-                                  {grupo.sesiones.map((sesion) => {
-                                    const clave = claveSesion(sesion);
-                                    const omitida = Object.hasOwn(sesiones.sesionesOmitidas, clave);
-                                    return (
-                                      <tr key={clave} className={omitida ? estilos.filaOmitida : undefined}>
-                                        <td className={estilos.celdaHora}>
-                                          {sesion.horaInicio?.slice(0, 5)} – {sesion.horaFin?.slice(0, 5)}
-                                        </td>
-                                        <td className={estilos.celdaCurso}>{sesion.cursoNombre}</td>
-                                        <td>{sesion.docenteNombre}</td>
-                                        <td>
-                                          {omitida
-                                            ? <span className={estilos.estadoOmitida}>Omitida</span>
-                                            : sesion.yaExiste ? 'Ya existe' : 'Por crear'}
-                                        </td>
-                                        <td className={estilos.columnaOmitir}>
-                                          <label className={estilos.omitirEtiqueta}>
-                                            <input
-                                              type="checkbox"
-                                              className={estilos.casillaOmitir}
-                                              checked={omitida}
-                                              aria-label={`Omitir ${sesion.cursoNombre} del ${formatearFecha(sesion.fecha)}`}
-                                              onChange={() => sesiones.alternarOmitida(sesion)}
-                                            />
-                                            Omitir
-                                          </label>
-                                        </td>
-                                      </tr>
-                                    );
-                                  })}
-                                </tbody>
-                              </table>
-                            </div>
-                          </section>
-                        ))}
+                              <div className={estilos.contenedorLista}>
+                                <table className={estilos.tabla}>
+                                  <thead>
+                                    <tr>
+                                      <th scope="col">Hora</th>
+                                      <th scope="col">Curso</th>
+                                      <th scope="col">Docente</th>
+                                      <th scope="col">Estado</th>
+                                      <th scope="col">Omitir</th>
+                                    </tr>
+                                  </thead>
+                                  <tbody>
+                                    {grupo.sesiones.map((sesion) => {
+                                      const clave = claveSesion(sesion);
+                                      const existente = sesion.yaExiste === true;
+                                      const estado = normalizarEstadoSesion(sesion.estado);
+                                      const omitida = !existente
+                                        && Object.hasOwn(sesiones.sesionesOmitidas, clave);
+                                      return (
+                                        <tr key={clave} className={omitida ? estilos.filaOmitida : undefined}>
+                                          <td className={estilos.celdaHora}>
+                                            {sesion.horaInicio?.slice(0, 5)} – {sesion.horaFin?.slice(0, 5)}
+                                          </td>
+                                          <td className={estilos.celdaCurso}>{sesion.cursoNombre}</td>
+                                          <td>{sesion.docenteNombre}</td>
+                                          <td>
+                                            {omitida ? (
+                                              <span className={estilos.estadoOmitida}>Omitida (nueva)</span>
+                                            ) : existente ? (
+                                              `Ya existe${estado ? ` · ${etiquetaEstadoSesion(estado)}` : ''}`
+                                            ) : 'Por crear'}
+                                          </td>
+                                          <td className={estilos.columnaOmitir}>
+                                            <label
+                                              className={`${estilos.omitirEtiqueta}${existente ? ` ${estilos.omitirDeshabilitada}` : ''}`}
+                                              title={existente
+                                                ? 'Las sesiones existentes se omiten o restauran desde Consulta de horario.'
+                                                : undefined}
+                                            >
+                                              <input
+                                                type="checkbox"
+                                                className={estilos.casillaOmitir}
+                                                checked={omitida}
+                                                disabled={existente}
+                                                aria-label={`Omitir ${sesion.cursoNombre} del ${formatearFecha(sesion.fecha)}`}
+                                                onChange={() => sesiones.alternarOmitida(sesion)}
+                                              />
+                                              Omitir
+                                            </label>
+                                          </td>
+                                        </tr>
+                                      );
+                                    })}
+                                  </tbody>
+                                </table>
+                              </div>
+                            </section>
+                          );
+                        })}
                       </section>
                     ))}
                   </div>

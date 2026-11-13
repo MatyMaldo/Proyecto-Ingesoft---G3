@@ -1,0 +1,110 @@
+.detalle {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+
+.botonVolver {
+  display: inline-flex;
+  align-items: center;
+  align-self: flex-start;
+  gap: var(--espacio-2);
+  min-height: var(--tactil-min);
+  padding: 0;
+  font-size: var(--texto-base);
+  color: var(--color-primario-intenso);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+.botonVolver:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.tarjeta {
+  overflow: hidden;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-sm);
+}
+
+.cabecera {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  padding: var(--espacio-5);
+}
+
+.filaTitulo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-3);
+}
+
+.recuadroIcono {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: calc(var(--tamano-recuadro-icono) + 8px);
+  height: calc(var(--tamano-recuadro-icono) + 8px);
+  font-size: var(--texto-lg);
+  background: var(--color-superficie-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+}
+
+.titulo {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: var(--texto-xl);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+  overflow-wrap: anywhere;
+}
+
+.titulo:focus {
+  outline: none;
+}
+
+.grupo {
+  color: var(--color-primario-intenso);
+}
+
+.insigniaIcono {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-1);
+}
+
+.datos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2) var(--espacio-4);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  font-size: var(--texto-md);
+  color: var(--color-texto-suave);
+}
+
+.datos li {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-2);
+}
+
+.panel:focus {
+  outline: none;
+}
+
+@media (max-width: 767px) {
+  .cabecera {
+    padding: var(--espacio-4);
+  }
+}
