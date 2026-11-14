@@ -92,7 +92,7 @@ export const SECCIONES_NAVEGACION = Object.freeze([
         id: 'anio-escolar',
         etiqueta: 'Año escolar',
         ruta: '/administracion/anio-escolar',
-        icono: 'libro',
+        icono: 'capas',
         roles: Object.freeze([ROLES.ADMIN])
       }),
       Object.freeze({
@@ -106,7 +106,7 @@ export const SECCIONES_NAVEGACION = Object.freeze([
         id: 'log-errores',
         etiqueta: 'Log de errores',
         ruta: '/administracion/log-errores',
-        icono: 'panel',
+        icono: 'alerta',
         roles: Object.freeze([ROLES.ADMIN])
       })
     ])

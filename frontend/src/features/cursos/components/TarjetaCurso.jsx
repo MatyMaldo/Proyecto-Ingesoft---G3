@@ -1,4 +1,6 @@
+import Icono from '../../../shared/components/Icono.jsx';
 import Insignia from '../../../shared/components/Insignia.jsx';
+import MenuDesplegable from '../../../shared/components/MenuDesplegable.jsx';
 import estilos from './TarjetaCurso.module.css';
 
 /**
@@ -22,7 +24,7 @@ export default function TarjetaCurso({
     <article className={estilos.tarjeta}>
       <div className={estilos.cabecera}>
         <span className={estilos.recuadroIcono} aria-hidden="true">
-          {curso.icono}
+          <Icono nombre={curso.icono} tamano={20} />
         </span>
         <div className={estilos.contenido}>
           <div className={estilos.filaNombre}>
@@ -39,27 +41,19 @@ export default function TarjetaCurso({
           aria-label={`Gestionar competencias de ${curso.nombre}`}
           onClick={() => alVerCompetencias(curso.id)}
         >
-          Gestionar Competencias
+          Gestionar competencias
         </button>
         {puedeGestionar && (
-          <>
-            <button
-              type="button"
-              className={estilos.botonCompetencias}
-              aria-label={`Modificar ${curso.nombre}`}
-              onClick={() => alEditar(curso.id)}
-            >
-              Modificar
-            </button>
-            <button
-              type="button"
-              className={`${estilos.botonCompetencias} ${estilos.botonEliminar}`}
-              aria-label={`Eliminar ${curso.nombre}`}
-              onClick={() => alEliminar(curso.id)}
-            >
-              Eliminar
-            </button>
-          </>
+          <MenuDesplegable
+            etiquetaBoton={`Más acciones de ${curso.nombre}`}
+            claseBoton={estilos.botonMas}
+            alineacion="fin"
+            contenidoBoton={<Icono nombre="mas-opciones" tamano={20} />}
+            items={[
+              { id: 'editar', etiqueta: 'Modificar', ariaLabel: `Modificar ${curso.nombre}`, icono: 'editar', alSeleccionar: () => alEditar(curso.id) },
+              { id: 'eliminar', etiqueta: 'Eliminar', ariaLabel: `Eliminar ${curso.nombre}`, icono: 'papelera', tono: 'peligro', alSeleccionar: () => alEliminar(curso.id) }
+            ]}
+          />
         )}
       </div>
     </article>

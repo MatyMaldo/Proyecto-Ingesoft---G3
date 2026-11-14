@@ -48,6 +48,39 @@
   outline-offset: 2px;
 }
 
+/* Horarios (escritorio): la matriz ocupa el alto disponible y solo ella se desplaza, con la cabecera de días y la
+   columna de horas fijas. En móvil la página se desplaza entera. */
+@media (min-width: 768px) {
+  .envoltorioAjustado {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .contenedorAjustado {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+}
+
+.cabeceraHora,
+.cabeceraDia {
+  position: sticky;
+  top: 0;
+  z-index: 2;
+}
+
+.cabeceraHora {
+  left: 0;
+  z-index: 3;
+}
+
+.hora {
+  position: sticky;
+  left: 0;
+  z-index: 1;
+}
+
 .tabla {
   width: 100%;
   min-width: 52rem;
@@ -148,24 +181,33 @@
   gap: var(--espacio-1);
   font-size: var(--texto-md);
   font-weight: var(--peso-seminegrita);
-  color: var(--color-accion);
+  /* «Asignar» y su ícono solo aparecen al pasar el cursor o enfocar la celda (menos ruido visual). */
+  color: transparent;
   background: var(--color-superficie);
-  border: 1px dashed var(--color-borde-fuerte);
+  border: 1px dashed var(--color-borde);
   cursor: pointer;
   transition: background var(--transicion);
 }
 
-.vacio:hover:not(:disabled) {
+.vacio:hover:not(:disabled),
+.vacio:focus-visible:not(:disabled) {
+  color: var(--color-accion);
   background: var(--color-accion-suave);
   border-color: var(--color-accion);
 }
 
 /* Sin relaciones curso-docente: celdas atenuadas y sin acción. */
 .vacio:disabled {
-  color: var(--color-texto-suave);
   background: var(--color-superficie-suave);
   cursor: not-allowed;
   opacity: var(--opacidad-deshabilitado);
+}
+
+/* En pantallas táctiles no hay hover: la acción queda siempre visible. */
+@media (hover: none) {
+  .vacio:not(:disabled) {
+    color: var(--color-accion);
+  }
 }
 
 .bloque {

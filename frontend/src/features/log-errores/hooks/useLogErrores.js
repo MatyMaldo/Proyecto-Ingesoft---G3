@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
-import { formatearFechaHora } from '../../../shared/utils/formatoFecha.js';
+import { formatearFechaHora, normalizarFechaHoraApi } from '../../../shared/utils/formatoFecha.js';
 import { obtenerMensajeRangoFechas } from '../../../shared/utils/rangoFechas.js';
 import { obtenerErrores } from '../services/logErroresService.js';
 
@@ -57,12 +57,8 @@ export function obtenerTonoCodigoEstado(codigo) {
   return codigo >= 400 ? 'ambar' : 'gris';
 }
 
-function normalizarFechaHora(fechaHora) {
-  return /(?:Z|[+-]\d{2}:\d{2})$/i.test(fechaHora) ? fechaHora : `${fechaHora}-05:00`;
-}
-
 function adaptarFilaError(registro) {
-  const fechaHora = normalizarFechaHora(registro.fechaHora);
+  const fechaHora = normalizarFechaHoraApi(registro.fechaHora);
   const { fecha, hora } = formatearFechaHora(fechaHora);
 
   return {

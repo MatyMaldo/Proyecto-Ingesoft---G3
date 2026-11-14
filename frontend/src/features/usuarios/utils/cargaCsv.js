@@ -2,7 +2,7 @@ import { ROL_POR_TIPO_REGISTRO } from '../constants/rolesUsuario.js';
 
 export const CSV_USUARIOS_COLUMNAS = [
     'tipoUsuario', 'nombre', 'apellidoPaterno', 'apellidoMaterno', 'dni',
-    'telefono', 'correo', 'edad', 'fechaNacimiento', 'dniApoderado'
+    'telefono', 'correo', 'fechaNacimiento', 'dniApoderado'
 ];
 
 /** Límites por carga, los mismos que aplica el backend a sus cargas masivas (2 MB y 1000 filas). */
@@ -70,7 +70,7 @@ export function leerCsv(texto) {
     if (faltantes.length) throw new Error(`Faltan columnas requeridas en el encabezado: ${faltantes.join(', ')}.`);
     // El administrador no conoce ni define contraseñas: cada usuario crea la suya con el código que recibe por correo.
     if (encabezados.some(encabezado => ['password', 'contrasena'].includes(encabezado))) {
-        throw new Error('El archivo incluye una columna de contraseña. Elimínala: cada usuario creará su propia contraseña con el código de verificación que recibirá en su correo.');
+        throw new Error('El archivo incluye una columna de contraseña. Elimínala: cada usuario podrá obtener su propia contraseña para acceder a la app.');
     }
 
     return filas.slice(1).map((valores, indice) => {
@@ -94,7 +94,6 @@ export function leerCsv(texto) {
                 return digitos.length === 11 && digitos.startsWith('51') ? digitos.slice(2) : digitos;
             })(),
             correo: datos.correo ?? '',
-            edad: datos.edad ?? '',
             fechaNacimiento: datos.fechanacimiento ?? '',
             dniApoderado: datos.dniapoderado ?? ''
         };
@@ -140,8 +139,7 @@ export function validarFilasCsv(filas, usuarios, usarMock) {
         if (!fila.nombre || fila.nombre.length > 80) problemasFila.push(problema('Nombre', 'es obligatorio (máximo 80 caracteres)'));
         if (!fila.apellidoPaterno || fila.apellidoPaterno.length > 80) problemasFila.push(problema('Apellido paterno', 'es obligatorio (máximo 80 caracteres)'));
         if (fila.apellidoMaterno.length > 80) problemasFila.push(problema('Apellido materno', 'admite hasta 80 caracteres'));
-        const dniValido = usarMock && fila.tipoUsuario === 'apoderado' ? /^(?:\d{8}|\d{9})$/.test(fila.dni) : /^\d{8}$/.test(fila.dni);
-        if (!dniValido) problemasFila.push(problema('DNI', usarMock && fila.tipoUsuario === 'apoderado' ? 'debe tener 8 o 9 dígitos' : 'debe tener 8 dígitos'));
+        if (!/^\d{8}$/.test(fila.dni)) problemasFila.push(problema('DNI', 'debe tener 8 dígitos'));
         const dniClave = `${normalizarCsv(rol)}:${fila.dni}`;
         if (dniPorRol.has(dniClave)) problemasFila.push(problema('DNI', 'ya existe un usuario con ese DNI y rol (en el sistema o repetido en el archivo)'));
         dniPorRol.add(dniClave);
@@ -152,16 +150,13 @@ export function validarFilasCsv(filas, usuarios, usarMock) {
         const telefonoIngresado = fila.telefonoTexto.trim() !== '';
         if (telefonoIngresado && (!/^[+\d\s().-]+$/.test(fila.telefonoTexto) || !/^\d{9}$/.test(fila.telefono))) problemasFila.push(problema('Teléfono', 'debe tener exactamente 9 dígitos'));
         if ((fila.tipoUsuario === 'estudiante' || (usarMock && fila.tipoUsuario === 'docente')) && !telefonoIngresado) problemasFila.push(problema('Teléfono', 'es obligatorio'));
-        if (fila.tipoUsuario === 'apoderado' || (usarMock && fila.tipoUsuario === 'docente')) {
-            const edad = Number(fila.edad);
-            const edadMinima = usarMock ? 18 : 1;
-            if (!/^\d+$/.test(fila.edad) || !Number.isSafeInteger(edad) || edad < edadMinima) problemasFila.push(problema('Edad', `debe ser un número entero de ${edadMinima} o más`));
-        }
-        if (fila.tipoUsuario === 'estudiante') {
+        if (fila.tipoUsuario === 'apoderado' || fila.tipoUsuario === 'estudiante') {
             const fecha = new Date(`${fila.fechaNacimiento}T00:00:00`);
             const hoy = new Date();
             hoy.setHours(23, 59, 59, 999);
             if (!/^\d{4}-\d{2}-\d{2}$/.test(fila.fechaNacimiento) || Number.isNaN(fecha.getTime()) || fecha.toISOString().slice(0, 10) !== fila.fechaNacimiento || fecha > hoy) problemasFila.push(problema('Fecha de nacimiento', 'debe tener formato AAAA-MM-DD, ser una fecha válida y no posterior a hoy'));
+        }
+        if (fila.tipoUsuario === 'estudiante') {
             if (!fila.dniApoderado || (!dniApoderados.has(fila.dniApoderado) && !dniApoderadosCsv.has(fila.dniApoderado))) problemasFila.push(problema('DNI del apoderado', 'debe ser el de un apoderado activo ya registrado o incluido en este archivo'));
         }
         if (problemasFila.length) {
@@ -187,7 +182,7 @@ export function validarFilasCsv(filas, usuarios, usarMock) {
 
 /**
  * Describe cada columna del CSV para mostrarla como tabla de ayuda: a quién aplica, la regla y un ejemplo.
- * Las reglas dependen del modo (el mock exige además teléfono y edad a los docentes).
+ * Las reglas dependen del modo (el mock exige además teléfono a los docentes).
  *
  * @param {boolean} usarMock
  * @returns {Array<{ campo: string, obligatorio: string, regla: string, ejemplo: string }>}
@@ -206,13 +201,7 @@ export function describirColumnasCsv(usarMock) {
             ejemplo: '900000013'
         },
         { campo: 'correo', obligatorio: 'Todos', regla: 'Correo válido; no puede repetirse', ejemplo: 'diego@mail.com' },
-        {
-            campo: 'edad',
-            obligatorio: usarMock ? 'Apoderados y docentes' : 'Apoderados',
-            regla: `Número entero de ${usarMock ? 18 : 1} o más`,
-            ejemplo: '40'
-        },
-        { campo: 'fechaNacimiento', obligatorio: 'Estudiantes', regla: 'AAAA-MM-DD, no posterior a hoy', ejemplo: '2012-03-15' },
+        { campo: 'fechaNacimiento', obligatorio: 'Apoderados y estudiantes', regla: 'AAAA-MM-DD, no posterior a hoy', ejemplo: '1985-03-15' },
         {
             campo: 'dniApoderado',
             obligatorio: 'Estudiantes',

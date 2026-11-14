@@ -23,7 +23,7 @@ function CeldaEstudiante({ matricula }) {
     <div className={estilos.celdaEstudiante}>
       <Avatar iniciales={obtenerInicialesDeNombre(nombre)} />
       <div>
-        <span className={estilos.nombre}>{nombre}</span>
+        <span className={estilos.nombre} title={nombre}>{nombre}</span>
         {matricula.codigoEstudiante && (
           <span className={estilos.codigo}>{matricula.codigoEstudiante}</span>
         )}

@@ -106,9 +106,42 @@
 
 .tabla {
   width: 100%;
-  min-width: 46rem;
+  min-width: 44rem;
+  table-layout: fixed;
   border-collapse: collapse;
   font-size: var(--texto-md);
+}
+
+/* Anchos por columna: fecha, monto (alineado a la derecha, como las cifras), estado, comprobante y acciones. */
+.tabla th:nth-child(1),
+.tabla td:nth-child(1) {
+  width: 15%;
+  white-space: nowrap;
+}
+
+.tabla th:nth-child(2),
+.tabla td:nth-child(2) {
+  width: 15%;
+  text-align: right;
+}
+
+.tabla th:nth-child(3),
+.tabla td:nth-child(3) {
+  width: 15%;
+}
+
+.tabla th:nth-child(4),
+.tabla td:nth-child(4) {
+  width: 18%;
+}
+
+.tabla th:nth-child(5),
+.tabla td:nth-child(5) {
+  width: 37%;
+}
+
+.tabla th:nth-child(5) {
+  text-align: center;
 }
 
 .tabla th {
@@ -144,14 +177,14 @@
 
 .acciones {
   display: flex;
-  flex-wrap: wrap;
-  justify-content: flex-end;
+  flex-wrap: nowrap;
+  justify-content: center;
   gap: var(--espacio-2);
 }
 
 .botonAccion,
 .botonDetalle {
-  min-height: 36px;
+  min-height: 32px;
   padding: 0 var(--espacio-3);
   font: inherit;
   font-size: var(--texto-md);
@@ -236,11 +269,88 @@
 }
 
 .detalle {
-  display: grid;
-  grid-template-columns: minmax(8rem, 12rem) 1fr;
-  gap: var(--espacio-2) var(--espacio-4);
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
   margin: 0;
   font-size: var(--texto-md);
+}
+
+/* Cada dato en una fila: rótulo a la izquierda y valor a la derecha, separadas por una línea fina. */
+.detalleFila {
+  display: grid;
+  grid-template-columns: minmax(8rem, 12rem) 1fr;
+  gap: var(--espacio-4);
+  padding-bottom: var(--espacio-2);
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.detalleFila:last-child {
+  border-bottom: 0;
+  padding-bottom: 0;
+}
+
+.detalleResumen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-3);
+}
+
+.detalleCifra {
+  font-size: var(--texto-xl);
+  font-weight: var(--peso-negrita);
+  font-variant-numeric: tabular-nums;
+  color: var(--color-texto);
+}
+
+.detalleGrupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  padding-top: var(--espacio-3);
+  border-top: 1px solid var(--color-borde);
+}
+
+.detalleSubtitulo {
+  margin: 0;
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+.detalleAtenuado {
+  color: var(--color-texto-suave);
+}
+
+/* "Rechazar" en el pie del detalle: del mismo tamaño que los demás botones del pie, en rojo. */
+.botonPieRechazar {
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-4);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-peligro-texto);
+  background: var(--color-peligro-fondo);
+  border: 1px solid var(--color-peligro-borde);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.botonPieRechazar:hover:not(:disabled) {
+  border-color: var(--color-peligro);
+}
+
+.botonPieRechazar:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.botonPieRechazar:disabled {
+  opacity: var(--opacidad-deshabilitado);
+  cursor: not-allowed;
 }
 
 .detalle dt {
@@ -304,4 +414,56 @@
   .pdf {
     min-height: 20rem;
   }
+}
+
+/* Lado derecho de la cabecera de un compromiso: su estado y el botón para plegar o desplegar sus pagos. */
+.compromisoLado {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--espacio-2);
+}
+
+/* Cabecera de un compromiso con pagos: toda ella abre o cierra la tabla. */
+.compromisoDesplegable {
+  cursor: pointer;
+  transition: background var(--transicion);
+}
+
+.compromisoDesplegable:hover {
+  background: var(--color-accion-suave);
+}
+
+/* Contador de pagos en el extremo superior derecho, con la flecha que indica si está abierto. */
+.contadorPagos {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-1);
+  min-height: 32px;
+  padding: 0 var(--espacio-2) 0 var(--espacio-3);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  white-space: nowrap;
+  color: var(--color-accion);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-pildora);
+  cursor: pointer;
+}
+
+.contadorPagos:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.sinPagosLado {
+  font-size: var(--texto-md);
+  color: var(--color-texto-suave);
+}
+
+/* Pago que espera validación: la fila se resalta para encontrarla de un vistazo. */
+.filaPorValidar td {
+  background: var(--tono-ambar-fondo);
 }

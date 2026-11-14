@@ -33,6 +33,9 @@ export const OPCIONES_FILTRO_ESTADO = Object.freeze([
 /** Usuarios por página del listado (HU-SAT-02, escenario 12; antes 15, bajado a 10 para evitar el scroll de página). */
 export const TAMANIO_PAGINA_USUARIOS = 10;
 
+/** Filas por página que se pueden elegir. Con más de 10 el paginador va también debajo de la tabla. */
+export const OPCIONES_TAMANIO_PAGINA_USUARIOS = Object.freeze([10, 25, 50, 100]);
+
 /** Rol que se asigna a cada tipo de registro (formulario y carga masiva). */
 export const ROL_POR_TIPO_REGISTRO = Object.freeze({
   apoderado: 'Apoderado',

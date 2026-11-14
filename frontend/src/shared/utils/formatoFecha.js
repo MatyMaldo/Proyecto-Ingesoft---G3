@@ -16,6 +16,22 @@ const FORMATEADOR_HORA = new Intl.DateTimeFormat('es-PE', {
 });
 
 /**
+ * Normaliza una fecha-hora de la API. El backend guarda la hora local (Lima) pero la serializa con
+ * sufijo UTC ("Z" / "+00:00"), así que ese sufijo se descarta y se toma la hora tal cual; sin
+ * sufijo también se asume Lima.
+ *
+ * @param {string} fechaHora
+ * @returns {string} ISO 8601 con desfase -05:00.
+ */
+export function normalizarFechaHoraApi(fechaHora) {
+  const texto = String(fechaHora ?? '');
+  if (/[+-]\d{2}:\d{2}$/.test(texto) && !/[+-]00:00$/.test(texto)) {
+    return texto;
+  }
+  return `${texto.replace(/(?:Z|[+-]00:00)$/i, '')}-05:00`;
+}
+
+/**
  * Separa una fecha-hora ISO en fecha (AAAA-MM-DD) y hora (HH:mm), en zona America/Lima.
  *
  * @param {string} fechaIso Fecha-hora en formato ISO 8601.

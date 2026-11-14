@@ -1,9 +1,11 @@
 import { useEffect, useId, useState } from 'react';
 
 import CampoBusquedaDesplegable from '../../../shared/components/CampoBusquedaDesplegable.jsx';
+import Avatar, { obtenerInicialesDeNombre } from '../../../shared/components/Avatar.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
 import DialogoBase from '../../../shared/components/DialogoBase.jsx';
 import useMatriculas from '../hooks/useMatriculas.js';
+import { MENSAJE_SIN_PERIODO_VIGENTE } from '../services/matriculasService.js';
 import estilos from '../../../shared/styles/camposDialogo.module.css';
 
 /**
@@ -35,8 +37,12 @@ export default function ModalAsignarAlumno({ onCerrar, onAceptar }) {
     anios,
     anioId,
     seleccionarAnio,
+    anio,
     asignacion
   } = useMatriculas();
+
+  const sinPeriodoVigente = estadoEstructura === 'error' && errorEstructura === MENSAJE_SIN_PERIODO_VIGENTE;
+  const hayErrorReal = estadoEstructura === 'error' && !sinPeriodoVigente;
 
   const [enviando, establecerEnviando] = useState(false);
   const idBusqueda = useId();
@@ -73,6 +79,9 @@ export default function ModalAsignarAlumno({ onCerrar, onAceptar }) {
       <div className={estilos.opciones} role="radiogroup" aria-labelledby={idSeccion}>
         {secciones.map((seccion) => {
           const activa = seccion.id === seccionId;
+          const vacantes = typeof seccion.vacantesDisponibles === 'number' ? seccion.vacantesDisponibles : null;
+          const sinVacantes = vacantes === 0;
+          const claseBase = activa ? `${estilos.opcion} ${estilos.opcionActiva}` : estilos.opcion;
 
           return (
             <button
@@ -80,10 +89,16 @@ export default function ModalAsignarAlumno({ onCerrar, onAceptar }) {
               type="button"
               role="radio"
               aria-checked={activa}
-              className={activa ? `${estilos.opcion} ${estilos.opcionActiva}` : estilos.opcion}
+              disabled={sinVacantes}
+              className={vacantes === null ? claseBase : `${claseBase} ${estilos.opcionConSubtexto}`}
               onClick={() => seleccionarSeccion(seccion.id)}
             >
               {seccion.nombre}
+              {vacantes !== null && (
+                <span className={estilos.opcionSubtexto}>
+                  {sinVacantes ? 'Sin vacantes' : vacantes === 1 ? '1 vacante' : `${vacantes} vacantes`}
+                </span>
+              )}
             </button>
           );
         })}
@@ -126,10 +141,13 @@ export default function ModalAsignarAlumno({ onCerrar, onAceptar }) {
 
       {alumnoSeleccionado && (
         <div className={estilos.tarjetaAlumno}>
-          <div>
+          <Avatar iniciales={obtenerInicialesDeNombre(alumnoSeleccionado.nombre)} />
+          <div className={estilos.tarjetaTexto}>
             <p className={estilos.tarjetaEtiqueta}>Alumno seleccionado</p>
             <p className={estilos.tarjetaNombre}>{alumnoSeleccionado.nombre}</p>
-            <p className={estilos.tarjetaDni}>DNI: {alumnoSeleccionado.dni}</p>
+            <p className={estilos.tarjetaDni}>
+              DNI: {alumnoSeleccionado.dni}{alumnoSeleccionado.codigo ? ` · ${alumnoSeleccionado.codigo}` : ''}
+            </p>
           </div>
           <button
             type="button"
@@ -142,60 +160,79 @@ export default function ModalAsignarAlumno({ onCerrar, onAceptar }) {
         </div>
       )}
 
-      <div className={estilos.campo}>
-        <label htmlFor={idAnio} className={estilos.etiqueta}>Año académico</label>
-        <select
-          id={idAnio}
-          className={estilos.selector}
-          value={anioId ?? ''}
-          disabled={estadoEstructura !== 'listo'}
-          onChange={(evento) => seleccionarAnio(evento.target.value)}
-        >
-          <option value="">
-            {estadoEstructura === 'cargando' ? 'Cargando años...' : 'Seleccionar año...'}
-          </option>
-          {anios.map((anioDisponible) => (
-            <option key={anioDisponible.id} value={anioDisponible.id}>
-              {anioDisponible.anio} · Período vigente
+      <div className={estilos.filaDoble}>
+        <div className={estilos.campo}>
+          <label htmlFor={idAnio} className={estilos.etiqueta}>Año académico</label>
+          <select
+            id={idAnio}
+            className={estilos.selector}
+            value={anioId ?? ''}
+            disabled={estadoEstructura !== 'listo'}
+            onChange={(evento) => seleccionarAnio(evento.target.value)}
+          >
+            <option value="">
+              {estadoEstructura === 'cargando' ? 'Cargando años...' : 'Seleccionar año...'}
             </option>
-          ))}
-        </select>
-        <p className={estilos.ayuda}>Solo se muestran años con período de matrícula vigente.</p>
-      </div>
+            {anios.map((anioDisponible) => (
+              <option key={anioDisponible.id} value={anioDisponible.id}>
+                {anioDisponible.anio}
+              </option>
+            ))}
+          </select>
+        </div>
 
-      <div className={estilos.campo}>
-        <label htmlFor={idGrado} className={estilos.etiqueta}>Grado académico</label>
-        <select
-          id={idGrado}
-          className={estilos.selector}
-          value={gradoId ?? ''}
-          disabled={estadoEstructura !== 'listo'}
-          onChange={(evento) => seleccionarGrado(evento.target.value)}
-        >
-          <option value="">
-            {estadoEstructura === 'cargando' ? 'Cargando grados...' : 'Seleccionar grado...'}
-          </option>
-          {grados.map((grado) => (
-            <option key={grado.id} value={grado.id}>{grado.nombre}</option>
-          ))}
-        </select>
-        {estadoEstructura === 'error' && (
-          <>
-            <p className={estilos.error} role="alert">
-              <Icono nombre="alerta" tamano={14} />
-              <span>{errorEstructura}</span>
-            </p>
-            <button type="button" className={estilos.reintentar} onClick={reintentarEstructura}>
-              Reintentar
-            </button>
-          </>
-        )}
+        <div className={estilos.campo}>
+          <label htmlFor={idGrado} className={estilos.etiqueta}>Grado académico</label>
+          <select
+            id={idGrado}
+            className={estilos.selector}
+            value={gradoId ?? ''}
+            disabled={estadoEstructura !== 'listo'}
+            onChange={(evento) => seleccionarGrado(evento.target.value)}
+          >
+            <option value="">
+              {estadoEstructura === 'cargando' ? 'Cargando grados...' : 'Seleccionar grado...'}
+            </option>
+            {grados.map((grado) => (
+              <option key={grado.id} value={grado.id}>{grado.nombre}</option>
+            ))}
+          </select>
+          {hayErrorReal && (
+            <>
+              <p className={estilos.error} role="alert">
+                <Icono nombre="alerta" tamano={14} />
+                <span>{errorEstructura}</span>
+              </p>
+              <button type="button" className={estilos.reintentar} onClick={reintentarEstructura}>
+                Reintentar
+              </button>
+            </>
+          )}
+        </div>
       </div>
+      {/* Una sola línea: sin período vigente no es un error, es el motivo por el que no hay años que elegir. */}
+      {!hayErrorReal && (
+        <p className={estilos.ayuda}>
+          {sinPeriodoVigente
+            ? MENSAJE_SIN_PERIODO_VIGENTE
+            : 'Solo se muestran años con período de matrícula vigente.'}
+        </p>
+      )}
 
       <div className={estilos.campo}>
         <span id={idSeccion} className={estilos.etiqueta}>Sección</span>
         {renderizarSecciones()}
       </div>
+
+      {asignacion !== null && (
+        <p className={estilos.vistaPrevia} role="status">
+          <Icono nombre="verificar" tamano={16} />
+          <span>
+            Se asignará a <strong>{asignacion.alumno.nombre}</strong> a {asignacion.grado.nombre}, sección{' '}
+            {asignacion.seccion.nombre}, año {anio?.anio ?? asignacion.anio?.anio}.
+          </span>
+        </p>
+      )}
     </DialogoBase>
   );
 }

@@ -1,69 +1,71 @@
+/* Mismo orden y ritmo que Usuarios y Matrículas: título, buscador y contenido. Aquí el contenido son tarjetas
+   (hay pocos cursos y no se pagina), así que la página se desplaza entera. */
 .pagina {
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-6);
+  gap: var(--espacio-3);
 }
 
+/* Barra de título (GUI §6): título y descripción en la misma línea a la izquierda y la acción a la derecha. */
 .cabecera {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
 }
 
-.sobretitulo {
-  margin: 0 0 var(--espacio-1);
-  font-size: var(--texto-xs);
-  font-weight: var(--peso-seminegrita);
-  letter-spacing: var(--espaciado-letra-ancho);
-  text-transform: uppercase;
-  color: var(--color-texto-suave);
+.textoCabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--espacio-1) var(--espacio-3);
+  min-width: 0;
 }
 
 .titulo {
   margin: 0;
   font-size: var(--texto-titulo);
-  font-weight: var(--peso-seminegrita);
+  font-weight: var(--peso-negrita);
   color: var(--color-texto);
 }
 
 .descripcion {
-  margin: var(--espacio-2) 0 0;
-  font-size: var(--texto-md);
+  margin: 0;
+  font-size: var(--texto-sm);
   color: var(--color-texto-suave);
 }
 
-.seccionLista {
+.acciones {
   display: flex;
-  flex-direction: column;
-  gap: var(--espacio-4);
-}
-
-.encabezadoLista {
-  display: flex;
+  flex-wrap: wrap;
   align-items: center;
   gap: var(--espacio-3);
 }
 
 .botonAgregarCurso {
   display: inline-flex;
-  flex-shrink: 0;
   align-items: center;
-  justify-content: center;
+  gap: var(--espacio-2);
   min-height: var(--tactil-min);
   padding: 0 var(--espacio-4);
+  font: inherit;
   font-size: var(--texto-md);
   font-weight: var(--peso-seminegrita);
-  color: var(--color-marca-texto);
-  background: var(--color-marca);
-  border: 0;
+  white-space: nowrap;
+  color: #fff;
+  background: var(--color-primario);
+  border: 1px solid var(--color-primario);
   border-radius: var(--radio-md);
-  box-shadow: var(--sombra-sm);
   cursor: pointer;
-  transition: background var(--transicion);
 }
 
-.botonAgregarCurso:hover {
-  background: var(--color-primario-intenso);
+.botonAgregarCurso:hover:not(:disabled) {
+  background: var(--color-primario-hover);
+}
+
+.botonAgregarCurso:active:not(:disabled) {
+  background: var(--color-primario-activo);
 }
 
 .botonAgregarCurso:focus-visible {
@@ -76,31 +78,76 @@
   cursor: not-allowed;
 }
 
-.tituloLista {
-  margin: 0;
-  font-size: var(--texto-xs);
-  font-weight: var(--peso-seminegrita);
-  letter-spacing: var(--espaciado-letra-ancho);
-  text-transform: uppercase;
-  color: var(--color-texto-suave);
+/* Buscador (con "Actualizar" y "Limpiar filtros") a la izquierda y el total de cursos al otro extremo. */
+.filaBusqueda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
 }
 
-.lineaEncabezado {
+.filaBusqueda > :first-child {
   flex: 1 1 auto;
-  height: 1px;
-  background: var(--color-borde);
 }
 
 .contador {
   flex-shrink: 0;
-  padding: var(--espacio-1) var(--espacio-3);
-  font-size: var(--texto-xs);
+  font-size: var(--texto-sm);
   font-weight: var(--peso-seminegrita);
   white-space: nowrap;
-  color: var(--color-marca);
-  background: var(--tono-azul-fondo);
-  border: 1px solid var(--tono-azul-borde);
-  border-radius: var(--radio-pildora);
+  color: var(--color-texto-suave);
+}
+
+.seccionLista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+}
+
+/* Escritorio: la página ocupa el alto del área principal y solo la rejilla de tarjetas se desplaza (el pie con el
+   paginador queda siempre a la vista), como la tabla en Usuarios y Matrículas. */
+@media (min-width: 768px) {
+  .pagina {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .pagina > * {
+    flex-shrink: 0;
+  }
+
+  .pagina > .seccionLista {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .zonaRejilla {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow-y: auto;
+    /* Espacio para que la sombra y el foco de las tarjetas no se recorten. */
+    padding: 2px;
+    margin: -2px;
+    display: flex;
+    flex-direction: column;
+  }
+
+  /* Página completa: las filas de tarjetas se reparten el alto sobrante, sin hueco antes del paginador. Cada fila
+     mide como mínimo lo que ocupa su contenido. */
+  .rejillaLlena {
+    flex: 1 1 auto;
+    grid-auto-rows: minmax(max-content, 1fr);
+  }
+}
+
+.pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: var(--espacio-3);
+  padding-top: var(--espacio-2);
 }
 
 .contenedorEstado {
@@ -120,10 +167,9 @@
   list-style: none;
 }
 
-
 /* Tarjetas de una misma fila con la misma altura */
 .rejilla > li {
- display: flex;
+  display: flex;
 }
 
 .rejilla > li > * {
@@ -131,15 +177,16 @@
 }
 
 @media (max-width: 767px) {
-  .encabezadoLista {
-    flex-wrap: wrap;
+  .acciones {
+    width: 100%;
   }
 
-  .lineaEncabezado {
-    display: none;
+  .acciones > * {
+    flex: 1 1 100%;
+    justify-content: center;
   }
 
-  .botonAgregarCurso {
-    flex-basis: 100%;
+  .contador {
+    margin-left: auto;
   }
 }

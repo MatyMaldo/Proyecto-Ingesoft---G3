@@ -1,13 +1,9 @@
+/* Fila de filtros sin tarjeta, como la barra de búsqueda de Cursos y Usuarios. */
 .filtros {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
-  gap: var(--espacio-4);
-  padding: var(--espacio-4) var(--espacio-6);
-  background: var(--color-superficie);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio-lg);
-  box-shadow: var(--sombra-sm);
+  gap: var(--espacio-3);
 }
 
 .campoGrado,
@@ -16,20 +12,13 @@
   min-width: 0;
 }
 
-.acciones {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--espacio-2);
-  margin-left: auto;
-}
-
 .boton {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--espacio-2);
   min-height: var(--tactil-min);
-  padding: 0 var(--espacio-6);
+  padding: 0 var(--espacio-4);
   font-size: var(--texto-md);
   font-weight: var(--peso-seminegrita);
   color: var(--color-marca-texto);
@@ -55,23 +44,13 @@
 }
 
 @media (max-width: 767px) {
-  .filtros {
-    padding: var(--espacio-4);
-  }
-
   .campoGrado,
   .campoSeccion {
     flex: 1 1 100%;
     max-width: none;
   }
 
-  .boton,
-  .acciones {
-    flex: 1 1 100%;
-    margin-left: 0;
-  }
-
-  .acciones > * {
+  .boton {
     flex: 1 1 100%;
   }
 }

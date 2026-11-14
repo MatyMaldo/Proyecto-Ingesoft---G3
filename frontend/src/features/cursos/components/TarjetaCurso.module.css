@@ -59,6 +59,7 @@
 .pie {
   display: flex;
   flex-wrap: wrap;
+  align-items: center;
   justify-content: flex-end;
   gap: var(--espacio-2);
   margin-top: auto;
@@ -85,6 +86,29 @@
 }
 
 .botonCompetencias:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.botonMas {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tactil-min);
+  height: var(--tactil-min);
+  color: var(--color-texto-suave);
+  background: transparent;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.botonMas:hover {
+  color: var(--color-texto);
+  background: var(--color-superficie-suave);
+}
+
+.botonMas:focus-visible {
   outline: 2px solid var(--color-foco);
   outline-offset: 2px;
 }

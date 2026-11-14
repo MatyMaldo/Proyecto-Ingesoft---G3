@@ -84,11 +84,11 @@
 .navegacion {
   flex: 1 1 auto;
   overflow-y: auto;
-  padding: var(--espacio-4) var(--espacio-2);
+  padding: var(--espacio-3) var(--espacio-2);
 }
 
 .seccion {
-  margin: 0 0 var(--espacio-6);
+  margin: 0 0 var(--espacio-4);
 }
 
 .seccion:last-child {

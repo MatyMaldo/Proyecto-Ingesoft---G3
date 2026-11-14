@@ -15,7 +15,7 @@
 }
 
 .tabla thead th {
-  padding: var(--espacio-3) var(--espacio-4);
+  padding: var(--espacio-2) var(--espacio-4);
   background: var(--color-superficie-suave);
   color: var(--color-texto-secundario);
   font-size: var(--texto-xs);
@@ -28,8 +28,9 @@
 }
 
 .tabla tbody td {
-  height: 48px;
-  padding: var(--espacio-2) var(--espacio-4);
+  /* Alto fijo para todas las filas (con o sin código de estudiante). */
+  height: 42px;
+  padding: var(--espacio-1) var(--espacio-4);
   vertical-align: middle;
   border-bottom: 1px solid var(--color-borde);
   color: var(--color-texto);
@@ -46,12 +47,12 @@
 /* Columnas equilibradas: el estudiante conserva la mayor parte, pero sin absorber todo el espacio libre. */
 .tabla th.columnaEstudiante,
 .tabla td:nth-child(1) {
-  width: 24%;
+  width: 20%;
 }
 
 .tabla th.columnaAnio,
 .tabla td:nth-child(2) {
-  width: 7%;
+  width: 6%;
 }
 
 .tabla th.columnaFecha,
@@ -61,7 +62,7 @@
 
 .tabla th.columnaGrado,
 .tabla td:nth-child(4) {
-  width: 19%;
+  width: 22%;
 }
 
 .tabla th.columnaSeccion,
@@ -71,16 +72,17 @@
 
 .tabla th.columnaEstado,
 .tabla td:nth-child(6) {
-  width: 11%;
+  width: 12%;
 }
 
 .tabla th.columnaAccion,
 .tabla td:nth-child(7) {
-  width: 17%;
+  width: 18%;
 }
 
-/* Año, fecha, sección, estado y acción no se parten. El grado y el estudiante pueden envolver si hace falta. */
+/* Todas las columnas van en una línea, para que las filas tengan la misma altura. */
 .tabla td:nth-child(2),
+.tabla td:nth-child(4),
 .tabla td:nth-child(3),
 .tabla td:nth-child(5),
 .tabla td:nth-child(6),
@@ -127,16 +129,28 @@
   gap: var(--espacio-3);
 }
 
+.celdaEstudiante > div {
+  min-width: 0;
+}
+
+/* Una sola línea (con puntos suspensivos): así todas las filas miden lo mismo. El nombre completo va en `title`. */
 .nombre {
   display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
   font-weight: var(--peso-medio);
   color: var(--color-texto);
 }
 
 .codigo {
   display: block;
-  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: var(--texto-xs);
+  line-height: 1.2;
   color: var(--color-texto-suave);
 }
 
@@ -144,7 +158,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--espacio-2);
-  min-height: 36px;
+  min-height: 32px;
   padding: 0 var(--espacio-3);
   font: inherit;
   font-size: var(--texto-md);
@@ -217,6 +231,43 @@
 .rotuloCampo {
   font-size: var(--texto-xs);
   color: var(--color-texto-suave);
+}
+
+/* Pantalla alta: filas de 48 px (estándar GUI). */
+@media (min-width: 768px) and (min-height: 860px) {
+  .tabla tbody td {
+    height: 48px;
+  }
+
+  .tabla thead th {
+    padding: var(--espacio-3) var(--espacio-4);
+  }
+
+  .botonEmitir {
+    min-height: 36px;
+  }
+}
+
+/* Escritorio: la tabla es la única zona con desplazamiento vertical (encabezado fijo); la página no. */
+@media (min-width: 768px) {
+  .contenedor {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .vistaTabla {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .tabla thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
 }
 
 @media (max-width: 767px) {

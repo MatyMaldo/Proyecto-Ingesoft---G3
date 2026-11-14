@@ -1,22 +1,41 @@
 .pagina {
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-6);
+  gap: var(--espacio-3);
 }
 
-/* Barra de título (GUI §6): título y descripción a la izquierda, acciones globales a la derecha. */
+/* Escritorio: la página ocupa el alto del área principal y solo la tabla se desplaza, así no hay doble scroll. */
+@media (min-width: 768px) {
+  .pagina {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .pagina > * {
+    flex-shrink: 0;
+  }
+
+  .pagina > .tarjetaResultados {
+    flex: 1 1 auto;
+    min-height: 12rem;
+  }
+}
+
+/* Barra de título (GUI §6): el título y su descripción (gris, pequeña) en la misma línea; si no caben, la
+   descripción baja. La acción global va a la derecha (GUI §6). */
 .cabecera {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
-  gap: var(--espacio-4);
+  gap: var(--espacio-3);
 }
 
 .textoCabecera {
   display: flex;
-  flex-direction: column;
-  gap: var(--espacio-1);
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--espacio-1) var(--espacio-3);
   min-width: 0;
 }
 
@@ -29,7 +48,7 @@
 
 .descripcion {
   margin: 0;
-  font-size: var(--texto-md);
+  font-size: var(--texto-sm);
   color: var(--color-texto-suave);
 }
 
@@ -40,7 +59,7 @@
   gap: var(--espacio-3);
 }
 
-/* Búsqueda arriba; debajo, los grupos de chips de rol y de estado (cada uno con su subtítulo), que se acomodan en
+/* La barra de búsqueda arriba; debajo, los grupos de chips de rol y de estado (cada uno con su subtítulo), que se acomodan en
    varias líneas si no caben, y al final "Limpiar filtros". El total de resultados lo muestra el paginador. */
 .filtros {
   display: flex;
@@ -64,6 +83,25 @@
   flex-direction: column;
   gap: var(--espacio-2);
   min-width: 0;
+}
+
+/* Pantalla ancha: el subtítulo va en la misma línea que sus chips, para ahorrar una fila de alto. Con menos
+   ancho los dos grupos no caben juntos en una fila y el subtítulo se queda encima. */
+@media (min-width: 1366px) {
+  .grupoFiltro {
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: var(--espacio-3);
+  }
+
+  .rotuloFiltro {
+    white-space: nowrap;
+  }
+
+  .filaChips {
+    align-items: center;
+  }
 }
 
 /* Subtítulo de cada grupo: mismo estilo que la etiqueta de los selectores de filtro. */
@@ -128,6 +166,9 @@
 }
 
 .tarjetaResultados {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
   background: var(--color-superficie);
   border: 1px solid var(--color-borde);
   border-radius: var(--radio-lg);
@@ -135,14 +176,50 @@
   overflow: hidden;
 }
 
-.barraPaginacion {
-  /* Deja un poco de aire entre los filtros y el listado; la barra se alinea a la derecha como en Log de errores. */
-  margin-bottom: calc(var(--espacio-3) * -1);
+.pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  padding: var(--espacio-2) var(--espacio-4);
+  border-top: 1px solid var(--color-borde);
 }
 
-.pie {
-  padding: var(--espacio-3) var(--espacio-4);
-  border-top: 1px solid var(--color-borde);
+.selectorFilas {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}
+
+.opcionFilas {
+  min-width: 36px;
+  min-height: 32px;
+  padding: 0 var(--espacio-2);
+  font: inherit;
+  color: var(--color-texto);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-sm);
+  cursor: pointer;
+}
+
+.opcionFilas:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.opcionFilas:disabled {
+  opacity: var(--opacidad-deshabilitado);
+  cursor: not-allowed;
+}
+
+.opcionFilasActiva {
+  color: var(--color-primario);
+  font-weight: var(--peso-seminegrita);
+  border-color: var(--color-primario);
 }
 
 @media (max-width: 767px) {

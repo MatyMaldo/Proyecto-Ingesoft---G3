@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 
 import BarraBusquedaListado from '../../../shared/components/BarraBusquedaListado.jsx';
@@ -19,11 +19,17 @@ import usePagos from '../hooks/usePagos.js';
 import { emitirCompromisoPension } from '../services/pagosService.js';
 import estilos from './PaginaPagos.module.css';
 
-/** Alumnos por página del listado (igual que Usuarios y Matrículas). La lista completa se carga una vez y se pagina aquí. */
+/** Alumnos por página: 10 por defecto y las mismas opciones que Usuarios y Matrículas. La lista completa se carga una vez y se pagina aquí. */
 const TAMANIO_PAGINA_PAGOS = 10;
+const OPCIONES_TAMANIO_PAGINA = Object.freeze([10, 25, 50, 100]);
 
 const MENSAJE_VACIO = 'No hay alumnos con matrícula pendiente o confirmada en el año seleccionado.';
 const MENSAJE_SIN_RESULTADOS = 'No se encontraron alumnos con los criterios indicados';
+
+const OPCIONES_PAGOS = [
+  { valor: 'Todos', etiqueta: 'Todos', tono: 'gris' },
+  { valor: 'POR_VALIDAR', etiqueta: 'Por validar', tono: 'ambar' }
+];
 
 const OPCIONES_MATRICULA = [
   { valor: 'Todos', etiqueta: 'Todos', tono: 'gris' },
@@ -63,6 +69,8 @@ export default function PaginaPagos() {
     seleccionarSeccion,
     cargandoSecciones,
     limpiarFiltros: limpiarFiltrosEstructura,
+    porValidar,
+    recargarPorValidar,
     recargar,
     reintentar
   } = usePagos({
@@ -76,15 +84,21 @@ export default function PaginaPagos() {
     const valor = parametros.get('matricula');
     return OPCIONES_MATRICULA.some((opcion) => opcion.valor === valor) ? valor : 'Todos';
   });
+  const [pagos, establecerPagos] = useState(() => (
+    OPCIONES_PAGOS.some((opcion) => opcion.valor === parametros.get('pagos')) ? parametros.get('pagos') : 'Todos'
+  ));
   const [pagina, establecerPagina] = useState(
     () => Math.max(0, (Number.parseInt(parametros.get('pagina'), 10) || 1) - 1)
   );
+  const [tamanioPagina, establecerTamanioPagina] = useState(() => {
+    const valor = Number.parseInt(parametros.get('filas'), 10);
+    return OPCIONES_TAMANIO_PAGINA.includes(valor) ? valor : TAMANIO_PAGINA_PAGOS;
+  });
 
   const [modalPensionesAbierto, establecerModalPensionesAbierto] = useState(false);
   const [alumnoPension, establecerAlumnoPension] = useState(null);
   const [emitiendoPension, establecerEmitiendoPension] = useState(false);
   const [alumnoPagos, establecerAlumnoPagos] = useState(null);
-  const refInicioListado = useRef(null);
 
   const operacionPension = useOperacionMasiva({
     alTerminar: (job) => {
@@ -109,11 +123,13 @@ export default function PaginaPagos() {
     fijar('seccion', seccionId != null ? String(seccionId) : '');
     fijar('q', query.trim());
     fijar('matricula', matricula !== 'Todos' ? matricula : '');
+    fijar('pagos', pagos !== 'Todos' ? pagos : '');
     fijar('pagina', pagina > 0 ? String(pagina + 1) : '');
+    fijar('filas', tamanioPagina !== TAMANIO_PAGINA_PAGOS ? String(tamanioPagina) : '');
     if (siguientes.toString() !== parametros.toString()) {
       establecerParametros(siguientes, { replace: true });
     }
-  }, [estadoEstructura, anioId, gradoId, seccionId, query, matricula, pagina, parametros, establecerParametros]);
+  }, [estadoEstructura, anioId, gradoId, seccionId, query, matricula, pagos, pagina, tamanioPagina, parametros, establecerParametros]);
 
   const anioSeleccionado = anios.find((anio) => String(anio.id) === String(anioId));
 
@@ -123,21 +139,33 @@ export default function PaginaPagos() {
   const coincideBusqueda = (alumno) => !termino
     || normalizar(`${alumno.nombre} ${alumno.codigo ?? ''} ${alumno.dni ?? ''}`).includes(termino);
   const coincideMatricula = (alumno) => matricula === 'Todos' || (matricula === 'CONFIRMADA') === esConfirmada(alumno);
-  const filtrados = alumnos.filter((alumno) => coincideBusqueda(alumno) && coincideMatricula(alumno));
+  const tienePorValidar = (alumno) => (porValidar?.[String(alumno.id)] ?? 0) > 0;
+  const coincidePagos = (alumno) => pagos === 'Todos' || tienePorValidar(alumno);
+  const filtrados = alumnos.filter((alumno) => coincideBusqueda(alumno) && coincideMatricula(alumno) && coincidePagos(alumno));
+  const opcionesPagos = OPCIONES_PAGOS.map((opcion) => ({
+    ...opcion,
+    conteo: pagos === 'Todos' || opcion.valor === pagos
+      ? alumnos.filter((alumno) => coincideBusqueda(alumno) && coincideMatricula(alumno)
+        && (opcion.valor === 'Todos' || tienePorValidar(alumno))).length
+      : undefined
+  }));
   const opcionesMatricula = OPCIONES_MATRICULA.map((opcion) => ({
     ...opcion,
     conteo: matricula === 'Todos' || opcion.valor === matricula
-      ? alumnos.filter((alumno) => coincideBusqueda(alumno)
+      ? alumnos.filter((alumno) => coincideBusqueda(alumno) && coincidePagos(alumno)
         && (opcion.valor === 'Todos' || (opcion.valor === 'CONFIRMADA') === esConfirmada(alumno))).length
       : undefined
   }));
 
-  const hayFiltros = Boolean(gradoId || seccionId || termino || matricula !== 'Todos');
-  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / TAMANIO_PAGINA_PAGOS));
+  const hayFiltros = Boolean(gradoId || seccionId || termino || matricula !== 'Todos' || pagos !== 'Todos');
+  // Una opción de filas solo se puede usar si hay al menos esa cantidad de alumnos; si el filtro deja menos, se
+  // vuelve a 10 sin perder la elección guardada en la URL.
+  const filasPorPagina = filtrados.length >= tamanioPagina ? tamanioPagina : TAMANIO_PAGINA_PAGOS;
+  const totalPaginas = Math.max(1, Math.ceil(filtrados.length / filasPorPagina));
   const paginaActual = Math.min(pagina, totalPaginas - 1);
   const alumnosPagina = filtrados.slice(
-    paginaActual * TAMANIO_PAGINA_PAGOS,
-    (paginaActual + 1) * TAMANIO_PAGINA_PAGOS
+    paginaActual * filasPorPagina,
+    (paginaActual + 1) * filasPorPagina
   );
   const estructuraLista = estadoEstructura === 'listo';
   const hayResultados = estructuraLista && estado === 'listo' && filtrados.length > 0;
@@ -145,6 +173,7 @@ export default function PaginaPagos() {
   // Cambiar un criterio de búsqueda o de filtro vuelve a la primera página.
   const cambiarBusqueda = (valor) => { establecerQuery(valor); establecerPagina(0); };
   const cambiarMatricula = (valor) => { establecerMatricula(valor); establecerPagina(0); };
+  const cambiarPagos = (valor) => { establecerPagos(valor); establecerPagina(0); };
   const cambiarAnio = (valor) => { seleccionarAnio(valor); establecerPagina(0); };
   const cambiarGrado = (valor) => { seleccionarGrado(valor); establecerPagina(0); };
   const cambiarSeccion = (valor) => { seleccionarSeccion(valor); establecerPagina(0); };
@@ -152,29 +181,26 @@ export default function PaginaPagos() {
     limpiarFiltrosEstructura();
     establecerQuery('');
     establecerMatricula('Todos');
+    establecerPagos('Todos');
     establecerPagina(0);
   };
 
-  // Al cambiar de página (sobre todo desde el paginador inferior), devuelve la vista al inicio del listado.
-  const cambiarPagina = (nuevaPagina) => {
-    establecerPagina(nuevaPagina);
-    const reducirMovimiento = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    refInicioListado.current?.scrollIntoView?.({ block: 'start', behavior: reducirMovimiento ? 'auto' : 'smooth' });
-  };
+  const cambiarTamanioPagina = (valor) => { establecerTamanioPagina(valor); establecerPagina(0); };
 
-  // El mismo paginador (con el total y el campo de página) va arriba y abajo del listado, como en Usuarios.
-  const paginador = (posicion) => (
+  // Un solo paginador, en el pie de la tabla (siempre visible, porque la tabla es lo único que se desplaza). Al
+  // cambiar de página la tabla se vuelve a montar (`key` por página), así su desplazamiento vuelve al inicio.
+  const paginador = () => (
     <Paginacion
       pagina={paginaActual}
       totalPaginas={totalPaginas}
       totalElementos={filtrados.length}
-      tamanioPagina={TAMANIO_PAGINA_PAGOS}
+      tamanioPagina={filasPorPagina}
       cantidadEnPagina={alumnosPagina.length}
-      alCambiarPagina={cambiarPagina}
-      etiqueta={`Paginación de alumnos (${posicion})`}
+      alCambiarPagina={establecerPagina}
+      etiqueta="Paginación de alumnos"
       unidadSingular="alumno"
       unidadPlural="alumnos"
-      anunciarTotal={posicion === 'superior'}
+      anunciarTotal
     />
   );
 
@@ -209,13 +235,12 @@ export default function PaginaPagos() {
     <div className={estilos.pagina}>
       {notificacion && <Notificacion mensaje={notificacion.mensaje} error={notificacion.error} />}
 
-      {/* Barra de título (GUI §6): título a la izquierda y la acción global a la derecha. */}
+      {/* Barra de título (GUI §6): título y descripción (gris, pequeña) en la misma línea y la acción global a la
+          derecha, igual que Usuarios y Matrículas. */}
       <header className={estilos.cabecera}>
         <div className={estilos.textoCabecera}>
           <h1 className={estilos.titulo}>Pagos</h1>
-          <p className={estilos.descripcion}>
-            Gestiona los pagos y compromisos de matrícula de los estudiantes.
-          </p>
+          <p className={estilos.descripcion}>Gestiona los pagos y compromisos de los estudiantes.</p>
         </div>
         <div className={estilos.acciones}>
           <button
@@ -225,7 +250,7 @@ export default function PaginaPagos() {
             onClick={() => establecerModalPensionesAbierto(true)}
           >
             <Icono nombre="archivo" tamano={16} />
-            Emitir compromisos de pensión
+            Emitir pensiones
           </button>
         </div>
       </header>
@@ -278,20 +303,31 @@ export default function PaginaPagos() {
           />
         </div>
 
-        <div className={estilos.grupoFiltro}>
-          {/* El subtítulo es visual: el grupo ya tiene su nombre accesible en `etiquetaGrupo`. */}
-          <span className={estilos.rotuloFiltro} aria-hidden="true">Matrícula</span>
-          <FiltroChips
-            etiquetaGrupo="Filtrar alumnos por estado de la matrícula"
-            opciones={opcionesMatricula}
-            valorSeleccionado={matricula}
-            alSeleccionar={cambiarMatricula}
-          />
+        <div className={estilos.filaChips}>
+          {/* Solo si se pudo saber cuántos pagos esperan validación. */}
+          {porValidar && (
+            <div className={`${estilos.grupoFiltro} ${estilos.grupoEstado}`}>
+              <span className={estilos.rotuloFiltro} aria-hidden="true">Pagos</span>
+              <FiltroChips
+                etiquetaGrupo="Filtrar alumnos por pagos por validar"
+                opciones={opcionesPagos}
+                valorSeleccionado={pagos}
+                alSeleccionar={cambiarPagos}
+              />
+            </div>
+          )}
+          <div className={`${estilos.grupoFiltro} ${estilos.grupoEstado} ${porValidar ? estilos.grupoSeparado : ''}`}>
+            {/* El subtítulo es visual: el grupo ya tiene su nombre accesible en `etiquetaGrupo`. */}
+            <span className={estilos.rotuloFiltro} aria-hidden="true">Matrícula</span>
+            <FiltroChips
+              etiquetaGrupo="Filtrar alumnos por estado de la matrícula"
+              opciones={opcionesMatricula}
+              valorSeleccionado={matricula}
+              alSeleccionar={cambiarMatricula}
+            />
+          </div>
         </div>
       </section>
-
-      {/* Total y paginación arriba del listado: el total queda a la vista sin bajar hasta el final. */}
-      {hayResultados && <div ref={refInicioListado} className={estilos.barraPaginacion}>{paginador('superior')}</div>}
 
       <section className={estilos.tarjetaResultados} aria-busy={estado === 'cargando' || undefined}>
         {estadoEstructura === 'error' && (
@@ -321,13 +357,32 @@ export default function PaginaPagos() {
           <>
             {recargando && <p className={estilos.actualizando}>Actualizando resultados…</p>}
             <TablaPagos
+              key={paginaActual}
               alumnos={alumnosPagina}
+              porValidar={porValidar}
               ocupado={recargando}
               alEmitirPension={establecerAlumnoPension}
               alVerPagos={establecerAlumnoPagos}
             />
-            {/* Con una sola página el total ya está arriba: no se repite abajo. */}
-            {totalPaginas > 1 && <div className={estilos.pie}>{paginador('inferior')}</div>}
+            {/* El pie lleva siempre el selector de filas y el paginador. */}
+            <div className={estilos.pie}>
+              <div className={estilos.selectorFilas} role="group" aria-label="Filas por página">
+                <span>Filas por página</span>
+                {OPCIONES_TAMANIO_PAGINA.map((opcion) => (
+                  <button
+                    key={opcion}
+                    type="button"
+                    className={`${estilos.opcionFilas} ${opcion === filasPorPagina ? estilos.opcionFilasActiva : ''}`}
+                    aria-pressed={opcion === filasPorPagina}
+                    disabled={filtrados.length < opcion}
+                    onClick={() => cambiarTamanioPagina(opcion)}
+                  >
+                    {opcion}
+                  </button>
+                ))}
+              </div>
+              {paginador()}
+            </div>
           </>
         )}
       </section>
@@ -356,7 +411,10 @@ export default function PaginaPagos() {
         <ModalPagosEstudiante
           alumno={alumnoPagos}
           anio={anioSeleccionado}
-          onCerrar={() => establecerAlumnoPagos(null)}
+          onCerrar={() => {
+            establecerAlumnoPagos(null);
+            recargarPorValidar();
+          }}
           alNotificar={mostrarNotificacion}
         />
       )}

@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 
 import BarraBusquedaListado from '../../../shared/components/BarraBusquedaListado.jsx';
 import CampoBusqueda from '../../../shared/components/CampoBusqueda.jsx';
@@ -15,7 +15,7 @@ import ModalActualizarEstadosMatricula from '../components/ModalActualizarEstado
 import ModalAsignarAlumno from '../components/ModalAsignarAlumno.jsx';
 import ModalComprobante from '../components/ModalComprobante.jsx';
 import TablaMatriculas from '../components/TablaMatriculas.jsx';
-import useListadoMatriculas from '../hooks/useListadoMatriculas.js';
+import useListadoMatriculas, { OPCIONES_TAMANIO_PAGINA } from '../hooks/useListadoMatriculas.js';
 import {
   cancelarPendientesPorPeriodo,
   crearMatricula,
@@ -51,6 +51,7 @@ export default function PaginaMatriculas() {
     totalElementos,
     totalPaginas,
     tamanioPagina,
+    cambiarTamanioPagina,
     matriculas,
     estado,
     error,
@@ -64,7 +65,6 @@ export default function PaginaMatriculas() {
   const [modalComprobanteAbierto, establecerModalComprobanteAbierto] = useState(false);
   const [modalActualizarEstadosAbierto, establecerModalActualizarEstadosAbierto] = useState(false);
   const [emitiendoId, establecerEmitiendoId] = useState(null);
-  const refInicioListado = useRef(null);
 
   const operacionMatriculas = useOperacionMasiva({
     alTerminar: (job) => {
@@ -141,15 +141,11 @@ export default function PaginaMatriculas() {
   const hayFiltros = Boolean(filtros.gradoId || filtros.seccionId || filtros.estado || busqueda.trim());
   const hayResultados = estructuraLista && estado === 'listo' && matriculas.length > 0;
 
-  // Al cambiar de página (sobre todo desde el paginador inferior), devuelve la vista al inicio del listado.
-  const cambiarPagina = (nuevaPagina) => {
-    irAPagina(nuevaPagina);
-    const reducirMovimiento = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    refInicioListado.current?.scrollIntoView?.({ block: 'start', behavior: reducirMovimiento ? 'auto' : 'smooth' });
-  };
+  // Al cambiar de página la tabla se vuelve a montar (`key` por página), así su desplazamiento vuelve al inicio.
+  const cambiarPagina = irAPagina;
 
-  // El mismo paginador (con el total y el campo de página) va arriba y abajo del listado, como en Usuarios.
-  const paginador = (posicion) => (
+  // Un solo paginador, en el pie de la tabla (siempre visible, porque la tabla es lo único que se desplaza).
+  const paginador = () => (
     <Paginacion
       pagina={pagina}
       totalPaginas={totalPaginas}
@@ -157,10 +153,10 @@ export default function PaginaMatriculas() {
       tamanioPagina={tamanioPagina}
       cantidadEnPagina={matriculas.length}
       alCambiarPagina={cambiarPagina}
-      etiqueta={`Paginación de matrículas (${posicion})`}
+      etiqueta="Paginación de matrículas"
       unidadSingular="matrícula"
       unidadPlural="matrículas"
-      anunciarTotal={posicion === 'superior'}
+      anunciarTotal
     />
   );
 
@@ -190,19 +186,17 @@ export default function PaginaMatriculas() {
     <div className={estilos.pagina}>
       {notificacion && <Notificacion mensaje={notificacion.mensaje} error={notificacion.error} />}
 
-      {/* Barra de título (GUI §6): título a la izquierda; a la derecha, las acciones masivas (secundaria) y la
-          acción principal. */}
+      {/* Barra de título (GUI §6): título y descripción a la izquierda; a la derecha, las acciones, las dos con el
+          mismo botón primario para que se vean como un conjunto. */}
       <header className={estilos.cabecera}>
         <div className={estilos.textoCabecera}>
           <h1 className={estilos.titulo}>Matrículas</h1>
-          <p className={estilos.descripcion}>
-            Consulta las matrículas registradas y emite compromisos desde cada matrícula.
-          </p>
+          <p className={estilos.descripcion}>Consulta las matrículas y emite sus compromisos.</p>
         </div>
         <div className={estilos.acciones}>
           <MenuDesplegable
             etiquetaBoton="Acciones masivas"
-            claseBoton={`${estilos.boton} ${estilos.botonSecundario}`}
+            claseBoton={`${estilos.boton} ${estilos.botonPrimario}`}
             alineacion="fin"
             deshabilitado={!estructuraLista}
             contenidoBoton={<>
@@ -232,7 +226,7 @@ export default function PaginaMatriculas() {
             onClick={() => establecerModalAsignarAlumnoAbierto(true)}
           >
             <Icono nombre="agregar" tamano={16} />
-            Asignar alumno a sección
+            Asignar alumno
           </button>
         </div>
       </header>
@@ -286,7 +280,7 @@ export default function PaginaMatriculas() {
           />
         </div>
 
-        <div className={estilos.grupoFiltro}>
+        <div className={`${estilos.grupoFiltro} ${estilos.grupoEstado}`}>
           {/* El subtítulo es visual: el grupo ya tiene su nombre accesible en `etiquetaGrupo`. */}
           <span className={estilos.rotuloFiltro} aria-hidden="true">Estado</span>
           <FiltroChips
@@ -297,9 +291,6 @@ export default function PaginaMatriculas() {
           />
         </div>
       </section>
-
-      {/* Total y paginación arriba del listado: el total queda a la vista sin bajar hasta el final. */}
-      {hayResultados && <div ref={refInicioListado} className={estilos.barraPaginacion}>{paginador('superior')}</div>}
 
       <section className={estilos.tarjetaResultados} aria-busy={cargandoListado || undefined}>
         {estadoEstructura === 'error' && (
@@ -333,12 +324,30 @@ export default function PaginaMatriculas() {
           <>
             {recargando && <p className={estilos.actualizando}>Actualizando resultados…</p>}
             <TablaMatriculas
+              key={pagina}
               matriculas={matriculas}
               alEmitir={emitirDesdeFila}
               emitiendoId={emitiendoId}
             />
-            {/* Con una sola página el total ya está arriba: no se repite abajo. */}
-            {totalPaginas > 1 && <div className={estilos.pie}>{paginador('inferior')}</div>}
+            {/* El pie lleva siempre el selector de filas y el paginador. */}
+            <div className={estilos.pie}>
+              <div className={estilos.selectorFilas} role="group" aria-label="Filas por página">
+                <span>Filas por página</span>
+                {OPCIONES_TAMANIO_PAGINA.map((opcion) => (
+                  <button
+                    key={opcion}
+                    type="button"
+                    className={`${estilos.opcionFilas} ${opcion === tamanioPagina ? estilos.opcionFilasActiva : ''}`}
+                    aria-pressed={opcion === tamanioPagina}
+                    disabled={totalElementos < opcion}
+                    onClick={() => cambiarTamanioPagina(opcion)}
+                  >
+                    {opcion}
+                  </button>
+                ))}
+              </div>
+              {paginador()}
+            </div>
           </>
         )}
       </section>

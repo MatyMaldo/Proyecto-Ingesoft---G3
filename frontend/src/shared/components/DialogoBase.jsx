@@ -31,6 +31,7 @@ let overflowOriginal = '';
  * @param {boolean} [props.sinCancelar] Oculta el botón de cancelar (diálogos que solo se confirman, p. ej. un resultado).
  * @param {string} [props.textoCancelar]
  * @param {string} [props.notaPie] Texto auxiliar a la izquierda de los botones.
+ * @param {import('react').ReactNode} [props.accionesPie] Botones adicionales del pie, entre Cancelar y Confirmar.
  * @param {boolean} [props.confirmarPeligro] Pinta el botón de confirmar como acción crítica (rojo, GUI §4).
  * @param {boolean} [props.botonesExpandidos] En pantallas angostas (≤ 480 px) los botones del pie ocupan todo el ancho,
  *   con el principal arriba, para pulsarlos con el pulgar.
@@ -51,6 +52,7 @@ export default function DialogoBase({
   confirmarDeshabilitado = false,
   error = null,
   notaPie,
+  accionesPie = null,
   anchoMaximo,
   cerrarAlClicFuera = true,
   sinConfirmar = false,
@@ -201,6 +203,7 @@ export default function DialogoBase({
               {textoCancelar}
             </button>
           )}
+          {accionesPie}
           {!sinConfirmar && (
             <button
               type="submit"

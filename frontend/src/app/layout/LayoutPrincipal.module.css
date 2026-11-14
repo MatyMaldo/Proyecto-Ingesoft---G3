@@ -21,6 +21,9 @@
   min-height: 0;
   overflow-y: auto;
   padding: var(--espacio-6);
+  /* Columna: una página puede ocupar el alto restante (`flex: 1 1 auto; min-height: 0`) y desplazar solo su tabla. */
+  display: flex;
+  flex-direction: column;
 }
 
 .main:focus-visible {

@@ -50,13 +50,13 @@ describe('Usuarios · formularios en diálogo', () => {
     expect(within(dialogo).queryByRole('region', { name: 'Apoderado' })).not.toBeInTheDocument();
   });
 
-  it.each(['apoderado', 'docente', 'estudiante'])('el formulario de %s no pide contraseña: la define el usuario con un código', async (tipo) => {
+  it.each(['apoderado', 'docente', 'estudiante'])('el formulario de %s no pide contraseña: el usuario la obtiene después', async (tipo) => {
     render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     const dialogo = await abrirRegistro(tipo);
 
     expect(dialogo.querySelectorAll('input[type="password"]')).toHaveLength(0);
     expect(within(dialogo).queryByLabelText(/contraseña/i)).not.toBeInTheDocument();
-    expect(within(dialogo).getByRole('note')).toHaveTextContent(/código de verificación/);
+    expect(within(dialogo).getByRole('note')).toHaveTextContent('Al registrar la cuenta, el usuario podrá obtener su contraseña para acceder a la app.');
   });
 
   it('muestra los errores con ícono y texto, marca el campo y enfoca el primero inválido', async () => {
@@ -187,13 +187,32 @@ describe('Usuarios · formularios en diálogo', () => {
 
     await userEvent.type(within(dialogo).getByLabelText(/^Nombre/), 'Ana');
     await userEvent.type(within(dialogo).getByLabelText(/^Apellido/), 'Lopez');
-    await userEvent.type(within(dialogo).getByLabelText(/^Edad/), '35');
-    await userEvent.type(within(dialogo).getByLabelText(/^Documento de identidad/), '91234567');
+    await userEvent.type(within(dialogo).getByLabelText(/^Fecha de nacimiento/), '1985-03-12');
+    await userEvent.type(within(dialogo).getByLabelText(/^DNI/), '91234567');
     await userEvent.type(within(dialogo).getByLabelText(/^Correo/), 'ana.lopez@correo.com');
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Registrar' }));
 
     expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
     expect(screen.getByText('El apoderado ha sido registrado correctamente.')).toBeInTheDocument();
+  });
+
+  it('el apoderado pide fecha de nacimiento (no edad) y un DNI de 8 dígitos, sin carné de extranjería', async () => {
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
+    const dialogo = await abrirRegistro('apoderado');
+
+    expect(within(dialogo).queryByLabelText(/^Edad/)).not.toBeInTheDocument();
+    expect(within(dialogo).getByLabelText(/^Fecha de nacimiento/)).toBeInTheDocument();
+    expect(within(dialogo).getByLabelText(/^DNI/)).toHaveAttribute('maxlength', '8');
+    expect(within(dialogo).queryByText(/Carné de Extranjería/i)).not.toBeInTheDocument();
+
+    await userEvent.type(within(dialogo).getByLabelText(/^Nombre/), 'Ana');
+    await userEvent.type(within(dialogo).getByLabelText(/^Apellido/), 'Lopez');
+    await userEvent.type(within(dialogo).getByLabelText(/^DNI/), '9123');
+    await userEvent.type(within(dialogo).getByLabelText(/^Correo/), 'ana.lopez@correo.com');
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Registrar' }));
+
+    expect(within(dialogo).getByText('Ingrese la fecha de nacimiento.')).toBeInTheDocument();
+    expect(within(dialogo).getByText('El DNI debe tener 8 dígitos.')).toBeInTheDocument();
   });
 
   it('el estudiante necesita un apoderado: busca por DNI, lo muestra y permite quitarlo', async () => {

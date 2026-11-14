@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 
-import { formatearFechaHora, formatearFechaVisible } from '../../../shared/utils/formatoFecha.js';
+import { formatearFechaHora, formatearFechaVisible, normalizarFechaHoraApi } from '../../../shared/utils/formatoFecha.js';
 import { obtenerMensajeRangoFechas } from '../../../shared/utils/rangoFechas.js';
 import {
   listarRegistrosAuditoria,
@@ -26,10 +26,6 @@ const FORMATEADOR_HORA_SEGUNDOS = new Intl.DateTimeFormat('es-PE', {
   second: '2-digit',
   hour12: false
 });
-
-function normalizarFechaHoraApi(fechaHora) {
-  return /(?:Z|[+-]\d{2}:\d{2})$/i.test(fechaHora) ? fechaHora : `${fechaHora}-05:00`;
-}
 
 /**
  * Primera letra de cada una de las dos primeras palabras del nombre, en mayúsculas.

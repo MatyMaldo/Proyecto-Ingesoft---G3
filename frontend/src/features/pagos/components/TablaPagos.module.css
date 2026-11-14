@@ -15,7 +15,7 @@
 }
 
 .tabla thead th {
-  padding: var(--espacio-3) var(--espacio-4);
+  padding: var(--espacio-2) var(--espacio-4);
   background: var(--color-superficie-suave);
   color: var(--color-texto-secundario);
   font-size: var(--texto-xs);
@@ -28,8 +28,9 @@
 }
 
 .tabla tbody td {
-  height: 56px;
-  padding: var(--espacio-2) var(--espacio-4);
+  /* Alto fijo para todas las filas (con o sin código de estudiante). */
+  height: 42px;
+  padding: var(--espacio-1) var(--espacio-4);
   vertical-align: middle;
   border-bottom: 1px solid var(--color-borde);
   color: var(--color-texto);
@@ -43,20 +44,21 @@
   background: var(--color-superficie-suave);
 }
 
-/* Columnas equilibradas: el alumno conserva la mayor parte, sin absorber todo el espacio libre. */
+/* Columnas: alumno, grado y sección juntos (anchos ajustados a su contenido); el resto del ancho va a la matrícula,
+   los pagos por validar y las acciones. */
 .tabla th:nth-child(1),
 .tabla td:nth-child(1) {
-  width: 28%;
+  width: 23%;
 }
 
 .tabla th:nth-child(2),
 .tabla td:nth-child(2) {
-  width: 23%;
+  width: 19%;
 }
 
 .tabla th:nth-child(3),
 .tabla td:nth-child(3) {
-  width: 9%;
+  width: 8%;
 }
 
 .tabla th:nth-child(4),
@@ -66,12 +68,18 @@
 
 .tabla th:nth-child(5),
 .tabla td:nth-child(5) {
-  width: 26%;
+  width: 16%;
+}
+
+.tabla th:nth-child(6),
+.tabla td:nth-child(6) {
+  width: 20%;
 }
 
 .tabla td:nth-child(2),
 .tabla td:nth-child(3),
-.tabla td:nth-child(4) {
+.tabla td:nth-child(4),
+.tabla td:nth-child(5) {
   white-space: nowrap;
 }
 
@@ -100,16 +108,28 @@
   text-align: left;
 }
 
+.celdaAlumno > div {
+  min-width: 0;
+}
+
+/* Una sola línea (con puntos suspensivos): así todas las filas miden lo mismo. */
 .nombre {
   display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  line-height: 1.2;
   font-weight: var(--peso-medio);
   color: var(--color-texto);
 }
 
 .codigo {
   display: block;
-  margin-top: 2px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   font-size: var(--texto-xs);
+  line-height: 1.2;
   color: var(--color-texto-suave);
 }
 
@@ -124,7 +144,7 @@
   display: inline-flex;
   align-items: center;
   gap: var(--espacio-2);
-  min-height: 36px;
+  min-height: 32px;
   padding: 0 var(--espacio-3);
   font: inherit;
   font-size: var(--texto-md);
@@ -204,6 +224,43 @@
   color: var(--color-texto-suave);
 }
 
+/* Pantalla alta: filas de 48 px (estándar GUI). */
+@media (min-width: 768px) and (min-height: 860px) {
+  .tabla tbody td {
+    height: 48px;
+  }
+
+  .tabla thead th {
+    padding: var(--espacio-3) var(--espacio-4);
+  }
+
+  .boton {
+    min-height: 36px;
+  }
+}
+
+/* Escritorio: la tabla es la única zona con desplazamiento vertical (encabezado fijo); la página no. */
+@media (min-width: 768px) {
+  .contenedor {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .vistaTabla {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .tabla thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+}
+
 @media (max-width: 767px) {
   .vistaTabla {
     display: none;
@@ -222,5 +279,45 @@
   .tarjeta .boton {
     justify-content: center;
     min-height: var(--tactil-min);
+  }
+}
+
+.sinPendientes {
+  color: var(--color-texto-suave);
+}
+
+/* Botón ⋯ del menú de la fila. */
+.botonMas {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  color: var(--color-texto-suave);
+  background: transparent;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.botonMas:hover {
+  color: var(--color-texto);
+  background: var(--color-superficie-suave);
+}
+
+.botonMas:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+@media (min-width: 768px) and (min-height: 860px) {
+  .botonMas {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
+    min-height: 36px;
   }
 }
