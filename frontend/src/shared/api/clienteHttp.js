@@ -105,7 +105,7 @@ export function configurarCliente({
  * @param {OpcionesSolicitud} [opciones]
  * @returns {Promise<RespuestaSolicitud>}
  */
-export async function solicitar(ruta, opciones = {}) {
+async function ejecutarSolicitud(ruta, opciones = {}) {
   const {
     metodo = 'GET',
     parametros,
@@ -199,4 +199,92 @@ export async function solicitar(ruta, opciones = {}) {
       signalExterno.removeEventListener('abort', manejarAbortExterno);
     }
   }
+}
+
+/** Consultas GET en curso, por clave (URL + token + cabeceras), para compartir una sola petición entre llamadas idénticas. */
+const consultasEnCurso = new Map();
+
+function copiarRespuesta(respuesta) {
+  if (respuesta.datos === null || typeof respuesta.datos !== 'object') {
+    return { ...respuesta };
+  }
+  try {
+    return { ...respuesta, datos: structuredClone(respuesta.datos) };
+  } catch {
+    return { ...respuesta };
+  }
+}
+
+/**
+ * Punto de entrada del cliente HTTP. Igual que `ejecutarSolicitud` (ver arriba), pero comparte una sola petición
+ * entre consultas GET idénticas que están en curso al mismo tiempo (misma URL, token y cabeceras): así no se
+ * duplican las llamadas cuando varios componentes o el doble efecto de `React.StrictMode` piden lo mismo a la vez.
+ * Cada llamador recibe su propia copia de los datos y puede cancelar con su propia señal: la petición real solo se
+ * aborta cuando todos los que la esperan cancelaron. Las demás solicitudes (POST, PUT, descargas...) no se comparten.
+ *
+ * @param {string} ruta - Ruta relativa a `URL_BASE_API` (por ejemplo, `/auditorias`).
+ * @param {OpcionesSolicitud} [opciones]
+ * @returns {Promise<RespuestaSolicitud>}
+ */
+export function solicitar(ruta, opciones = {}) {
+  const { metodo = 'GET', respuestaArchivo = false, signal, cabeceras, parametros, sinVersionApi = false } = opciones;
+  const compartible = metodo === 'GET' && !respuestaArchivo && opciones.cuerpo === undefined
+    && opciones.cuerpoFormulario === undefined;
+
+  if (!compartible) {
+    return ejecutarSolicitud(ruta, opciones);
+  }
+
+  const clave = JSON.stringify([ruta, parametros ?? null, sinVersionApi, cabeceras ?? null, obtenerToken()]);
+  let consulta = consultasEnCurso.get(clave);
+
+  if (!consulta) {
+    const controlador = new AbortController();
+    consulta = { controlador, suscriptores: 0, promesa: null };
+    consulta.promesa = ejecutarSolicitud(ruta, { ...opciones, signal: controlador.signal }).finally(() => {
+      if (consultasEnCurso.get(clave) === consulta) {
+        consultasEnCurso.delete(clave);
+      }
+    });
+    consultasEnCurso.set(clave, consulta);
+  }
+
+  const compartida = consulta;
+  compartida.suscriptores += 1;
+
+  return new Promise((resolver) => {
+    let terminado = false;
+
+    const alCancelar = () => {
+      if (terminado) {
+        return;
+      }
+      terminado = true;
+      compartida.suscriptores -= 1;
+      if (compartida.suscriptores === 0) {
+        if (consultasEnCurso.get(clave) === compartida) {
+          consultasEnCurso.delete(clave);
+        }
+        compartida.controlador.abort();
+      }
+      resolver({ exitoso: false, datos: null, mensaje: '', cancelada: true });
+    };
+
+    if (signal) {
+      if (signal.aborted) {
+        alCancelar();
+        return;
+      }
+      signal.addEventListener('abort', alCancelar, { once: true });
+    }
+
+    compartida.promesa.then((respuesta) => {
+      if (terminado) {
+        return;
+      }
+      terminado = true;
+      signal?.removeEventListener('abort', alCancelar);
+      resolver(copiarRespuesta(respuesta));
+    });
+  });
 }

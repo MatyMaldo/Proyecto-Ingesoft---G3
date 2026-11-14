@@ -1,17 +1,5 @@
-import {
-  listarRegistrosAuditoriaMock,
-  obtenerHistorialElementoMock,
-  obtenerRegistroAuditoriaMock
-} from './mocks/auditoriaMock.js';
-import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import { solicitar } from '../../../shared/api/clienteHttp.js';
 import { TAMANIO_HISTORIAL_AUDITORIA, TAMANIO_PAGINA_AUDITORIA } from '../constants/paginacionAuditoria.js';
-
-const CATEGORIAS_MOCK = Object.freeze({
-  USUARIO: 'USUARIOS',
-  MATRICULA: 'MATRICULAS',
-  ACADEMICO: 'EVALUACIONES'
-});
 
 function normalizarPagina(datos) {
   if (
@@ -50,21 +38,11 @@ function crearResultadoPagina(respuesta) {
 }
 
 /**
- * Lista auditorías usando los nombres de filtros y formato de paginación del API.
+ * Lista auditorías (siempre desde el backend; este módulo no tiene datos simulados) usando los nombres de filtros y formato de paginación del API.
  * La búsqueda libre (usuario o descripción) la resuelve el backend sobre todos los registros,
  * no solo sobre la página recibida.
  */
 export async function listarRegistrosAuditoria(filtros = {}, opciones = {}) {
-  if (USAR_MOCK) {
-    const categoriaMock = CATEGORIAS_MOCK[filtros.categoria] ?? filtros.categoria;
-    const respuesta = await listarRegistrosAuditoriaMock({
-      ...filtros,
-      categoria: categoriaMock,
-      pagina: filtros.pagina ?? 0
-    });
-    return crearResultadoPagina(respuesta);
-  }
-
   const parametros = {
     categoria: filtros.categoria,
     accion: filtros.tipoAccion,
@@ -84,23 +62,6 @@ export async function listarRegistrosAuditoria(filtros = {}, opciones = {}) {
  * Obtiene el historial paginado de la entidad afectada por un registro.
  */
 export async function obtenerHistorialAuditoria(registro, opciones = {}) {
-  if (USAR_MOCK) {
-    const respuesta = await obtenerHistorialElementoMock(registro.idElemento);
-    if (!respuesta.exitoso) {
-      return respuesta;
-    }
-
-    return {
-      ...respuesta,
-      datos: {
-        registros: respuesta.datos,
-        pagina: 0,
-        totalPaginas: 1,
-        totalElementos: respuesta.datos.length
-      }
-    };
-  }
-
   if (registro.entidad === undefined || registro.entidadId === undefined || registro.entidadId === null) {
     return {
       exitoso: false,
@@ -127,9 +88,5 @@ export async function obtenerHistorialAuditoria(registro, opciones = {}) {
  * Obtiene el detalle completo de un registro de auditoría.
  */
 export async function obtenerRegistroAuditoria(id, opciones = {}) {
-  if (USAR_MOCK) {
-    return obtenerRegistroAuditoriaMock(id);
-  }
-
   return solicitar(`/auditorias/${encodeURIComponent(id)}`, { signal: opciones.signal });
 }

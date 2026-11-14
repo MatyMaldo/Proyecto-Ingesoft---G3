@@ -1,4 +1,5 @@
-// TODO(backend): datos ficticios. Eliminar al integrar los endpoints de docs/planes/auditorias.md §8.
+// SOLO PARA PRUEBAS: datos fijos que las pruebas de la pantalla y del hook usan en lugar del servicio de
+// auditoría. La aplicación nunca los importa: en ejecución todo viene del backend (base de datos).
 // TODO(backend): contrato propuesto para el autor "Sistema" (D10, docs/planes/auditorias.md):
 //   usuario: { nombre: 'Sistema', rol: 'SISTEMA' }. Se modela como un campo explícito (ni `null`
 //   ni una cadena oculta) para que el frontend lo trate igual que cualquier otro usuario.
@@ -6,8 +7,8 @@
 //   HU-SAT-03, docs/planes/auditorias.md §E): el titular llega como un usuario más, con su
 //   nombre y su rol; el frontend no distingue esta forma de la de un usuario autenticado.
 
-import { formatearFechaHora } from '../../../../shared/utils/formatoFecha.js';
-import { TAMANIO_PAGINA_AUDITORIA } from '../../constants/paginacionAuditoria.js';
+import { formatearFechaHora } from '../../../shared/utils/formatoFecha.js';
+import { TAMANIO_PAGINA_AUDITORIA } from '../constants/paginacionAuditoria.js';
 
 const LATENCIA_MS = 400;
 
@@ -510,22 +511,8 @@ const REGISTROS = congelarProfundo([
   }
 ]);
 
-// Las operaciones del mock local pueden añadir eventos que se ven en la pantalla de Auditorías.
-let registrosDeSesion = [];
-let siguienteRegistroDeSesion = 1;
-
 function obtenerTodosLosRegistros() {
-  return [...REGISTROS, ...registrosDeSesion];
-}
-
-/** Añade un evento generado por otra feature durante la sesión de demostración. */
-export function registrarRegistroAuditoriaMock(datos) {
-  const registro = {
-    id: `AUD-LOCAL-${String(siguienteRegistroDeSesion++).padStart(4, '0')}`,
-    ...datos
-  };
-  registrosDeSesion = [...registrosDeSesion, registro];
-  return structuredClone(registro);
+  return [...REGISTROS];
 }
 
 /**
@@ -556,7 +543,7 @@ function simularLatencia(calcularDatos) {
  * @param {{ categoria?: string|null, busqueda?: string, fechaDesde?: string, fechaHasta?: string, tipoAccion?: string, pagina?: number }} filtros
  * @returns {Promise<{exitoso: boolean, datos: Object|null, mensaje: string}>}
  */
-export function listarRegistrosAuditoriaMock(filtros = {}) {
+function listarRegistrosCrudo(filtros = {}) {
   return simularLatencia(() => {
     const categoria = filtros?.categoria;
     const busquedaNormalizada = filtros?.busqueda ? normalizarTexto(filtros.busqueda.trim()) : '';
@@ -613,29 +600,6 @@ export function listarRegistrosAuditoriaMock(filtros = {}) {
 }
 
 /**
- * Calcula el resumen global de auditorías (mock). No depende de los filtros ni de
- * la paginación.
- *
- * @returns {Promise<{exitoso: boolean, datos: Object|null, mensaje: string}>}
- */
-export function obtenerResumenAuditoriaMock() {
-  return simularLatencia(() => {
-    const registros = obtenerTodosLosRegistros();
-    const categorias = new Set(registros.map((registro) => registro.categoria));
-    const usuarios = new Set(registros.map((registro) => registro.usuario.nombre));
-    const fechas = [...registros.map((registro) => registro.fechaHora)].sort();
-
-    return {
-      totalAcciones: registros.length,
-      modulosActivos: categorias.size,
-      usuariosUnicos: usuarios.size,
-      fechaPrimerRegistro: fechas[0] ?? null,
-      fechaUltimoRegistro: fechas[fechas.length - 1] ?? null
-    };
-  });
-}
-
-/**
  * Obtiene el historial del mismo elemento (el mismo pago, nota, bloque horario,
  * usuario…), en orden ascendente por fecha (mock; LAB05, reemplaza a
  * `obtenerHistorialTransaccionMock`, docs/planes/auditorias.md §8.6). No se pagina.
@@ -643,7 +607,7 @@ export function obtenerResumenAuditoriaMock() {
  * @param {string} idElemento
  * @returns {Promise<{exitoso: boolean, datos: Array|null, mensaje: string}>}
  */
-export function obtenerHistorialElementoMock(idElemento) {
+function historialCrudo(idElemento) {
   return simularLatencia(() => {
     const historial = obtenerTodosLosRegistros().filter((registro) => registro.idElemento === idElemento);
     const ordenado = [...historial].sort((a, b) => new Date(a.fechaHora) - new Date(b.fechaHora));
@@ -657,7 +621,7 @@ export function obtenerHistorialElementoMock(idElemento) {
  * @param {string|number} id
  * @returns {Promise<{exitoso: boolean, datos: Object|null, mensaje: string}>}
  */
-export function obtenerRegistroAuditoriaMock(id) {
+function registroCrudo(id) {
   return simularLatencia(() => {
     const registro = obtenerTodosLosRegistros().find((item) => String(item.id) === String(id));
     if (!registro) {
@@ -665,4 +629,44 @@ export function obtenerRegistroAuditoriaMock(id) {
     }
     return clonar([registro])[0];
   });
+}
+
+const CATEGORIAS_DE_PRUEBA = Object.freeze({
+  USUARIO: 'USUARIOS',
+  MATRICULA: 'MATRICULAS',
+  ACADEMICO: 'EVALUACIONES'
+});
+
+/** Misma forma que `listarRegistrosAuditoria` del servicio: `datos` ya normalizado. */
+export async function listarRegistrosAuditoriaDePrueba(filtros = {}) {
+  const respuesta = await listarRegistrosCrudo({
+    ...filtros,
+    categoria: CATEGORIAS_DE_PRUEBA[filtros.categoria] ?? filtros.categoria,
+    pagina: filtros.pagina ?? 0
+  });
+  const datos = respuesta.datos;
+  return {
+    exitoso: true,
+    datos: {
+      registros: datos.content,
+      pagina: datos.number,
+      totalPaginas: datos.totalPages,
+      totalElementos: datos.totalElements
+    },
+    mensaje: ''
+  };
+}
+
+/** Misma forma que `obtenerHistorialAuditoria` del servicio. */
+export async function obtenerHistorialAuditoriaDePrueba(registro) {
+  const respuesta = await historialCrudo(registro.idElemento);
+  return {
+    ...respuesta,
+    datos: { registros: respuesta.datos, pagina: 0, totalPaginas: 1, totalElementos: respuesta.datos.length }
+  };
+}
+
+/** Misma forma que `obtenerRegistroAuditoria` del servicio. */
+export function obtenerRegistroAuditoriaDePrueba(id) {
+  return registroCrudo(id);
 }
