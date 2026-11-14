@@ -207,28 +207,6 @@ export async function guardarNotasCompetenciasMock(usuario, datos) {
   notasCompetencias = anterior
     ? notasCompetencias.map((item) => clave(item) ? registro : item)
     : [...notasCompetencias, registro];
-<<<<<<< Updated upstream
-  for (const competencia of registro.competencias) {
-    registrarRegistroAuditoriaMock({
-      idElemento: `COMP-${datos.idCurso}-${datos.idSeccion}-${datos.idBimestre}-${datos.idEstudiante}-${competencia.competenciaId}`,
-      fechaHora: new Date().toISOString(),
-      usuario: { nombre: registro.docenteNombre, rol: 'DOCENTE' },
-      categoria: 'EVALUACIONES',
-      tipoAccion: anterior ? 'ACTUALIZAR' : 'CREAR',
-      tipoTransaccion: anterior ? 'Modificación de nota de competencia' : 'Registro de nota de competencia',
-      valoresAntes: null,
-      valoresDespues: [
-        { campo: 'Estudiante', valor: datos.estudianteNombre },
-        { campo: 'Curso', valor: datos.cursoNombre },
-        { campo: 'Competencia', valor: competencia.nombre },
-        { campo: 'Bimestre', valor: datos.idBimestre },
-        { campo: 'Nota', valor: competencia.nota },
-        { campo: 'Conclusión descriptiva', valor: competencia.conclusionDescriptiva }
-      ]
-    });
-  }
-=======
->>>>>>> Stashed changes
   return { exitoso: true, datos: copiar(registro), mensaje: '' };
 }
 
