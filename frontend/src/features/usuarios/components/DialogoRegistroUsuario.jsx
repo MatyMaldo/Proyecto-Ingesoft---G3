@@ -22,7 +22,6 @@ const FORMULARIO_VACIO = {
   apellido: '',
   apellidoPaterno: '',
   apellidoMaterno: '',
-  edad: '',
   dni: '',
   telefono: '',
   correo: '',
@@ -97,23 +96,16 @@ export default function DialogoRegistroUsuario({ tipo, usuarios, alRegistrado, a
       errs.apellidoPaterno = 'Ingrese el apellido paterno.';
     if (!apellidosSeparados && !form.apellido.trim())
       errs.apellido = 'Ingrese el apellido.';
-    if (tipo === 'estudiante' && !form.fechaNacimiento)
-      errs.fechaNacimiento = 'Ingrese la fecha de nacimiento.';
-    if (tipo === 'apoderado') {
-      const edad = Number(form.edad);
-      const edadMinima = USAR_MOCK ? 18 : 1;
-      if (!/^\d+$/.test(form.edad.trim()) || !Number.isSafeInteger(edad) || edad < edadMinima)
-        errs.edad = USAR_MOCK ? 'La edad debe ser un número entero de 18 años o más.' : 'Ingrese una edad válida mayor que cero.';
-    } else if (USAR_MOCK && tipo === 'docente') {
-      const edad = Number(form.edad);
-      if (!/^\d+$/.test(form.edad.trim()) || !Number.isSafeInteger(edad) || edad < 18)
-        errs.edad = 'La edad del docente debe ser un número entero de 18 años o más.';
+    if (tipo === 'estudiante' || tipo === 'apoderado') {
+      // El backend exige una fecha anterior a hoy; la edad se calcula a partir de ella.
+      const hoy = new Date().toLocaleDateString('en-CA');
+      if (!form.fechaNacimiento)
+        errs.fechaNacimiento = 'Ingrese la fecha de nacimiento.';
+      else if (form.fechaNacimiento >= hoy)
+        errs.fechaNacimiento = 'La fecha de nacimiento debe ser anterior a hoy.';
     }
-    const documentoValido = USAR_MOCK && tipo === 'apoderado'
-      ? /^(?:\d{8}|\d{9})$/.test(form.dni.trim())
-      : /^\d{8}$/.test(form.dni.trim());
-    if (!documentoValido)
-      errs.dni = tipo === 'apoderado' ? 'Ingrese un DNI de 8 dígitos o un Carné de Extranjería de 9 dígitos.' : 'El DNI debe tener 8 dígitos.';
+    if (!/^\d{8}$/.test(form.dni.trim()))
+      errs.dni = 'El DNI debe tener 8 dígitos.';
     if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(form.correo.trim()))
       errs.correo = 'Ingrese un correo válido.';
     if (usuarios.some((u) => u.dni.trim() === form.dni.trim() && u.rol === ROL_POR_TIPO_REGISTRO[tipo]))
@@ -183,7 +175,7 @@ export default function DialogoRegistroUsuario({ tipo, usuarios, alRegistrado, a
             fechaNacimiento: form.fechaNacimiento,
             apoderadoId: form.apoderadoSeleccionado.id
           }),
-          apoderado: () => registrarApoderado({ ...datosBase, edad: Number(form.edad) }),
+          apoderado: () => registrarApoderado({ ...datosBase, fechaNacimiento: form.fechaNacimiento }),
           docente: () => registrarDocente(datosBase)
         }[tipo];
         const resultado = await enviar();
@@ -203,7 +195,7 @@ export default function DialogoRegistroUsuario({ tipo, usuarios, alRegistrado, a
         id: 'u' + Date.now(), nombre: form.nombre.trim(),
         apellido: tipo === 'estudiante' ? `${form.apellidoPaterno.trim()} ${form.apellidoMaterno.trim()}` : form.apellido.trim(),
         dni: form.dni.trim(), rol: ROL_POR_TIPO_REGISTRO[tipo], correo: form.correo.trim(), activo: true,
-        ...(tipo !== 'estudiante' ? { edad: Number(form.edad) } : {}),
+        ...(tipo === 'apoderado' ? { fechaNacimiento: form.fechaNacimiento } : {}),
         ...(telefono ? { telefono } : {}),
         ...(tipo === 'estudiante' ? { codigoEstudiante, apoderadoId: form.apoderadoSeleccionado.id, fechaNacimiento: form.fechaNacimiento } : {})
       };
@@ -221,8 +213,8 @@ export default function DialogoRegistroUsuario({ tipo, usuarios, alRegistrado, a
   };
 
   const esEstudiante = tipo === 'estudiante';
+  const pideFechaNacimiento = esEstudiante || tipo === 'apoderado';
   const apellidosSeparados = esEstudiante || !USAR_MOCK;
-  const pideEdad = tipo === 'apoderado' || (USAR_MOCK && tipo === 'docente');
   const telefonoObligatorio = USAR_MOCK ? (esEstudiante || tipo === 'docente') : esEstudiante;
 
   return (
@@ -251,25 +243,10 @@ export default function DialogoRegistroUsuario({ tipo, usuarios, alRegistrado, a
             {apellidosSeparados && (
               <CampoUsuario etiqueta="Apellido materno" valor={form.apellidoMaterno} alCambiar={(v) => cambiar('apellidoMaterno', v)} onBlur={() => validarCampo('apellidoMaterno')} placeholder="Opcional" error={errores.apellidoMaterno} maxLength={80} />
             )}
-            {esEstudiante && (
+            {pideFechaNacimiento && (
               <CampoUsuario etiqueta="Fecha de nacimiento" type="date" valor={form.fechaNacimiento} alCambiar={(v) => cambiar('fechaNacimiento', v)} onBlur={() => validarCampo('fechaNacimiento')} error={errores.fechaNacimiento} requerido />
             )}
-            {pideEdad && (
-              <CampoUsuario
-                etiqueta="Edad"
-                type="number"
-                min={USAR_MOCK ? 18 : 1}
-                step={1}
-                valor={form.edad}
-                alCambiar={(v) => cambiar('edad', v)}
-                onBlur={() => validarCampo('edad')}
-                placeholder="Ingrese la edad"
-                error={errores.edad}
-                ayuda={tipo === 'docente' ? 'El docente debe tener 18 años o más.' : ''}
-                requerido
-              />
-            )}
-            <CampoUsuario etiqueta={tipo === 'apoderado' && USAR_MOCK ? 'Documento de identidad' : 'DNI'} valor={form.dni} alCambiar={(v) => cambiar('dni', v.replace(/\D/g, ''))} onBlur={() => validarCampo('dni')} placeholder="Ingrese el DNI" error={errores.dni} maxLength={9} inputMode="numeric" autoComplete="off" requerido />
+            <CampoUsuario etiqueta="DNI" valor={form.dni} alCambiar={(v) => cambiar('dni', v.replace(/\D/g, ''))} onBlur={() => validarCampo('dni')} placeholder="Ingrese el DNI" error={errores.dni} maxLength={8} inputMode="numeric" autoComplete="off" requerido />
           </SeccionFormulario>
 
           {esEstudiante && (
@@ -296,8 +273,7 @@ export default function DialogoRegistroUsuario({ tipo, usuarios, alRegistrado, a
           <div role="note" className={estilos.aviso}>
             <Icono nombre="informacion" tamano={18} />
             <div>
-              La contraseña no se define aquí. Al registrar la cuenta, el usuario recibirá un código de verificación
-              en su correo para crear su propia contraseña.
+              Al registrar la cuenta, el usuario podrá obtener su contraseña para acceder a la app.
             </div>
           </div>
         </div>

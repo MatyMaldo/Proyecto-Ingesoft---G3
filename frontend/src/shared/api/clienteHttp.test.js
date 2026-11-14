@@ -164,3 +164,87 @@ describe('cliente HTTP · 401 con código de invalidación de sesión (docs/plan
     expect(respuesta.mensaje).toBe('El correo electrónico o DNI es obligatorio.');
   });
 });
+
+describe('cliente HTTP · consultas GET idénticas en curso', () => {
+  /** `fetch` controlable: cada llamada queda pendiente hasta que la prueba la resuelva. */
+  function crearFetchPendiente() {
+    const pendientes = [];
+    const fetch = vi.fn((url, opciones) => new Promise((resolver, rechazar) => {
+      pendientes.push({
+        url,
+        resolver: (cuerpo) => resolver(new Response(JSON.stringify(cuerpo), { status: 200 })),
+        senal: opciones.signal
+      });
+      opciones.signal.addEventListener('abort', () => rechazar(new DOMException('abortado', 'AbortError')));
+    }));
+    vi.stubGlobal('fetch', fetch);
+    return { fetch, pendientes };
+  }
+
+  it('comparte una sola petición y entrega a cada llamador su propia copia de los datos', async () => {
+    const { fetch, pendientes } = crearFetchPendiente();
+
+    const a = solicitar('/grados');
+    const b = solicitar('/grados');
+    expect(fetch).toHaveBeenCalledTimes(1);
+
+    pendientes[0].resolver({ datos: [{ id: 1 }] });
+    const [respuestaA, respuestaB] = await Promise.all([a, b]);
+
+    expect(respuestaA).toMatchObject({ exitoso: true, datos: [{ id: 1 }] });
+    expect(respuestaB.datos).toEqual(respuestaA.datos);
+    expect(respuestaB.datos).not.toBe(respuestaA.datos);
+  });
+
+  it('no comparte si cambian los parámetros, el token o el método', async () => {
+    const { fetch } = crearFetchPendiente();
+
+    solicitar('/matriculas', { parametros: { page: 0 } });
+    solicitar('/matriculas', { parametros: { page: 1 } });
+    solicitar('/matriculas', { metodo: 'POST', cuerpo: {} });
+    solicitar('/matriculas', { metodo: 'POST', cuerpo: {} });
+
+    expect(fetch).toHaveBeenCalledTimes(4);
+  });
+
+  it('vuelve a consultar una vez que la anterior terminó', async () => {
+    const { fetch, pendientes } = crearFetchPendiente();
+
+    const primera = solicitar('/grados');
+    pendientes[0].resolver({ datos: [] });
+    await primera;
+    const segunda = solicitar('/grados');
+    pendientes[1].resolver({ datos: [] });
+    await segunda;
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('si uno cancela, la petición sigue para los demás; si cancelan todos, se aborta', async () => {
+    const { pendientes } = crearFetchPendiente();
+    const primero = new AbortController();
+    const segundo = new AbortController();
+
+    const a = solicitar('/cursos', { signal: primero.signal });
+    const b = solicitar('/cursos', { signal: segundo.signal });
+
+    primero.abort();
+    expect(await a).toMatchObject({ exitoso: false, cancelada: true });
+    expect(pendientes[0].senal.aborted).toBe(false);
+
+    segundo.abort();
+    expect(await b).toMatchObject({ exitoso: false, cancelada: true });
+    expect(pendientes[0].senal.aborted).toBe(true);
+  });
+
+  it('una llamada nueva tras cancelar todas no reutiliza la petición abortada', async () => {
+    const { fetch } = crearFetchPendiente();
+    const controlador = new AbortController();
+
+    solicitar('/cursos', { signal: controlador.signal });
+    controlador.abort();
+    solicitar('/cursos');
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+});

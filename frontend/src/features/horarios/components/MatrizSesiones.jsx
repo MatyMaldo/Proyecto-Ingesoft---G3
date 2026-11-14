@@ -58,6 +58,8 @@ function acortarGrado(grado) {
  * @param {string} props.titulo
  * @param {Array} props.sesiones Sesiones de la semana.
  * @param {boolean} [props.mostrarSeccion] Muestra grado y sección en cada bloque.
+ * @param {boolean} [props.ajustarAlto] En escritorio la matriz ocupa el alto disponible y solo ella se desplaza, con
+ *   la cabecera de días y la columna de horas fijas (el contenedor padre debe tener alto definido).
  * @param {string} [props.lunes] Fecha `YYYY-MM-DD` del lunes de la semana: pone la fecha en cada columna y
  *   marca la de hoy. Si cambia la semana, quien la usa debe darle otra `key` para reiniciar el día activo.
  */
@@ -66,6 +68,7 @@ export default function MatrizSesiones({
   sesiones,
   mostrarSeccion = false,
   lunes,
+  ajustarAlto = false,
   alSeleccionarSesion
 }) {
   const hoy = fechaISO(new Date());
@@ -103,7 +106,7 @@ export default function MatrizSesiones({
   }
 
   return (
-    <div className={estilos.envoltorio}>
+    <div className={`${estilos.envoltorio} ${ajustarAlto ? estilos.envoltorioAjustado : ''}`}>
       <div className={estilos.pestanas} role="group" aria-label="Día de la semana">
         {DIAS.map((dia, indice) => {
           const fecha = fechaDeDia(indice);
@@ -122,7 +125,12 @@ export default function MatrizSesiones({
         })}
       </div>
 
-      <div className={estilos.contenedor} tabIndex={0} role="region" aria-label={`Matriz de sesiones de ${titulo}`}>
+      <div
+        className={`${estilos.contenedor} ${ajustarAlto ? estilos.contenedorAjustado : ''}`}
+        tabIndex={0}
+        role="region"
+        aria-label={`Matriz de sesiones de ${titulo}`}
+      >
         <table className={estilos.tabla}>
           <thead>
             <tr>

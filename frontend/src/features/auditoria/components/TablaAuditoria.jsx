@@ -1,4 +1,4 @@
-import { formatearFechaVisible } from '../../../shared/utils/formatoFecha.js';
+import { formatearFechaCompacta, formatearFechaVisible } from '../../../shared/utils/formatoFecha.js';
 import Avatar from '../../../shared/components/Avatar.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
 import Insignia from '../../../shared/components/Insignia.jsx';
@@ -71,8 +71,8 @@ export default function TablaAuditoria({ registros, actualizando, alSeleccionarR
                 onClick={(evento) => manejarClicFila(registro, evento)}
               >
                 <td>
-                  <time dateTime={registro.fechaHoraIso} className={estilos.celdaFecha}>
-                    <span className={estilos.fecha}>{formatearFechaVisible(registro.fecha)}</span>
+                  <time dateTime={registro.fechaHoraIso} className={estilos.celdaFecha} title={`${formatearFechaVisible(registro.fecha)} ${registro.hora}`}>
+                    <span className={estilos.fecha}>{formatearFechaCompacta(registro.fecha)}</span>
                     <span className={estilos.hora}>{registro.hora}</span>
                   </time>
                 </td>
@@ -128,7 +128,7 @@ export default function TablaAuditoria({ registros, actualizando, alSeleccionarR
             >
               <span className={estilos.filaSuperiorTarjeta}>
                 <time dateTime={registro.fechaHoraIso} className={estilos.fechaTarjeta}>
-                  <span className={estilos.fecha}>{formatearFechaVisible(registro.fecha)}</span>
+                  <span className={estilos.fecha}>{formatearFechaCompacta(registro.fecha)}</span>
                   <span className={estilos.hora}>{registro.hora}</span>
                 </time>
                 <span className={estilos.insigniasTarjeta}>

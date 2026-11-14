@@ -118,7 +118,11 @@ async function abrirPreview(cantidad, ajustar = (datos) => datos) {
   return contexto;
 }
 
-const filasPintadas = () => screen.queryAllByLabelText(/^Día del bloque/);
+// Con 100 filas por página, `getByLabelText`/`queryAllByLabelText` tardan ~2 s por consulta en jsdom (recorren y
+// calculan la etiqueta de cada control) y las pruebas de paginación rozaban el límite de 15 s bajo carga. Estas
+// búsquedas por `aria-label` exacto equivalen y son instantáneas.
+const filasPintadas = () => Array.from(document.querySelectorAll('[aria-label^="Día del bloque"]'));
+const casillaDelBloque = (id) => document.querySelector(`[aria-label="Incluir bloque ${id}"]`);
 const casillasDeFila = () => screen.getAllByLabelText(/^Incluir bloque/);
 const casillasSinMarcar = () => casillasDeFila().filter((casilla) => !casilla.checked);
 
@@ -530,12 +534,12 @@ describe('DialogoCargaMasiva', () => {
         // 25 conflictos quedan excluidos; los 225 válidos, incluidos aunque estén en otras páginas.
         expect(screen.getByText('225 seleccionadas')).toBeInTheDocument();
         // Se excluye a mano un válido de la primera página (p-2) y se incluye un conflicto (p-1).
-        fireEvent.click(screen.getByLabelText('Incluir bloque p-2'));
-        fireEvent.click(screen.getByLabelText('Incluir bloque p-1'));
+        fireEvent.click(casillaDelBloque('p-2'));
+        fireEvent.click(casillaDelBloque('p-1'));
         fireEvent.click(screen.getByRole('button', { name: 'Página siguiente' }));
         fireEvent.click(screen.getByRole('button', { name: 'Página anterior' }));
-        expect(screen.getByLabelText('Incluir bloque p-2')).not.toBeChecked();
-        expect(screen.getByLabelText('Incluir bloque p-1')).toBeChecked();
+        expect(casillaDelBloque('p-2')).not.toBeChecked();
+        expect(casillaDelBloque('p-1')).toBeChecked();
         expect(screen.getByText('225 seleccionadas')).toBeInTheDocument();
 
         fireEvent.click(screen.getByRole('button', { name: 'Crear 225 bloques' }));

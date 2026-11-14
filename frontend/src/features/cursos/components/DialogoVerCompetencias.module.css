@@ -1,33 +1,38 @@
-.estado {
+/* Cabecera de la lista: conteo a la izquierda y «Agregar competencia» (primario) a la derecha. */
+.cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+}
+
+.conteo {
   margin: 0;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
   color: var(--color-texto-suave);
 }
 
-.lista {
-  display: flex;
-  flex-direction: column;
-  gap: var(--espacio-3);
-  margin: 0;
-  padding: 0;
-  list-style: none;
-}
-
 .botonAgregar {
-  align-self: flex-start;
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-2);
   min-height: var(--tactil-min);
   padding: 0 var(--espacio-4);
   font: inherit;
   font-size: var(--texto-md);
   font-weight: var(--peso-seminegrita);
-  color: var(--color-marca-texto);
-  background: var(--color-marca);
-  border: 0;
+  white-space: nowrap;
+  color: #fff;
+  background: var(--color-primario);
+  border: 1px solid var(--color-primario);
   border-radius: var(--radio-md);
   cursor: pointer;
 }
 
 .botonAgregar:hover:not(:disabled) {
-  background: var(--color-primario-intenso);
+  background: var(--color-primario-hover);
 }
 
 .botonAgregar:focus-visible {
@@ -36,28 +41,57 @@
 }
 
 .botonAgregar:disabled {
-  opacity: var(--opacidad-deshabilitado);
+  color: var(--color-texto-suave);
+  background: var(--color-superficie-suave);
+  border-color: var(--color-borde);
   cursor: not-allowed;
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  margin: 0;
+  padding: 0;
+  list-style: none;
 }
 
 .item {
   display: flex;
   align-items: flex-start;
-  justify-content: space-between;
   gap: var(--espacio-3);
   padding: var(--espacio-3);
+  background: var(--color-superficie);
   border: 1px solid var(--color-borde);
   border-radius: var(--radio-md);
 }
 
+/* Número de orden de la competencia. */
+.numero {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-accion);
+  background: var(--color-accion-suave);
+  border-radius: var(--radio-pildora);
+}
+
 .detalle {
+  flex: 1 1 auto;
   min-width: 0;
 }
 
 .nombre {
   margin: 0;
   font-size: var(--texto-base);
+  font-weight: var(--peso-seminegrita);
   color: var(--color-texto);
+  overflow-wrap: anywhere;
 }
 
 .descripcion {
@@ -68,56 +102,44 @@
   overflow-wrap: anywhere;
 }
 
-.botonEditar {
-  display: inline-flex;
+.acciones {
+  display: flex;
   flex-shrink: 0;
-  align-items: center;
   gap: var(--espacio-1);
-  min-height: var(--tactil-min);
-  padding: 0 var(--espacio-3);
-  font: inherit;
-  font-size: var(--texto-md);
-  font-weight: var(--peso-seminegrita);
-  color: var(--color-primario-intenso);
+}
+
+.botonEditar,
+.botonEliminar {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tactil-min);
+  height: var(--tactil-min);
+  padding: 0;
   background: transparent;
-  border: 1px solid var(--color-primario-intenso);
+  border: 0;
   border-radius: var(--radio-md);
   cursor: pointer;
+  transition: background var(--transicion);
+}
+
+.botonEditar {
+  color: var(--color-accion);
 }
 
 .botonEditar:hover {
-  color: var(--color-marca-texto);
-  background: var(--color-primario-intenso);
+  background: var(--color-accion-suave);
 }
 
 .botonEliminar {
-  display: inline-flex;
-  flex-shrink: 0;
-  align-items: center;
-  justify-content: center;
-  min-height: var(--tactil-min);
-  padding: 0 var(--espacio-3);
-  font: inherit;
-  font-size: var(--texto-md);
-  font-weight: var(--peso-seminegrita);
   color: var(--color-peligro-texto);
-  background: transparent;
-  border: 1px solid var(--color-peligro-borde);
-  border-radius: var(--radio-md);
-  cursor: pointer;
 }
 
 .botonEliminar:hover {
-  color: var(--color-marca-texto);
-  background: var(--color-peligro-texto);
-  border-color: var(--color-peligro-texto);
+  background: var(--color-peligro-fondo);
 }
 
-.botonEditar:focus-visible {
-  outline: 2px solid var(--color-foco);
-  outline-offset: 2px;
-}
-
+.botonEditar:focus-visible,
 .botonEliminar:focus-visible {
   outline: 2px solid var(--color-foco);
   outline-offset: 2px;
@@ -130,12 +152,8 @@
 }
 
 @media (max-width: 480px) {
-  .item {
-    flex-direction: column;
-  }
-
-  .botonEditar,
-  .botonEliminar {
+  .botonAgregar {
     width: 100%;
+    justify-content: center;
   }
 }

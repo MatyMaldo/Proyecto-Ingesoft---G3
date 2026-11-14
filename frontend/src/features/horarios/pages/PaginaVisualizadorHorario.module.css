@@ -1,14 +1,27 @@
+/* Mismo orden y ritmo que Usuarios, Matrículas, Pagos y Cursos: título con descripción, fila de filtros plana y
+   contenido. Esta pantalla no tiene una acción general, así que la cabecera no lleva botón. */
 .pagina {
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-6);
+  gap: var(--espacio-3);
   min-width: 0;
 }
 
+/* Barra de título (GUI §6): título y descripción en la misma línea. */
 .cabecera {
   display: flex;
-  flex-direction: column;
-  gap: var(--espacio-1);
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+}
+
+.textoCabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--espacio-1) var(--espacio-3);
+  min-width: 0;
 }
 
 .titulo {
@@ -19,62 +32,37 @@
 }
 
 .descripcion {
-  display: flex;
-  align-items: flex-start;
-  gap: var(--espacio-2);
   margin: 0;
-  font-size: var(--texto-md);
+  font-size: var(--texto-sm);
   color: var(--color-texto-suave);
 }
 
-.descripcion svg {
-  flex-shrink: 0;
-  margin-top: 2px;
-}
-
-/* Escritorio: modo de consulta a la izquierda y "Actualizar" a la derecha; debajo, todos los campos en una
-   fila (se acomodan en varias si no caben); luego los filtros aplicados. */
+/* Filtros sin tarjeta: una fila (se acomoda en varias si no cabe) y debajo los filtros aplicados. */
 .filtros {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  grid-template-areas:
-    'modo accion'
-    'campos campos'
-    'chips chips'
-    'enlace enlace';
-  align-items: end;
-  gap: var(--espacio-4);
-  min-width: 0;
-  padding: var(--espacio-4);
-  background: var(--color-superficie);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio-lg);
-  box-shadow: var(--sombra-sm);
-}
-
-.areaModo {
-  grid-area: modo;
-  min-width: 0;
-}
-
-.areaAccion {
-  grid-area: accion;
-}
-
-.areaChips {
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-2);
-  grid-area: chips;
+  gap: var(--espacio-3);
   min-width: 0;
 }
 
-.areaChips:empty {
-  display: none;
+/* Fila superior: «Consultar por», con «Actualizar» y «Limpiar filtros» a su lado; «Editar horario» al extremo. */
+.filaModo {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espacio-3);
 }
 
-.areaEnlace {
-  grid-area: enlace;
+.enlaceEdicion {
+  margin-left: auto;
+}
+
+/* Debajo: selectores y fechas, con las etiquetas alineadas arriba. */
+.filaFiltros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: var(--espacio-3);
 }
 
 .contextoEstudiante {
@@ -82,27 +70,14 @@
   align-items: flex-start;
   gap: var(--espacio-2);
   margin: 0;
-  padding: var(--espacio-3) var(--espacio-4);
-  font-size: var(--texto-md);
-  color: var(--color-texto-secundario);
-  background: var(--color-accion-suave);
-  border: 1px solid var(--tono-azul-borde);
-  border-radius: var(--radio-md);
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
 }
 
 .contextoEstudiante svg {
   flex-shrink: 0;
   margin-top: 2px;
   color: var(--color-accion);
-}
-
-.filaFiltros {
-  grid-area: campos;
-  display: flex;
-  flex-wrap: wrap;
-  /* Etiquetas alineadas arriba; con 4 campos de --ancho-selector-filtro caben en una fila desde 1280 px. */
-  align-items: flex-start;
-  gap: var(--espacio-4) var(--espacio-3);
 }
 
 .campoFiltro {
@@ -134,13 +109,12 @@
   width: 100%;
 }
 
-/* Misma etiqueta que `SelectFiltro` para que todos los filtros de la fila se vean igual. */
 .campoFecha {
   flex: 0 0 10rem;
   width: 10rem;
 }
 
-/* Misma etiqueta que en Auditorías y Log de errores. */
+/* Misma etiqueta que `SelectFiltro` para que todos los filtros de la fila se vean igual. */
 .etiquetaFiltro {
   font-size: var(--texto-md);
   font-weight: var(--peso-medio);
@@ -148,36 +122,9 @@
   color: var(--color-texto-secundario);
 }
 
-.selectorFiltro {
-  min-height: var(--tactil-min);
-  max-width: 100%;
-  padding: 10px var(--espacio-10) 10px var(--espacio-3);
-  font: inherit;
-  font-size: var(--texto-md);
-  color: var(--color-texto);
-  background-color: var(--color-superficie);
-  background-image: var(--flecha-select);
-  background-repeat: no-repeat;
-  background-position: right var(--espacio-3) center;
-  background-size: 16px 16px;
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio-md);
-  cursor: pointer;
-  appearance: none;
-}
-
-.selectorFiltro:hover {
-  border-color: var(--color-borde-fuerte);
-}
-
-.selectorFiltro:focus,
-.selectorFiltro:focus-visible {
-  outline: 2px solid var(--color-foco);
-  outline-offset: 2px;
-  border-color: var(--color-foco);
-}
-
-.botonSecundario {
+/* Botón secundario: el mismo que en Horarios, Pagos y Cursos. */
+.botonSecundario,
+.enlaceEdicion {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -187,37 +134,184 @@
   font: inherit;
   font-size: var(--texto-md);
   font-weight: var(--peso-seminegrita);
-  color: var(--color-accion);
+  white-space: nowrap;
+  text-decoration: none;
+  color: var(--color-texto-secundario);
   background: var(--color-superficie);
-  border: 1px solid var(--color-accion);
+  border: 1px solid var(--color-borde-fuerte);
   border-radius: var(--radio-md);
   cursor: pointer;
+  transition: background var(--transicion);
 }
 
-.botonSecundario:hover:not(:disabled) {
-  background: var(--color-accion-suave);
+.botonSecundario:hover:not(:disabled),
+.enlaceEdicion:hover {
+  background: var(--color-superficie-suave);
 }
 
-.botonSecundario:active:not(:disabled) {
-  background: var(--color-accion-suave-activo);
-}
-
-.botonSecundario:focus-visible {
+.botonSecundario:focus-visible,
+.enlaceEdicion:focus-visible {
   outline: 2px solid var(--color-foco);
   outline-offset: 2px;
 }
 
 .botonSecundario:disabled {
   color: var(--color-texto-suave);
+  background: var(--color-superficie-suave);
   border-color: var(--color-borde);
   cursor: not-allowed;
 }
 
-.enlaceEdicion {
-  align-self: flex-start;
+/* Botón primario (el mismo que en Horarios): «Ver horario» es la acción principal del resumen. */
+.botonPrimario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espacio-2);
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-4);
+  font: inherit;
   font-size: var(--texto-md);
   font-weight: var(--peso-seminegrita);
-  color: var(--color-accion);
+  white-space: nowrap;
+  color: #fff;
+  background: var(--color-primario);
+  border: 1px solid var(--color-primario);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.botonPrimario:hover:not(:disabled) {
+  background: var(--color-primario-hover);
+}
+
+.botonPrimario:active:not(:disabled) {
+  background: var(--color-primario-activo);
+}
+
+.botonPrimario:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.botonPrimario:disabled {
+  color: var(--color-texto-suave);
+  background: var(--color-superficie-suave);
+  border-color: var(--color-borde);
+  cursor: not-allowed;
+}
+
+/* Resumen de la consulta: quién y qué semana, selector de mes y semana, cifras y estados. */
+.resumen {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  min-width: 0;
+  padding: var(--espacio-4);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-sm);
+}
+
+.cabeceraResumen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+}
+
+.textoResumen {
+  min-width: 0;
+}
+
+.tituloSemana {
+  margin: 0;
+  font-size: var(--texto-lg);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+}
+
+.subtituloSemana {
+  margin: var(--espacio-1) 0 0;
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}
+
+.selectorSemana {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espacio-3);
+}
+
+.datosResumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  gap: var(--espacio-3);
+  margin: 0;
+  padding: var(--espacio-3) var(--espacio-4);
+  background: var(--color-superficie-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+}
+
+.dato {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1);
+}
+
+.dato dt {
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+.dato dd {
+  margin: 0;
+  font-size: var(--texto-lg);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+}
+
+/* Estados de las sesiones de la semana, con su cantidad. */
+.leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-2) var(--espacio-3);
+}
+
+.etiquetaLeyenda {
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto-suave);
+}
+
+.listaLeyenda {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2) var(--espacio-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.itemEstado {
+  display: inline-flex;
+  align-items: center;
+}
+
+/* Contador dentro del chip, separado del nombre del estado por una raya fina. */
+.cantidadEstado {
+  margin-left: var(--espacio-2);
+  padding-left: var(--espacio-2);
+  font-weight: var(--peso-negrita);
+  border-left: 1px solid currentColor;
 }
 
 .tarjetaResultados {
@@ -228,19 +322,50 @@
   box-shadow: var(--sombra-sm);
 }
 
-.semanas {
+/* Diálogo del horario: flechas de semana a cada costado de la matriz, que ocupa el alto del diálogo y es lo único
+   que se desplaza (cabecera de días y columna de horas fijas); así no hay un segundo scroll en el diálogo. */
+.horarioConFlechas {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: center;
+  gap: var(--espacio-3);
+}
+
+.matrizDialogo {
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-4);
-  padding: var(--espacio-4);
   min-width: 0;
 }
 
-.tituloSemana {
-  margin: 0;
-  font-size: var(--texto-lg);
-  font-weight: var(--peso-seminegrita);
-  color: var(--color-texto);
+@media (min-width: 768px) {
+  /* El diálogo mide como máximo el alto de la ventana: se descuentan cabecera, pie y márgenes. */
+  .matrizDialogo {
+    height: max(18rem, calc(100dvh - 19rem));
+  }
+}
+
+@media (max-width: 767px) {
+  /* En pantallas angostas las flechas van arriba, una a cada lado, para no robarle ancho a la matriz. */
+  .horarioConFlechas {
+    grid-template-columns: 1fr 1fr;
+    grid-template-areas:
+      'anterior siguiente'
+      'matriz matriz';
+  }
+
+  .flechaAnterior {
+    grid-area: anterior;
+    justify-self: start;
+  }
+
+  .flechaSiguiente {
+    grid-area: siguiente;
+    justify-self: end;
+  }
+
+  .matrizDialogo {
+    grid-area: matriz;
+  }
 }
 
 .flecha {
@@ -278,13 +403,6 @@
   color: var(--color-texto-suave);
   border-color: var(--color-borde);
   cursor: not-allowed;
-}
-
-.selectorSemana {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-end;
-  gap: var(--espacio-4);
 }
 
 .semanasDelMes {
@@ -355,25 +473,19 @@
   border-color: var(--color-marca-texto-suave);
 }
 
-.sinSesiones {
-  border-top: 1px solid var(--color-borde);
-}
-
 @media (max-width: 767px) {
-  .filtros {
-    grid-template-columns: minmax(0, 1fr);
-    grid-template-areas:
-      'modo'
-      'campos'
-      'accion'
-      'chips'
-      'enlace';
-    align-items: stretch;
+  .titulo {
+    font-size: var(--texto-xl);
   }
 
   .filaFiltros {
     flex-direction: column;
     align-items: stretch;
+  }
+
+  .enlaceEdicion {
+    margin-left: 0;
+    flex: 1 1 100%;
   }
 
   .campoAnio,
@@ -385,18 +497,11 @@
     min-width: 0;
   }
 
-  .areaAccion .botonSecundario {
-    width: 100%;
-  }
-
-  .selectorFiltro {
-    font-size: var(--texto-base);
-  }
-
   .tituloSemana {
     font-size: var(--texto-base);
   }
 
+  .barraSemana,
   .selectorSemana {
     flex-direction: column;
     align-items: stretch;

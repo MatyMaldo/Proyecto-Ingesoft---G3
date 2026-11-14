@@ -93,7 +93,7 @@ describe('HU-GEMIH-03 - Navegación al editor', () => {
     render(<PaginaVisualizadorHorario />);
     await seleccionarSeccion();
 
-    await screen.findByText('Matematicas');
+    await screen.findByRole('button', { name: 'Ver horario' });
 
     expect(screen.queryByRole('link', { name: 'Editar horario' })).not.toBeInTheDocument();
   });

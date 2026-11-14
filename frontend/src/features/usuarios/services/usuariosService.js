@@ -188,7 +188,6 @@ function filaParaCargaMasiva(fila) {
     email: fila.correo,
     // El backend exige exactamente 9 dígitos, sin prefijo +51.
     telefono: separarTelefono(fila.telefono) || null,
-    edad: fila.edad ? Number(fila.edad) : null,
     fechaNacimiento: fila.fechaNacimiento || null,
     dniApoderado: fila.dniApoderado || null,
     codigo: fila.codigo || null

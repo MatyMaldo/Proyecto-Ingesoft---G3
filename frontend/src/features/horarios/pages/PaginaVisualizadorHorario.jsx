@@ -1,10 +1,13 @@
 import { useEffect, useState } from 'react';
 
 import useAuth from '../../../shared/auth/useAuth.js';
+import BotonActualizar from '../../../shared/components/BotonActualizar.jsx';
 import ControlSegmentado from '../../../shared/components/ControlSegmentado.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import FiltrosActivos from '../../../shared/components/FiltrosActivos.jsx';
+import DialogoBase from '../../../shared/components/DialogoBase.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
+import Insignia from '../../../shared/components/Insignia.jsx';
 import Notificacion from '../../../shared/components/Notificacion.jsx';
 import SelectFiltro from '../../../shared/components/SelectFiltro.jsx';
 import useNotificacion from '../../../shared/hooks/useNotificacion.js';
@@ -15,7 +18,12 @@ import MatrizSesiones from '../components/MatrizSesiones.jsx';
 import PanelSesionHorario from '../components/PanelSesionHorario.jsx';
 import SelectorFecha from '../components/SelectorFecha.jsx';
 import useConsultaHorario, { ADMIN, APODERADO, DOCENTE } from '../hooks/useConsultaHorario.js';
-import { formatearFecha } from '../utils/tiempo.js';
+import {
+  etiquetaEstadoSesion,
+  normalizarEstadoSesion,
+  tonoEstadoSesion
+} from '../utils/estadosSesion.js';
+import { aMinutos, formatearFecha } from '../utils/tiempo.js';
 import estilos from './PaginaVisualizadorHorario.module.css';
 
 const OPCIONES_TIPO = [
@@ -23,11 +31,31 @@ const OPCIONES_TIPO = [
   { valor: 'docente', etiqueta: 'Ver por docente' }
 ];
 
+/** Orden en que se listan los estados en la leyenda; los demás van después, en el orden en que aparecen. */
+const ORDEN_ESTADOS = ['PROGRAMADA', 'ACTIVA', 'FINALIZADA', 'OMITIDA'];
+
+/** Minutos como horas de clase: "7 h" o "7 h 30 min". */
+function formatearHoras(minutos) {
+  const horas = Math.floor(minutos / 60);
+  const resto = minutos % 60;
+  return resto === 0 ? `${horas} h` : `${horas} h ${resto} min`;
+}
+
 /** Rango de días de una semana para el botón: "02 – 06". */
 function etiquetaDias(semana) {
   return semana.inicio === semana.fin
     ? semana.inicio.slice(8)
     : `${semana.inicio.slice(8)} – ${semana.fin.slice(8)}`;
+}
+
+/** Estados distintos de las sesiones de la semana, para la leyenda. */
+function estadosDeLaSemana(sesiones) {
+  const presentes = [...new Set(sesiones.map((sesion) => normalizarEstadoSesion(sesion.estado)).filter(Boolean))];
+  const posicion = (estado) => {
+    const indice = ORDEN_ESTADOS.indexOf(estado);
+    return indice === -1 ? ORDEN_ESTADOS.length : indice;
+  };
+  return presentes.sort((a, b) => posicion(a) - posicion(b));
 }
 
 const MENSAJE_SIN_SESIONES_RANGO = 'Aún no hay sesiones programadas en el rango seleccionado.';
@@ -44,6 +72,9 @@ function mensajeSinSeleccion(rol, tipo) {
  * Página "Consulta de horario" (solo lectura). Compone la pantalla a partir de `useConsultaHorario`; no
  * llama a servicios ni calcula semanas por su cuenta. El administrador elige sección o docente, el
  * apoderado a un estudiante a su cargo; docente y estudiante ven su propio horario.
+ *
+ * No tiene una acción general: la cabecera solo lleva título y descripción. «Editar horario» (solo
+ * administrador) es un acceso secundario al final de la fila de filtros.
  */
 export default function PaginaVisualizadorHorario() {
   const { usuario } = useAuth();
@@ -51,6 +82,8 @@ export default function PaginaVisualizadorHorario() {
   const [sesionSeleccionada, establecerSesionSeleccionada] = useState(null);
   const [dialogoAsistencia, establecerDialogoAsistencia] = useState(false);
   const [errorAsistencia, establecerErrorAsistencia] = useState(null);
+  // Diálogo con la matriz de la semana elegida («Ver horario»).
+  const [horarioAbierto, establecerHorarioAbierto] = useState(false);
   const rol = usuario?.rol;
   const esAdmin = rol === ADMIN;
   const esDocente = rol === DOCENTE;
@@ -79,7 +112,6 @@ export default function PaginaVisualizadorHorario() {
     meses,
     semanaActual,
     indiceSemana,
-    seccionSeleccionada,
     claveMesActual,
     esSemanaDeHoy,
     irSemanaDeHoy,
@@ -94,7 +126,6 @@ export default function PaginaVisualizadorHorario() {
     irSemanaAnterior,
     irSemanaSiguiente,
     rangoPersonalizado,
-    restablecerRango,
     limpiarFiltros,
     cambiandoOmision,
     cambiarOmision,
@@ -153,9 +184,6 @@ export default function PaginaVisualizadorHorario() {
     );
   }
 
-  const etiquetaConsulta = esApoderado ? 'Estudiante' : tipo === 'seccion' ? 'Sección' : 'Docente';
-  const valorConsulta = consultaPorSeccion ? seccionSeleccionada?.nombre : tituloConsulta;
-  const nombreGrado = grados.find((grado) => String(grado.id) === String(gradoId))?.nombre;
   const estudianteSeleccionado = estudiantes.find(
     (estudiante) => String(estudiante.id) === String(id)
   );
@@ -167,29 +195,13 @@ export default function PaginaVisualizadorHorario() {
     ].filter(Boolean).join(' · ')
     : '';
 
-  const chipsActivos = [
-    ...(consultaPorSeccion && gradoId && nombreGrado
-      ? [{ id: 'grado', etiqueta: `Grado: ${nombreGrado}`, alQuitar: () => seleccionarGrado('') }]
-      : []),
-    ...(id && valorConsulta
-      ? [{ id: 'consulta', etiqueta: `${etiquetaConsulta}: ${valorConsulta}`, alQuitar: () => establecerId('') }]
-      : []),
-    ...(rangoPersonalizado
-      ? [{
-        id: 'fechas',
-        etiqueta: `Del ${formatearFecha(fechaInicio)} al ${formatearFecha(fechaFin)}`,
-        alQuitar: restablecerRango
-      }]
-      : [])
-  ];
-
   const opcionesGrado = [
-    { valor: '', etiqueta: 'Seleccione un grado' },
+    { valor: '', etiqueta: 'Seleccionar grado...' },
     ...grados.map((grado) => ({ valor: String(grado.id), etiqueta: grado.nombre }))
   ];
 
   const opcionesSeccion = [
-    { valor: '', etiqueta: 'Seleccione una opción' },
+    { valor: '', etiqueta: tipo === 'seccion' ? 'Seleccionar sección...' : 'Seleccionar docente...' },
     ...(tipo === 'seccion' ? seccionesFiltradas : opciones).map((opcion) => ({
       valor: String(opcion.id),
       etiqueta: tipo === 'seccion'
@@ -204,7 +216,7 @@ export default function PaginaVisualizadorHorario() {
   }));
 
   const opcionesEstudiante = [
-    { valor: '', etiqueta: 'Seleccione un estudiante' },
+    { valor: '', etiqueta: 'Seleccionar estudiante...' },
     ...estudiantes.map((estudiante) => ({
       valor: String(estudiante.id),
       etiqueta: estudiante.estadoMatricula
@@ -213,15 +225,25 @@ export default function PaginaVisualizadorHorario() {
     }))
   ];
 
-  const cuerpoSemana = () => (
-    <div className={estilos.semanas}>
-      <h2 className={estilos.tituloSemana} aria-live="polite">
-        {tituloConsulta ? `${tituloConsulta} · ` : ''}
-        {semanaActual.inicio === semanaActual.fin
-          ? `Día ${formatearFecha(semanaActual.inicio)}`
-          : `Semana del ${formatearFecha(semanaActual.inicio)} al ${formatearFecha(semanaActual.fin)}`}
-      </h2>
+  const hayError = Boolean(errorOpciones || error);
+  const estaCargando = !hayError && (cargando || (cargandoOpciones && necesitaSeleccion));
+  const mostrarSemana = !hayError && !estaCargando && !necesitaSeleccion
+    && semanas.length > 0 && Boolean(semanaActual);
 
+  const sesionesSemana = semanaActual?.sesiones ?? [];
+  const etiquetaSemanaActual = semanaActual
+    ? (semanaActual.inicio === semanaActual.fin
+      ? `Día ${formatearFecha(semanaActual.inicio)}`
+      : `Semana del ${formatearFecha(semanaActual.inicio)} al ${formatearFecha(semanaActual.fin)}`)
+    : '';
+
+  // Cuando deja de haber semana que mostrar (otro filtro, error, recarga) el diálogo del horario se cierra.
+  useEffect(() => {
+    if (!mostrarSemana) establecerHorarioAbierto(false);
+  }, [mostrarSemana]);
+
+  /** Mes, semanas con flechas e «Ir a hoy»: elegir la semana es parte del resumen, no del horario. */
+  const controlesSemana = () => (
       <div className={estilos.selectorSemana}>
         <SelectFiltro
           id="consulta-horario-mes"
@@ -296,26 +318,129 @@ export default function PaginaVisualizadorHorario() {
           Ir a hoy
         </button>
       </div>
+  );
 
-      {semanaActual.sesiones.length === 0 ? (
-        <div className={estilos.sinSesiones}>
-          <EstadoConsulta tipo="vacio" mensaje={MENSAJE_SIN_SESIONES_SEMANA} />
+  /** Cifras de la semana elegida: sesiones, cursos, días con clase y horas semanales. */
+  const datosSemana = () => {
+    const minutos = sesionesSemana.reduce((total, sesion) => {
+      const inicio = aMinutos(sesion.horaInicio);
+      const fin = aMinutos(sesion.horaFin);
+      return inicio !== null && fin !== null && fin > inicio ? total + fin - inicio : total;
+    }, 0);
+    return [
+      { id: 'sesiones', etiqueta: 'Sesiones', valor: sesionesSemana.length },
+      {
+        id: 'cursos',
+        etiqueta: 'Cursos',
+        valor: new Set(sesionesSemana.map((sesion) => sesion.cursoId ?? sesion.cursoNombre)).size
+      },
+      {
+        id: 'dias',
+        etiqueta: 'Días con clase',
+        valor: new Set(sesionesSemana.map((sesion) => sesion.diaSemana)).size
+      },
+      { id: 'horas', etiqueta: 'Horas de clase', valor: formatearHoras(minutos) }
+    ];
+  };
+
+  /**
+   * Resumen de la consulta: quién y qué semana, el selector de mes y semana, las cifras y el estado de las sesiones.
+   * El horario en sí se ve con «Ver horario», en una pantalla propia con espacio para apreciarlo.
+   */
+  const resumenSemana = () => (
+    <section className={estilos.resumen} aria-label="Resumen del horario" aria-busy={cargando || undefined}>
+      <header className={estilos.cabeceraResumen}>
+        <div className={estilos.textoResumen}>
+          <h2 className={estilos.tituloSemana} aria-live="polite">{tituloConsulta || 'Horario'}</h2>
+          <p className={estilos.subtituloSemana}>{etiquetaSemanaActual}</p>
         </div>
+        <button
+          type="button"
+          className={estilos.botonPrimario}
+          disabled={sesionesSemana.length === 0}
+          title={sesionesSemana.length === 0 ? MENSAJE_SIN_SESIONES_SEMANA : undefined}
+          onClick={() => establecerHorarioAbierto(true)}
+        >
+          <Icono nombre="calendario" tamano={18} />
+          Ver horario
+        </button>
+      </header>
+
+      {controlesSemana()}
+
+      {sesionesSemana.length === 0 ? (
+        <EstadoConsulta tipo="vacio" icono="calendario" mensaje={MENSAJE_SIN_SESIONES_SEMANA} />
       ) : (
-        <MatrizSesiones
-          key={semanaActual.inicio}
-          lunes={semanaActual.lunes}
-          titulo={`${tituloConsulta} ${formatearFecha(semanaActual.inicio)}`}
-          sesiones={semanaActual.sesiones}
-          mostrarSeccion={!esAdmin || tipo === 'docente'}
-          alSeleccionarSesion={(esAdmin || esDocente) ? establecerSesionSeleccionada : undefined}
+        <>
+          <dl className={estilos.datosResumen}>
+            {datosSemana().map((dato) => (
+              <div key={dato.id} className={estilos.dato}>
+                <dt>{dato.etiqueta}</dt>
+                <dd>{dato.valor}</dd>
+              </div>
+            ))}
+          </dl>
+
+          <div className={estilos.leyenda}>
+            <span className={estilos.etiquetaLeyenda}>Estado de la sesión</span>
+            <ul className={estilos.listaLeyenda} aria-label="Estados de las sesiones de la semana">
+              {estadosDeLaSemana(sesionesSemana).map((estado) => (
+                <li key={estado} className={estilos.itemEstado}>
+                  {/* El contador va dentro del chip: «Omitida 4» son 4 sesiones omitidas esta semana. */}
+                  <Insignia tono={tonoEstadoSesion(estado)}>
+                    {etiquetaEstadoSesion(estado)}
+                    <span className={estilos.cantidadEstado}>
+                      {sesionesSemana.filter((sesion) => normalizarEstadoSesion(sesion.estado) === estado).length}
+                    </span>
+                  </Insignia>
+                </li>
+              ))}
+            </ul>
+          </div>
+        </>
+      )}
+    </section>
+  );
+
+  /** Esc, X y «Cerrar» cierran primero el detalle de la sesión y, después, el horario. */
+  const cerrarHorario = () => {
+    if (sesionSeleccionada) establecerSesionSeleccionada(null);
+    else establecerHorarioAbierto(false);
+  };
+
+  /** Detalle de una sesión (drawer). Dentro del diálogo del horario se monta en él, para que siga siendo operable. */
+  const panelesSesion = (enDialogo) => (
+    <>
+      {esAdmin && sesionSeleccionada && (
+        <PanelSesionHorario
+          enDialogo={enDialogo}
+          sesion={sesionSeleccionada}
+          cambiando={cambiandoOmision.includes(String(sesionSeleccionada.id))}
+          alCerrar={() => establecerSesionSeleccionada(null)}
+          alCambiarOmision={alternarOmisionSesion}
         />
       )}
-    </div>
+
+      {esDocente && sesionSeleccionada && (
+        <PanelSesionHorario
+          enDialogo={enDialogo}
+          sesion={sesionSeleccionada}
+          alCerrar={() => establecerSesionSeleccionada(null)}
+          acciones={(
+            <AccionesAsistenciaDocente
+              sesion={sesionSeleccionada}
+              asistencia={asistenciaSesion}
+              alAbrirModal={abrirDialogoAsistencia}
+              alNotificar={mostrarNotificacion}
+            />
+          )}
+        />
+      )}
+    </>
   );
 
   let contenido;
-  if (errorOpciones || error) {
+  if (hayError) {
     contenido = (
       <EstadoConsulta
         tipo="error"
@@ -323,32 +448,31 @@ export default function PaginaVisualizadorHorario() {
         alReintentar={errorOpciones ? undefined : recargar}
       />
     );
-  } else if (cargando || (cargandoOpciones && necesitaSeleccion)) {
+  } else if (estaCargando) {
     contenido = <EstadoConsulta tipo="carga" filasEsqueleto={5} />;
   } else if (necesitaSeleccion) {
-    contenido = <EstadoConsulta tipo="vacio" mensaje={mensajeSinSeleccion(rol, tipo)} />;
+    contenido = <EstadoConsulta tipo="vacio" icono="calendario" mensaje={mensajeSinSeleccion(rol, tipo)} />;
   } else if (semanas.length === 0) {
-    contenido = <EstadoConsulta tipo="vacio" mensaje={MENSAJE_SIN_SESIONES_RANGO} />;
-  } else if (semanaActual) {
-    contenido = cuerpoSemana();
+    contenido = <EstadoConsulta tipo="vacio" icono="calendario" mensaje={MENSAJE_SIN_SESIONES_RANGO} />;
   }
 
   return (
     <div className={estilos.pagina}>
+      {/* Sin acción general: solo título y descripción. */}
       <header className={estilos.cabecera}>
-        <h1 className={estilos.titulo}>Consulta de horario</h1>
-        <p className={estilos.descripcion}>
-          <Icono nombre="candado" tamano={16} />
-          <span>
+        <div className={estilos.textoCabecera}>
+          <h1 className={estilos.titulo}>Consulta de horario</h1>
+          <p className={estilos.descripcion}>
             {esAdmin
-              ? 'Consulta las sesiones programadas. Como administrador, puedes omitir o restaurar sesiones que aún no han comenzado.'
-              : 'Consulta de solo lectura. Selecciona un rango de fechas para consultar las sesiones programadas.'}
-          </span>
-        </p>
+              ? 'Consulta de solo lectura de las sesiones programadas.'
+              : 'Consulta de solo lectura. Elige un rango de fechas para ver las sesiones.'}
+          </p>
+        </div>
       </header>
 
       <section className={estilos.filtros} aria-label="Filtros de consulta de horario">
-        <div className={estilos.areaModo}>
+        {/* Fila superior: modo de consulta, y a su lado «Actualizar» y «Limpiar filtros». */}
+        <div className={estilos.filaModo}>
           {esAdmin && (
             <ControlSegmentado
               id="consulta-horario-tipo"
@@ -358,20 +482,14 @@ export default function PaginaVisualizadorHorario() {
               alCambiar={seleccionarTipo}
             />
           )}
+          <BotonActualizar alActualizar={recargar} actualizando={cargando} />
+          <FiltrosActivos filtros={[]} hayFiltros={hayFiltros} alLimpiar={limpiarFiltros} />
+          {consultaPorSeccion && programacionAbierta && (
+            <a className={estilos.enlaceEdicion} href={rutaEdicion}>Editar horario</a>
+          )}
         </div>
 
-        <div className={estilos.areaAccion}>
-          <button
-            type="button"
-            className={estilos.botonSecundario}
-            onClick={recargar}
-            disabled={cargando}
-          >
-            <Icono nombre="reintentar" tamano={16} />
-            Actualizar horario
-          </button>
-        </div>
-
+        {/* Debajo, los selectores y el rango de fechas. */}
         <div className={estilos.filaFiltros}>
           {consultaPorSeccion && (
             <SelectFiltro
@@ -444,53 +562,96 @@ export default function PaginaVisualizadorHorario() {
           </div>
         </div>
 
-        <div className={estilos.areaChips}>
-          {esApoderado && estudianteSeleccionado && (
-            <p className={estilos.contextoEstudiante}>
-              <Icono nombre="usuario" tamano={16} />
-              <span>
-                {contextoEstudiante || 'Sin matrícula confirmada para el año seleccionado.'}
-              </span>
-            </p>
-          )}
-          <FiltrosActivos filtros={chipsActivos} hayFiltros={hayFiltros} alLimpiar={limpiarFiltros} />
-        </div>
-
-        {consultaPorSeccion && programacionAbierta && (
-          <div className={estilos.areaEnlace}>
-            <a className={estilos.enlaceEdicion} href={rutaEdicion}>Editar horario</a>
-          </div>
+        {esApoderado && estudianteSeleccionado && (
+          <p className={estilos.contextoEstudiante}>
+            <Icono nombre="usuario" tamano={16} />
+            <span>
+              {contextoEstudiante || 'Sin matrícula confirmada para el año seleccionado.'}
+            </span>
+          </p>
         )}
       </section>
 
-      <section className={estilos.tarjetaResultados} aria-label="Horario" aria-busy={cargando || undefined}>
-        {contenido}
-      </section>
+      {mostrarSemana ? resumenSemana() : (
+        <section className={estilos.tarjetaResultados} aria-label="Horario" aria-busy={cargando || undefined}>
+          {contenido}
+        </section>
+      )}
 
       {notificacion && <Notificacion mensaje={notificacion.mensaje} error={notificacion.error} />}
 
-      {esAdmin && sesionSeleccionada && (
-        <PanelSesionHorario
-          sesion={sesionSeleccionada}
-          cambiando={cambiandoOmision.includes(String(sesionSeleccionada.id))}
-          alCerrar={() => establecerSesionSeleccionada(null)}
-          alCambiarOmision={alternarOmisionSesion}
-        />
-      )}
+      {/* Con el horario abierto, el detalle de la sesión se monta dentro de su diálogo (ver abajo). */}
+      {!horarioAbierto && panelesSesion(false)}
 
-      {esDocente && sesionSeleccionada && (
-        <PanelSesionHorario
-          sesion={sesionSeleccionada}
-          alCerrar={() => establecerSesionSeleccionada(null)}
-          acciones={(
-            <AccionesAsistenciaDocente
-              sesion={sesionSeleccionada}
-              asistencia={asistenciaSesion}
-              alAbrirModal={abrirDialogoAsistencia}
-              alNotificar={mostrarNotificacion}
-            />
+      {horarioAbierto && mostrarSemana && (
+        <DialogoBase
+          idTitulo="consulta-horario-dialogo"
+          titulo={`Horario · ${tituloConsulta || 'Consulta'}`}
+          subtitulo={etiquetaSemanaActual}
+          anchoMaximo="80rem"
+          cerrarAlClicFuera={false}
+          sinConfirmar
+          sinCancelar
+          accionesPie={(
+            <>
+              <button
+                type="button"
+                className={estilos.botonSecundario}
+                onClick={irSemanaDeHoy}
+                disabled={esSemanaDeHoy}
+              >
+                Ir a hoy
+              </button>
+              <button type="button" className={estilos.botonSecundario} onClick={cerrarHorario}>
+                Cerrar
+              </button>
+            </>
           )}
-        />
+          alSolicitarCierre={cerrarHorario}
+          alCancelar={() => establecerHorarioAbierto(false)}
+          alConfirmar={(evento) => evento.preventDefault()}
+        >
+          {/* Las flechas de semana van a cada costado del horario y la matriz es lo único que se desplaza. */}
+          <div className={estilos.horarioConFlechas}>
+            <button
+              type="button"
+              className={`${estilos.flecha} ${estilos.flechaAnterior}`}
+              aria-label="Semana anterior"
+              disabled={indiceSemana <= 0}
+              onClick={irSemanaAnterior}
+            >
+              <Icono nombre="flecha-izquierda" tamano={16} />
+            </button>
+
+            <div className={estilos.matrizDialogo}>
+              {sesionesSemana.length === 0 ? (
+                <EstadoConsulta tipo="vacio" icono="calendario" mensaje={MENSAJE_SIN_SESIONES_SEMANA} />
+              ) : (
+                <MatrizSesiones
+                  key={semanaActual.inicio}
+                  ajustarAlto
+                  lunes={semanaActual.lunes}
+                  titulo={`${tituloConsulta} ${formatearFecha(semanaActual.inicio)}`}
+                  sesiones={sesionesSemana}
+                  mostrarSeccion={!esAdmin || tipo === 'docente'}
+                  alSeleccionarSesion={(esAdmin || esDocente) ? establecerSesionSeleccionada : undefined}
+                />
+              )}
+            </div>
+
+            <button
+              type="button"
+              className={`${estilos.flecha} ${estilos.flechaSiguiente}`}
+              aria-label="Semana siguiente"
+              disabled={indiceSemana >= semanas.length - 1}
+              onClick={irSemanaSiguiente}
+            >
+              <Icono nombre="flecha-derecha" tamano={16} />
+            </button>
+          </div>
+
+          {panelesSesion(true)}
+        </DialogoBase>
       )}
 
       {dialogoAsistencia && asistenciaSesion.detalle && (

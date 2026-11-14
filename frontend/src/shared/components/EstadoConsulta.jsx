@@ -13,12 +13,21 @@ const MENSAJE_POR_DEFECTO = {
  * @param {Object} props
  * @param {'carga'|'vacio'|'error'} props.tipo
  * @param {string} [props.mensaje] Obligatorio para `vacio`; en `carga`/`error` tiene mensaje por defecto.
+ * @param {string} [props.icono] Solo en `vacio`: nombre de un ícono de `Icono` que se muestra sobre el mensaje.
  * @param {number} [props.filasEsqueleto] Solo en `carga`: muestra esa cantidad de filas de carga (mantiene la altura); el texto sigue disponible para lectores de pantalla.
  * @param {() => void} [props.alReintentar] Solo en `error`: si se pasa, muestra el botón "Reintentar".
  * @param {string} [props.etiquetaAccion] Solo en `vacio`: texto del botón de salida (p. ej. "Limpiar filtros").
  * @param {() => void} [props.alAccion] Solo en `vacio`: se llama al pulsar ese botón. Sin ambos, no se muestra.
  */
-export default function EstadoConsulta({ tipo, mensaje, filasEsqueleto = 0, alReintentar, etiquetaAccion, alAccion }) {
+export default function EstadoConsulta({
+  tipo,
+  mensaje,
+  icono,
+  filasEsqueleto = 0,
+  alReintentar,
+  etiquetaAccion,
+  alAccion
+}) {
   const texto = mensaje ?? MENSAJE_POR_DEFECTO[tipo];
   const propsRegion = tipo === 'error' ? { role: 'alert' } : { role: 'status' };
 
@@ -36,6 +45,7 @@ export default function EstadoConsulta({ tipo, mensaje, filasEsqueleto = 0, alRe
   return (
     <div className={estilos.contenedor} {...propsRegion}>
       {tipo === 'error' && <Icono nombre="alerta" tamano={32} />}
+      {tipo === 'vacio' && icono && <Icono nombre={icono} tamano={32} />}
       <p className={estilos.mensaje}>{texto}</p>
       {tipo === 'error' && alReintentar && (
         <button type="button" className={estilos.boton} onClick={alReintentar}>

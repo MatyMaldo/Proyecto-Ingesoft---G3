@@ -96,7 +96,8 @@ describe('PaginaCursosEstudiante (HU-EVAL-03)', () => {
 
     expect(await screen.findByRole('heading', { name: 'Mis Cursos' })).toBeInTheDocument();
     expect(screen.getByText('Portal del estudiante')).toBeInTheDocument();
-    expect(screen.getByText('Luis — 1er Grado A')).toBeInTheDocument();
+    // El encabezado ya existe mientras carga: se espera a los datos (bajo carga la consulta tarda más).
+    expect(await screen.findByText('Luis — 1er Grado A')).toBeInTheDocument();
     expect(screen.getByText('2 cursos')).toBeInTheDocument();
 
     const lista = screen.getByRole('list', { name: 'Mis cursos' });

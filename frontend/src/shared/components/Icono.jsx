@@ -157,6 +157,11 @@ const CATALOGO_ICONOS = {
     { tag: 'line', props: { x1: 10, x2: 10, y1: 11, y2: 17 } },
     { tag: 'line', props: { x1: 14, x2: 14, y1: 11, y2: 17 } }
   ],
+  'mas-opciones': [
+    { tag: 'circle', props: { cx: 12, cy: 12, r: 1.8, fill: 'currentColor' } },
+    { tag: 'circle', props: { cx: 19, cy: 12, r: 1.8, fill: 'currentColor' } },
+    { tag: 'circle', props: { cx: 5, cy: 12, r: 1.8, fill: 'currentColor' } }
+  ],
   agregar: [
     { tag: 'path', props: { d: 'M12 5v14' } },
     { tag: 'path', props: { d: 'M5 12h14' } }

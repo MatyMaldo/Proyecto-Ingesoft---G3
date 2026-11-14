@@ -1,7 +1,15 @@
 import { describe, it, expect, vi } from 'vitest';
 import { renderHook, act, waitFor } from '@testing-library/react';
 
-vi.mock('../../../shared/api/configuracionApi.js', () => ({ USAR_MOCK: true }));
+// El hook siempre consulta al backend; en las pruebas se sustituye el servicio por datos fijos.
+vi.mock('../services/auditoriaService.js', async () => {
+  const datos = await import('../pruebas/auditoriaDePrueba.js');
+  return {
+    listarRegistrosAuditoria: datos.listarRegistrosAuditoriaDePrueba,
+    obtenerHistorialAuditoria: datos.obtenerHistorialAuditoriaDePrueba,
+    obtenerRegistroAuditoria: datos.obtenerRegistroAuditoriaDePrueba
+  };
+});
 
 import useAuditoria from './useAuditoria.js';
 

@@ -19,7 +19,7 @@ function mostrar(url = '/matriculas?anio=todos') {
 const esperarTabla = () => screen.findByRole('table', {}, { timeout: 3000 });
 const chipsEstado = () => screen.getByRole('group', { name: 'Filtrar matrículas por estado' });
 const totalMostrado = () =>
-  within(screen.getByRole('navigation', { name: 'Paginación de matrículas (superior)' })).getByRole('status');
+  within(screen.getByRole('navigation', { name: 'Paginación de matrículas' })).getByRole('status');
 
 describe('Matrículas · listado, filtros y acciones', () => {
   it('pone en la cabecera el título y las acciones: acciones masivas (menú) y la acción principal', async () => {
@@ -28,7 +28,7 @@ describe('Matrículas · listado, filtros y acciones', () => {
 
     const cabecera = screen.getByRole('banner');
     expect(within(cabecera).getByRole('heading', { name: 'Matrículas' })).toBeInTheDocument();
-    expect(within(cabecera).getByRole('button', { name: 'Asignar alumno a sección' })).toBeInTheDocument();
+    expect(within(cabecera).getByRole('button', { name: 'Asignar alumno' })).toBeInTheDocument();
     expect(within(cabecera).getByRole('button', { name: 'Acciones masivas' })).toHaveAttribute('aria-haspopup', 'menu');
     // Ya no hay un botón suelto por cada acción masiva.
     expect(within(cabecera).queryByRole('button', { name: 'Emitir compromisos de matrícula' })).not.toBeInTheDocument();
@@ -49,7 +49,7 @@ describe('Matrículas · listado, filtros y acciones', () => {
     mostrar();
     await esperarTabla();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Asignar alumno a sección' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Asignar alumno' }));
     const dialogo = screen.getByRole('dialog', { name: 'Asignar alumno a sección' });
     expect(within(dialogo).getByLabelText('Buscar alumno')).toBeInTheDocument();
     expect(within(dialogo).getByLabelText('Año académico')).toBeInTheDocument();
@@ -70,17 +70,21 @@ describe('Matrículas · listado, filtros y acciones', () => {
     const dialogo = screen.getByRole('dialog', { name: 'Actualizar estados de matrícula' });
     const ejecutar = within(dialogo).getByRole('button', { name: 'Ejecutar actualización' });
     expect(ejecutar.className).toMatch(/botonPeligro/);
-    expect(await within(dialogo).findByText(/El período de matrícula finalizó/)).toBeInTheDocument();
+    // Con el período finalizado la insignia ya lo dice: no se repite en una frase, y el botón se habilita.
+    expect(await within(dialogo).findByText('Finalizado')).toBeInTheDocument();
+    expect(within(dialogo).queryByText(/El período de matrícula finalizó/)).not.toBeInTheDocument();
     expect(ejecutar).toBeEnabled();
   });
 
-  it('muestra el listado con el total arriba, sin repetirlo abajo si cabe en una página, y cada fila con su acción', async () => {
+  it('muestra el listado con un solo paginador en el pie, y cada fila con su acción', async () => {
     mostrar();
     const tabla = await esperarTabla();
 
     expect(within(tabla).getAllByRole('row')).toHaveLength(6);
     expect(totalMostrado()).toHaveTextContent('1 – 5 de 5 matrículas');
-    expect(screen.queryByRole('navigation', { name: 'Paginación de matrículas (inferior)' })).not.toBeInTheDocument();
+    expect(screen.getAllByRole('navigation', { name: 'Paginación de matrículas' })).toHaveLength(1);
+    // Con 5 matrículas ninguna opción de más filas (25, 50, 100) está disponible.
+    expect(within(screen.getByRole('group', { name: 'Filas por página' })).getByRole('button', { name: '25' })).toBeDisabled();
     // El nombre accesible dice a qué estudiante afecta la acción.
     expect(within(tabla).getByRole('button', { name: 'Emitir compromiso de Mateo Herrera Campos' })).toBeInTheDocument();
     // Las matrículas que no están pendientes no tienen acción.

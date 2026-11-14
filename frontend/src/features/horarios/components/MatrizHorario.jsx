@@ -65,6 +65,7 @@ export default function MatrizHorario({
   bloqueResaltado = null,
   versionResaltado = 0,
   deshabilitada,
+  ajustarAlto = false,
   soloLectura = false,
   alElegirBloque,
   alQuitarBloque,
@@ -163,7 +164,7 @@ export default function MatrizHorario({
   }
 
   return (
-    <div className={estilos.envoltorio}>
+    <div className={`${estilos.envoltorio} ${ajustarAlto ? estilos.envoltorioAjustado : ''}`}>
       <div className={estilos.pestanas} role="group" aria-label="Día de la semana">
         {DIAS.map((dia) => (
           <button
@@ -178,7 +179,12 @@ export default function MatrizHorario({
         ))}
       </div>
 
-      <div className={estilos.contenedor} tabIndex={0} role="region" aria-label={`Matriz de horarios de ${titulo}`}>
+      <div
+        className={`${estilos.contenedor} ${ajustarAlto ? estilos.contenedorAjustado : ''}`}
+        tabIndex={0}
+        role="region"
+        aria-label={`Matriz de horarios de ${titulo}`}
+      >
         <table className={estilos.tabla}>
           <thead>
             <tr>

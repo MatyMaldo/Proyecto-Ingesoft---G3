@@ -18,21 +18,21 @@ if (!Blob.prototype.text) {
   };
 }
 
-const ENCABEZADO = 'tipoUsuario,nombre,apellidoPaterno,apellidoMaterno,dni,telefono,correo,edad,fechaNacimiento,dniApoderado';
+const ENCABEZADO = 'tipoUsuario,nombre,apellidoPaterno,apellidoMaterno,dni,telefono,correo,fechaNacimiento,dniApoderado';
 
 const CSV_VALIDO = [
   ENCABEZADO,
-  'APODERADO,Carmen,Soto,Vega,10000011,900000011,carmen.soto@example.com,40,,',
-  'DOCENTE,Pedro,Rojas,Luna,10000012,900000012,pedro.rojas@example.com,30,,',
-  'ESTUDIANTE,Diego,Soto,Ramos,10000013,900000013,diego.soto@example.com,,2012-03-15,10000011',
-  'ESTUDIANTE,Valeria,Soto,Ramos,10000014,900000014,valeria.soto@example.com,,2014-09-02,10000011'
+  'APODERADO,Carmen,Soto,Vega,10000011,900000011,carmen.soto@example.com,1985-03-12,',
+  'DOCENTE,Pedro,Rojas,Luna,10000012,900000012,pedro.rojas@example.com,,',
+  'ESTUDIANTE,Diego,Soto,Ramos,10000013,900000013,diego.soto@example.com,2012-03-15,10000011',
+  'ESTUDIANTE,Valeria,Soto,Ramos,10000014,900000014,valeria.soto@example.com,2014-09-02,10000011'
 ].join('\r\n');
 
 const CSV_CON_ERRORES = [
   ENCABEZADO,
-  'APODERADO,Carmen,Soto,Vega,10000011,900000011,carmen.soto@example.com,40,,',
-  'APODERADO,Ana,Perez,,10000011,9000,ana.perez,,,',
-  'ESTUDIANTE,Diego,Soto,Ramos,10000013,900000013,diego.soto@example.com,,2012-03-15,99999999'
+  'APODERADO,Carmen,Soto,Vega,10000011,900000011,carmen.soto@example.com,1985-03-12,',
+  'APODERADO,Ana,Perez,,10000011,9000,ana.perez,,',
+  'ESTUDIANTE,Diego,Soto,Ramos,10000013,900000013,diego.soto@example.com,2012-03-15,99999999'
 ].join('\r\n');
 
 /**
@@ -134,7 +134,7 @@ describe('DialogoCargaCsv · revisión del archivo', () => {
   });
 
   it('rechaza un archivo con más de 1000 filas y sugiere dividirlo', async () => {
-    const filas = Array.from({ length: 1001 }, (_, i) => `DOCENTE,Doc${i},Prueba,,${String(30000000 + i)},900000000,doc${i}@example.com,30,,`);
+    const filas = Array.from({ length: 1001 }, (_, i) => `DOCENTE,Doc${i},Prueba,,${String(30000000 + i)},900000000,doc${i}@example.com,,`);
     const dialogo = await abrirConArchivo([ENCABEZADO, ...filas].join('\r\n'));
 
     expect(within(dialogo).getByText(/tiene 1001 filas y el máximo es 1000 por carga/)).toBeInTheDocument();
@@ -207,8 +207,8 @@ describe('DialogoCargaCsv · revisión del archivo', () => {
 
     const tabla = screen.getByRole('table', { name: 'Columnas del archivo CSV' });
     const filas = within(tabla).getAllByRole('row');
-    // Encabezado + las 10 columnas del CSV (sin contraseña: la define cada usuario).
-    expect(filas).toHaveLength(11);
+    // Encabezado + las 9 columnas del CSV (sin contraseña ni edad: la contraseña la obtiene cada usuario).
+    expect(filas).toHaveLength(10);
     expect(within(tabla).queryByText('password')).not.toBeInTheDocument();
     expect(within(tabla).getAllByRole('columnheader').map((celda) => celda.textContent))
       .toEqual(['Columna', 'Requerido', 'Formato', 'Ejemplo']);
@@ -220,7 +220,7 @@ describe('DialogoCargaCsv · revisión del archivo', () => {
   describe('paginación de la revisión', () => {
     const docentesValidos = (cantidad, desde = 1) => Array.from({ length: cantidad }, (_, i) => {
       const n = String(desde + i).padStart(2, '0');
-      return `DOCENTE,Doc${n},Prueba,,300000${n},9000000${n},doc${n}@example.com,30,,`;
+      return `DOCENTE,Doc${n},Prueba,,300000${n},9000000${n},doc${n}@example.com,,`;
     });
 
     it('muestra 8 filas por página y permite navegar entre páginas', async () => {
@@ -268,7 +268,7 @@ describe('DialogoCargaCsv · revisión del archivo', () => {
       // 10 filas válidas y 10 con DNI inválido: por defecto se ven solo las 10 con errores (2 páginas).
       const conError = Array.from({ length: 10 }, (_, i) => {
         const n = String(i + 1).padStart(2, '0');
-        return `DOCENTE,Mal${n},Prueba,,12${n},9000000${n},mal${n}@example.com,30,,`;
+        return `DOCENTE,Mal${n},Prueba,,12${n},9000000${n},mal${n}@example.com,,`;
       });
       const dialogo = await abrirRevision([ENCABEZADO, ...docentesValidos(10), ...conError].join('\r\n'));
 

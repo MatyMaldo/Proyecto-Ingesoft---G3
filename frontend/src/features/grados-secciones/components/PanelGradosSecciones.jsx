@@ -4,6 +4,25 @@ import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import estilos from '../pages/PaginaAnioEscolar.module.css';
 
 /** Bloque independiente que se integrará en la pantalla de Año escolar compartida. */
+/** Matriculados confirmados sobre la capacidad (p. ej. 18/30) con una barra; sin el dato, solo la capacidad. */
+function OcupacionSeccion({ matriculados, capacidad }) {
+  if (typeof matriculados !== 'number') {
+    return <>{capacidad} estudiantes</>;
+  }
+  const porcentaje = capacidad > 0 ? Math.min(100, Math.round((matriculados / capacidad) * 100)) : 0;
+  return (
+    <div className={estilos.ocupacion}>
+      <span>{matriculados}/{capacidad}</span>
+      <progress
+        className={`${estilos.barraOcupacion} ${porcentaje >= 100 ? estilos.barraLlena : ''}`}
+        value={matriculados}
+        max={capacidad}
+        aria-label={`${matriculados} de ${capacidad} estudiantes matriculados (${porcentaje}%)`}
+      />
+    </div>
+  );
+}
+
 export default function PanelGradosSecciones() {
   const modelo = useGradosSecciones();
   const { datos, estado, formulario, errores, guardando } = modelo;
@@ -68,8 +87,8 @@ export default function PanelGradosSecciones() {
         {anio && grado ? (
           secciones.length ? <div className={estilos.tablaContenedor}><table>
             <caption>Secciones de {grado.nombre} · {anio.anio}</caption>
-            <thead><tr><th scope="col">Sección</th><th scope="col">Grado</th><th scope="col">Año académico</th><th scope="col">Capacidad máxima</th><th scope="col">Tutor</th><th scope="col">Acciones</th></tr></thead>
-            <tbody>{secciones.map((item) => <tr key={item.id}><td><strong>{item.nombre}</strong></td><td>{item.gradoNombre ?? grado.nombre}</td><td>{item.anioAcademico ?? anio.anio}</td><td>{item.capacidadMaxima} estudiantes</td><td>{item.tutorNombreCompleto ?? 'Sin asignar'}</td><td><button type="button" className={estilos.secundario} disabled={Boolean(formulario)} onClick={() => modelo.abrirEdicion(item)}>Modificar</button></td></tr>)}</tbody>
+            <thead><tr><th scope="col">Sección</th><th scope="col">Ocupación</th><th scope="col">Tutor</th><th scope="col">Acciones</th></tr></thead>
+            <tbody>{secciones.map((item) => <tr key={item.id}><td><strong>{item.nombre}</strong></td><td><OcupacionSeccion matriculados={item.matriculadosConfirmados} capacidad={item.capacidadMaxima} /></td><td>{item.tutorNombreCompleto ?? 'Sin asignar'}</td><td><button type="button" className={estilos.secundario} disabled={Boolean(formulario)} onClick={() => modelo.abrirEdicion(item)}>Modificar</button></td></tr>)}</tbody>
           </table></div> : <EstadoConsulta tipo="vacio" mensaje="No hay secciones registradas para el grado y año seleccionados." />
         ) : <EstadoConsulta tipo="vacio" mensaje="Selecciona un año académico y un grado para consultar sus secciones." />}
         <p className={estilos.pie}>{secciones.length} secciones · {secciones.reduce((total, item) => total + item.capacidadMaxima, 0)} cupos de capacidad total</p>

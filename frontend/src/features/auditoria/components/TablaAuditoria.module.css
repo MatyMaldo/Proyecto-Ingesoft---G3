@@ -84,9 +84,10 @@
 
 .celdaFecha,
 .fechaTarjeta {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--espacio-2);
+  white-space: nowrap;
 }
 
 .fecha {
@@ -97,7 +98,8 @@
 }
 
 .hora {
-  font-size: var(--texto-xs);
+  font-size: var(--texto-md);
+  font-variant-numeric: tabular-nums;
   color: var(--color-texto-suave);
 }
 

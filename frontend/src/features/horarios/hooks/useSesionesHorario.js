@@ -1,4 +1,4 @@
-import { useState } from 'react';
+import { useCallback, useState } from 'react';
 
 import {
   generarSesiones,
@@ -132,7 +132,8 @@ export default function useSesionesHorario(consulta, periodo, primerBimestre) {
     return null;
   };
 
-  const alternarOmitida = (sesion) => {
+  // Estables (solo usan actualizaciones funcionales) para que las filas memorizadas de la vista previa no se repinten.
+  const alternarOmitida = useCallback((sesion) => {
     if (sesion?.yaExiste) return;
     const clave = claveSesion(sesion);
     establecerSesionesOmitidas((actuales) => {
@@ -144,26 +145,24 @@ export default function useSesionesHorario(consulta, periodo, primerBimestre) {
       }
       return siguientes;
     });
-  };
+  }, []);
 
-  const omitirTodasDeFecha = (fecha) => {
+  /** Marca (`omitir = true`) o desmarca la omisión de varias sesiones a la vez; las que ya existen se ignoran. */
+  const establecerOmision = useCallback((lista, omitir) => {
     establecerSesionesOmitidas((actuales) => {
       const siguientes = { ...actuales };
-      const sesionesDeFecha = sesionesPreview.filter(
-        (sesion) => sesion.fecha === fecha && !sesion.yaExiste
-      );
-      const todasOmitidas = sesionesDeFecha.every((sesion) => Object.hasOwn(siguientes, claveSesion(sesion)));
-      sesionesDeFecha.forEach((sesion) => {
+      lista.forEach((sesion) => {
+        if (sesion.yaExiste) return;
         const clave = claveSesion(sesion);
-        if (todasOmitidas) {
-          delete siguientes[clave];
-        } else {
+        if (omitir) {
           siguientes[clave] = { bloqueHorarioId: sesion.bloqueHorarioId, fecha: sesion.fecha };
+        } else {
+          delete siguientes[clave];
         }
       });
       return siguientes;
     });
-  };
+  }, []);
 
   const reiniciarPreview = () => {
     establecerSesionesPreview([]);
@@ -239,7 +238,7 @@ export default function useSesionesHorario(consulta, periodo, primerBimestre) {
     estadoPreview,
     sesionesOmitidas,
     alternarOmitida,
-    omitirTodasDeFecha,
+    establecerOmision,
     reiniciarPreview,
     generando,
     previsualizar,

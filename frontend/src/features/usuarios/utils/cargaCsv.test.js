@@ -1,7 +1,7 @@
 import { describe, expect, it } from 'vitest';
 import { leerCsv, textoProblema, validarFilasCsv } from './cargaCsv.js';
 
-const ENCABEZADO = 'tipoUsuario,nombre,apellidoPaterno,apellidoMaterno,dni,telefono,correo,edad,fechaNacimiento,dniApoderado';
+const ENCABEZADO = 'tipoUsuario,nombre,apellidoPaterno,apellidoMaterno,dni,telefono,correo,fechaNacimiento,dniApoderado';
 
 function leer(...lineas) {
   return leerCsv([ENCABEZADO, ...lineas].join('\r\n'));
@@ -10,8 +10,8 @@ function leer(...lineas) {
 describe('validarFilasCsv · detalle por fila', () => {
   it('no reporta problemas en un archivo válido y conserva el orden original de las filas', () => {
     const filas = leer(
-      'ESTUDIANTE,Diego,Soto,Ramos,10000013,900000013,diego@example.com,,2012-03-15,10000011',
-      'APODERADO,Carmen,Soto,Vega,10000011,900000011,carmen@example.com,40,,'
+      'ESTUDIANTE,Diego,Soto,Ramos,10000013,900000013,diego@example.com,2012-03-15,10000011',
+      'APODERADO,Carmen,Soto,Vega,10000011,900000011,carmen@example.com,1985-03-12,'
     );
 
     const { errores, filasOrdenadas, detalleFilas } = validarFilasCsv(filas, [], false);
@@ -25,15 +25,15 @@ describe('validarFilasCsv · detalle por fila', () => {
 
   it('rechaza un archivo con columna de contraseña: el administrador no maneja contraseñas', () => {
     const conPassword = [
-      'tipoUsuario,nombre,apellidoPaterno,apellidoMaterno,dni,telefono,correo,password,edad,fechaNacimiento,dniApoderado',
-      'APODERADO,Carmen,Soto,Vega,10000011,900000011,carmen@example.com,PruebaApod2026!,40,,'
+      'tipoUsuario,nombre,apellidoPaterno,apellidoMaterno,dni,telefono,correo,password,fechaNacimiento,dniApoderado',
+      'APODERADO,Carmen,Soto,Vega,10000011,900000011,carmen@example.com,PruebaApod2026!,1985-03-12,'
     ].join('\r\n');
 
     expect(() => leerCsv(conPassword)).toThrow(/columna de contraseña/);
   });
 
   it('nombra el campo afectado en cada problema', () => {
-    const filas = leer('APODERADO,Ana,Perez,,1234,9000,ana.perez,,,');
+    const filas = leer('APODERADO,Ana,Perez,,1234,9000,ana.perez,,');
 
     const { errores, detalleFilas } = validarFilasCsv(filas, [], false);
 
@@ -42,7 +42,7 @@ describe('validarFilasCsv · detalle por fila', () => {
       'DNI: debe tener 8 dígitos',
       'Correo: no tiene un formato válido',
       'Teléfono: debe tener exactamente 9 dígitos',
-      'Edad: debe ser un número entero de 1 o más'
+      'Fecha de nacimiento: debe tener formato AAAA-MM-DD, ser una fecha válida y no posterior a hoy'
     ]));
     expect(errores).toHaveLength(1);
     expect(errores[0]).toMatch(/^Fila 2: /);
@@ -50,8 +50,8 @@ describe('validarFilasCsv · detalle por fila', () => {
 
   it('detecta DNI y correo repetidos dentro del mismo archivo', () => {
     const filas = leer(
-      'DOCENTE,Pedro,Rojas,,10000012,900000012,pedro@example.com,,,',
-      'DOCENTE,Pedro,Rojas,,10000012,900000099,pedro@example.com,,,'
+      'DOCENTE,Pedro,Rojas,,10000012,900000012,pedro@example.com,,',
+      'DOCENTE,Pedro,Rojas,,10000012,900000099,pedro@example.com,,'
     );
 
     const { detalleFilas } = validarFilasCsv(filas, [], false);
@@ -63,7 +63,7 @@ describe('validarFilasCsv · detalle por fila', () => {
   it('incluye las filas con tipo inválido en el detalle, sin tipo ni nombre', () => {
     const filas = leer(
       'DIRECTOR,Luis,Mora,,10000020,900000020,luis@example.com,,,',
-      'APODERADO,Carmen,Soto,Vega,10000011,900000011,carmen@example.com,40,,'
+      'APODERADO,Carmen,Soto,Vega,10000011,900000011,carmen@example.com,1985-03-12,'
     );
 
     const { errores, filasOrdenadas, detalleFilas } = validarFilasCsv(filas, [], false);
@@ -76,7 +76,7 @@ describe('validarFilasCsv · detalle por fila', () => {
   });
 
   it('valida que el apoderado del estudiante exista en el sistema o en el archivo', () => {
-    const filas = leer('ESTUDIANTE,Sofia,Rios,,10000030,900000030,sofia@example.com,,2014-04-20,99999999');
+    const filas = leer('ESTUDIANTE,Sofia,Rios,,10000030,900000030,sofia@example.com,2014-04-20,99999999');
 
     const { detalleFilas } = validarFilasCsv(filas, [], false);
 

@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useSearchParams } from 'react-router-dom';
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import BarraBusquedaListado from '../../../shared/components/BarraBusquedaListado.jsx';
@@ -18,7 +18,8 @@ import TablaUsuarios from '../components/TablaUsuarios.jsx';
 import {
     OPCIONES_FILTRO_ESTADO,
     OPCIONES_FILTRO_ROL,
-    TAMANIO_PAGINA_USUARIOS
+    TAMANIO_PAGINA_USUARIOS,
+    OPCIONES_TAMANIO_PAGINA_USUARIOS
 } from '../constants/rolesUsuario.js';
 import { USUARIOS_INICIAL, listarUsuarios } from '../services/usuariosService.js';
 import esAdministrador from '../utils/esAdministrador.js';
@@ -46,6 +47,10 @@ function PaginaUsuarios() {
     const [rolFiltro, setRolFiltro] = useState(() => valorValido(parametros.get('rol'), OPCIONES_FILTRO_ROL));
     const [estadoFiltro, setEstadoFiltro] = useState(() => valorValido(parametros.get('estado'), OPCIONES_FILTRO_ESTADO));
     const [pagina, setPagina] = useState(() => Math.max(0, (Number.parseInt(parametros.get('pagina'), 10) || 1) - 1));
+    const [tamanioPagina, setTamanioPagina] = useState(() => {
+        const valor = Number.parseInt(parametros.get('filas'), 10);
+        return OPCIONES_TAMANIO_PAGINA_USUARIOS.includes(valor) ? valor : TAMANIO_PAGINA_USUARIOS;
+    });
     const [orden, setOrden] = useState(ORDEN_INICIAL);
     const { notificacion, mostrarNotificacion } = useNotificacion();
     // Diálogo abierto: un tipo de registro, 'cargaCsv', 'editar' o 'toggle'; `usuarioActivo` es el usuario de los dos últimos.
@@ -82,10 +87,11 @@ function PaginaUsuarios() {
         fijar('rol', rolFiltro !== 'Todos' ? rolFiltro : '');
         fijar('estado', estadoFiltro !== 'Todos' ? estadoFiltro : '');
         fijar('pagina', pagina > 0 ? String(pagina + 1) : '');
+        fijar('filas', tamanioPagina !== TAMANIO_PAGINA_USUARIOS ? String(tamanioPagina) : '');
         if (siguientes.toString() !== parametros.toString()) {
             establecerParametros(siguientes, { replace: true });
         }
-    }, [query, rolFiltro, estadoFiltro, pagina, parametros, establecerParametros]);
+    }, [query, rolFiltro, estadoFiltro, pagina, tamanioPagina, parametros, establecerParametros]);
     const busqueda = query.trim().toLowerCase();
     const coincideBusqueda = u => !busqueda
         || `${u.nombre} ${u.apellido}`.toLowerCase().includes(busqueda)
@@ -116,34 +122,32 @@ function PaginaUsuarios() {
             : undefined
     }));
     const ordenados = ordenarUsuarios(filtered, orden);
-    const totalPaginas = Math.max(1, Math.ceil(ordenados.length / TAMANIO_PAGINA_USUARIOS));
+    // Una opción de filas solo se puede usar si hay al menos esa cantidad de usuarios; si el filtro deja menos, se
+    // vuelve a 10 sin perder la elección guardada en la URL.
+    const filasPorPagina = ordenados.length >= tamanioPagina ? tamanioPagina : TAMANIO_PAGINA_USUARIOS;
+    const totalPaginas = Math.max(1, Math.ceil(ordenados.length / filasPorPagina));
     const paginaActual = Math.min(pagina, totalPaginas - 1);
-    const usuariosPagina = ordenados.slice(paginaActual * TAMANIO_PAGINA_USUARIOS, (paginaActual + 1) * TAMANIO_PAGINA_USUARIOS);
-    const refInicioListado = useRef(null);
-    // Al cambiar de página (sobre todo desde el paginador inferior), devuelve la vista al inicio del listado.
-    const cambiarPagina = nuevaPagina => {
-        setPagina(nuevaPagina);
-        const reducirMovimiento = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-        refInicioListado.current?.scrollIntoView?.({ block: 'start', behavior: reducirMovimiento ? 'auto' : 'smooth' });
-    };
+    const usuariosPagina = ordenados.slice(paginaActual * filasPorPagina, (paginaActual + 1) * filasPorPagina);
+    // Al cambiar de página la tabla se vuelve a montar (`key` por página), así su desplazamiento vuelve al inicio.
+    const cambiarPagina = nuevaPagina => setPagina(nuevaPagina);
     // Sin ningún usuario y sin filtros: en vez de un vacío sin salida, se ofrece registrar el primero.
     const sinUsuarios = usuarios.length === 0 && !hayFiltros;
-    const hayResultados = !cargando && !errorCarga && ordenados.length > 0;
-    // El mismo paginador (con el total y el campo de página) va arriba y abajo del listado, como en Log de errores.
-    const paginador = posicion => (
+    // Un solo paginador, en el pie de la tabla (siempre visible, porque la tabla es lo único que se desplaza).
+    const paginador = () => (
         <Paginacion
           pagina={paginaActual}
           totalPaginas={totalPaginas}
           totalElementos={ordenados.length}
-          tamanioPagina={TAMANIO_PAGINA_USUARIOS}
+          tamanioPagina={filasPorPagina}
           cantidadEnPagina={usuariosPagina.length}
           alCambiarPagina={cambiarPagina}
-          etiqueta={`Paginación de usuarios (${posicion})`}
+          etiqueta="Paginación de usuarios"
           unidadSingular="usuario"
           unidadPlural="usuarios"
-          anunciarTotal={posicion === 'superior'}
+          anunciarTotal
         />
     );
+    const cambiarTamanioPagina = valor => { setTamanioPagina(valor); setPagina(0); };
     // Cambiar un criterio de búsqueda o filtro vuelve a la primera página.
     const cambiarBusqueda = valor => { setQuery(valor); setPagina(0); };
     const cambiarRol = valor => { setRolFiltro(valor); setPagina(0); };
@@ -171,8 +175,8 @@ function PaginaUsuarios() {
     return (<div className={estilos.pagina}>
       {notificacion && <Notificacion mensaje={notificacion.mensaje} error={notificacion.error} />}
 
-      {/* Barra de título (GUI §6): título a la izquierda y una sola acción global a la derecha: "Agregar usuarios" reúne
-          el registro individual (por tipo) y la carga masiva por CSV. */}
+      {/* Barra de título (GUI §6): título y descripción a la izquierda y la única acción global a la derecha:
+          "Agregar usuarios" reúne el registro individual (por tipo) y la carga masiva por CSV. */}
       <header className={estilos.cabecera}>
         <div className={estilos.textoCabecera}>
           <h1 className={estilos.titulo}>Usuarios</h1>
@@ -201,11 +205,9 @@ function PaginaUsuarios() {
         </div>
       </header>
 
-      {/* Búsqueda arriba; debajo, los chips de rol y de estado (con conteo), cada grupo con su subtítulo; "Limpiar
-          filtros" aparece junto al buscador cuando hay algún criterio activo. */}
+      {/* El buscador y, debajo, los chips de rol y de estado (con conteo), cada grupo con su subtítulo. */}
       <section className={estilos.filtros} aria-label="Búsqueda y filtros de usuarios">
-        {/* Junto al buscador: esa fila siempre tiene espacio, así "Limpiar filtros" aparece y desaparece sin mover lo
-            que hay debajo. "Actualizar" vuelve a pedir la lista sin perder búsqueda, filtros ni página. */}
+        {/* "Actualizar" vuelve a pedir la lista sin perder búsqueda, filtros ni página. */}
         <BarraBusquedaListado
           alActualizar={recargar}
           actualizando={actualizando}
@@ -243,9 +245,6 @@ function PaginaUsuarios() {
         </div>
       </section>
 
-      {/* Total y paginación arriba del listado: el total queda a la vista sin bajar hasta el final. */}
-      {hayResultados && <div ref={refInicioListado} className={estilos.barraPaginacion}>{paginador('superior')}</div>}
-
       {/* Listado de usuarios */}
       <section className={estilos.tarjetaResultados} aria-busy={cargando || undefined}>
         {cargando ? (
@@ -261,9 +260,26 @@ function PaginaUsuarios() {
           />
         ) : (
           <>
-            <TablaUsuarios usuarios={usuariosPagina} esProtegido={esAdministrador} alEditar={openEdit} alCambiarEstado={openToggle} orden={orden} alOrdenar={ordenarPor} />
-            {/* Con una sola página el total ya está arriba: no se repite abajo. */}
-            {totalPaginas > 1 && <div className={estilos.pie}>{paginador('inferior')}</div>}
+            <TablaUsuarios key={paginaActual} usuarios={usuariosPagina} esProtegido={esAdministrador} alEditar={openEdit} alCambiarEstado={openToggle} orden={orden} alOrdenar={ordenarPor} />
+            {/* El pie lleva siempre el selector de filas y el paginador. */}
+            <div className={estilos.pie}>
+              <div className={estilos.selectorFilas} role="group" aria-label="Filas por página">
+                <span>Filas por página</span>
+                {OPCIONES_TAMANIO_PAGINA_USUARIOS.map(opcion => (
+                  <button
+                    key={opcion}
+                    type="button"
+                    className={`${estilos.opcionFilas} ${opcion === filasPorPagina ? estilos.opcionFilasActiva : ''}`}
+                    aria-pressed={opcion === filasPorPagina}
+                    disabled={ordenados.length < opcion}
+                    onClick={() => cambiarTamanioPagina(opcion)}
+                  >
+                    {opcion}
+                  </button>
+                ))}
+              </div>
+              {paginador()}
+            </div>
           </>
         )}
       </section>

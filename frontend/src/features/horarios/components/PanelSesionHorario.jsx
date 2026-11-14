@@ -21,7 +21,8 @@ export default function PanelSesionHorario({
   cambiando = false,
   alCerrar,
   alCambiarOmision,
-  acciones = null
+  acciones = null,
+  enDialogo = false
 }) {
   const panel = useRef(null);
   const cerrar = useRef(null);
@@ -31,10 +32,15 @@ export default function PanelSesionHorario({
   }, []);
 
   useEffect(() => {
+    // Mientras se actualiza la sesión no se cierra el panel (ni con Esc ni al clicar fuera), como los diálogos.
+    // Dentro de un diálogo, Esc lo maneja el diálogo (cierra primero este panel).
     const alPresionarTecla = (evento) => {
-      if (evento.key === 'Escape') alCerrar();
+      if (evento.key === 'Escape' && !cambiando && !enDialogo) alCerrar();
     };
     const alHacerClic = (evento) => {
+      if (cambiando) {
+        return;
+      }
       // Los diálogos modales viven en la capa superior: un clic dentro de ellos
       // no debe cerrar el drawer que los abrió.
       if (evento.target instanceof Element && evento.target.closest('dialog[open]')) {
@@ -50,7 +56,7 @@ export default function PanelSesionHorario({
       document.removeEventListener('keydown', alPresionarTecla);
       document.removeEventListener('mousedown', alHacerClic);
     };
-  }, [alCerrar]);
+  }, [alCerrar, cambiando, enDialogo]);
 
   const estado = normalizarEstadoSesion(sesion.estado);
   const omitida = estado === 'OMITIDA';
@@ -67,7 +73,7 @@ export default function PanelSesionHorario({
     }
   }
 
-  return createPortal(
+  const contenidoPanel = (
     <>
       <div className={estilos.velo} aria-hidden="true" onClick={alCerrar} />
       <aside
@@ -132,27 +138,37 @@ export default function PanelSesionHorario({
 
         <footer className={estilos.pie}>
           {acciones ?? (
-            puedeCambiar ? (
+            <>
+              {/* Mismo orden que los diálogos: «Cerrar» (secundario) y a su derecha la acción principal. */}
               <button
                 type="button"
-                className={omitida ? estilos.botonRestaurar : estilos.botonOmitir}
+                className={estilos.botonSecundario}
                 disabled={cambiando}
-                onClick={() => alCambiarOmision(sesion, !omitida)}
+                onClick={alCerrar}
               >
-                <Icono nombre={omitida ? 'ojo' : 'ojo-tachado'} tamano={18} />
-                {cambiando
-                  ? 'Actualizando…'
-                  : omitida ? 'Restaurar sesión' : 'Omitir sesión'}
-              </button>
-            ) : (
-              <button type="button" className={estilos.botonSecundario} onClick={alCerrar}>
                 Cerrar
               </button>
-            )
+              {puedeCambiar && (
+                <button
+                  type="button"
+                  className={omitida ? estilos.botonRestaurar : estilos.botonOmitir}
+                  disabled={cambiando}
+                  onClick={() => alCambiarOmision(sesion, !omitida)}
+                >
+                  <Icono nombre={omitida ? 'ojo' : 'ojo-tachado'} tamano={18} />
+                  {cambiando
+                    ? 'Actualizando…'
+                    : omitida ? 'Restaurar sesión' : 'Omitir sesión'}
+                </button>
+              )}
+            </>
           )}
         </footer>
       </aside>
-    </>,
-    document.body
+    </>
   );
+
+  // Un diálogo modal deja inertes los elementos de fuera de él: dentro de uno, el panel se monta en el propio
+  // diálogo (sigue siendo `position: fixed`, a la derecha de la pantalla). Fuera, va al final del documento.
+  return enDialogo ? contenidoPanel : createPortal(contenidoPanel, document.body);
 }

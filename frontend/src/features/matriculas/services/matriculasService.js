@@ -12,6 +12,9 @@ let siguienteIdMock = 1;
 let siguienteCompromisoMock = 1;
 const TIEMPO_ESPERA_ACCION_MS = 60000;
 
+/** Mensaje cuando ningún año académico tiene el período de matrícula vigente (no es un fallo del servidor). */
+export const MENSAJE_SIN_PERIODO_VIGENTE = 'No hay años académicos con período de matrícula vigente.';
+
 const falloFormato = (recurso) => ({
   exitoso: false,
   datos: null,
@@ -133,7 +136,7 @@ export async function obtenerEstructuraMatriculaVigente() {
     return {
       exitoso: false,
       datos: null,
-      mensaje: 'No hay años académicos con período de matrícula vigente.'
+      mensaje: MENSAJE_SIN_PERIODO_VIGENTE
     };
   }
 

@@ -1,6 +1,7 @@
 import { useEffect, useId, useState } from 'react';
 
 import Icono from '../../../shared/components/Icono.jsx';
+import Insignia from '../../../shared/components/Insignia.jsx';
 import DialogoBase from '../../../shared/components/DialogoBase.jsx';
 import { obtenerPeriodoMatricula } from '../services/matriculasService.js';
 import estilos from '../../../shared/styles/camposDialogo.module.css';
@@ -105,6 +106,7 @@ export default function ModalActualizarEstadosMatricula({
       confirmarPeligro
       error={errorEjecucion || null}
       anchoMaximo="32rem"
+      cerrarAlClicFuera={false}
       botonesExpandidos
       alCancelar={onCerrar}
       alConfirmar={ejecutar}
@@ -126,16 +128,32 @@ export default function ModalActualizarEstadosMatricula({
         </select>
       </div>
 
-      <div className={estilos.aviso}>
-        <p className={estilos.avisoTitulo}>¿Qué hace esta acción?</p>
-        <p className={estilos.avisoTexto}>
-          Cancela las matrículas pendientes cuyo período ya finalizó y que
-          no tienen un compromiso de matrícula pagado. No modifica
-          matrículas confirmadas ni pagos.
-        </p>
+      <div className={estilos.avisoPeligro} role="note">
+        <Icono nombre="alerta" tamano={18} />
+        <div>
+          <p className={estilos.avisoTitulo}>¿Qué hace esta acción?</p>
+          <p className={estilos.avisoTexto}>
+            Cancela las matrículas pendientes cuyo período ya finalizó y que
+            no tienen un compromiso de matrícula pagado. No modifica
+            matrículas confirmadas ni pagos.
+          </p>
+        </div>
       </div>
 
-      <p className={estilos.resumen}>{mensajePeriodo}</p>
+      <div className={estilos.dato}>
+        <span className={estilos.datoRotulo}>Período de matrícula</span>
+        {estadoPeriodo === 'listo' && periodo && (
+          <span className={estilos.datoTexto}>
+            <Insignia tono={periodo.estado === 'FINALIZADO' ? 'verde' : periodo.estado === 'VIGENTE' ? 'ambar' : 'gris'}>
+              {periodo.estado === 'FINALIZADO' ? 'Finalizado' : periodo.estado === 'VIGENTE' ? 'Vigente' : 'Sin iniciar'}
+            </Insignia>
+          </span>
+        )}
+        {/* Con el período finalizado la insignia ya lo dice: el mensaje solo aparece si algo impide ejecutar. */}
+        {(estadoPeriodo !== 'listo' || periodo?.estado !== 'FINALIZADO') && (
+          <p className={estilos.resumen}>{mensajePeriodo}</p>
+        )}
+      </div>
 
       {estadoPeriodo === 'error' && (
         <button

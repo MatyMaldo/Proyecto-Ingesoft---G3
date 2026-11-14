@@ -8,8 +8,9 @@ import {
   obtenerSeccionesMatricula
 } from '../services/matriculasService.js';
 
-/** Matrículas por página del listado (10 en 10, igual que Usuarios y el resto de listados del panel). */
-const TAMANIO_PAGINA = 10;
+/** Matrículas por página: 10 por defecto y las mismas opciones que Usuarios (10, 25, 50 o 100). */
+export const TAMANIO_PAGINA_INICIAL = 10;
+export const OPCIONES_TAMANIO_PAGINA = Object.freeze([10, 25, 50, 100]);
 /** Espera tras la última tecla antes de consultar al servidor (la búsqueda se resuelve en el backend). */
 const RETARDO_BUSQUEDA_MS = 300;
 const MAXIMO_BUSQUEDA = 100;
@@ -35,9 +36,8 @@ function filtrosDesdeUrl(parametros) {
 
 function elegirAnioInicial(anios) {
   const lista = [...(anios ?? [])].sort((a, b) => Number(b.anio) - Number(a.anio));
-  // En matrículas interesa abrir el año más reciente: normalmente es el año
-  // para el que se está gestionando el proceso de admisión y matrícula.
-  return lista[0] ?? null;
+  // Siempre el año activo (el actual, igual que Pagos y Horarios); si no existe, el más reciente.
+  return lista.find((anio) => Number(anio.anio) === new Date().getFullYear()) ?? lista[0] ?? null;
 }
 
 /**
@@ -59,6 +59,10 @@ export default function useListadoMatriculas() {
   const [pagina, establecerPagina] = useState(
     () => Math.max(0, (Number.parseInt(parametros.get('pagina'), 10) || 1) - 1)
   );
+  const [tamanioPagina, establecerTamanioPagina] = useState(() => {
+    const valor = Number.parseInt(parametros.get('filas'), 10);
+    return OPCIONES_TAMANIO_PAGINA.includes(valor) ? valor : TAMANIO_PAGINA_INICIAL;
+  });
   // `busqueda` es lo que se ve en el campo; `busquedaAplicada` es lo que se consulta (con retardo).
   const [busqueda, establecerBusqueda] = useState(() => (parametros.get('q') ?? '').slice(0, MAXIMO_BUSQUEDA));
   const [busquedaAplicada, establecerBusquedaAplicada] = useState(() => busqueda.trim());
@@ -143,7 +147,7 @@ export default function useListadoMatriculas() {
       estado: filtros.estado,
       busqueda: busquedaAplicada,
       page: pagina,
-      size: TAMANIO_PAGINA
+      size: tamanioPagina
     }).then((respuesta) => {
       if (cancelado) return;
       if (!respuesta.exitoso) {
@@ -168,6 +172,7 @@ export default function useListadoMatriculas() {
     filtros.estado,
     busquedaAplicada,
     pagina,
+    tamanioPagina,
     intento,
     recarga
   ]);
@@ -202,10 +207,11 @@ export default function useListadoMatriculas() {
     fijar('estado', filtros.estado);
     fijar('q', busquedaAplicada);
     fijar('pagina', pagina > 0 ? String(pagina + 1) : '');
+    fijar('filas', tamanioPagina !== TAMANIO_PAGINA_INICIAL ? String(tamanioPagina) : '');
     if (siguientes.toString() !== parametros.toString()) {
       establecerParametros(siguientes, { replace: true });
     }
-  }, [estadoEstructura, filtros, busquedaAplicada, pagina, parametros, establecerParametros]);
+  }, [estadoEstructura, filtros, busquedaAplicada, pagina, tamanioPagina, parametros, establecerParametros]);
 
   // Una página de la URL que ya no existe (p. ej. se quitaron matrículas) vuelve a la última que sí existe.
   useEffect(() => {
@@ -248,7 +254,11 @@ export default function useListadoMatriculas() {
     pagina,
     totalElementos,
     totalPaginas,
-    tamanioPagina: TAMANIO_PAGINA,
+    tamanioPagina,
+    cambiarTamanioPagina: (valor) => {
+      establecerPagina(0);
+      establecerTamanioPagina(valor);
+    },
     matriculas,
     estado,
     error,

@@ -1,6 +1,8 @@
-import { useId, useRef, useState } from 'react';
+import { useEffect, useId, useRef, useState } from 'react';
 
 import DialogoBase from '../../../shared/components/DialogoBase.jsx';
+import Insignia from '../../../shared/components/Insignia.jsx';
+import { contarMatriculasPorEstado } from '../../matriculas/services/matriculasService.js';
 import ProgresoOperacionMasiva from '../../../shared/components/ProgresoOperacionMasiva.jsx';
 import { crearClaveIdempotencia } from '../../../shared/api/operacionesMasivasService.js';
 import { iniciarEmisionPensionLoteAsync } from '../services/pagosService.js';
@@ -29,6 +31,21 @@ export default function ModalEmitirPensionesMasivo({
   const [mes, establecerMes] = useState(mesActual);
   const [error, establecerError] = useState('');
   const claveRef = useRef(null);
+  // Matrículas confirmadas del año: las que recibirán un compromiso (las que ya lo tengan se omiten).
+  const [confirmadas, establecerConfirmadas] = useState(null);
+
+  useEffect(() => {
+    if (!anioId) {
+      establecerConfirmadas(null);
+      return undefined;
+    }
+    let activo = true;
+    establecerConfirmadas(null);
+    contarMatriculasPorEstado({ anioId }).then((respuesta) => {
+      if (activo) establecerConfirmadas(respuesta.exitoso ? respuesta.datos.confirmadas : null);
+    });
+    return () => { activo = false; };
+  }, [anioId]);
 
   const idAnio = useId();
   const idMes = useId();
@@ -86,6 +103,7 @@ export default function ModalEmitirPensionesMasivo({
       confirmarDeshabilitado={!puedeEmitir}
       error={error || operacion?.error || null}
       anchoMaximo="32rem"
+      cerrarAlClicFuera={false}
       botonesExpandidos
       alCancelar={onCerrar}
       alConfirmar={ejecutar}
@@ -135,6 +153,21 @@ export default function ModalEmitirPensionesMasivo({
         Se emitirá un compromiso de pensión del mes seleccionado para cada
         matrícula confirmada del año que aún no lo tenga.
       </p>
+
+      <div className={estilos.datos}>
+        <div className={estilos.dato}>
+          <span className={estilos.datoRotulo}>Matrículas confirmadas</span>
+          <span className={estilos.datoValor}>{confirmadas ?? '—'}</span>
+        </div>
+        <div className={estilos.dato}>
+          <span className={estilos.datoRotulo}>Año académico</span>
+          <span className={estilos.datoTexto}>
+            <Insignia tono={vigente === false ? 'rojo' : vigente ? 'verde' : 'gris'}>
+              {vigente === false ? 'No vigente' : vigente ? 'Vigente' : 'Sin verificar'}
+            </Insignia>
+          </span>
+        </div>
+      </div>
 
       {motivoBloqueo && <p className={estilos.resumen}>{motivoBloqueo}</p>}
 
