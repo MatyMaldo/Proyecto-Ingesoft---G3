@@ -18,7 +18,7 @@ function mostrar(url = '/pagos') {
 const esperarTabla = () => screen.findByRole('table', {}, { timeout: 3000 });
 const chipsMatricula = () => screen.getByRole('group', { name: 'Filtrar alumnos por estado de la matrícula' });
 const totalMostrado = () =>
-  within(screen.getByRole('navigation', { name: 'Paginación de alumnos (superior)' })).getByRole('status');
+  within(screen.getByRole('navigation', { name: 'Paginación de alumnos' })).getByRole('status');
 
 describe('Pagos · listado de alumnos, filtros y acciones', () => {
   it('pone en la cabecera el título y la acción global, sin sobretítulo', async () => {
@@ -27,7 +27,7 @@ describe('Pagos · listado de alumnos, filtros y acciones', () => {
 
     const cabecera = screen.getByRole('banner');
     expect(within(cabecera).getByRole('heading', { name: 'Pagos' })).toBeInTheDocument();
-    expect(within(cabecera).getByRole('button', { name: 'Emitir compromisos de pensión' })).toBeEnabled();
+    expect(within(cabecera).getByRole('button', { name: 'Emitir pensiones' })).toBeEnabled();
     expect(within(cabecera).queryByText('Módulo de pagos')).not.toBeInTheDocument();
   });
 
@@ -45,17 +45,20 @@ describe('Pagos · listado de alumnos, filtros y acciones', () => {
     expect(screen.queryByRole('button', { name: 'Limpiar filtros' })).not.toBeInTheDocument();
   });
 
-  it('pagina de 10 en 10 con el total arriba y abajo', async () => {
+  it('pagina de 10 en 10 con un solo paginador en el pie', async () => {
     mostrar();
     const tabla = await esperarTabla();
 
     expect(within(tabla).getAllByRole('row')).toHaveLength(11);
     expect(totalMostrado()).toHaveTextContent('1 – 10 de 14 alumnos');
-    expect(screen.getByRole('navigation', { name: 'Paginación de alumnos (inferior)' })).toBeInTheDocument();
+    expect(screen.getAllByRole('navigation', { name: 'Paginación de alumnos' })).toHaveLength(1);
+    // Con 14 alumnos solo se puede elegir 10; 25, 50 y 100 quedan bloqueadas.
+    expect(within(screen.getByRole('group', { name: 'Filas por página' })).getByRole('button', { name: '25' })).toBeDisabled();
 
-    await userEvent.click(within(screen.getByRole('navigation', { name: 'Paginación de alumnos (inferior)' }))
+    await userEvent.click(within(screen.getByRole('navigation', { name: 'Paginación de alumnos' }))
       .getByRole('button', { name: /siguiente/i }));
-    expect(within(tabla).getAllByRole('row')).toHaveLength(5);
+    // La tabla se vuelve a montar al cambiar de página: se consulta de nuevo.
+    expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(5);
     expect(totalMostrado()).toHaveTextContent('11 – 14 de 14 alumnos');
   });
 
@@ -122,19 +125,20 @@ describe('Pagos · listado de alumnos, filtros y acciones', () => {
     mostrar();
     const tabla = await esperarTabla();
 
-    expect(within(tabla).getByRole('button', { name: 'Emitir compromiso de pensión de Mateo Herrera Campos' })).toBeEnabled();
+    // "Ver pagos" es la acción principal; emitir la pensión va en el menú ⋯ de la fila.
     expect(within(tabla).getByRole('button', { name: 'Ver compromisos y pagos de Mateo Herrera Campos' })).toBeInTheDocument();
-    // Lucas Torres Vega tiene la matrícula pendiente: no se emite su pensión y el motivo se lee, no solo se ve.
-    const pendiente = within(tabla).getByRole('button', { name: 'Emitir compromiso de pensión de Lucas Torres Vega' });
-    expect(pendiente).toBeDisabled();
-    expect(pendiente).toHaveAccessibleDescription('La pensión estará disponible cuando la matrícula esté confirmada.');
+    await userEvent.click(within(tabla).getByRole('button', { name: 'Más acciones de Mateo Herrera Campos' }));
+    expect(screen.getByRole('menuitem', { name: 'Emitir compromiso de pensión de Mateo Herrera Campos' })).toBeInTheDocument();
+    // Lucas Torres Vega tiene la matrícula pendiente: no se le ofrece emitir la pensión (ni tiene menú).
+    expect(within(tabla).queryByRole('button', { name: 'Más acciones de Lucas Torres Vega' })).not.toBeInTheDocument();
   });
 
   it('emite el compromiso de pensión de un alumno desde un diálogo y avisa con la notificación', async () => {
     mostrar();
     const tabla = await esperarTabla();
 
-    await userEvent.click(within(tabla).getByRole('button', { name: 'Emitir compromiso de pensión de Mateo Herrera Campos' }));
+    await userEvent.click(within(tabla).getByRole('button', { name: 'Más acciones de Mateo Herrera Campos' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Emitir compromiso de pensión de Mateo Herrera Campos' }));
     const dialogo = screen.getByRole('dialog', { name: 'Emitir compromiso de pensión' });
     const emitir = within(dialogo).getByRole('button', { name: 'Emitir compromiso' });
     expect(emitir).toBeDisabled();
@@ -151,7 +155,7 @@ describe('Pagos · listado de alumnos, filtros y acciones', () => {
     mostrar();
     await esperarTabla();
 
-    await userEvent.click(screen.getByRole('button', { name: 'Emitir compromisos de pensión' }));
+    await userEvent.click(screen.getByRole('button', { name: 'Emitir pensiones' }));
     const dialogo = screen.getByRole('dialog', { name: 'Emitir compromisos de pensión' });
     expect(within(dialogo).getByLabelText('Año académico')).toBeInTheDocument();
     expect(within(dialogo).getByLabelText('Mes')).toBeInTheDocument();
@@ -176,5 +180,24 @@ describe('Pagos · listado de alumnos, filtros y acciones', () => {
 
     await userEvent.click(confirmar);
     expect(within(rechazo).getByText('Escribe el motivo del rechazo.')).toBeInTheDocument();
+  });
+  it('el detalle de un pago reemplaza a la lista, ofrece decidir y permite volver a ella', async () => {
+    mostrar();
+    const tabla = await esperarTabla();
+
+    await userEvent.click(within(tabla).getByRole('button', { name: 'Ver compromisos y pagos de Mateo Herrera Campos' }));
+    const lista = screen.getByRole('dialog', { name: 'Mateo Herrera Campos' });
+    await userEvent.click(await within(lista).findByRole('button', { name: 'Ver detalle del pago #9002' }, { timeout: 3000 }));
+
+    // El detalle ocupa el lugar de la lista (no se apila otro diálogo) y trae las decisiones en el pie.
+    const detalle = await screen.findByRole('dialog', { name: 'Pago #9002' });
+    expect(screen.getAllByRole('dialog')).toHaveLength(1);
+    expect(await within(detalle).findByRole('button', { name: 'Validar' }, { timeout: 3000 })).toBeInTheDocument();
+    expect(within(detalle).getByRole('button', { name: 'Rechazar' })).toBeInTheDocument();
+    // "Motivo de rechazo" solo aparece si el pago está rechazado.
+    expect(within(detalle).queryByText('Motivo de rechazo')).not.toBeInTheDocument();
+
+    await userEvent.click(within(detalle).getByRole('button', { name: 'Volver a los pagos' }));
+    expect(await screen.findByRole('dialog', { name: 'Mateo Herrera Campos' })).toBeInTheDocument();
   });
 });

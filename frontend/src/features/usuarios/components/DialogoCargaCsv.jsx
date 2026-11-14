@@ -279,8 +279,8 @@ export default function DialogoCargaCsv({ usuarios, alImportar, alRecargar, alIm
         rol: ROL_POR_TIPO_REGISTRO[fila.tipoUsuario],
         correo: fila.correo,
         activo: true,
-        ...(fila.edad ? { edad: Number(fila.edad) } : {}),
         ...(telefono ? { telefono } : {}),
+        ...(fila.tipoUsuario === 'apoderado' ? { fechaNacimiento: fila.fechaNacimiento } : {}),
         ...(fila.tipoUsuario === 'estudiante' ? {
           codigoEstudiante,
           fechaNacimiento: fila.fechaNacimiento,
@@ -441,7 +441,7 @@ export default function DialogoCargaCsv({ usuarios, alImportar, alRecargar, alIm
                   <div>
                     Cada estudiante necesita el DNI de un apoderado ya registrado o incluido en este mismo archivo. El orden de las filas
                     no importa: se registran primero los apoderados, luego los docentes y al final los estudiantes.
-                    El archivo no lleva contraseñas: cada usuario recibirá un código de verificación en su correo para crear la suya.
+                    El archivo no lleva contraseñas: cada usuario podrá obtener la suya para acceder a la app.
                     Cada fila se registra por separado: si una falla, las demás continúan y los usuarios ya creados no se revierten.
                   </div>
                 </div>

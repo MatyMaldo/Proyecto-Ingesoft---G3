@@ -320,6 +320,44 @@ export async function listarPagosAgrupados({
   return respuesta;
 }
 
+/**
+ * Cuántos pagos esperan validación (estado PENDIENTE) por estudiante, en todo el año. Recorre los compromisos del año
+ * (`/pagos/admin/agrupados` sin grado ni sección) en páginas de 100.
+ *
+ * @param {number|string} anioId
+ * @returns {Promise<{ exitoso: boolean, datos: Object<string, number>|null, mensaje: string }>} Mapa
+ *   `idEstudiante → cantidad` (solo los que tienen alguno).
+ */
+export async function contarPagosPorValidar(anioId) {
+  const MAXIMO_PAGINAS = 30;
+  const porEstudiante = {};
+
+  for (let pagina = 0; pagina < MAXIMO_PAGINAS; pagina += 1) {
+    const respuesta = USAR_MOCK
+      ? await listarPagosAgrupadosMock({ page: pagina, size: 100 })
+      : await solicitar('/pagos/admin/agrupados', {
+        parametros: { anioAcademicoId: Number(anioId), page: pagina, size: 100 }
+      });
+    if (!respuesta.exitoso) return { exitoso: false, datos: null, mensaje: respuesta.mensaje };
+
+    const datos = respuesta.datos;
+    if (!datos || !Array.isArray(datos.content)) return falloFormato('los pagos por validar');
+
+    for (const compromiso of datos.content) {
+      if (compromiso.estudianteId == null) continue;
+      const pendientes = (compromiso.pagos ?? []).filter((pago) => pago.estado === 'PENDIENTE').length;
+      if (pendientes > 0) {
+        const clave = String(compromiso.estudianteId);
+        porEstudiante[clave] = (porEstudiante[clave] ?? 0) + pendientes;
+      }
+    }
+
+    if (pagina + 1 >= (datos.totalPages ?? 1)) break;
+  }
+
+  return { exitoso: true, datos: porEstudiante, mensaje: '' };
+}
+
 export async function obtenerPagoAdmin(pagoId) {
   if (USAR_MOCK) return obtenerPagoAdminMock(pagoId);
   return solicitar(`/pagos/admin/${encodeURIComponent(pagoId)}`);

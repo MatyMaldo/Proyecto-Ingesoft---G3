@@ -63,30 +63,39 @@ describe('Consulta de horario del administrador', () => {
     expect(within(selector).queryByRole('option', { name: `A (${anioActual + 1})` })).not.toBeInTheDocument();
   });
 
-  it('muestra grado y sección como filtros aplicados y los quita con "Limpiar filtros"', async () => {
+  it('ofrece "Limpiar filtros" junto a "Actualizar" solo cuando hay filtros, sin chips de resultado', async () => {
     render(<PaginaVisualizadorHorario />);
+    await screen.findByRole('option', { name: 'Primer grado' }, ESPERA);
+
+    expect(screen.queryByRole('button', { name: 'Limpiar filtros' })).not.toBeInTheDocument();
 
     await elegirSeccion();
 
-    expect(await screen.findByText('Grado: Primer grado', {}, ESPERA)).toBeInTheDocument();
-    expect(screen.getByText('Sección: B')).toBeInTheDocument();
+    const limpiar = await screen.findByRole('button', { name: 'Limpiar filtros' }, ESPERA);
+    expect(screen.queryByRole('list', { name: 'Filtros aplicados' })).not.toBeInTheDocument();
+    expect(screen.queryByText('Grado: Primer grado')).not.toBeInTheDocument();
+    const filaModo = screen.getByRole('button', { name: 'Actualizar' }).closest('div[class*="filaModo"]');
+    expect(filaModo).toContainElement(limpiar);
 
-    fireEvent.click(screen.getByRole('button', { name: 'Limpiar filtros' }));
+    fireEvent.click(limpiar);
 
     expect(
       await screen.findByText('Selecciona un grado y una sección para consultar su horario.', {}, ESPERA)
     ).toBeInTheDocument();
-    expect(screen.queryByText('Grado: Primer grado')).not.toBeInTheDocument();
+    expect(screen.getByLabelText('Grado')).toHaveValue('');
+    expect(screen.queryByRole('button', { name: 'Limpiar filtros' })).not.toBeInTheDocument();
   });
 
-  it('al quitar el grado también se quita la sección elegida', async () => {
+  it('pone los selectores debajo de "Consultar por" y "Actualizar" a su lado', async () => {
     render(<PaginaVisualizadorHorario />);
+    await screen.findByRole('radio', { name: 'Ver por sección' }, ESPERA);
 
-    await elegirSeccion();
-    fireEvent.click(await screen.findByRole('button', { name: 'Quitar filtro Grado: Primer grado' }));
-
-    expect(screen.queryByText('Sección: B')).not.toBeInTheDocument();
-    expect(screen.getByLabelText('Grado')).toHaveValue('');
+    const filaModo = screen.getByRole('radio', { name: 'Ver por sección' }).closest('div[class*="filaModo"]');
+    expect(within(filaModo).getByRole('button', { name: 'Actualizar' })).toBeInTheDocument();
+    expect(within(filaModo).queryByLabelText('Grado')).not.toBeInTheDocument();
+    expect(
+      filaModo.compareDocumentPosition(screen.getByLabelText('Grado')) & Node.DOCUMENT_POSITION_FOLLOWING
+    ).toBeTruthy();
   });
 
   it('cambia entre ver por sección y ver por docente con el control segmentado', async () => {
@@ -108,8 +117,8 @@ describe('Consulta de horario del administrador', () => {
 
     render(<PaginaVisualizadorHorario />);
 
-    expect(await screen.findByText('Sección: B', {}, ESPERA)).toBeInTheDocument();
-    expect(screen.getByText('Grado: Primer grado')).toBeInTheDocument();
+    await waitFor(() => expect(screen.getByLabelText('Sección')).toHaveValue('3'), ESPERA);
+    expect(screen.getByLabelText('Grado')).toHaveValue('1');
   });
 
   it('guarda los filtros elegidos en la URL', async () => {

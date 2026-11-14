@@ -1,31 +1,13 @@
 /**
- * Emoji decorativo de cada curso, tomado del prototipo. Es solo presentación (no viaja en la API),
- * por eso vive aquí y no en los datos. Un curso sin icono definido usa `ICONO_CURSO_POR_DEFECTO`.
+ * Ícono de cada curso. Todos usan el mismo estilo de línea del catálogo de `Icono`, para no mezclar
+ * trazos con emojis. Es solo presentación (no viaja en la API).
  */
-const ICONOS_POR_NOMBRE = Object.freeze({
-  matematicas: '📐',
-  comunicacion: '📖',
-  'ciencias sociales': '🌍',
-  'ciencia y tecnologia': '🔬',
-  ingles: '🌐',
-  'educacion fisica': '⚽',
-  'arte y cultura': '🎨'
-});
-
-export const ICONO_CURSO_POR_DEFECTO = '📚';
-
-function normalizar(texto) {
-  return texto
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .trim()
-    .toLowerCase();
-}
+export const ICONO_CURSO_POR_DEFECTO = 'libro';
 
 /**
- * @param {string} nombreCurso
- * @returns {string}
+ * @param {string} _nombreCurso
+ * @returns {string} Nombre del ícono en el catálogo de `Icono`.
  */
-export function obtenerIconoCurso(nombreCurso) {
-  return ICONOS_POR_NOMBRE[normalizar(nombreCurso)] ?? ICONO_CURSO_POR_DEFECTO;
+export function obtenerIconoCurso(_nombreCurso) {
+  return ICONO_CURSO_POR_DEFECTO;
 }

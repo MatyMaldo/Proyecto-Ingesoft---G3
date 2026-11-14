@@ -2,6 +2,7 @@ import { useEffect, useId, useRef, useState } from 'react';
 
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
+import Insignia from '../../../shared/components/Insignia.jsx';
 import DialogoBase from '../../../shared/components/DialogoBase.jsx';
 import ProgresoOperacionMasiva from '../../../shared/components/ProgresoOperacionMasiva.jsx';
 import { crearClaveIdempotencia } from '../../../shared/api/operacionesMasivasService.js';
@@ -71,17 +72,23 @@ export default function ModalComprobante({ anios, anioInicialId, onCerrar, opera
     && !operacion?.enCurso
     && !operacion?.job;
 
-  const mensajePeriodo = (() => {
+  // Un solo mensaje, y solo cuando algo impide emitir: la cifra y la insignia ya dicen el resto.
+  const motivoBloqueo = (() => {
     if (!periodo) return 'No se pudo verificar el período de matrícula.';
-    if (periodo.estado === 'VIGENTE') return 'Período de matrícula vigente.';
-    if (periodo.estado === 'FINALIZADO') {
-      return 'El período de matrícula finalizó; no se pueden emitir compromisos.';
-    }
-    if (periodo.estado === 'SIN_INICIAR') {
-      return 'El período de matrícula aún no inicia.';
-    }
-    return 'Estado de período no reconocido.';
+    if (periodo.estado === 'FINALIZADO') return 'El período de matrícula finalizó; no se pueden emitir compromisos.';
+    if (periodo.estado === 'SIN_INICIAR') return 'El período de matrícula aún no inicia.';
+    if (periodo.estado !== 'VIGENTE') return 'Estado de período no reconocido.';
+    if (!hayPendientes) return 'No hay matrículas pendientes para emitir.';
+    return '';
   })();
+  const tonoPeriodo = periodo?.estado === 'VIGENTE' ? 'verde' : periodo?.estado === 'SIN_INICIAR' ? 'ambar' : 'rojo';
+  const etiquetaPeriodo = periodo?.estado === 'VIGENTE'
+    ? 'Vigente'
+    : periodo?.estado === 'FINALIZADO'
+      ? 'Finalizado'
+      : periodo?.estado === 'SIN_INICIAR'
+        ? 'Sin iniciar'
+        : 'Sin verificar';
 
   const ejecutar = async (evento) => {
     evento.preventDefault();
@@ -114,6 +121,7 @@ export default function ModalComprobante({ anios, anioInicialId, onCerrar, opera
       confirmarDeshabilitado={!puedeEmitir}
       error={errorEmision || operacion?.error || null}
       anchoMaximo="32rem"
+      cerrarAlClicFuera={false}
       botonesExpandidos
       alCancelar={onCerrar}
       alConfirmar={ejecutar}
@@ -163,13 +171,19 @@ export default function ModalComprobante({ anios, anioInicialId, onCerrar, opera
 
       {estado === 'listo' && (
         <>
-          <p className={estilos.resumen}>
-            Matrículas pendientes: <strong>{cantidadPendientes ?? 0}</strong>
-          </p>
-          <p className={estilos.resumen}>{mensajePeriodo}</p>
-          {!hayPendientes && (
-            <p className={estilos.resumen}>No hay matrículas pendientes para emitir.</p>
-          )}
+          <div className={estilos.datos}>
+            <div className={estilos.dato}>
+              <span className={estilos.datoRotulo}>Matrículas pendientes</span>
+              <span className={estilos.datoValor}>{cantidadPendientes ?? 0}</span>
+            </div>
+            <div className={estilos.dato}>
+              <span className={estilos.datoRotulo}>Período de matrícula</span>
+              <span className={estilos.datoTexto}>
+                <Insignia tono={tonoPeriodo}>{etiquetaPeriodo}</Insignia>
+              </span>
+            </div>
+          </div>
+          {motivoBloqueo && <p className={estilos.resumen}>{motivoBloqueo}</p>}
         </>
       )}
 

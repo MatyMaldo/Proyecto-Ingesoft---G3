@@ -12,7 +12,7 @@
 }
 
 .tabla thead th {
-  padding: var(--espacio-3) var(--espacio-4);
+  padding: var(--espacio-2) var(--espacio-4);
   background: var(--color-superficie-suave);
   color: var(--color-texto-secundario);
   font-size: var(--texto-xs);
@@ -25,8 +25,9 @@
 }
 
 .tabla tbody td {
-  height: 48px;
-  padding: var(--espacio-2) var(--espacio-4);
+  /* Alto fijo para todas las filas (con o sin código de estudiante): un contenido de dos líneas no las desiguala. */
+  height: 42px;
+  padding: var(--espacio-1) var(--espacio-4);
   vertical-align: middle;
   border-bottom: 1px solid var(--color-borde);
   font-size: var(--texto-md);
@@ -127,14 +128,15 @@
 
 .nombre {
   display: block;
+  line-height: 1.2;
   font-weight: var(--peso-medio);
   color: var(--color-texto);
 }
 
 .codigo {
   display: block;
-  margin-top: 2px;
   font-size: var(--texto-xs);
+  line-height: 1.2;
   color: var(--color-texto-suave);
 }
 
@@ -157,7 +159,7 @@
 }
 
 /*
- * Botones de ícono de la tabla (Editar y Activar/Desactivar): cuadrado de 36 px con el área táctil
+ * Botones de ícono de la tabla (Editar y Activar/Desactivar): cuadrado de 32 px con el área táctil
  * ampliada a 44 px. El color del ícono anticipa lo que hace (azul edita, rojo desactiva, verde activa);
  * el nombre accesible y el tooltip dicen la acción con texto.
  */
@@ -166,9 +168,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 36px;
-  min-height: 36px;
-  height: 36px;
+  width: 32px;
+  min-height: 32px;
+  height: 32px;
   padding: 0;
   background: var(--color-superficie);
   border: 1px solid var(--color-borde-fuerte);
@@ -327,6 +329,47 @@
 
 .correoTarjeta {
   overflow-wrap: anywhere;
+}
+
+/* Pantalla alta: hay espacio de sobra, así que las filas recuperan la altura holgada del estándar GUI (48 px). */
+@media (min-width: 768px) and (min-height: 860px) {
+  /* El relleno vertical sigue en 4 px: con botones de 36 px y dos líneas de texto, 8 px haría que las filas
+     superaran los 48 px. */
+  .tabla tbody td {
+    height: 48px;
+  }
+
+  .tabla thead th {
+    padding: var(--espacio-3) var(--espacio-4);
+  }
+
+  .botonIcono {
+    width: 36px;
+    min-height: 36px;
+    height: 36px;
+  }
+}
+
+/* Escritorio: la tabla es la única zona con desplazamiento vertical (encabezado fijo); la página no. */
+@media (min-width: 768px) {
+  .contenedor {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .vistaTabla {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .tabla thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
 }
 
 @media (max-width: 767px) {

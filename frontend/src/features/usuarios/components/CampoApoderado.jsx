@@ -3,7 +3,7 @@ import Icono from '../../../shared/components/Icono.jsx';
 import estilos from './CampoApoderado.module.css';
 
 /**
- * Búsqueda del apoderado de un estudiante por su DNI o carné de extranjería. Muestra el apoderado encontrado
+ * Búsqueda del apoderado de un estudiante por su DNI. Muestra el apoderado encontrado
  * con un botón para quitarlo. La búsqueda en sí (y qué apoderados son válidos) la decide quien lo usa.
  *
  * @param {Object} props
@@ -37,7 +37,7 @@ export default function CampoApoderado({ valor, alCambiar, alBuscar, alQuitar, a
               alBuscar();
             }
           }}
-          placeholder="Ingrese DNI o Carné de Extranjería..."
+          placeholder="Ingrese el DNI..."
           required
           aria-invalid={error ? true : undefined}
           aria-describedby={error ? idError : undefined}

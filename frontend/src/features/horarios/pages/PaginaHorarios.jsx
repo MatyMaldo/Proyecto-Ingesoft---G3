@@ -1,10 +1,12 @@
-import { useState } from 'react';
+import { useEffect, useState } from 'react';
 
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
+import MenuDesplegable from '../../../shared/components/MenuDesplegable.jsx';
 import Notificacion from '../../../shared/components/Notificacion.jsx';
 import useNotificacion from '../../../shared/hooks/useNotificacion.js';
 import useOperacionMasiva from '../../../shared/hooks/useOperacionMasiva.js';
+import estilosUtil from '../../../shared/styles/utilidades.module.css';
 import DialogoAsignacion from '../components/DialogoAsignacion.jsx';
 import DialogoBloque from '../components/DialogoBloque.jsx';
 import DialogoCargaMasiva from '../components/DialogoCargaMasiva.jsx';
@@ -12,9 +14,11 @@ import DialogoCargaDocente from '../components/DialogoCargaDocente.jsx';
 import DialogoDescartarCambios from '../components/DialogoDescartarCambios.jsx';
 import DialogoSesiones from '../components/DialogoSesiones.jsx';
 import DialogoEliminarAsignacion from '../components/DialogoEliminarAsignacion.jsx';
+import EstadoPeriodo from '../components/EstadoPeriodo.jsx';
 import FiltrosHorario from '../components/FiltrosHorario.jsx';
 import MatrizHorario from '../components/MatrizHorario.jsx';
 import PanelConflictosHorario from '../components/PanelConflictosHorario.jsx';
+import PestanasHorario from '../components/PestanasHorario.jsx';
 import TablaAsignaciones from '../components/TablaAsignaciones.jsx';
 import useHorarios from '../hooks/useHorarios.js';
 import { exportarBorrador } from '../services/horariosService.js';
@@ -22,7 +26,6 @@ import { guardarArchivo } from '../utils/guardarArchivo.js';
 import estilos from './PaginaHorarios.module.css';
 
 const ID_TITULO_MATRIZ = 'horarios-titulo-matriz';
-
 /**
  * Página de Horarios (HU de horarios, EAC-16). Tres partes: filtros obligatorios de grado y
  * sección, relaciones curso-docente de esa sección y matriz semanal para asignar cada bloque.
@@ -66,7 +69,10 @@ export default function PaginaHorarios() {
   const [confirmacion, establecerConfirmacion] = useState(null);
   const [dialogoSesiones, establecerDialogoSesiones] = useState(false);
   const [dialogoCargaMasiva, establecerDialogoCargaMasiva] = useState(false);
-  const [dialogoCargaDocente, establecerDialogoCargaDocente] = useState(false);
+  // Asignación cuya carga horaria docente se está viendo.
+  const [docenteCarga, establecerDocenteCarga] = useState(null);
+  // Pestaña elegida por la persona; sin elección (`null`) se decide según el periodo (ver `vistaActiva`).
+  const [vista, establecerVista] = useState(null);
   const [bloqueResaltado, establecerBloqueResaltado] = useState(null);
   const [versionResaltado, establecerVersionResaltado] = useState(0);
   const [panelConflictosVisible, establecerPanelConflictosVisible] = useState(false);
@@ -103,6 +109,14 @@ export default function PaginaHorarios() {
   });
 
   const sinRelaciones = asignaciones.lista.length === 0;
+  // Con las asignaciones cerradas por el periodo el trabajo está en la matriz, y se abre ahí.
+  const vistaActiva = vista
+    ?? (asignaciones.soloLectura && !sinRelaciones ? 'matriz' : 'asignaciones');
+
+  // Al consultar otra sección vuelve a decidirse la pestaña inicial.
+  useEffect(() => {
+    establecerVista(null);
+  }, [tituloConsulta]);
   const sinBloquesGuardados = Object.keys(horario.bloquesGuardados).length === 0;
 
   function solicitarVerHorario() {
@@ -243,37 +257,87 @@ export default function PaginaHorarios() {
     return error;
   }
 
+  /** Acciones secundarias del pie de la matriz. Si no están disponibles se explica el motivo al elegirlas. */
+  const accionesPie = [
+    {
+      id: 'exportar-borrador',
+      etiqueta: 'Exportar borrador',
+      icono: 'archivo',
+      alSeleccionar: () => {
+        if (Object.keys(horario.bloques).length === 0) {
+          mostrarNotificacion('No hay bloques en la grilla para exportar.', true);
+          return;
+        }
+        exportarBorradorActual();
+      }
+    }
+  ];
+
+  /** Por qué «Generar sesiones» no está disponible (vacío si lo está). */
+  const motivoSinSesiones = !puedeGenerarSesiones
+    ? 'La generación de sesiones se habilita desde el inicio del primer bimestre.'
+    : horario.hayCambios
+      ? 'Guarda el horario antes de generar sesiones.'
+      : sinBloquesGuardados
+        ? 'Asigna y guarda al menos un bloque para generar sesiones.'
+        : undefined;
+
+  const motivoSinCargaMasiva = !puedeEditarBloques
+    ? 'La carga masiva solo está disponible mientras el periodo de matrícula está vigente.'
+    : undefined;
+
+  /** La misma matriz se pinta en la página (con scroll interno) y en el diálogo ampliado. */
+  function pintarMatriz(ajustarAlto) {
+    return (
+      <MatrizHorario
+        titulo={tituloConsulta}
+        bloques={horario.bloques}
+        bloquesGuardados={horario.bloquesGuardados}
+        asignaciones={asignaciones.lista}
+        aulas={catalogos.aulas}
+        ocupaciones={horario.ocupaciones}
+        conflictos={horario.conflictos}
+        bloqueResaltado={horario.conflictos.length > 0 ? bloqueResaltado : null}
+        versionResaltado={versionResaltado}
+        deshabilitada={sinRelaciones}
+        ajustarAlto={ajustarAlto}
+        soloLectura={horario.soloLectura}
+        alElegirBloque={establecerBloqueElegido}
+        alQuitarBloque={horario.quitarBloque}
+        alMoverBloque={moverBloque}
+      />
+    );
+  }
+
   return (
     <div className={estilos.pagina}>
       <header className={estilos.cabecera}>
-        <p className={estilos.sobretitulo}>Módulo de gestión</p>
-        <h1 className={estilos.titulo}>Horarios</h1>
-        <p className={estilos.descripcion}>
-          Elige el grado y la sección para definir sus cursos y docentes, y armar el horario semanal.
-        </p>
+        <div className={estilos.textoCabecera}>
+          <h1 className={estilos.titulo}>Horarios</h1>
+          <p className={estilos.descripcion}>Define cursos, docentes y bloques por sección.</p>
+        </div>
+        <div className={estilos.acciones}>
+          <button
+            type="button"
+            className={estilos.botonPrimario}
+            disabled={estadoCatalogos !== 'listo' || !puedeEditarBloques}
+            title={motivoSinCargaMasiva}
+            onClick={() => establecerDialogoCargaMasiva(true)}
+          >
+            <Icono nombre="subir" tamano={18} />
+            Carga masiva
+          </button>
+        </div>
       </header>
 
-      {estadoPeriodo === 'cargando' && (
-        <p className={estilos.periodoCargando}>Consultando el estado del periodo de matrícula…</p>
-      )}
-      {estadoPeriodo === 'error' && (
-        <p className={estilos.periodoError} role="alert">
-          {errorPeriodo} Las acciones de horario quedan deshabilitadas.
-        </p>
-      )}
-      {estadoPeriodo === 'listo' && periodo && (
-        <section className={estilos.periodo} aria-label="Estado del periodo de matrícula">
-          <div>
-            <p className={estilos.periodoEtiqueta}>Periodo de matrícula</p>
-            <p className={estilos.periodoEstado}>{periodo.estado}</p>
-          </div>
-          <p className={estilos.periodoDetalle}>
-            Asignaciones {puedeEditarAsignaciones ? 'abiertas' : 'cerradas'} ·{' '}
-            Bloques {puedeEditarBloques ? 'abiertos' : 'cerrados'} ·{' '}
-            Sesiones {puedeGenerarSesiones ? 'abiertas' : 'cerradas'}
-          </p>
-        </section>
-      )}
+      <EstadoPeriodo
+        estado={estadoPeriodo}
+        periodo={periodo}
+        error={errorPeriodo}
+        asignacionesAbiertas={puedeEditarAsignaciones}
+        bloquesAbiertos={puedeEditarBloques}
+        sesionesAbiertas={puedeGenerarSesiones}
+      />
 
       {estadoCatalogos === 'error' ? (
         <EstadoConsulta
@@ -291,44 +355,6 @@ export default function PaginaHorarios() {
           alCambiarGrado={seleccionarGrado}
           alCambiarSeccion={seleccionarSeccion}
           alVerHorario={solicitarVerHorario}
-          acciones={(
-            <>
-              <button
-                type="button"
-                className={estilos.botonCargaMasiva}
-                disabled={
-                  estadoCatalogos !== 'listo'
-                  || !anioVigente?.id
-                  || (catalogos.docentes ?? []).length === 0
-                }
-                title={
-                  !anioVigente?.id
-                    ? 'No hay un año académico vigente para consultar la carga docente.'
-                    : (catalogos.docentes ?? []).length === 0
-                      ? 'No hay docentes activos disponibles.'
-                      : undefined
-                }
-                onClick={() => establecerDialogoCargaDocente(true)}
-              >
-                <Icono nombre="reloj" tamano={18} />
-                Carga docente
-              </button>
-              <button
-                type="button"
-                className={estilos.botonCargaMasiva}
-                disabled={estadoCatalogos !== 'listo' || !puedeEditarBloques}
-                title={
-                  !puedeEditarBloques
-                    ? 'La carga masiva solo está disponible con el periodo en VIGENTE.'
-                    : undefined
-                }
-                onClick={() => establecerDialogoCargaMasiva(true)}
-              >
-                <Icono nombre="subir" tamano={18} />
-                Carga masiva
-              </button>
-            </>
-          )}
         />
       )}
       {estadoCatalogos === 'listo' && estadoSecciones === 'error' && (
@@ -342,27 +368,53 @@ export default function PaginaHorarios() {
       {!consulta && estadoCatalogos === 'listo' && (
         <EstadoConsulta
           tipo="vacio"
+          icono="calendario"
           mensaje="Selecciona un grado y una sección, y pulsa «Ver horario»."
         />
       )}
 
       {consulta && (
         <>
-          <TablaAsignaciones
-            key={tituloConsulta}
-            estado={asignaciones.estado}
-            asignaciones={asignaciones.lista}
-            soloLectura={asignaciones.soloLectura}
-            agregarDeshabilitado={asignaciones.agregarDeshabilitado}
-            alReintentar={asignaciones.reintentar}
-            alAgregar={() => establecerDialogoAsignacion(true)}
-            alEditar={establecerAsignacionAEditar}
-            alEliminar={establecerAsignacionAEliminar}
+          <PestanasHorario
+            etiqueta="Contenido de Horarios"
+            valor={vistaActiva}
+            alCambiar={establecerVista}
+            opciones={[
+              { id: 'asignaciones', etiqueta: 'Asignaciones' },
+              {
+                id: 'matriz',
+                etiqueta: 'Matriz de horarios',
+                aviso: horario.hayCambios ? 'cambios sin guardar' : undefined
+              }
+            ]}
           />
 
-          <section className={estilos.seccionMatriz} aria-labelledby={ID_TITULO_MATRIZ}>
-            <h2 id={ID_TITULO_MATRIZ} className={estilos.tituloMatriz}>
-              Matriz de Horarios — <span className={estilos.seccionActual}>{tituloConsulta}</span>
+          {vistaActiva === 'asignaciones' && (
+            <div id="panel-asignaciones" role="tabpanel" aria-labelledby="pestana-asignaciones">
+              <TablaAsignaciones
+                key={tituloConsulta}
+                estado={asignaciones.estado}
+                asignaciones={asignaciones.lista}
+                soloLectura={asignaciones.soloLectura}
+                agregarDeshabilitado={asignaciones.agregarDeshabilitado}
+                alReintentar={asignaciones.reintentar}
+                alAgregar={() => establecerDialogoAsignacion(true)}
+                alEditar={establecerAsignacionAEditar}
+                alEliminar={establecerAsignacionAEliminar}
+                alVerCarga={anioVigente?.id ? establecerDocenteCarga : undefined}
+              />
+            </div>
+          )}
+
+          {vistaActiva === 'matriz' && (
+          <section
+            id="panel-matriz"
+            role="tabpanel"
+            className={estilos.seccionMatriz}
+            aria-labelledby={ID_TITULO_MATRIZ}
+          >
+            <h2 id={ID_TITULO_MATRIZ} className={estilosUtil.ocultoVisualmente}>
+              Matriz de horarios de {tituloConsulta}
             </h2>
 
             {horario.estado === 'cargando' && <EstadoConsulta tipo="carga" filasEsqueleto={4} />}
@@ -378,26 +430,11 @@ export default function PaginaHorarios() {
                 {sinRelaciones && (
                   <p className={estilos.avisoVacio} role="status">
                     <Icono nombre="informacion" tamano={18} />
-                    Agrega al menos una relación curso-docente en la tabla de arriba para poder asignar bloques.
+                    Agrega al menos una relación curso-docente en la pestaña «Asignaciones» para poder asignar bloques.
                   </p>
                 )}
 
-                <MatrizHorario
-                  titulo={tituloConsulta}
-                  bloques={horario.bloques}
-                  bloquesGuardados={horario.bloquesGuardados}
-                  asignaciones={asignaciones.lista}
-                  aulas={catalogos.aulas}
-                  ocupaciones={horario.ocupaciones}
-                  conflictos={horario.conflictos}
-                  bloqueResaltado={horario.conflictos.length > 0 ? bloqueResaltado : null}
-                  versionResaltado={versionResaltado}
-                  deshabilitada={sinRelaciones}
-                  soloLectura={horario.soloLectura}
-                  alElegirBloque={establecerBloqueElegido}
-                  alQuitarBloque={horario.quitarBloque}
-                  alMoverBloque={moverBloque}
-                />
+                {pintarMatriz(true)}
 
                 {panelConflictosVisible && horario.conflictos.length > 0 && (
                   <PanelConflictosHorario
@@ -412,44 +449,31 @@ export default function PaginaHorarios() {
                 <div className={estilos.pieMatriz}>
                   <button
                     type="button"
-                    className={estilos.botonExportar}
-                    disabled={!consulta || Object.keys(horario.bloques).length === 0}
-                    title={
-                      !consulta
-                        ? 'Selecciona una sección para exportar su borrador.'
-                        : Object.keys(horario.bloques).length === 0
-                          ? 'No hay bloques en la grilla para exportar.'
-                          : 'Exporta la grilla actual, incluso si tiene cambios sin guardar.'
-                    }
-                    onClick={exportarBorradorActual}
-                  >
-                    <Icono nombre="archivo" tamano={18} />
-                    Exportar borrador
-                  </button>
-                  <button
-                    type="button"
-                    className={estilos.botonSesiones}
-                    disabled={sinBloquesGuardados || horario.hayCambios || !puedeGenerarSesiones}
-                    title={
-                      !puedeGenerarSesiones
-                        ? 'La generación de sesiones se habilita desde el inicio del primer bimestre.'
-                        : horario.hayCambios
-                          ? 'Guarda el horario antes de generar sesiones.'
-                          : sinBloquesGuardados
-                            ? 'Asigna y guarda al menos un bloque para generar sesiones.'
-                            : undefined
-                    }
+                    className={estilos.botonSecundario}
+                    disabled={Boolean(motivoSinSesiones)}
+                    title={motivoSinSesiones}
                     onClick={() => establecerDialogoSesiones(true)}
                   >
                     <Icono nombre="reloj" tamano={18} />
                     Generar sesiones
                   </button>
-                  {horario.hayCambios && (
-                    <span className={estilos.avisoCambios}>Tienes cambios sin guardar.</span>
+                  <MenuDesplegable
+                    etiquetaBoton="Más acciones del horario"
+                    claseBoton={estilos.botonMas}
+                    alineacion="inicio"
+                    contenidoBoton={<Icono nombre="mas-opciones" tamano={20} />}
+                    items={accionesPie}
+                  />
+                  {horario.hayCambios ? (
+                    <span className={estilos.avisoCambios} role="status">Tienes cambios sin guardar.</span>
+                  ) : (
+                    motivoSinSesiones && (
+                      <span className={estilos.avisoSesiones}>{motivoSinSesiones}</span>
+                    )
                   )}
                   <button
                     type="button"
-                    className={estilos.botonDescartar}
+                    className={`${estilos.botonSecundario} ${estilos.empujarDerecha}`}
                     disabled={!horario.hayCambios || horario.guardando}
                     onClick={() => establecerConfirmacion('descartar')}
                   >
@@ -457,7 +481,7 @@ export default function PaginaHorarios() {
                   </button>
                   <button
                     type="button"
-                    className={estilos.botonGuardar}
+                    className={estilos.botonPrimario}
                     disabled={!horario.hayCambios || horario.guardando || !puedeEditarBloques}
                     onClick={guardarHorario}
                   >
@@ -467,6 +491,7 @@ export default function PaginaHorarios() {
               </>
             )}
           </section>
+          )}
         </>
       )}
 
@@ -536,13 +561,12 @@ export default function PaginaHorarios() {
         />
       )}
 
-      {dialogoCargaDocente && (
+      {docenteCarga && (
         <DialogoCargaDocente
-          docentes={catalogos.docentes}
+          docente={{ id: docenteCarga.docenteId, nombre: docenteCarga.docenteNombre }}
           anioId={anioVigente?.id}
           anio={anioVigente?.anio}
-          docenteInicialId={asignaciones.lista[0]?.docenteId}
-          onCerrar={() => establecerDialogoCargaDocente(false)}
+          onCerrar={() => establecerDocenteCarga(null)}
         />
       )}
 

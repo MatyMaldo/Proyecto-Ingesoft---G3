@@ -79,6 +79,20 @@
   gap: var(--espacio-2);
 }
 
+.pistaPrimerIngreso {
+  margin: 0;
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+  /* Una sola línea; solo en pantallas muy angostas se permite partirla para no desbordar. */
+  white-space: nowrap;
+}
+
+@media (max-width: 359px) {
+  .pistaPrimerIngreso {
+    white-space: normal;
+  }
+}
+
 .opcionRecordar {
   display: flex;
   align-items: center;

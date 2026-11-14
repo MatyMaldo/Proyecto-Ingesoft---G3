@@ -25,6 +25,7 @@ export default function ModalDetallePagoApoderado({ pago, compromiso, onCerrar }
       textoCancelar="Cerrar"
       sinConfirmar
       anchoMaximo="64rem"
+      cerrarAlClicFuera={false}
       botonesExpandidos
       alCancelar={onCerrar}
       alConfirmar={evitarEnvio}

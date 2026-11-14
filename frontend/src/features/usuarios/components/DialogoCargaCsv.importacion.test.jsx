@@ -30,10 +30,10 @@ if (!Blob.prototype.text) {
 }
 
 const CSV = [
-  'tipoUsuario,nombre,apellidoPaterno,apellidoMaterno,dni,telefono,correo,edad,fechaNacimiento,dniApoderado',
-  'APODERADO,Carmen,Soto,Vega,10000011,900000011,carmen.soto@example.com,40,,',
-  'DOCENTE,Pedro,Rojas,Luna,10000012,900000012,pedro.rojas@example.com,,,',
-  'ESTUDIANTE,Diego,Soto,Ramos,10000013,900000013,diego.soto@example.com,,2012-03-15,10000011'
+  'tipoUsuario,nombre,apellidoPaterno,apellidoMaterno,dni,telefono,correo,fechaNacimiento,dniApoderado',
+  'APODERADO,Carmen,Soto,Vega,10000011,900000011,carmen.soto@example.com,1985-03-12,',
+  'DOCENTE,Pedro,Rojas,Luna,10000012,900000012,pedro.rojas@example.com,,',
+  'ESTUDIANTE,Diego,Soto,Ramos,10000013,900000013,diego.soto@example.com,2012-03-15,10000011'
 ].join('\r\n');
 
 const INICIO = { exitoso: true, datos: { jobId: 'job-1', estado: 'EN_COLA' }, mensaje: '' };
@@ -232,10 +232,10 @@ describe('DialogoCargaCsv · importación contra el backend', () => {
   it('pagina el resultado (8 filas por página) y permite ver solo las filas rechazadas', async () => {
     const TOTAL = 12;
     const csvGrande = [
-      'tipoUsuario,nombre,apellidoPaterno,apellidoMaterno,dni,telefono,correo,edad,fechaNacimiento,dniApoderado',
+      'tipoUsuario,nombre,apellidoPaterno,apellidoMaterno,dni,telefono,correo,fechaNacimiento,dniApoderado',
       ...Array.from({ length: TOTAL }, (_, i) => {
         const n = String(i + 1).padStart(2, '0');
-        return `APODERADO,Nombre${n},Apellido${n},Materno${n},200000${n},9000000${n},persona${n}@example.com,40,,`;
+        return `APODERADO,Nombre${n},Apellido${n},Materno${n},200000${n},9000000${n},persona${n}@example.com,1985-03-12,`;
       })
     ].join('\r\n');
     // Las filas del archivo son las líneas 2 a 13: se rechazan la 3 y la 12.

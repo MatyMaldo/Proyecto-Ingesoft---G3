@@ -32,3 +32,11 @@
 .contexto { padding: 16px; background: var(--color-superficie-suave); border-radius: var(--radio-sm); }
 .pie { margin-bottom: 0; }
 @media (max-width: 640px) { .tarjeta { padding: 16px; } .cabeceraTarjeta { flex-direction: column; } .filtros { grid-template-columns: 1fr; } .cabeceraTarjeta .primario { width: 100%; } }
+
+.ocupacion { display: flex; align-items: center; gap: 12px; font-variant-numeric: tabular-nums; white-space: nowrap; }
+.barraOcupacion { width: 96px; height: 8px; appearance: none; border: 0; border-radius: 999px; overflow: hidden; background: var(--color-borde); }
+.barraOcupacion::-webkit-progress-bar { background: var(--color-borde); }
+.barraOcupacion::-webkit-progress-value { background: var(--color-primario); border-radius: 999px; }
+.barraOcupacion::-moz-progress-bar { background: var(--color-primario); }
+.barraLlena::-webkit-progress-value { background: var(--color-peligro-texto); }
+.barraLlena::-moz-progress-bar { background: var(--color-peligro-texto); }

@@ -1,102 +1,54 @@
+/* Mismo orden y ritmo que Usuarios, Matrículas, Pagos y Cursos: barra de título con la acción principal a la derecha,
+   fila de filtros y contenido. En escritorio la página ocupa el alto y solo la matriz se desplaza. */
 .pagina {
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-6);
+  gap: var(--espacio-3);
 }
 
+/* Barra de título (GUI §6): título y descripción en la misma línea y las acciones a la derecha. */
 .cabecera {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-}
-
-.sobretitulo {
-  margin: 0 0 var(--espacio-1);
-  font-size: var(--texto-xs);
-  font-weight: var(--peso-seminegrita);
-  letter-spacing: var(--espaciado-letra-ancho);
-  text-transform: uppercase;
-  color: var(--color-texto-suave);
-}
-
-.titulo {
-  margin: 0;
-  font-size: var(--texto-titulo);
-  font-weight: var(--peso-seminegrita);
-  color: var(--color-texto);
-}
-
-.descripcion {
-  margin: var(--espacio-2) 0 0;
-  font-size: var(--texto-md);
-  color: var(--color-texto-suave);
-}
-
-.periodo {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
   justify-content: space-between;
   gap: var(--espacio-3);
-  padding: var(--espacio-3) var(--espacio-4);
-  background: var(--color-superficie-suave);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio-md);
 }
 
-.periodoEtiqueta {
+.textoCabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--espacio-1) var(--espacio-3);
+  min-width: 0;
+}
+
+.titulo {
   margin: 0;
-  font-size: var(--texto-xs);
-  font-weight: var(--peso-seminegrita);
-  letter-spacing: var(--espaciado-letra-ancho);
-  text-transform: uppercase;
-  color: var(--color-texto-suave);
-}
-
-.periodoEstado {
-  margin: var(--espacio-1) 0 0;
-  font-size: var(--texto-lg);
-  font-weight: var(--peso-seminegrita);
+  font-size: var(--texto-titulo);
+  font-weight: var(--peso-negrita);
   color: var(--color-texto);
 }
 
-.periodoDetalle {
+.descripcion {
   margin: 0;
-  font-size: var(--texto-md);
-  color: var(--color-texto-secundario);
-}
-
-.periodoCargando {
-  margin: 0;
-  font-size: var(--texto-md);
+  font-size: var(--texto-sm);
   color: var(--color-texto-suave);
 }
 
-.periodoError {
-  margin: 0;
-  padding: var(--espacio-3) var(--espacio-4);
-  font-size: var(--texto-md);
-  color: var(--color-peligro-texto);
-  background: var(--color-peligro-fondo);
-  border: 1px solid var(--color-peligro-texto);
-  border-radius: var(--radio-md);
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-3);
 }
 
+/* Pestaña «Matriz de horarios»: ocupa el alto restante y solo ella se desplaza (en escritorio). */
 .seccionMatriz {
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-4);
-}
-
-.tituloMatriz {
-  margin: 0;
-  font-size: var(--texto-lg);
-  font-weight: var(--peso-seminegrita);
-  color: var(--color-texto);
-}
-
-.seccionActual {
-  color: var(--color-primario-intenso);
+  gap: var(--espacio-3);
+  min-height: 22rem;
 }
 
 .avisoVacio {
@@ -112,12 +64,14 @@
   border-radius: var(--radio-md);
 }
 
+/* Pie fijo bajo la matriz: «⋯» a la izquierda; Descartar y Guardar a la derecha (Guardar es el único primario). */
 .pieMatriz {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  justify-content: flex-end;
-  gap: var(--espacio-4);
+  gap: var(--espacio-3);
+  padding-top: var(--espacio-3);
+  border-top: 1px solid var(--color-borde);
 }
 
 .avisoCambios {
@@ -125,150 +79,108 @@
   color: var(--tono-ambar-texto);
 }
 
-.botonGuardar {
-  min-height: var(--tactil-min);
-  padding: 0 var(--espacio-6);
-  font-size: var(--texto-md);
-  font-weight: var(--peso-seminegrita);
-  color: var(--color-marca-texto);
-  background: var(--color-marca);
-  border: 0;
-  border-radius: var(--radio-md);
-  box-shadow: var(--sombra-sm);
-  cursor: pointer;
-  transition: background var(--transicion);
-}
-
-.botonGuardar:hover:not(:disabled) {
-  background: var(--color-primario-intenso);
-}
-
-.botonGuardar:focus-visible {
-  outline: 2px solid var(--color-foco);
-  outline-offset: 2px;
-}
-
-/* Deshabilitado pero legible: gris neutro, sin atenuar el texto. */
-.botonGuardar:disabled,
-.botonDescartar:disabled {
+/* Motivo visible cuando «Generar sesiones» no está disponible: una acción importante no debe quedar sin explicación. */
+.avisoSesiones {
+  min-width: 0;
+  font-size: var(--texto-sm);
   color: var(--color-texto-suave);
-  background: var(--color-superficie-suave);
-  border: 1px solid var(--color-borde);
-  box-shadow: none;
-  cursor: not-allowed;
 }
 
-.botonSesiones {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--espacio-2);
-  min-height: var(--tactil-min);
-  margin-right: auto;
-  padding: 0 var(--espacio-5);
-  font-size: var(--texto-md);
-  font-weight: var(--peso-seminegrita);
-  color: var(--color-accion);
-  background: var(--color-accion-suave);
-  border: 1px solid var(--tono-azul-borde);
-  border-radius: var(--radio-md);
-  cursor: pointer;
-  transition: background var(--transicion);
+.empujarDerecha {
+  margin-left: auto;
 }
 
-.botonExportar {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--espacio-2);
-  min-height: var(--tactil-min);
-  padding: 0 var(--espacio-5);
-  font-size: var(--texto-md);
-  font-weight: var(--peso-seminegrita);
-  color: var(--color-texto-secundario);
-  background: var(--color-superficie);
-  border: 1px solid var(--color-borde-fuerte);
-  border-radius: var(--radio-md);
-  cursor: pointer;
-}
-
-.botonExportar:hover:not(:disabled) {
-  background: var(--color-superficie-suave);
-}
-
-.botonExportar:disabled {
-  color: var(--color-texto-suave);
-  background: var(--color-superficie-suave);
-  border-color: var(--color-borde);
-  cursor: not-allowed;
-}
-
-.botonSesiones:hover:not(:disabled) {
-  background: var(--color-accion-suave-activo);
-}
-
-.botonSesiones:focus-visible {
-  outline: 2px solid var(--color-foco);
-  outline-offset: 2px;
-}
-
-.botonSesiones:disabled {
-  color: var(--color-texto-suave);
-  background: var(--color-superficie-suave);
-  border-color: var(--color-borde);
-  cursor: not-allowed;
-}
-
-.botonCargaMasiva {
+/* Botones: un solo primario y un solo secundario para toda la página. */
+.botonPrimario,
+.botonSecundario {
   display: inline-flex;
   align-items: center;
   justify-content: center;
   gap: var(--espacio-2);
   min-height: var(--tactil-min);
-  padding: 0 var(--espacio-5);
+  padding: 0 var(--espacio-4);
+  font: inherit;
   font-size: var(--texto-md);
   font-weight: var(--peso-seminegrita);
-  color: var(--color-accion);
-  background: var(--color-accion-suave);
-  border: 1px solid var(--tono-azul-borde);
+  white-space: nowrap;
   border-radius: var(--radio-md);
   cursor: pointer;
   transition: background var(--transicion);
 }
 
-.botonCargaMasiva:hover:not(:disabled) {
-  background: var(--color-accion-suave-activo);
+.botonPrimario {
+  color: #fff;
+  background: var(--color-primario);
+  border: 1px solid var(--color-primario);
 }
 
-.botonCargaMasiva:focus-visible {
+.botonPrimario:hover:not(:disabled) {
+  background: var(--color-primario-hover);
+}
+
+.botonPrimario:active:not(:disabled) {
+  background: var(--color-primario-activo);
+}
+
+.botonSecundario {
+  color: var(--color-texto-secundario);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
+}
+
+.botonSecundario:hover:not(:disabled) {
+  background: var(--color-superficie-suave);
+}
+
+.botonPrimario:focus-visible,
+.botonSecundario:focus-visible,
+.botonMas:focus-visible {
   outline: 2px solid var(--color-foco);
   outline-offset: 2px;
 }
 
-.botonCargaMasiva:disabled {
+/* Deshabilitado pero legible: gris neutro, sin atenuar el texto. */
+.botonPrimario:disabled,
+.botonSecundario:disabled {
   color: var(--color-texto-suave);
   background: var(--color-superficie-suave);
-  border-color: var(--color-borde);
+  border: 1px solid var(--color-borde);
   cursor: not-allowed;
 }
 
-.botonDescartar {
-  min-height: var(--tactil-min);
-  padding: 0 var(--espacio-6);
-  font-size: var(--texto-md);
-  font-weight: var(--peso-seminegrita);
-  color: var(--color-texto-secundario);
-  background: var(--color-superficie);
-  border: 1px solid var(--color-borde-fuerte);
+.botonMas {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tactil-min);
+  height: var(--tactil-min);
+  padding: 0;
+  color: var(--color-texto-suave);
+  background: transparent;
+  border: 1px solid var(--color-borde);
   border-radius: var(--radio-md);
   cursor: pointer;
 }
 
-.botonDescartar:hover:not(:disabled) {
+.botonMas:hover {
+  color: var(--color-texto);
   background: var(--color-superficie-suave);
 }
 
-.botonDescartar:focus-visible {
-  outline: 2px solid var(--color-foco);
-  outline-offset: 2px;
+@media (min-width: 768px) {
+  .pagina {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .pagina > * {
+    flex-shrink: 0;
+  }
+
+  /* La matriz toma el alto restante; si no cabe en 26 rem, desplaza el área principal. */
+  .pagina > .seccionMatriz {
+    flex: 1 1 auto;
+  }
 }
 
 @media (max-width: 767px) {
@@ -276,10 +188,13 @@
     font-size: var(--texto-xl);
   }
 
-  .botonGuardar,
-  .botonDescartar,
-  .botonSesiones,
-  .botonExportar {
+  .acciones,
+  .acciones > * {
     flex: 1 1 100%;
+  }
+
+  .pieMatriz > .botonPrimario,
+  .pieMatriz > .botonSecundario {
+    flex: 1 1 auto;
   }
 }

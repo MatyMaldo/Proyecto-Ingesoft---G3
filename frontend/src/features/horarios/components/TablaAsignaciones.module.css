@@ -1,14 +1,14 @@
 .seccion {
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-4);
+  gap: var(--espacio-3);
 }
 
 .encabezado {
   display: flex;
   flex-wrap: wrap;
   align-items: center;
-  gap: var(--espacio-4);
+  gap: var(--espacio-3);
 }
 
 .titulo {
@@ -22,12 +22,6 @@
   flex: 1 1 2rem;
   height: 1px;
   background: var(--color-borde);
-}
-
-.avisoSoloLectura {
-  margin: 0;
-  color: var(--color-texto-secundario);
-  font-size: var(--texto-sm);
 }
 
 .acciones {
@@ -45,16 +39,16 @@
   padding: 0 var(--espacio-4);
   font-size: var(--texto-md);
   font-weight: var(--peso-seminegrita);
-  color: var(--color-accion);
-  background: var(--color-accion-suave);
-  border: 1px solid var(--tono-azul-borde);
+  color: var(--color-texto-secundario);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
   border-radius: var(--radio-md);
   cursor: pointer;
   transition: background var(--transicion);
 }
 
 .botonAgregar:hover:not(:disabled) {
-  background: var(--color-accion-suave-activo);
+  background: var(--color-superficie-suave);
 }
 
 .botonAgregar:focus-visible,
@@ -66,39 +60,6 @@
 .botonAgregar:disabled {
   opacity: var(--opacidad-deshabilitado);
   cursor: not-allowed;
-}
-
-.botonColapsar {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--espacio-1);
-  min-height: var(--tactil-min);
-  padding: 0 var(--espacio-3);
-  font-size: var(--texto-md);
-  font-weight: var(--peso-seminegrita);
-  color: var(--color-texto-secundario);
-  background: none;
-  border: 0;
-  border-radius: var(--radio-md);
-  cursor: pointer;
-}
-
-.botonColapsar:hover {
-  background: var(--color-superficie-suave);
-}
-
-.botonColapsar:focus-visible {
-  outline: 2px solid var(--color-foco);
-  outline-offset: 2px;
-}
-
-.dosColumnas {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-}
-
-.dosColumnas > :first-child {
-  border-right: 1px solid var(--color-borde);
 }
 
 .tarjeta {
@@ -120,7 +81,7 @@
 }
 
 .tabla th {
-  padding: var(--espacio-3) var(--espacio-6);
+  padding: var(--espacio-2) var(--espacio-6);
   font-size: var(--texto-xs);
   font-weight: var(--peso-seminegrita);
   letter-spacing: var(--espaciado-letra-ancho);
@@ -154,7 +115,8 @@
 }
 
 .botonEliminar,
-.botonEditar {
+.botonEditar,
+.botonCarga {
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -176,23 +138,36 @@
   color: var(--color-accion);
 }
 
+/* Botón con texto (no solo ícono) para que la carga docente sea identificable a primera vista. */
+.botonCarga {
+  width: auto;
+  gap: var(--espacio-2);
+  margin-right: var(--espacio-2);
+  padding: 0 var(--espacio-3);
+  font: inherit;
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-accion);
+  background: var(--color-accion-suave);
+  border: 1px solid var(--tono-azul-borde);
+}
+
+.botonCarga:hover {
+  background: var(--color-accion-suave-activo);
+}
+
+.botonCarga:focus-visible,
+.botonEditar:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
 .botonEliminar:hover {
   background: var(--color-peligro-fondo);
 }
 
 .botonEditar:hover {
   background: var(--color-accion-suave);
-}
-
-@media (max-width: 1023px) {
-  .dosColumnas {
-    display: block;
-  }
-
-  .dosColumnas > :first-child {
-    border-right: 0;
-    border-bottom: 1px solid var(--color-borde);
-  }
 }
 
 @media (max-width: 767px) {

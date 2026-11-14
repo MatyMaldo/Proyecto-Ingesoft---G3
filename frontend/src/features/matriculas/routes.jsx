@@ -11,6 +11,6 @@ export default [
     element: <PaginaMatriculas />,
     enLayout: true,
     rolesPermitidos: [ROLES.ADMIN],
-    migas: [{ etiqueta: 'Administración' }, { etiqueta: 'Matrículas' }]
+    migas: [{ etiqueta: 'Gestión' }, { etiqueta: 'Matrículas' }]
   }
 ];

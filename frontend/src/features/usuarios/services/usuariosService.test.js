@@ -208,7 +208,7 @@ describe('usuariosService', () => {
   });
 
   it.each([
-    ['apoderado', registrarApoderado, '/usuarios/apoderados', { edad: 35 }],
+    ['apoderado', registrarApoderado, '/usuarios/apoderados', { fechaNacimiento: '1985-03-12' }],
     ['docente', registrarDocente, '/usuarios/docentes', {}]
   ])('registra %s con su endpoint y transforma la respuesta', async (rol, registrar, ruta, camposExtra) => {
     solicitar.mockResolvedValue({
@@ -253,11 +253,11 @@ describe('usuariosService', () => {
     const respuesta = await iniciarCargaMasivaUsuarios([
       {
         linea: 2, tipoUsuario: 'apoderado', nombre: 'Rosa', apellidoPaterno: 'Quispe', apellidoMaterno: '',
-        dni: '71000001', correo: 'rosa@example.com', telefono: '+51 981001001', edad: '41', fechaNacimiento: '', dniApoderado: ''
+        dni: '71000001', correo: 'rosa@example.com', telefono: '+51 981001001', fechaNacimiento: '1985-03-12', dniApoderado: ''
       },
       {
         linea: 3, tipoUsuario: 'estudiante', nombre: 'Ana', apellidoPaterno: 'Pérez', apellidoMaterno: 'Ruiz',
-        dni: '73000001', correo: 'ana@example.com', telefono: '', edad: '', fechaNacimiento: '2012-05-10',
+        dni: '73000001', correo: 'ana@example.com', telefono: '', fechaNacimiento: '2012-05-10',
         dniApoderado: '71000001', codigo: 'EST001'
       }
     ], 'usuarios-lote-abc');
@@ -271,12 +271,12 @@ describe('usuariosService', () => {
     expect(opciones.cuerpo.filas).toEqual([
       {
         linea: 2, tipoUsuario: 'APODERADO', nombre: 'Rosa', apellidoPaterno: 'Quispe', apellidoMaterno: null,
-        dni: '71000001', email: 'rosa@example.com', telefono: '981001001', edad: 41, fechaNacimiento: null,
+        dni: '71000001', email: 'rosa@example.com', telefono: '981001001', fechaNacimiento: '1985-03-12',
         dniApoderado: null, codigo: null
       },
       {
         linea: 3, tipoUsuario: 'ESTUDIANTE', nombre: 'Ana', apellidoPaterno: 'Pérez', apellidoMaterno: 'Ruiz',
-        dni: '73000001', email: 'ana@example.com', telefono: null, edad: null, fechaNacimiento: '2012-05-10',
+        dni: '73000001', email: 'ana@example.com', telefono: null, fechaNacimiento: '2012-05-10',
         dniApoderado: '71000001', codigo: 'EST001'
       }
     ]);

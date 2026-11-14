@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from 'vitest';
-import { fireEvent, render, screen, within } from '@testing-library/react';
+import { fireEvent, render, screen, waitFor, within } from '@testing-library/react';
 import '@testing-library/jest-dom/vitest';
 
 const { anioActual, sesion } = vi.hoisted(() => {
@@ -72,7 +72,12 @@ describe('Panel de sesión en consulta de horario', () => {
     );
     fireEvent.change(screen.getByLabelText('Sección'), { target: { value: '3' } });
 
-    const bloque = await screen.findByRole(
+    // El horario se ve en un diálogo: «Ver horario» lo abre y el detalle de la sesión se monta dentro de él.
+    const verHorario = await screen.findByRole('button', { name: 'Ver horario' }, { timeout: 4000 });
+    await waitFor(() => expect(verHorario).toBeEnabled(), { timeout: 4000 });
+    fireEvent.click(verHorario);
+    const dialogoHorario = await screen.findByRole('dialog', { name: /^Horario/ }, { timeout: 4000 });
+    const bloque = await within(dialogoHorario).findByRole(
       'button',
       { name: /Ver detalle de Matemáticas/ },
       { timeout: 4000 }

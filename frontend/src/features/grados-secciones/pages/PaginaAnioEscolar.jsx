@@ -5,7 +5,7 @@ import estilos from './PaginaAnioEscolar.module.css';
 export default function PaginaAnioEscolar() {
   return (
     <div className={estilos.pagina}>
-      <header><p className={estilos.sobretitulo}>Administración</p><h1>Año escolar</h1>
+      <header><h1>Año escolar</h1>
         <p className={estilos.subtitulo}>Organiza los grados y las secciones de cada año académico.</p>
       </header>
       <div className={estilos.encabezadoBloque}><h2>Grados y secciones</h2></div>

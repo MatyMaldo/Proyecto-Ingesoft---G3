@@ -9,9 +9,9 @@ import PaginaUsuarios from './PaginaUsuarios.jsx';
 
 const ETIQUETA_BUSCADOR = 'Buscar usuarios por nombre, DNI o correo';
 
-/** Región de estado del paginador superior, que es la que anuncia el total. */
+/** Región de estado del paginador, que es la que anuncia el total. */
 function totalMostrado() {
-  return within(screen.getByRole('navigation', { name: 'Paginación de usuarios (superior)' })).getByRole('status');
+  return within(screen.getByRole('navigation', { name: 'Paginación de usuarios' })).getByRole('status');
 }
 
 /** Pulsa un chip del grupo de estado ("Activos", "Desactivados" o "Todos"). */
@@ -34,12 +34,14 @@ describe('Usuarios · listado, filtros y acciones', () => {
 
     const titulo = screen.getByRole('banner');
     expect(within(titulo).getByRole('heading', { name: 'Usuarios' })).toBeInTheDocument();
-    // Una sola acción global: el registro individual y la carga masiva viven en el mismo menú.
+    expect(within(titulo).getByText('Gestiona los usuarios registrados en el sistema.')).toBeInTheDocument();
+    // Una sola acción global, en la barra de título: el registro individual y la carga masiva viven en el mismo menú.
     expect(within(titulo).getByRole('button', { name: 'Agregar usuarios' })).toHaveAttribute('aria-haspopup', 'menu');
     expect(within(titulo).getAllByRole('button')).toHaveLength(1);
 
     const filtros = screen.getByRole('region', { name: 'Búsqueda y filtros de usuarios' });
     expect(within(filtros).getByLabelText(ETIQUETA_BUSCADOR)).toBeInTheDocument();
+    expect(within(filtros).getByRole('button', { name: 'Actualizar' })).toBeInTheDocument();
     // Cada grupo de chips lleva su subtítulo ("Rol" y "Estado") para no confundir los dos "Todos".
     expect(within(filtros).getByText('Rol')).toBeInTheDocument();
     expect(within(filtros).getByText('Estado')).toBeInTheDocument();
@@ -146,7 +148,7 @@ describe('Usuarios · listado, filtros y acciones', () => {
     expect(within(chipsRol).getByRole('button', { name: /^Docentes/ })).toHaveTextContent('1');
   });
 
-  it('muestra el total en el paginador superior, como región de estado, y lo actualiza al filtrar', async () => {
+  it('muestra el total en el paginador, como región de estado, y lo actualiza al filtrar', async () => {
     render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     expect(totalMostrado()).toHaveTextContent('1 – 10 de 32 usuarios');
 
@@ -157,17 +159,19 @@ describe('Usuarios · listado, filtros y acciones', () => {
     expect(totalMostrado()).toHaveTextContent('1 – 1 de 1 usuario');
   });
 
-  it('pone el mismo paginador arriba y abajo del listado, y solo el superior anuncia el total', () => {
+  it('lleva un solo paginador, en el pie de la tabla, y las opciones de filas se bloquean si no hay tantos usuarios', async () => {
     render(<PaginaUsuarios />, { wrapper: MemoryRouter });
+    const filas = within(screen.getByRole('group', { name: 'Filas por página' }));
+    expect(screen.getAllByRole('navigation', { name: 'Paginación de usuarios' })).toHaveLength(1);
+    expect(filas.getByRole('button', { name: '50' })).toBeDisabled();
 
-    const superior = screen.getByRole('navigation', { name: 'Paginación de usuarios (superior)' });
-    const inferior = screen.getByRole('navigation', { name: 'Paginación de usuarios (inferior)' });
-    expect(superior).toHaveTextContent('1 – 10 de 32 usuarios');
-    expect(inferior).toHaveTextContent('1 – 10 de 32 usuarios');
-    expect(within(superior).getByRole('status')).toBeInTheDocument();
-    expect(within(inferior).queryByRole('status')).not.toBeInTheDocument();
-    expect(superior.compareDocumentPosition(screen.getByRole('table')) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
-    expect(inferior.compareDocumentPosition(screen.getByRole('table')) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
+    await userEvent.click(filas.getByRole('button', { name: '25' }));
+
+    const paginador = screen.getByRole('navigation', { name: 'Paginación de usuarios' });
+    expect(screen.getAllByRole('navigation', { name: 'Paginación de usuarios' })).toHaveLength(1);
+    expect(paginador).toHaveTextContent('1 – 25 de 32 usuarios');
+    expect(within(paginador).getByRole('status')).toBeInTheDocument();
+    expect(paginador.compareDocumentPosition(screen.getByRole('table')) & Node.DOCUMENT_POSITION_PRECEDING).toBeTruthy();
   });
 
   it('filtra por rol y por texto sobre la tabla', async () => {
@@ -311,11 +315,10 @@ describe('Usuarios · listado, filtros y acciones', () => {
     expect(within(dialogo).queryByRole('button', { name: /mostrar contraseña/i })).not.toBeInTheDocument();
   });
 
-  it('pone el buscador en su fila y, debajo, los chips de rol y de estado en una misma fila, cada grupo con su subtítulo', () => {
+  it('pone el buscador en su fila y, debajo, los chips de rol y de estado, cada grupo con su subtítulo', () => {
     render(<PaginaUsuarios />, { wrapper: MemoryRouter });
 
-    const seccion = screen.getByLabelText(ETIQUETA_BUSCADOR).closest('section');
-    const [filaBusqueda, filaChips] = seccion.children;
+    const [filaBusqueda, filaChips] = screen.getByRole('region', { name: 'Búsqueda y filtros de usuarios' }).children;
     expect(within(filaBusqueda).getByLabelText(ETIQUETA_BUSCADOR)).toBeInTheDocument();
     expect(within(filaBusqueda).queryByRole('group')).not.toBeInTheDocument();
 

@@ -60,13 +60,18 @@
 /* Alumno elegido (estado de éxito, GUI §1). */
 .tarjetaAlumno {
   display: flex;
-  align-items: flex-start;
+  align-items: center;
   justify-content: space-between;
   gap: var(--espacio-3);
   padding: var(--espacio-3);
   background: var(--color-exito-fondo);
   border: 1px solid var(--color-exito-borde);
   border-radius: var(--radio-md);
+}
+
+.tarjetaTexto {
+  flex: 1 1 auto;
+  min-width: 0;
 }
 
 .tarjetaEtiqueta {
@@ -97,7 +102,7 @@
   justify-content: center;
   width: var(--tactil-min);
   height: var(--tactil-min);
-  margin: calc(var(--espacio-3) * -1) calc(var(--espacio-3) * -1) 0 0;
+  margin: calc(var(--espacio-3) * -1) calc(var(--espacio-3) * -1) calc(var(--espacio-3) * -1) 0;
   padding: 0;
   color: var(--color-texto-secundario);
   background: transparent;
@@ -264,4 +269,120 @@
 .entrada[aria-invalid='true'] {
   background: var(--color-peligro-fondo);
   border-color: var(--color-peligro);
+}
+
+/* Dos campos en una fila (p. ej. año y grado); en pantallas angostas se apilan. */
+.filaDoble {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--espacio-3);
+}
+
+@media (max-width: 480px) {
+  .filaDoble {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+
+/* Datos clave de un diálogo (p. ej. cuántas matrículas se verán afectadas): cifra grande con su rótulo. */
+.datos {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--espacio-3);
+}
+
+.dato {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1);
+  min-width: 0;
+  padding: var(--espacio-3);
+  background: var(--color-superficie-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+}
+
+.datoRotulo {
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+.datoValor {
+  font-size: var(--texto-xl);
+  font-weight: var(--peso-negrita);
+  line-height: 1.2;
+  color: var(--color-texto);
+}
+
+.datoTexto {
+  display: flex;
+  align-items: center;
+  min-height: 2rem;
+}
+
+/* Aviso de una acción crítica (rojo): qué se hará y qué no. */
+.avisoPeligro {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espacio-3);
+  padding: var(--espacio-3) var(--espacio-4);
+  color: var(--color-peligro-texto);
+  background: var(--color-peligro-fondo);
+  border: 1px solid var(--color-peligro-borde);
+  border-radius: var(--radio-md);
+}
+
+.avisoPeligro svg {
+  flex-shrink: 0;
+  margin-top: 2px;
+}
+
+/* Subtexto de una opción (p. ej. "12 vacantes" bajo el nombre de la sección). */
+.opcionConSubtexto {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 2px;
+  padding-top: var(--espacio-1);
+  padding-bottom: var(--espacio-1);
+}
+
+.opcionSubtexto {
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-regular, 400);
+  color: var(--color-texto-suave);
+}
+
+.opcion:disabled {
+  color: var(--color-texto-suave);
+  background: var(--color-superficie-suave);
+  border-color: var(--color-borde);
+  cursor: not-allowed;
+}
+
+.opcion:disabled:hover {
+  background: var(--color-superficie-suave);
+}
+
+/* Resumen de lo que ocurrirá al confirmar (verde cuando el formulario está completo). */
+.vistaPrevia {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--espacio-2);
+  margin: 0;
+  padding: var(--espacio-3);
+  font-size: var(--texto-md);
+  color: var(--color-exito-texto);
+  background: var(--color-exito-fondo);
+  border: 1px solid var(--color-exito-borde);
+  border-radius: var(--radio-md);
+}
+
+.vistaPrevia svg {
+  flex-shrink: 0;
+  margin-top: 3px;
 }

@@ -185,3 +185,48 @@ describe('DialogoSesiones · vista previa en una sola tabla', () => {
     expect(screen.queryByRole('navigation', { name: 'Paginación de la vista previa' })).not.toBeInTheDocument();
   });
 });
+
+describe('DialogoSesiones · resultado en un paso posterior', () => {
+  function renderizarConOperacion(job, reiniciar = vi.fn()) {
+    return render(
+      <DialogoSesiones
+        consulta={{ seccionId: 3, anioAcademicoId: 2 }}
+        tituloSeccion="1er Grado A"
+        alCancelar={vi.fn()}
+        alNotificar={vi.fn()}
+        operacion={{ job, enCurso: false, error: '', reiniciar }}
+      />
+    );
+  }
+
+  it('al iniciar la generación deja la vista previa y muestra solo el avance', () => {
+    renderizarConOperacion({ estado: 'EN_PROCESO', total: 10, procesados: 4, porcentaje: 40 });
+
+    expect(screen.getByRole('heading', { name: 'Generando sesiones' })).toBeInTheDocument();
+    expect(screen.getByRole('progressbar')).toBeInTheDocument();
+    expect(screen.queryByRole('table')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Generar sesiones' })).not.toBeInTheDocument();
+  });
+
+  it('al terminar muestra el resumen del resultado y permite volver a la vista previa', () => {
+    const reiniciar = vi.fn();
+    renderizarConOperacion({
+      estado: 'COMPLETADO',
+      total: 74,
+      procesados: 74,
+      exitosos: 38,
+      errores: 0,
+      resultado: { sesionesCreadas: 38, sesionesOmitidasCreadas: 41, sesionesYaExistentes: 0 }
+    }, reiniciar);
+
+    expect(screen.getByRole('heading', { name: 'Resultado de la generación' })).toBeInTheDocument();
+    expect(screen.getByText('Completada')).toBeInTheDocument();
+    expect(screen.queryByRole('progressbar')).not.toBeInTheDocument();
+    expect(screen.getByText('Sesiones creadas').nextSibling).toHaveTextContent('38');
+    expect(screen.getByText('Omitidas al crearlas').nextSibling).toHaveTextContent('41');
+    expect(screen.queryByText('Ya existían')).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole('button', { name: 'Volver a la vista previa' }));
+    expect(reiniciar).toHaveBeenCalled();
+  });
+});

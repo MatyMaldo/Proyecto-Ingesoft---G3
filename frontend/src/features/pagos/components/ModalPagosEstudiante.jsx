@@ -2,6 +2,7 @@ import { useEffect, useState } from 'react';
 
 import DialogoBase from '../../../shared/components/DialogoBase.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
+import Icono from '../../../shared/components/Icono.jsx';
 import Insignia from '../../../shared/components/Insignia.jsx';
 import Paginacion from '../../../shared/components/Paginacion.jsx';
 import { formatearFechaVisible } from '../../../shared/utils/formatoFecha.js';
@@ -23,8 +24,10 @@ import { anioEstaVigente } from '../utils/periodo.js';
 import ModalDetallePago from './ModalDetallePago.jsx';
 import ModalRechazarPago from './ModalRechazarPago.jsx';
 import estilos from './ModalPagos.module.css';
+import estilosCampos from '../../../shared/styles/camposDialogo.module.css';
 
-const TAMANIO_PAGINA = 10;
+// Un año trae como máximo 1 compromiso de matrícula y 10 de pensión: con 12 caben todos en una sola página.
+const TAMANIO_PAGINA = 12;
 const evitarEnvio = (evento) => evento.preventDefault();
 
 /**
@@ -55,6 +58,8 @@ export default function ModalPagosEstudiante({ alumno, anio, onCerrar, alNotific
   const [periodoMatricula, establecerPeriodoMatricula] = useState(null);
   const [estadoPeriodo, establecerEstadoPeriodo] = useState('inactivo');
   const [errorPeriodo, establecerErrorPeriodo] = useState('');
+  // Compromisos que el usuario abrió o cerró a mano; sin elección, se abren solo los que requieren atención.
+  const [expandidos, establecerExpandidos] = useState({});
 
   const tieneContexto = Boolean(
     alumno?.anioAcademicoId && alumno?.gradoId && alumno?.seccionId
@@ -186,9 +191,62 @@ export default function ModalPagosEstudiante({ alumno, anio, onCerrar, alNotific
     establecerIntento((actual) => actual + 1);
   };
 
+  // Un compromiso pagado y sin pagos por validar no requiere atención: aparece plegado.
+  const requiereAtencion = (compromiso) => compromiso.estadoCompromiso !== 'PAGADO'
+    || compromiso.pagos.some((pago) => pago.estado === 'PENDIENTE')
+    || compromiso.pagos.length === 0;
+  const estaExpandido = (compromiso) => expandidos[compromiso.compromisoId] ?? requiereAtencion(compromiso);
+  const alternarCompromiso = (compromiso) => establecerExpandidos((actuales) => ({
+    ...actuales,
+    [compromiso.compromisoId]: !estaExpandido(compromiso)
+  }));
+
+  const totalPorValidar = compromisos.reduce(
+    (suma, compromiso) => suma + compromiso.pagos.filter((pago) => pago.estado === 'PENDIENTE').length,
+    0
+  );
+  const deudaPendiente = compromisos
+    .filter((compromiso) => compromiso.estadoCompromiso === 'PENDIENTE')
+    .reduce((suma, compromiso) => suma + (Number(compromiso.montoTotal) || 0), 0);
+
+  // Pago cuyo detalle está abierto y qué se puede hacer con él (las mismas reglas que los botones de la tabla).
+  const compromisoDetalle = detalleId
+    ? compromisos.find((compromiso) => compromiso.pagos.some((pago) => pago.id === detalleId))
+    : null;
+  const pagoDetalle = compromisoDetalle?.pagos.find((pago) => pago.id === detalleId) ?? null;
+  const accionesDetalle = pagoDetalle ? (() => {
+    const permitidas = permiteAcciones(compromisoDetalle);
+    return {
+      puedeValidar: permitidas && (pagoDetalle.estado === 'PENDIENTE' || pagoDetalle.estado === 'RECHAZADO'),
+      puedeRechazar: permitidas && (pagoDetalle.estado === 'PENDIENTE' || pagoDetalle.estado === 'VALIDADO'),
+      motivoBloqueo: permitidas ? '' : motivoBloqueo(compromisoDetalle),
+      validando: accionId === pagoDetalle.id,
+      alValidar: async () => {
+        await confirmarValidacion(pagoDetalle);
+        establecerDetalleId(null);
+      },
+      alRechazar: () => {
+        establecerErrorRechazo('');
+        establecerPagoARechazar(pagoDetalle);
+        establecerDetalleId(null);
+      }
+    };
+  })() : undefined;
+
   const meta = [alumno?.gradoNombre, alumno?.seccionNombre, alumno?.anioAcademico]
     .filter(Boolean)
     .join(' · ');
+
+  // El detalle de un pago reemplaza a la lista (no se apila otro diálogo encima) y "Volver a los pagos" regresa a ella.
+  if (detalleId) {
+    return (
+      <ModalDetallePago
+        pagoId={detalleId}
+        acciones={accionesDetalle}
+        onCerrar={() => establecerDetalleId(null)}
+      />
+    );
+  }
 
   return (
     <>
@@ -201,6 +259,7 @@ export default function ModalPagosEstudiante({ alumno, anio, onCerrar, alNotific
         textoCancelar="Cerrar"
         sinConfirmar
         anchoMaximo="64rem"
+        cerrarAlClicFuera={false}
         botonesExpandidos
         alCancelar={onCerrar}
         alConfirmar={evitarEnvio}
@@ -228,10 +287,35 @@ export default function ModalPagosEstudiante({ alumno, anio, onCerrar, alNotific
 
         {estado === 'listo' && compromisos.length > 0 && (
           <>
+            {/* Lo primero que se necesita saber: cuántos pagos esperan validación y cuánto se adeuda. */}
+            <div className={estilosCampos.datos}>
+              <div className={estilosCampos.dato}>
+                <span className={estilosCampos.datoRotulo}>Pagos por validar</span>
+                <span className={estilosCampos.datoValor}>{totalPorValidar}</span>
+              </div>
+              <div className={estilosCampos.dato}>
+                <span className={estilosCampos.datoRotulo}>Deuda pendiente</span>
+                <span className={estilosCampos.datoValor}>{formatearMonto(deudaPendiente)}</span>
+              </div>
+            </div>
+
             <div className={estilos.listaCompromisos}>
-              {compromisos.map((compromiso) => (
+              {compromisos.map((compromiso) => {
+                const cantidadPagos = compromiso.pagos.length;
+                const tienePagos = cantidadPagos > 0;
+                const abierto = tienePagos && estaExpandido(compromiso);
+                const textoCantidad = `${cantidadPagos} ${cantidadPagos === 1 ? 'pago' : 'pagos'}`;
+                return (
                 <section key={compromiso.compromisoId} className={estilos.compromisoCard}>
-                  <header className={estilos.compromisoCabecera}>
+                  {/* Con pagos, tocar la cabecera abre o cierra la tabla; el contador y la flecha de la derecha lo indican.
+                      Sin pagos no hay nada que desplegar. */}
+                  {/* eslint-disable-next-line jsx-a11y/click-events-have-key-events, jsx-a11y/no-noninteractive-element-interactions */}
+                  <header
+                    className={tienePagos
+                      ? `${estilos.compromisoCabecera} ${estilos.compromisoDesplegable}`
+                      : estilos.compromisoCabecera}
+                    onClick={tienePagos ? () => alternarCompromiso(compromiso) : undefined}
+                  >
                     <div>
                       <p className={estilos.compromisoEtiqueta}>
                         Compromiso #{compromiso.compromisoId}
@@ -252,21 +336,34 @@ export default function ModalPagosEstudiante({ alumno, anio, onCerrar, alNotific
                         </p>
                       )}
                     </div>
-                    <Insignia tono={tonoEstadoCompromiso(compromiso.estadoCompromiso)}>
-                      {etiquetaEstadoCompromiso(compromiso.estadoCompromiso)}
-                    </Insignia>
+                    <div className={estilos.compromisoLado}>
+                      <Insignia tono={tonoEstadoCompromiso(compromiso.estadoCompromiso)}>
+                        {etiquetaEstadoCompromiso(compromiso.estadoCompromiso)}
+                      </Insignia>
+                      {tienePagos ? (
+                        // Sin `onClick` propio: el clic llega a la cabecera, que es quien alterna. Con teclado,
+                        // Enter y Espacio generan ese mismo clic.
+                        <button
+                          type="button"
+                          className={estilos.contadorPagos}
+                          aria-expanded={abierto}
+                          aria-label={`${abierto ? 'Ocultar' : 'Mostrar'} los pagos de ${etiquetaCompromiso(compromiso)} (${textoCantidad})`}
+                        >
+                          {textoCantidad}
+                          <Icono nombre={abierto ? 'chevron-arriba' : 'chevron-abajo'} tamano={16} />
+                        </button>
+                      ) : (
+                        <span className={estilos.sinPagosLado}>Sin pagos</span>
+                      )}
+                    </div>
                   </header>
 
+                  {abierto && (
                   <div className={estilos.compromisoCuerpo}>
-                    {compromiso.pagos.length > 0 && !permiteAcciones(compromiso) && (
+                    {!permiteAcciones(compromiso) && (
                       <p className={estilos.notaBloqueo}>{motivoBloqueo(compromiso)}</p>
                     )}
-                    {compromiso.pagos.length === 0 ? (
-                      <p className={estilos.sinPagos}>
-                        Sin pagos registrados para este compromiso.
-                      </p>
-                    ) : (
-                      <div className={estilos.tablaContenedor}>
+                    <div className={estilos.tablaContenedor}>
                         <table className={estilos.tabla}>
                           <caption hidden>Pagos del compromiso</caption>
                           <thead>
@@ -287,7 +384,7 @@ export default function ModalPagosEstudiante({ alumno, anio, onCerrar, alNotific
                               const puedeRechazar = accionesPermitidas
                                 && (pago.estado === 'PENDIENTE' || pago.estado === 'VALIDADO');
                               return (
-                                <tr key={pago.id}>
+                                <tr key={pago.id} className={pago.estado === 'PENDIENTE' ? estilos.filaPorValidar : undefined}>
                                   <td>{formatearFechaVisible(pago.fechaRegistro)}</td>
                                   <td className={estilos.monto}>{formatearMonto(pago.montoPagado)}</td>
                                   <td>
@@ -355,14 +452,16 @@ export default function ModalPagosEstudiante({ alumno, anio, onCerrar, alNotific
                             })}
                           </tbody>
                         </table>
-                      </div>
-                    )}
+                    </div>
                   </div>
+                  )}
                 </section>
-              ))}
+                );
+              })}
             </div>
 
-            {totalElementos > 0 && (
+            {/* Con una sola página el total no aporta nada: el paginador solo aparece si hay más. */}
+            {totalPaginas > 1 && (
               <div className={estilos.paginacion}>
                 <Paginacion
                   pagina={pagina}
@@ -380,10 +479,6 @@ export default function ModalPagosEstudiante({ alumno, anio, onCerrar, alNotific
           </>
         )}
       </DialogoBase>
-
-      {detalleId && (
-        <ModalDetallePago pagoId={detalleId} onCerrar={() => establecerDetalleId(null)} />
-      )}
 
       {pagoARechazar && (
         <ModalRechazarPago

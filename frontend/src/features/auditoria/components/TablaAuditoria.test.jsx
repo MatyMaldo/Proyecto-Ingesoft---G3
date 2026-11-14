@@ -153,7 +153,7 @@ describe('HU-SAT-04 · Tabla: usuario sin redundancia, avatar compartido y cabec
     );
 
     const fila = within(screen.getByRole('table')).getAllByRole('row')[1];
-    expect(within(fila).getByText('18/09/2026')).toBeInTheDocument();
+    expect(within(fila).getByText('18/09')).toBeInTheDocument();
     expect(within(fila).getByText('PQ')).toBeInTheDocument();
   });
 });

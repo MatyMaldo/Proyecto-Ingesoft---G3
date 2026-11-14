@@ -6,7 +6,7 @@ import Insignia from '../../../shared/components/Insignia.jsx';
 import Paginacion from '../../../shared/components/Paginacion.jsx';
 import DialogoBase from '../../../shared/components/DialogoBase.jsx';
 import ProgresoOperacionMasiva from '../../../shared/components/ProgresoOperacionMasiva.jsx';
-import { crearClaveIdempotencia } from '../../../shared/api/operacionesMasivasService.js';
+import { crearClaveIdempotencia, esEstadoTerminal } from '../../../shared/api/operacionesMasivasService.js';
 import useSesionesHorario from '../hooks/useSesionesHorario.js';
 import { iniciarGeneracionSesionesAsync } from '../services/horariosService.js';
 import { etiquetaEstadoSesion, normalizarEstadoSesion, tonoEstadoSesion } from '../utils/estadosSesion.js';
@@ -107,6 +107,30 @@ const FilaSesion = memo(function FilaSesion({ sesion, estadoFila, alAlternar }) 
     </tr>
   );
 });
+
+/** Etiqueta y tono del desenlace de la generación (segundo paso del diálogo). */
+function desenlace(job) {
+  const estado = String(job.estado ?? '').toUpperCase();
+  if (estado === 'COMPLETADO') return { etiqueta: 'Completada', tono: 'verde', icono: 'verificar' };
+  if (estado === 'COMPLETADO_CON_ERRORES') {
+    return { etiqueta: 'Completada con errores', tono: 'ambar', icono: 'alerta' };
+  }
+  return { etiqueta: estado === 'CANCELADO' ? 'Cancelada' : 'Fallida', tono: 'rojo', icono: 'alerta' };
+}
+
+/** Conteos finales de la generación; las filas en cero se ocultan salvo «creadas» y «errores». */
+function conteosGeneracion(job) {
+  const resultado = job.resultado ?? {};
+  const errores = resultado.errores?.length ?? job.errores ?? 0;
+  const filas = [
+    { id: 'creadas', etiqueta: 'Sesiones creadas', valor: resultado.sesionesCreadas ?? job.exitosos ?? 0, fija: true },
+    { id: 'omitidas', etiqueta: 'Omitidas al crearlas', valor: resultado.sesionesOmitidasCreadas ?? 0 },
+    { id: 'existian', etiqueta: 'Ya existían', valor: resultado.sesionesYaExistentes ?? 0 },
+    { id: 'yaOmitidas', etiqueta: 'Ya estaban omitidas', valor: resultado.sesionesOmitidasExistentes ?? 0 },
+    { id: 'errores', etiqueta: 'Errores', valor: errores, fija: true }
+  ];
+  return filas.filter((fila) => fila.fija || fila.valor > 0);
+}
 
 export default function DialogoSesiones({
   consulta,
@@ -242,6 +266,69 @@ export default function DialogoSesiones({
     }
   }
 
+  // Segundo paso: al iniciar la generación el diálogo deja la vista previa y muestra solo el avance y, al
+  // terminar, el resumen. El seguimiento vive en la página, así que sobrevive si se cierra el diálogo.
+  const job = operacion?.job;
+  if (job) {
+    const terminal = esEstadoTerminal(job.estado);
+    const resultado = terminal ? desenlace(job) : null;
+    const detalleErrores = Array.isArray(job.detalleErrores) ? job.detalleErrores : [];
+
+    return (
+      <DialogoBase
+        idTitulo="dialogo-sesiones-titulo"
+        titulo={terminal ? 'Resultado de la generación' : 'Generando sesiones'}
+        subtitulo={tituloSeccion}
+        anchoMaximo="32rem"
+        sinConfirmar
+        textoCancelar="Cerrar"
+        cerrarAlClicFuera={false}
+        accionesPie={terminal ? (
+          <button type="button" className={estilos.botonPie} onClick={operacion.reiniciar}>
+            Volver a la vista previa
+          </button>
+        ) : null}
+        error={operacion.error || null}
+        alCancelar={alCancelar}
+        alConfirmar={(evento) => evento.preventDefault()}
+      >
+        {!terminal ? (
+          <ProgresoOperacionMasiva job={job} titulo="Generación de sesiones" />
+        ) : (
+          <div className={estilos.resultado} role="status">
+            <div className={estilos.resultadoCabecera}>
+              <Insignia tono={resultado.tono} className={estilos.insigniaIcono}>
+                <Icono nombre={resultado.icono} tamano={14} />
+                {resultado.etiqueta}
+              </Insignia>
+              <span className={estilos.resultadoTotal}>
+                {job.procesados ?? 0} de {job.total ?? 0} procesadas
+              </span>
+            </div>
+            <dl className={estilos.conteos}>
+              {conteosGeneracion(job).map((fila) => (
+                <div key={fila.id} className={estilos.conteo}>
+                  <dt>{fila.etiqueta}</dt>
+                  <dd>{fila.valor}</dd>
+                </div>
+              ))}
+            </dl>
+            {detalleErrores.length > 0 && (
+              <details className={estilos.detalleErrores}>
+                <summary>Ver detalle de errores</summary>
+                <ul>
+                  {detalleErrores.slice(0, 100).map((detalle, indice) => (
+                    <li key={`${indice}-${detalle}`}>{detalle}</li>
+                  ))}
+                </ul>
+              </details>
+            )}
+          </div>
+        )}
+      </DialogoBase>
+    );
+  }
+
   const faltaAnio = !consulta?.anioAcademicoId && !consulta?.anioId;
   const listo = sesiones.estadoPreview === 'listo';
   const resumen = listo
@@ -258,10 +345,7 @@ export default function DialogoSesiones({
       textoConfirmar="Generar sesiones"
       textoEnviando="Generando…"
       enviando={operacion?.iniciando ?? false}
-      confirmarDeshabilitado={
-        !listo || faltaAnio
-        || Boolean(operacion?.enCurso) || Boolean(operacion?.job)
-      }
+      confirmarDeshabilitado={!listo || faltaAnio || Boolean(operacion?.enCurso)}
       error={errorGeneral || operacion?.error || null}
       notaPie={resumen}
       cerrarAlClicFuera={false}
@@ -303,7 +387,7 @@ export default function DialogoSesiones({
           <button
             type="button"
             className={estilos.botonGenerar}
-            disabled={sesiones.generando || faltaAnio || operacion?.enCurso || Boolean(operacion?.job)}
+            disabled={sesiones.generando || faltaAnio || operacion?.enCurso}
             onClick={previsualizar}
           >
             Previsualizar
@@ -473,14 +557,6 @@ export default function DialogoSesiones({
               />
             )}
           </>
-        )}
-
-        {operacion?.job && (
-          <ProgresoOperacionMasiva
-            job={operacion.job}
-            error={operacion.error}
-            titulo="Generación de sesiones"
-          />
         )}
       </div>
     </DialogoBase>

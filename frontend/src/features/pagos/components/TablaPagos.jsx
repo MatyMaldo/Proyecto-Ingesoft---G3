@@ -1,6 +1,7 @@
 import Avatar, { obtenerInicialesDeNombre } from '../../../shared/components/Avatar.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
 import Insignia from '../../../shared/components/Insignia.jsx';
+import MenuDesplegable from '../../../shared/components/MenuDesplegable.jsx';
 import estilosUtil from '../../../shared/styles/utilidades.module.css';
 import estilos from './TablaPagos.module.css';
 
@@ -30,42 +31,70 @@ function InsigniaMatricula({ alumno }) {
   );
 }
 
+/** Pagos del alumno que esperan validación. */
+function InsigniaPorValidar({ cantidad }) {
+  if (!cantidad) {
+    return <span className={estilos.sinPendientes}>—</span>;
+  }
+  return <Insignia tono="ambar">{cantidad === 1 ? '1 por validar' : `${cantidad} por validar`}</Insignia>;
+}
+
 /**
- * Acciones de un alumno: emitir su compromiso de pensión (solo con matrícula confirmada) y ver sus compromisos y
- * pagos. El nombre accesible de cada botón dice a qué alumno afecta; el motivo por el que la pensión no está
- * disponible va como texto asociado al botón y no solo como `title`.
+ * Acciones de un alumno. En la tabla, "Ver pagos" es la acción principal y emitir su compromiso de pensión (solo con
+ * matrícula confirmada) va en un menú ⋯; en las tarjetas móviles ambas son botones. El nombre accesible dice a qué
+ * alumno afecta cada acción.
  */
-function AccionesAlumno({ alumno, alEmitirPension, alVerPagos }) {
+function AccionesAlumno({ alumno, alEmitirPension, alVerPagos, enMenu = false }) {
   const confirmada = esConfirmada(alumno);
-  const idMotivo = `motivo-pension-${alumno.id}`;
+  const botonVerPagos = (
+    <button
+      type="button"
+      className={`${estilos.boton} ${estilos.botonPrimario}`}
+      aria-label={`Ver compromisos y pagos de ${alumno.nombre}`}
+      onClick={() => alVerPagos(alumno)}
+    >
+      <Icono nombre="tarjeta" tamano={16} />
+      Ver pagos
+    </button>
+  );
+
+  if (enMenu) {
+    return (
+      <div className={estilos.acciones}>
+        {botonVerPagos}
+        {confirmada && (
+          <MenuDesplegable
+            etiquetaBoton={`Más acciones de ${alumno.nombre}`}
+            claseBoton={estilos.botonMas}
+            alineacion="fin"
+            contenidoBoton={<Icono nombre="mas-opciones" tamano={20} />}
+            items={[{
+              id: 'emitir-pension',
+              etiqueta: 'Emitir pensión',
+              ariaLabel: `Emitir compromiso de pensión de ${alumno.nombre}`,
+              icono: 'archivo',
+              alSeleccionar: () => alEmitirPension(alumno)
+            }]}
+          />
+        )}
+      </div>
+    );
+  }
 
   return (
     <div className={estilos.acciones}>
-      <button
-        type="button"
-        className={`${estilos.boton} ${estilos.botonSecundario}`}
-        disabled={!confirmada}
-        aria-label={`Emitir compromiso de pensión de ${alumno.nombre}`}
-        aria-describedby={confirmada ? undefined : idMotivo}
-        onClick={() => alEmitirPension(alumno)}
-      >
-        <Icono nombre="archivo" tamano={16} />
-        Emitir pensión
-      </button>
-      {!confirmada && (
-        <span id={idMotivo} className={estilosUtil.ocultoVisualmente}>
-          La pensión estará disponible cuando la matrícula esté confirmada.
-        </span>
+      {confirmada && (
+        <button
+          type="button"
+          className={`${estilos.boton} ${estilos.botonSecundario}`}
+          aria-label={`Emitir compromiso de pensión de ${alumno.nombre}`}
+          onClick={() => alEmitirPension(alumno)}
+        >
+          <Icono nombre="archivo" tamano={16} />
+          Emitir pensión
+        </button>
       )}
-      <button
-        type="button"
-        className={`${estilos.boton} ${estilos.botonPrimario}`}
-        aria-label={`Ver compromisos y pagos de ${alumno.nombre}`}
-        onClick={() => alVerPagos(alumno)}
-      >
-        <Icono nombre="tarjeta" tamano={16} />
-        Ver pagos
-      </button>
+      {botonVerPagos}
     </div>
   );
 }
@@ -78,9 +107,13 @@ function AccionesAlumno({ alumno, alEmitirPension, alVerPagos }) {
  * @param {Array} props.alumnos Alumnos de la página actual.
  * @param {(alumno: Object) => void} props.alEmitirPension
  * @param {(alumno: Object) => void} props.alVerPagos
+ * @param {Object<string, number>|null} [props.porValidar] Pagos por validar por id de estudiante; `null` si no se
+ *   conoce (la columna no se muestra).
  * @param {boolean} [props.ocupado] `true` mientras se recalcula por un cambio de filtro.
  */
-export default function TablaPagos({ alumnos, alEmitirPension, alVerPagos, ocupado = false }) {
+export default function TablaPagos({ alumnos, alEmitirPension, alVerPagos, porValidar = null, ocupado = false }) {
+  const pendientesDe = (alumno) => porValidar?.[String(alumno.id)] ?? 0;
+
   return (
     <div className={estilos.contenedor} aria-busy={ocupado || undefined}>
       <div className={estilos.vistaTabla}>
@@ -92,6 +125,7 @@ export default function TablaPagos({ alumnos, alEmitirPension, alVerPagos, ocupa
               <th scope="col">Grado</th>
               <th scope="col">Sección</th>
               <th scope="col">Matrícula</th>
+              {porValidar && <th scope="col">Por validar</th>}
               <th scope="col" className={estilos.columnaAcciones}>Acciones</th>
             </tr>
           </thead>
@@ -102,8 +136,14 @@ export default function TablaPagos({ alumnos, alEmitirPension, alVerPagos, ocupa
                 <td>{alumno.gradoNombre ?? '—'}</td>
                 <td className={estilos.celdaSeccion}>{alumno.seccionNombre ?? '—'}</td>
                 <td><InsigniaMatricula alumno={alumno} /></td>
+                {porValidar && <td><InsigniaPorValidar cantidad={pendientesDe(alumno)} /></td>}
                 <td className={estilos.columnaAcciones}>
-                  <AccionesAlumno alumno={alumno} alEmitirPension={alEmitirPension} alVerPagos={alVerPagos} />
+                  <AccionesAlumno
+                    alumno={alumno}
+                    alEmitirPension={alEmitirPension}
+                    alVerPagos={alVerPagos}
+                    enMenu
+                  />
                 </td>
               </tr>
             ))}
@@ -118,6 +158,11 @@ export default function TablaPagos({ alumnos, alEmitirPension, alVerPagos, ocupa
               <CeldaAlumno alumno={alumno} />
               <InsigniaMatricula alumno={alumno} />
             </div>
+            {pendientesDe(alumno) > 0 && (
+              <p className={estilos.campo}>
+                <InsigniaPorValidar cantidad={pendientesDe(alumno)} />
+              </p>
+            )}
             <p className={estilos.campo}>
               <span className={estilos.rotuloCampo}>Grado y sección:</span> {gradoYSeccion(alumno)}
             </p>

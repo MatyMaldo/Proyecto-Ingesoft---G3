@@ -36,19 +36,19 @@ function formatearHoras(minutos) {
 }
 
 /**
- * Vista previa de la carga semanal planificada de un docente.
+ * Carga semanal planificada de un docente, abierta desde su fila en las asignaciones curso-docente.
  * Usa los bloques horarios del año vigente, no las sesiones generadas.
+ *
+ * @param {Object} props
+ * @param {{ id: string|number, nombre: string }} props.docente
  */
 export default function DialogoCargaDocente({
-  docentes,
+  docente,
   anioId,
   anio,
-  docenteInicialId,
   onCerrar
 }) {
-  const [docenteId, establecerDocenteId] = useState(() => (
-    docenteInicialId || docentes?.[0]?.id || ''
-  ));
+  const docenteId = docente?.id ?? '';
   const [bloques, establecerBloques] = useState([]);
   const [estado, establecerEstado] = useState('inactivo');
   const [error, establecerError] = useState('');
@@ -101,14 +101,12 @@ export default function DialogoCargaDocente({
     bloques.map((bloque) => `${bloque.gradoNombre ?? ''}|${bloque.seccionNombre ?? ''}`)
   );
   const dias = new Set(bloques.map((bloque) => bloque.diaSemana).filter(Boolean));
-  const docenteSeleccionado = (docentes ?? []).find(
-    (docente) => String(docente.id) === String(docenteId)
-  );
+  const nombreDocente = docente?.nombre ?? 'docente seleccionado';
 
   return (
     <DialogoBase
       idTitulo="carga-docente-titulo"
-      titulo="Carga horaria docente"
+      titulo={`Carga horaria · ${nombreDocente}`}
       subtitulo={anio ? `Semana planificada · Año ${anio}` : 'Semana planificada'}
       anchoMaximo="64rem"
       textoConfirmar="Cerrar"
@@ -120,26 +118,6 @@ export default function DialogoCargaDocente({
       }}
     >
       <div className={estilos.contenido}>
-        <div className={estilos.campo}>
-          <label htmlFor="carga-docente-docente" className={estilos.etiqueta}>
-            Docente
-          </label>
-          <select
-            id="carga-docente-docente"
-            className={estilos.select}
-            value={docenteId}
-            disabled={(docentes ?? []).length === 0}
-            onChange={(evento) => establecerDocenteId(evento.target.value)}
-          >
-            {(docentes ?? []).length === 0 && (
-              <option value="">No hay docentes activos disponibles.</option>
-            )}
-            {(docentes ?? []).map((docente) => (
-              <option key={docente.id} value={docente.id}>{docente.nombre}</option>
-            ))}
-          </select>
-        </div>
-
         {estado === 'cargando' && <EstadoConsulta tipo="carga" filasEsqueleto={3} />}
 
         {estado === 'error' && (
@@ -162,7 +140,7 @@ export default function DialogoCargaDocente({
         {estado === 'listo' && bloques.length === 0 && (
           <EstadoConsulta
             tipo="vacio"
-            mensaje={`El docente ${docenteSeleccionado?.nombre ?? 'seleccionado'} no tiene bloques horarios planificados en este año.`}
+            mensaje={`${nombreDocente} no tiene bloques horarios planificados en este año.`}
           />
         )}
 
@@ -192,7 +170,7 @@ export default function DialogoCargaDocente({
             </dl>
 
             <MatrizSesiones
-              titulo={docenteSeleccionado?.nombre ?? 'docente seleccionado'}
+              titulo={nombreDocente}
               sesiones={sesiones}
               mostrarSeccion
             />

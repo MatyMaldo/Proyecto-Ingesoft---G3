@@ -120,6 +120,11 @@ export default function FormularioLogin({
         </Link>
       </div>
 
+      {/* Las cuentas nuevas nacen sin contraseña: la primera se obtiene con el restablecimiento. */}
+      <p className={estilos.pistaPrimerIngreso}>
+        ¿Primera vez? Usa «¿Olvidaste tu contraseña?»
+      </p>
+
       <div role="alert" className={errorGeneral ? estilos.alertaGeneral : undefined}>
         {errorGeneral && (
           <>

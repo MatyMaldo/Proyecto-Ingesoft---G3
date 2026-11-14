@@ -12,7 +12,7 @@ export default [
     element: <PaginaPagos />,
     enLayout: true,
     rolesPermitidos: [ROLES.ADMIN],
-    migas: [{ etiqueta: 'Administración' }, { etiqueta: 'Pagos' }]
+    migas: [{ etiqueta: 'Gestión' }, { etiqueta: 'Pagos' }]
   },
   {
     path: '/mis-pagos',
