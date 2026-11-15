@@ -1,3 +1,4 @@
+<<<<<<< Updated upstream
 .pagina, .panel { display: flex; flex-direction: column; gap: var(--espacio-6); }
 .pagina h1 { margin: 0; font-size: var(--texto-titulo); }
 .pagina h2 { margin: 0; font-size: var(--texto-lg); }
@@ -40,3 +41,399 @@
 .barraOcupacion::-moz-progress-bar { background: var(--color-primario); }
 .barraLlena::-webkit-progress-value { background: var(--color-peligro-texto); }
 .barraLlena::-moz-progress-bar { background: var(--color-peligro-texto); }
+=======
+/* Año escolar: título, contexto (año y grado) y las secciones del grado como tarjetas, igual que Cursos. Son pocas
+   secciones por grado: no hay tabla, paginador ni desplazamiento interno. */
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+
+/* Barra de título (GUI §6): título y descripción en la misma línea, sin acciones. */
+.cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+}
+
+.textoCabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--espacio-1) var(--espacio-3);
+  min-width: 0;
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--texto-titulo);
+  font-weight: var(--peso-negrita);
+  color: var(--color-texto);
+}
+
+.descripcion {
+  margin: 0;
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}
+
+/* Botones: un solo primario («Crear sección») y los secundarios, como en Horarios, Pagos y Cursos. */
+.botonPrimario,
+.botonSecundario {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espacio-2);
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-4);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  white-space: nowrap;
+  border-radius: var(--radio-md);
+  cursor: pointer;
+  transition: background var(--transicion);
+}
+
+.botonPrimario {
+  color: #fff;
+  background: var(--color-primario);
+  border: 1px solid var(--color-primario);
+}
+
+.botonPrimario:hover:not(:disabled) {
+  background: var(--color-primario-hover);
+}
+
+.botonPrimario:active:not(:disabled) {
+  background: var(--color-primario-activo);
+}
+
+.botonSecundario {
+  color: var(--color-texto-secundario);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
+}
+
+.botonSecundario:hover:not(:disabled) {
+  background: var(--color-superficie-suave);
+}
+
+.botonPrimario:focus-visible,
+.botonSecundario:focus-visible,
+.chipNuevo:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+/* Deshabilitado pero legible: gris neutro, sin atenuar el texto. */
+.botonPrimario:disabled,
+.botonSecundario:disabled {
+  color: var(--color-texto-suave);
+  background: var(--color-superficie-suave);
+  border-color: var(--color-borde);
+  cursor: not-allowed;
+}
+
+/* Contexto: año arriba y grados debajo, en una tarjeta. */
+.contexto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+  min-width: 0;
+  padding: var(--espacio-4) var(--espacio-5);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-sm);
+}
+
+.grupoAnio {
+  display: flex;
+  align-items: flex-end;
+  gap: var(--espacio-3);
+}
+
+.grupoAnio > :last-child:not(:first-child) {
+  align-self: flex-end;
+  margin-bottom: var(--espacio-2);
+}
+
+.grupoGrado {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  min-width: 0;
+  padding-top: var(--espacio-4);
+  border-top: 1px solid var(--color-borde);
+}
+
+/* Subtítulo del grupo: mismo estilo que el de los chips de Usuarios. */
+.rotuloFiltro {
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+.filaChips {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-2);
+  min-width: 0;
+}
+
+/* «Crear grado»: chip de borde punteado al final de la fila; se lee como «agregar otro» y no como acción principal. */
+.chipNuevo {
+  display: inline-flex;
+  flex-shrink: 0;
+  align-items: center;
+  gap: var(--espacio-1);
+  height: calc(var(--tactil-min) - var(--espacio-2));
+  padding: 0 var(--espacio-3);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-medio);
+  white-space: nowrap;
+  color: var(--color-accion);
+  background: transparent;
+  border: 1px dashed var(--color-borde-fuerte);
+  border-radius: var(--radio-pildora);
+  cursor: pointer;
+  transition: background var(--transicion), border-color var(--transicion);
+}
+
+.chipNuevo:hover {
+  background: var(--color-accion-suave);
+  border-color: var(--color-accion);
+}
+
+/* Secciones del grado elegido. */
+.secciones {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  min-width: 0;
+}
+
+.encabezadoZona {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+}
+
+.textoZona {
+  min-width: 0;
+}
+
+.tituloZona {
+  margin: 0;
+  font-size: var(--texto-lg);
+  font-weight: var(--peso-negrita);
+  color: var(--color-texto);
+  overflow-wrap: anywhere;
+}
+
+.resumen {
+  margin: var(--espacio-1) 0 0;
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}
+
+.avisoFinalizado {
+  margin: 0;
+  padding: var(--espacio-2) var(--espacio-3);
+  font-size: var(--texto-sm);
+  color: var(--color-texto-secundario);
+  background: var(--color-superficie-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+}
+
+/* Una sola fila que se desplaza a la derecha si las tarjetas no caben (nunca pasan a otra fila). */
+.carrusel {
+  position: relative;
+  min-width: 0;
+}
+
+.rejilla {
+  display: flex;
+  gap: var(--espacio-4);
+  margin: 0;
+  /* Aire para que la sombra de las tarjetas no se recorte con el overflow. */
+  padding: var(--espacio-1) var(--espacio-1) var(--espacio-2);
+  list-style: none;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+  scroll-snap-type: x proximity;
+  scrollbar-width: thin;
+}
+
+.rejilla > li {
+  display: flex;
+  flex: 0 0 18rem;
+  scroll-snap-align: start;
+}
+
+.flecha {
+  position: absolute;
+  top: 50%;
+  z-index: 2;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: var(--tactil-min);
+  height: var(--tactil-min);
+  padding: 0;
+  color: var(--color-texto-secundario);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio-pildora);
+  box-shadow: var(--sombra-sm);
+  cursor: pointer;
+  transform: translateY(-50%);
+}
+
+.flechaIzquierda {
+  left: calc(var(--espacio-3) * -1);
+}
+
+.flechaDerecha {
+  right: calc(var(--espacio-3) * -1);
+}
+
+.flecha:hover:not(:disabled) {
+  background: var(--color-accion-suave);
+}
+
+.flecha:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.flecha:disabled {
+  display: none;
+}
+
+.rejilla > li > * {
+  flex: 1 1 auto;
+}
+
+.tarjetaSeccion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  padding: var(--espacio-5);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-sm);
+}
+
+.encabezadoSeccion {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-2);
+}
+
+.nombreSeccion {
+  margin: 0;
+  font-size: var(--texto-base);
+  font-weight: var(--peso-negrita);
+  color: var(--color-texto);
+}
+
+.ocupacion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+}
+
+.ocupacionTexto {
+  margin: 0;
+  font-size: var(--texto-md);
+  color: var(--color-texto-secundario);
+  font-variant-numeric: tabular-nums;
+}
+
+.barraOcupacion {
+  width: 100%;
+  height: 8px;
+  appearance: none;
+  border: 0;
+  border-radius: var(--radio-pildora);
+  overflow: hidden;
+  background: var(--color-borde);
+}
+
+.barraOcupacion::-webkit-progress-bar {
+  background: var(--color-borde);
+}
+
+.barraOcupacion::-webkit-progress-value {
+  background: var(--color-primario);
+  border-radius: var(--radio-pildora);
+}
+
+.barraOcupacion::-moz-progress-bar {
+  background: var(--color-primario);
+}
+
+.barraLlena::-webkit-progress-value {
+  background: var(--color-peligro-texto);
+}
+
+.barraLlena::-moz-progress-bar {
+  background: var(--color-peligro-texto);
+}
+
+.tutor {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-2);
+  margin: 0;
+  font-size: var(--texto-md);
+  color: var(--color-texto);
+}
+
+.pieSeccion {
+  display: flex;
+  justify-content: flex-end;
+  margin-top: auto;
+  padding-top: var(--espacio-3);
+  border-top: 1px solid var(--color-borde);
+}
+
+@media (max-width: 767px) {
+  .contexto {
+    padding: var(--espacio-4);
+  }
+
+  .grupoAnio > :first-child {
+    flex: 1 1 auto;
+  }
+
+  /* En el teléfono se desliza con el dedo; la siguiente tarjeta asoma para indicar que hay más. */
+  .rejilla > li {
+    flex-basis: 85%;
+  }
+
+  .flecha {
+    display: none;
+  }
+
+  .encabezadoZona > .botonPrimario,
+  .pieSeccion > .botonSecundario {
+    width: 100%;
+  }
+}
+>>>>>>> Stashed changes

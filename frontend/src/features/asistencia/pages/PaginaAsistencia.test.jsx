@@ -1,12 +1,13 @@
 import { describe, expect, it, vi } from 'vitest';
-import { render, screen } from '@testing-library/react';
+import { render, screen, within } from '@testing-library/react';
+import userEvent from '@testing-library/user-event';
 import '@testing-library/jest-dom/vitest';
 
-vi.mock('../../../shared/auth/useAuth.js', () => ({
-  default: () => ({
-    usuario: { id: 'EST-001', nombre: 'María López', rol: 'ESTUDIANTE' }
-  })
+const { sesion } = vi.hoisted(() => ({
+  sesion: { usuario: { id: 'EST-001', nombre: 'María López', rol: 'ESTUDIANTE' } }
 }));
+
+vi.mock('../../../shared/auth/useAuth.js', () => ({ default: () => sesion }));
 
 vi.mock('../services/asistenciaService.js', () => ({
   consultarHistorialAsistencia: vi.fn(async () => ({
@@ -75,6 +76,7 @@ import PaginaAsistencia from './PaginaAsistencia.jsx';
 
 describe('PaginaAsistencia', () => {
   it('muestra el historial y el resumen del estudiante', async () => {
+    sesion.usuario = { id: 'EST-001', nombre: 'María López', rol: 'ESTUDIANTE' };
     render(<PaginaAsistencia />);
 
     expect(await screen.findByRole('heading', { name: 'Mi asistencia' })).toBeInTheDocument();
@@ -83,11 +85,54 @@ describe('PaginaAsistencia', () => {
     expect(screen.getByText('30')).toBeInTheDocument();
     expect(screen.getByText('5')).toBeInTheDocument();
     expect(screen.getByText('8')).toBeInTheDocument();
-    expect(screen.getByText('Tardanza leve')).toBeInTheDocument();
-    expect(screen.getByText('Cita médica')).toBeInTheDocument();
-    expect(screen.getByText('4to Grado')).toBeInTheDocument();
-    expect(screen.getByRole('columnheader', { name: 'Grado' })).toBeInTheDocument();
-    expect(screen.getAllByText('Justificada').length).toBeGreaterThan(0);
+
+    // La tabla (escritorio) y las tarjetas (móvil) conviven en el DOM; el CSS muestra una u otra.
+    const tabla = screen.getByRole('table');
+    expect(within(tabla).getByText('Tardanza leve')).toBeInTheDocument();
+    expect(within(tabla).getByText('Cita médica')).toBeInTheDocument();
+    expect(within(tabla).getByText('4to Grado')).toBeInTheDocument();
+    expect(within(tabla).getByRole('columnheader', { name: 'Grado' })).toBeInTheDocument();
+    expect(within(tabla).getAllByText('Justificada').length).toBeGreaterThan(0);
     expect(screen.getByLabelText('Curso')).toBeInTheDocument();
+    expect(screen.getByRole('list', { name: 'Registros de asistencia' })).toBeInTheDocument();
+  });
+
+  it('pone título y descripción en una línea, sin sobretítulo, y filtros planos con «Actualizar»', async () => {
+    sesion.usuario = { id: 'DOC-001', nombre: 'Juan', rol: 'DOCENTE' };
+    render(<PaginaAsistencia />);
+
+    const cabecera = (await screen.findByRole('heading', { level: 1, name: 'Asistencia' })).closest('header');
+    expect(within(cabecera).getByText(/historial de asistencia de tus cursos/)).toBeInTheDocument();
+    expect(screen.queryByText('Seguimiento académico')).not.toBeInTheDocument();
+
+    const filtros = screen.getByRole('region', { name: 'Filtros de asistencia' });
+    expect(within(filtros).getByLabelText('Curso').tagName).toBe('SELECT');
+    expect(within(filtros).getByRole('button', { name: 'Actualizar' })).toBeInTheDocument();
+    // Sin ningún filtro cambiado no hay «Limpiar filtros».
+    expect(screen.queryByRole('button', { name: 'Limpiar filtros' })).not.toBeInTheDocument();
+  });
+
+  it('«Limpiar filtros» aparece al cambiar un filtro y los restablece', async () => {
+    sesion.usuario = { id: 'EST-001', nombre: 'María López', rol: 'ESTUDIANTE' };
+    render(<PaginaAsistencia />);
+    await screen.findByRole('table');
+
+    await userEvent.selectOptions(screen.getByLabelText('Curso'), 'CUR-0002');
+    const limpiar = await screen.findByRole('button', { name: 'Limpiar filtros' });
+    await userEvent.click(limpiar);
+
+    expect(screen.getByLabelText('Curso')).toHaveValue('');
+    expect(screen.queryByRole('button', { name: 'Limpiar filtros' })).not.toBeInTheDocument();
+  });
+
+  it('lleva en el pie el selector de filas por página y el paginador', async () => {
+    sesion.usuario = { id: 'EST-001', nombre: 'María López', rol: 'ESTUDIANTE' };
+    render(<PaginaAsistencia />);
+    await screen.findByRole('table');
+
+    const filas = screen.getByRole('group', { name: 'Filas por página' });
+    expect(within(filas).getByRole('button', { name: '10' })).toHaveAttribute('aria-pressed', 'true');
+    expect(within(filas).getByRole('button', { name: '25' })).toBeEnabled();
+    expect(screen.getByRole('navigation', { name: 'Paginación del historial de asistencia' })).toBeInTheDocument();
   });
 });

@@ -7,7 +7,9 @@ import {
 } from '../services/asistenciaService.js';
 import { resumirAsistencia } from '../utils/estadosAsistencia.js';
 
-const TAMANO_PAGINA = 10;
+/** Filas por página que se pueden elegir en el pie de la tabla (las mismas de Usuarios, Matrículas y Pagos). */
+export const OPCIONES_TAMANO_PAGINA = Object.freeze([10, 25, 50, 100]);
+const TAMANO_PAGINA_INICIAL = 10;
 
 function rangoAnioActual() {
   const anio = new Date().getFullYear();
@@ -33,6 +35,7 @@ export default function useHistorialAsistencia(usuario) {
   const [registros, establecerRegistros] = useState([]);
   const [resumen, establecerResumen] = useState({ ...resumirAsistencia([]), total: 0 });
   const [pagina, establecerPagina] = useState(0);
+  const [tamanoPagina, fijarTamanoPagina] = useState(TAMANO_PAGINA_INICIAL);
   const [totalPaginas, establecerTotalPaginas] = useState(0);
   const [totalRegistros, establecerTotalRegistros] = useState(0);
   const [cargando, establecerCargando] = useState(true);
@@ -56,6 +59,12 @@ export default function useHistorialAsistencia(usuario) {
 
   const establecerFechaFin = useCallback((valor) => {
     fijarFechaFin(valor);
+    establecerPagina(0);
+  }, []);
+
+  const cambiarTamanoPagina = useCallback((valor) => {
+    if (!OPCIONES_TAMANO_PAGINA.includes(valor)) return;
+    fijarTamanoPagina(valor);
     establecerPagina(0);
   }, []);
 
@@ -109,7 +118,7 @@ export default function useHistorialAsistencia(usuario) {
         desde: fechaInicio,
         hasta: fechaFin,
         page: pagina,
-        size: TAMANO_PAGINA
+        size: tamanoPagina
       });
       if (!activo) return;
       if (!respuesta.exitoso) {
@@ -154,9 +163,20 @@ export default function useHistorialAsistencia(usuario) {
     return () => {
       activo = false;
     };
-  }, [rol, esApoderado, estudianteId, cursoId, fechaInicio, fechaFin, pagina, intento]);
+  }, [rol, esApoderado, estudianteId, cursoId, fechaInicio, fechaFin, pagina, tamanoPagina, intento]);
 
   const recargar = useCallback(() => establecerIntento((valor) => valor + 1), []);
+
+  // Filtros que el usuario cambió respecto a los iniciales (el estudiante de un apoderado no cuenta: siempre hay uno).
+  const hayFiltros = cursoId !== '' || fechaInicio !== rango.desde || fechaFin !== rango.hasta;
+
+  const limpiarFiltros = useCallback(() => {
+    const inicial = rangoAnioActual();
+    fijarCursoId('');
+    fijarFechaInicio(inicial.desde);
+    fijarFechaFin(inicial.hasta);
+    establecerPagina(0);
+  }, []);
 
   return {
     esApoderado,
@@ -175,8 +195,11 @@ export default function useHistorialAsistencia(usuario) {
     pagina,
     totalPaginas,
     totalRegistros,
-    tamanoPagina: TAMANO_PAGINA,
+    tamanoPagina,
+    cambiarTamanoPagina,
     cambiarPagina,
+    hayFiltros,
+    limpiarFiltros,
     cargando,
     error,
     recargar

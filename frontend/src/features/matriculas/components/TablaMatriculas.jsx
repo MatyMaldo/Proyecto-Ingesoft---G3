@@ -92,7 +92,7 @@ export default function TablaMatriculas({ matriculas, alEmitir, emitiendoId }) {
               <th scope="col" className={estilos.columnaGrado}>Grado</th>
               <th scope="col" className={estilos.columnaSeccion}>Sección</th>
               <th scope="col" className={estilos.columnaEstado}>Estado</th>
-              <th scope="col" className={estilos.columnaAccion}>Acción</th>
+              <th scope="col" className={estilos.columnaAccion}>Acciones</th>
             </tr>
           </thead>
           <tbody>
