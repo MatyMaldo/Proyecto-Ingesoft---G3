@@ -3,9 +3,9 @@ import { listarEvaluacionesMock, listarNotasEvaluacionMock } from './evaluacione
 
 const ANIO_CONSULTA = { id: 1, anio: 2026 };
 const BIMESTRES_FINALIZADOS = [
-  { id: 'B1', nombre: 'I Bimestre', inicio: '2026-03-09', fin: '2026-05-08' },
-  { id: 'B2', nombre: 'II Bimestre', inicio: '2026-05-18', fin: '2026-07-17' },
-  { id: 'B3', nombre: 'III Bimestre', inicio: '2026-08-03', fin: '2026-10-02' }
+  { id: 'B1', nombre: 'PRIMER_BIMESTRE', inicio: '2026-03-09', fin: '2026-05-08' },
+  { id: 'B2', nombre: 'SEGUNDO_BIMESTRE', inicio: '2026-05-18', fin: '2026-07-17' },
+  { id: 'B3', nombre: 'TERCER_BIMESTRE', inicio: '2026-08-03', fin: '2026-10-02' }
 ];
 
 const ESTUDIANTES = [
@@ -22,8 +22,8 @@ const MATRICULAS_CONFIRMADAS = ESTUDIANTES.flatMap((estudiante) => [
 ]);
 
 const NOTAS_COMPETENCIA_DEMO = {
-  'CUR-0001:COM-0001': { B1: 'A', B2: null, B3: 'B' },
-  'CUR-0002:COM-0005': { B1: 'B', B2: null, B3: null }
+  'CUR-0001:COM-0001': { PRIMER_BIMESTRE: 'A', SEGUNDO_BIMESTRE: null, TERCER_BIMESTRE: 'B' },
+  'CUR-0002:COM-0005': { PRIMER_BIMESTRE: 'B', SEGUNDO_BIMESTRE: null, TERCER_BIMESTRE: null }
 };
 
 const esperar = () => new Promise((resolver) => setTimeout(resolver, 180));

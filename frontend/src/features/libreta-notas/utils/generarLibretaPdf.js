@@ -34,32 +34,36 @@ function agregarEnvuelto(lineas, texto, opciones = {}) {
   lineas.push({ texto: restante, ...opciones });
 }
 
-function crearLineas(reporte) {
+function crearLineas(libreta) {
   const lineas = [];
   agregarEnvuelto(lineas, 'INSTITUCIÓN EDUCATIVA SAN MARCOS', { negrita: true, tamano: 16 });
   agregarEnvuelto(lineas, 'LIBRETA DE NOTAS', { negrita: true, tamano: 13 });
   lineas.push({ texto: '' });
-  agregarEnvuelto(lineas, `Estudiante: ${reporte.estudiante.nombre}`, { negrita: true });
-  agregarEnvuelto(lineas, `Código: ${reporte.estudiante.codigo}    Año académico: ${reporte.anioAcademico}`);
-  agregarEnvuelto(lineas, `Periodo: ${reporte.bimestre}`);
+  agregarEnvuelto(lineas, `Estudiante: ${libreta.idEstudiante}`, { negrita: true });
+  agregarEnvuelto(lineas, `Año académico: ${libreta.anioAcademico}`);
+  agregarEnvuelto(lineas, `Periodo: ${libreta.nombreBimestre}`);
+  agregarEnvuelto(lineas, `Fecha de generación: ${libreta.fechaGeneracion}`);
   lineas.push({ texto: '' });
 
-  reporte.cursos.forEach((curso) => {
-    agregarEnvuelto(lineas, `${curso.nombre} — ${curso.grado}, sección ${curso.seccion}`, { negrita: true, tamano: 11 });
-    agregarEnvuelto(lineas, `Docente: ${curso.docente}`);
-    curso.competencias.forEach((competencia) => {
-      agregarEnvuelto(lineas, `Competencia: ${competencia.nombre}`);
-      agregarEnvuelto(lineas, `Calificación: ${competencia.nota}`);
+  const cursos = new Map();
+  (libreta.notasCompetencias ?? []).forEach((competencia) => {
+    const competencias = cursos.get(competencia.nombreCurso) ?? [];
+    competencias.push(competencia);
+    cursos.set(competencia.nombreCurso, competencias);
+  });
+  cursos.forEach((competencias, nombreCurso) => {
+    agregarEnvuelto(lineas, nombreCurso, { negrita: true, tamano: 11 });
+    competencias.forEach((competencia) => {
+      agregarEnvuelto(lineas, `Competencia: ${competencia.nombreCompetencia}`);
+      agregarEnvuelto(lineas, `Calificación: ${competencia.valorNota}`);
+      agregarEnvuelto(lineas, `Descripción: ${competencia.descripcion}`);
       agregarEnvuelto(lineas, `Conclusión descriptiva: ${competencia.conclusionDescriptiva}`, { limite: 78 });
     });
     lineas.push({ texto: '' });
   });
 
-  agregarEnvuelto(lineas, 'ASISTENCIA', { negrita: true, tamano: 11 });
-  agregarEnvuelto(lineas, `Inasistencias: ${reporte.asistencia.inasistencias}    Tardanzas: ${reporte.asistencia.tardanzas}`);
-  lineas.push({ texto: '' });
   agregarEnvuelto(lineas, 'COMENTARIOS DEL TUTOR', { negrita: true, tamano: 11 });
-  agregarEnvuelto(lineas, reporte.comentariosTutor, { limite: 78 });
+  agregarEnvuelto(lineas, libreta.comentariosFinalesTutor || 'Sin comentarios finales del tutor.', { limite: 78 });
   return lineas;
 }
 
@@ -67,7 +71,7 @@ function bytesWinAnsi(texto) {
   return Uint8Array.from(Array.from(texto, (caracter) => caracter.charCodeAt(0) & 0xff));
 }
 
-/** Genera un PDF autónomo con los mismos datos que muestra la libreta en pantalla. */
+/** Genera un PDF de ejemplo a partir del contrato de detalle de una libreta. */
 export function generarLibretaPdf(reporte) {
   const lineas = crearLineas(reporte);
   const capacidadPagina = 42;
@@ -114,16 +118,4 @@ export function generarLibretaPdf(reporte) {
   }
   documento += `trailer\n<< /Size ${desplazamientos.length} /Root 1 0 R >>\nstartxref\n${inicioXref}\n%%EOF`;
   return new Blob([bytesWinAnsi(documento)], { type: 'application/pdf' });
-}
-
-export function descargarLibretaPdf(reporte) {
-  const archivo = generarLibretaPdf(reporte);
-  const url = URL.createObjectURL(archivo);
-  const enlace = document.createElement('a');
-  enlace.href = url;
-  enlace.download = `Libreta_${reporte.estudiante.codigo}_${reporte.anioAcademico}_${reporte.bimestreId}.pdf`;
-  document.body.append(enlace);
-  enlace.click();
-  enlace.remove();
-  window.setTimeout(() => URL.revokeObjectURL(url), 1000);
 }

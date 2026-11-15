@@ -19,14 +19,14 @@ export function listarEstudiantesConsulta(usuario) {
     });
   }
   if (USAR_MOCK) return listarEstudiantesBajoCargoMock(usuario);
-  return solicitar('/apoderados/me/estudiantes');
+  return solicitar('/usuarios/apoderados/me/estudiantes');
 }
 
 export function listarCursosConsulta(usuario, estudianteId) {
   if (USAR_MOCK) return listarCursosEstudianteMock(usuario, estudianteId);
   const ruta = usuario?.rol === ROLES.ESTUDIANTE
     ? '/estudiantes/me/cursos/anio-consulta'
-    : `/apoderados/me/estudiantes/${encodeURIComponent(estudianteId)}/cursos/anio-consulta`;
+    : `/usuarios/apoderados/me/estudiantes/${encodeURIComponent(estudianteId)}/cursos/anio-consulta`;
   return solicitar(ruta);
 }
 
@@ -34,6 +34,6 @@ export function consultarNotasCurso(usuario, estudianteId, cursoId) {
   if (USAR_MOCK) return consultarNotasCursoMock(usuario, estudianteId, cursoId);
   const ruta = usuario?.rol === ROLES.ESTUDIANTE
     ? `/estudiantes/me/cursos/${encodeURIComponent(cursoId)}/evaluaciones-notas`
-    : `/apoderados/me/estudiantes/${encodeURIComponent(estudianteId)}/cursos/${encodeURIComponent(cursoId)}/evaluaciones-notas`;
+    : `/usuarios/apoderados/me/estudiantes/${encodeURIComponent(estudianteId)}/cursos/${encodeURIComponent(cursoId)}/evaluaciones-notas`;
   return solicitar(ruta);
 }

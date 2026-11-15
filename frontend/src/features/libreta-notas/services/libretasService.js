@@ -1,19 +1,56 @@
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import { solicitar } from '../../../shared/api/clienteHttp.js';
-import { listarLibretasEstudianteMock } from './mocks/libretasMock.js';
-import { ROLES } from '../../../shared/auth/roles.js';
-import { listarEstudiantesConsulta } from '../../../features/evaluaciones/services/consultaNotasService.js';
+import { generarLibretaPdf } from '../utils/generarLibretaPdf.js';
+import {
+  listarAniosAcademicosMock,
+  listarLibretasEstudianteMock,
+  obtenerDetalleLibretaMock
+} from './mocks/libretasMock.js';
 
-/** El backend debe limitar la respuesta al estudiante autenticado y a su año de consulta. */
-export function listarLibretasEstudiante(usuario) {
-  return listarEstudiantesConsulta(usuario);
+function validarIdLong(valor, nombre) {
+  if (valor !== null && valor !== undefined && /^\d+$/.test(String(valor))) return null;
+  return {
+    exitoso: false,
+    datos: null,
+    mensaje: `El parámetro '${nombre}' debe ser un ID numérico válido.`
+  };
 }
 
-/** El servidor debe autorizar la relación apoderado-estudiante y limitar el año consultado. */
-export function listarLibretasDelEstudiante(usuario, estudianteId) {
-  if (USAR_MOCK) return listarLibretasEstudianteMock(usuario, estudianteId);
-  const ruta = usuario?.rol === ROLES.ESTUDIANTE
-    ? '/estudiantes/me/libretas/anio-consulta'
-    : `/apoderados/me/estudiantes/${encodeURIComponent(estudianteId)}/libretas/anio-consulta`;
+export function listarAniosAcademicosLibretas() {
+  if (USAR_MOCK) return listarAniosAcademicosMock();
+  return solicitar('/anios-academicos');
+}
+
+export function listarLibretasDelEstudiante(usuario, estudianteId, anioId) {
+  if (USAR_MOCK) return listarLibretasEstudianteMock(usuario, estudianteId, anioId);
+  const errorEstudiante = validarIdLong(estudianteId, 'idEstudiante');
+  if (errorEstudiante) return Promise.resolve(errorEstudiante);
+  const errorAnio = validarIdLong(anioId, 'idAnioAcademico');
+  if (errorAnio) return Promise.resolve(errorAnio);
+  const ruta = `/estudiantes/${encodeURIComponent(estudianteId)}/libretas`;
+  return solicitar(ruta, { parametros: { idAnioAcademico: anioId } });
+}
+
+export function obtenerDetalleLibreta(usuario, estudianteId, libretaId) {
+  if (USAR_MOCK) return obtenerDetalleLibretaMock(usuario, estudianteId, libretaId);
+  const errorEstudiante = validarIdLong(estudianteId, 'idEstudiante');
+  if (errorEstudiante) return Promise.resolve(errorEstudiante);
+  const errorLibreta = validarIdLong(libretaId, 'idLibreta');
+  if (errorLibreta) return Promise.resolve(errorLibreta);
+  const ruta = `/estudiantes/${encodeURIComponent(estudianteId)}/libretas/${encodeURIComponent(libretaId)}`;
   return solicitar(ruta);
+}
+
+export async function obtenerPdfLibreta(usuario, estudianteId, libretaId) {
+  if (USAR_MOCK) {
+    const respuesta = await obtenerDetalleLibretaMock(usuario, estudianteId, libretaId);
+    if (!respuesta.exitoso) return respuesta;
+    return { ...respuesta, datos: generarLibretaPdf(respuesta.datos) };
+  }
+  const errorEstudiante = validarIdLong(estudianteId, 'idEstudiante');
+  if (errorEstudiante) return errorEstudiante;
+  const errorLibreta = validarIdLong(libretaId, 'idLibreta');
+  if (errorLibreta) return errorLibreta;
+  const ruta = `/estudiantes/${encodeURIComponent(estudianteId)}/libretas/${encodeURIComponent(libretaId)}/pdf`;
+  return solicitar(ruta, { respuestaArchivo: true });
 }

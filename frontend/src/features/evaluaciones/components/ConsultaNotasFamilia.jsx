@@ -141,15 +141,15 @@ export default function ConsultaNotasFamilia() {
                           <details>
                             <summary>Ver detalle</summary>
                             <dl className={estilos.datosEvaluacion}>
-                              <div><dt>Curso</dt><dd>{evaluacion.cursoNombre}</dd></div>
-                              <div><dt>Grado y sección</dt><dd>{evaluacion.gradoNombre} · {evaluacion.seccionNombre}</dd></div>
-                              <div><dt>Docente</dt><dd>{evaluacion.docenteNombre}</dd></div>
+                              <div><dt>Curso</dt><dd>{detalle.curso.nombre}</dd></div>
+                              <div><dt>Grado y sección</dt><dd>{detalle.gradoNombre} · {detalle.seccionNombre}</dd></div>
+                              <div><dt>Docente</dt><dd>{detalle.docenteNombre}</dd></div>
                               <div><dt>Evaluación</dt><dd>{evaluacion.nombre}</dd></div>
                               <div><dt>Descripción</dt><dd>{evaluacion.descripcion}</dd></div>
                               <div><dt>Fecha</dt><dd>{evaluacion.fecha}</dd></div>
                               <div><dt>Bimestre</dt><dd>{evaluacion.bimestreNombre}</dd></div>
                               <div><dt>Competencia</dt><dd>{evaluacion.competenciaNombre}</dd></div>
-                              <div><dt>Estudiante</dt><dd>{evaluacion.estudianteNombre}</dd></div>
+                              <div><dt>Estudiante</dt><dd>{detalle.estudiante.nombre}</dd></div>
                               <div><dt>Nota</dt><dd>{evaluacion.nota ?? <span className={estilos.sinNota}>no hay nota registrada</span>}</dd></div>
                             </dl>
                           </details>
@@ -166,7 +166,7 @@ export default function ConsultaNotasFamilia() {
                           <thead><tr><th scope="col">Competencia</th>{detalle.bimestres.map((bimestre) => <th scope="col" key={bimestre.id}>{bimestre.nombre}</th>)}</tr></thead>
                           <tbody>{detalle.competencias.map((competencia) => <tr key={competencia.id}>
                             <th scope="row">{competencia.nombre}</th>
-                            {detalle.bimestres.map((bimestre) => <td key={bimestre.id}>{competencia.notasPorBimestre[bimestre.id] ?? <span className={estilos.sinNota}>no hay nota de competencia registrada</span>}</td>)}
+                            {detalle.bimestres.map((bimestre) => <td key={bimestre.id}>{competencia.notasPorBimestre[bimestre.nombre] ?? <span className={estilos.sinNota}>no hay nota de competencia registrada</span>}</td>)}
                           </tr>)}</tbody>
                         </table>
                       </div>
