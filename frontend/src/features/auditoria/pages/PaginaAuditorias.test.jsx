@@ -14,18 +14,17 @@ vi.mock('../services/auditoriaService.js', async () => {
 
 import PaginaAuditorias from './PaginaAuditorias.jsx';
 
-const PAGINADOR_SUPERIOR = { name: 'Paginación de auditorías (superior)' };
-const PAGINADOR_INFERIOR = { name: 'Paginación de auditorías (inferior)' };
+const PAGINADOR = { name: 'Paginación de auditorías' };
 
 async function renderizarYEsperar() {
   render(<PaginaAuditorias />);
-  await waitFor(() => expect(screen.getByRole('navigation', PAGINADOR_SUPERIOR)).toBeInTheDocument(), {
+  await waitFor(() => expect(screen.getByRole('navigation', PAGINADOR)).toBeInTheDocument(), {
     timeout: 3000
   });
 }
 
 function totalMostrado() {
-  return within(screen.getByRole('navigation', PAGINADOR_SUPERIOR)).getByRole('status');
+  return within(screen.getByRole('navigation', PAGINADOR)).getByRole('status');
 }
 
 describe('HU-SAT-04 · Selectores independientes de Módulo y Tipo de acción', () => {
@@ -90,7 +89,7 @@ describe('HU-SAT-04 · Encabezado', () => {
   it('muestra solo el título y la descripción, sin el rótulo repetido del breadcrumb ni la insignia del total', async () => {
     await renderizarYEsperar();
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Auditorías del Sistema' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Auditorías' })).toBeInTheDocument();
     expect(screen.queryByText(/Módulo de administración/i)).not.toBeInTheDocument();
     // El total ya lo da el paginador; no se repite como insignia.
     expect(screen.queryByText(/^\d+ registros$/)).not.toBeInTheDocument();
@@ -98,31 +97,49 @@ describe('HU-SAT-04 · Encabezado', () => {
   });
 });
 
-describe('HU-SAT-04 · Paginación de 10 en 10', () => {
-  it('muestra 10 registros por página y el mismo paginador arriba y abajo, con total solo en el superior', async () => {
+describe('HU-SAT-04 · Paginación con un solo pie', () => {
+  it('muestra 10 registros por página y un único paginador con el total y las filas por página', async () => {
     await renderizarYEsperar();
 
+    expect(screen.getAllByRole('navigation', PAGINADOR)).toHaveLength(1);
     expect(totalMostrado()).toHaveTextContent('1 – 10 de 26 registros');
-    const inferior = screen.getByRole('navigation', PAGINADOR_INFERIOR);
-    expect(inferior).toHaveTextContent('1 – 10 de 26 registros');
-    expect(within(inferior).queryByRole('status')).not.toBeInTheDocument();
     expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(11);
+
+    const filas = screen.getByRole('group', { name: 'Filas por página' });
+    expect(within(filas).getAllByRole('button').map((boton) => boton.textContent)).toEqual(['10', '25', '50', '100']);
+    expect(within(filas).getByRole('button', { name: '10' })).toHaveAttribute('aria-pressed', 'true');
+    // Con 26 registros, 50 y 100 no cambiarían nada.
+    expect(within(filas).getByRole('button', { name: '50' })).toBeDisabled();
   });
 
-  it('con una sola página no repite el paginador abajo', async () => {
+  it('al elegir 25 filas por página vuelve a la primera y muestra 25 registros', async () => {
+    const usuario = userEvent.setup();
+    await renderizarYEsperar();
+
+    await usuario.click(screen.getByRole('button', { name: 'Página siguiente' }));
+    await waitFor(() => expect(totalMostrado()).toHaveTextContent('11 – 20 de 26 registros'));
+
+    await usuario.click(within(screen.getByRole('group', { name: 'Filas por página' })).getByRole('button', { name: '25' }));
+
+    await waitFor(() => expect(totalMostrado()).toHaveTextContent('1 – 25 de 26 registros'));
+    expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(26);
+  });
+
+  it('con una sola página el pie conserva el total pero sin controles de página', async () => {
     const usuario = userEvent.setup();
     await renderizarYEsperar();
 
     await usuario.selectOptions(screen.getByLabelText('Módulo'), 'PAGOS');
-    await waitFor(() => expect(totalMostrado()).toHaveTextContent(/^1 – \d+ de \d+ registros?$/));
-    await waitFor(() => expect(screen.queryByRole('navigation', PAGINADOR_INFERIOR)).not.toBeInTheDocument());
+    // Con pocos registros se acaban los controles de página, pero el total sigue en el pie.
+    await waitFor(() => expect(screen.queryByRole('button', { name: 'Página siguiente' })).not.toBeInTheDocument());
+    expect(totalMostrado()).toHaveTextContent(/^1 – \d+ de \d+ registros?$/);
   });
 
   it('cambia de página y conserva los filtros; al cambiar un filtro vuelve a la primera', async () => {
     const usuario = userEvent.setup();
     await renderizarYEsperar();
 
-    await usuario.click(within(screen.getByRole('navigation', PAGINADOR_SUPERIOR)).getByRole('button', { name: 'Página siguiente' }));
+    await usuario.click(within(screen.getByRole('navigation', PAGINADOR)).getByRole('button', { name: 'Página siguiente' }));
     await waitFor(() => expect(totalMostrado()).toHaveTextContent('11 – 20 de 26 registros'));
     expect(within(screen.getByRole('table')).getAllByRole('row')).toHaveLength(11);
 

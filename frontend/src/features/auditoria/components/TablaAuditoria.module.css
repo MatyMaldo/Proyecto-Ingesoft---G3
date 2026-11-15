@@ -1,10 +1,30 @@
+.raiz {
+  display: contents;
+}
+
 .contenedorTabla {
   display: block;
 }
 
+/* Escritorio: la tabla es la única zona con desplazamiento vertical (encabezado fijo); la página no. */
 @media (min-width: 768px) {
+  .raiz {
+    display: flex;
+    flex: 1 1 auto;
+    flex-direction: column;
+    min-height: 0;
+  }
+
   .contenedorTabla {
-    overflow-x: auto;
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .tabla thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
   }
 }
 
@@ -39,8 +59,9 @@
 }
 
 .tabla tbody td {
-  height: var(--alto-fila-tabla);
-  padding: var(--espacio-2) var(--espacio-3);
+  /* Alto fijo para todas las filas, igual que Usuarios, Matrículas y Pagos (42 px; 48 px en pantallas altas). */
+  height: 42px;
+  padding: var(--espacio-1) var(--espacio-3);
   text-align: left;
   font-size: var(--texto-md);
   color: var(--color-texto);
@@ -107,47 +128,57 @@
   display: flex;
   align-items: center;
   gap: var(--espacio-3);
+  min-width: 0;
 }
 
 .bloqueUsuario {
   display: flex;
   flex-direction: column;
+  min-width: 0;
+  line-height: 1.2;
 }
 
+/* Nombre y rol en una línea cada uno: si no caben se cortan con «…» (el nombre completo está en el detalle). */
 .nombreUsuario {
+  overflow: hidden;
   font-weight: var(--peso-seminegrita);
   color: var(--color-texto);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .celdaRol {
-  font-size: var(--texto-md);
+  overflow: hidden;
+  font-size: var(--texto-xs);
   font-weight: var(--peso-normal);
-  color: var(--color-texto-secundario);
+  color: var(--color-texto-suave);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-/* La descripción admite hasta dos líneas (el resto va recortado con "…"; el texto completo está en
-   el tooltip y en el detalle), con lo que las filas no crecen más que por la fecha o el rol. */
+/* La descripción va en una sola línea (el resto se recorta con «…»); el texto completo está en el tooltip y en el
+   detalle. Así todas las filas miden lo mismo. */
 .celdaDescripcion {
   overflow: hidden;
 }
 
 .descripcionTexto {
-  display: -webkit-box;
+  display: block;
   overflow: hidden;
-  -webkit-box-orient: vertical;
-  -webkit-line-clamp: 2;
-  line-clamp: 2;
   font-size: var(--texto-md);
   font-weight: var(--peso-normal);
   color: var(--color-texto);
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .botonHistorial {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: var(--tactil-min);
-  height: var(--tactil-min);
+  width: 32px;
+  min-height: 32px;
+  height: 32px;
   padding: 0;
   color: var(--color-accion);
   background: none;
@@ -249,6 +280,23 @@
   font-weight: var(--peso-seminegrita);
   color: var(--color-primario);
   white-space: nowrap;
+}
+
+/* Pantalla alta: hay espacio de sobra, así que las filas recuperan la altura holgada del estándar GUI (48 px). */
+@media (min-width: 768px) and (min-height: 860px) {
+  .tabla tbody td {
+    height: 48px;
+  }
+
+  .tabla thead th {
+    padding: var(--espacio-3) var(--espacio-4);
+  }
+
+  .botonHistorial {
+    width: 36px;
+    min-height: 36px;
+    height: 36px;
+  }
 }
 
 @media (max-width: 767px) {

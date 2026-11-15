@@ -287,14 +287,15 @@ export async function obtenerErroresDePrueba(filtros = {}) {
     .sort((a, b) => new Date(b.fechaHora) - new Date(a.fechaHora))
     .map((registro) => ({ usuarioId: null, ...registro }));
   const pagina = filtros.page ?? 0;
-  const desde = pagina * TAMANIO_PAGINA;
+  const tamanio = filtros.tamanio ?? TAMANIO_PAGINA;
+  const desde = pagina * tamanio;
 
   return {
     exitoso: true,
     datos: {
-      registros: todos.slice(desde, desde + TAMANIO_PAGINA),
+      registros: todos.slice(desde, desde + tamanio),
       pagina,
-      totalPaginas: Math.ceil(todos.length / TAMANIO_PAGINA),
+      totalPaginas: Math.ceil(todos.length / tamanio),
       totalElementos: todos.length
     },
     mensaje: ''

@@ -1,7 +1,10 @@
 import { solicitar } from '../../../shared/api/clienteHttp.js';
 
-/** Errores por página: 10 en 10, igual que el resto de listados del panel (antes 15). */
+/** Errores por página por defecto: 10, igual que el resto de listados del panel (antes 15). */
 export const TAMANIO_PAGINA_LOG_ERRORES = 10;
+
+/** Filas por página que se pueden elegir (las mismas que Usuarios, Matrículas y Pagos). */
+export const OPCIONES_TAMANIO_PAGINA_LOG_ERRORES = Object.freeze([10, 25, 50, 100]);
 
 /**
  * Indica si el origen de datos soporta el filtro de módulo y el buscador.
@@ -64,7 +67,7 @@ export async function obtenerErrores(filtros = {}, opciones = {}) {
       modulo: filtros.modulo ? (MODULO_FRONT_A_BACKEND[filtros.modulo] ?? filtros.modulo) : undefined,
       busqueda: filtros.busqueda || undefined,
       page: filtros.page ?? 0,
-      size: TAMANIO_PAGINA_LOG_ERRORES,
+      size: filtros.tamanio ?? TAMANIO_PAGINA_LOG_ERRORES,
       sortBy: 'fechaHora',
       sortDirection: 'DESC'
     },
