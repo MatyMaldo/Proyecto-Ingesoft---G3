@@ -1,82 +1,98 @@
-const LIBRETAS_ESTUDIANTE = [
+const ANIOS_ACADEMICOS = [{ id: 1, anio: 2026 }];
+
+const LIBRETAS = [
   {
-    id: 'LIB-EST-001-B3-2026',
-    estudiante: { id: 'EST-001', nombre: 'María López García', codigo: 'EST-001' },
+    idLibreta: 1,
+    idEstudiante: 'EST-001',
     anioAcademico: 2026,
-    bimestreId: 'B3',
-    bimestre: 'III Bimestre',
-    generadaEn: '2026-10-05T10:00:00-05:00',
-    cursos: [
+    nombreBimestre: 'BIM_3',
+    fechaGeneracion: '2026-10-05',
+    comentariosFinalesTutor: 'María demuestra responsabilidad y participa activamente en las actividades del aula.',
+    notasCompetencias: [
       {
-        nombre: 'Matemáticas',
-        grado: '1.° de secundaria',
-        seccion: 'A',
-        docente: 'Prof. Quispe',
-        competencias: [
-          { nombre: 'Resuelve problemas de cantidad', nota: 'A', conclusionDescriptiva: 'Resuelve situaciones con números naturales y explica los procedimientos que utiliza.' }
-        ]
+        nombreCurso: 'Matemáticas',
+        nombreCompetencia: 'Resuelve problemas de cantidad',
+        valorNota: 'A',
+        descripcion: 'Logro esperado',
+        conclusionDescriptiva: 'Resuelve situaciones con números naturales y explica los procedimientos que utiliza.'
       },
       {
-        nombre: 'Comunicación',
-        grado: '1.° de secundaria',
-        seccion: 'A',
-        docente: 'Prof. García',
-        competencias: [
-          { nombre: 'Lee diversos tipos de textos en lengua materna', nota: 'AD', conclusionDescriptiva: 'Comprende textos de distintos formatos e interpreta información explícita e implícita.' }
-        ]
+        nombreCurso: 'Comunicación',
+        nombreCompetencia: 'Lee diversos tipos de textos en lengua materna',
+        valorNota: 'AD',
+        descripcion: 'Logro destacado',
+        conclusionDescriptiva: 'Comprende textos de distintos formatos e interpreta información explícita e implícita.'
       }
-    ],
-    asistencia: { inasistencias: 1, tardanzas: 2 },
-    comentariosTutor: 'María demuestra responsabilidad y participa activamente en las actividades del aula.'
+    ]
   },
   {
-    id: 'LIB-EST-001-B2-2026',
-    estudiante: { id: 'EST-001', nombre: 'María López García', codigo: 'EST-001' },
+    idLibreta: 2,
+    idEstudiante: 'EST-001',
     anioAcademico: 2026,
-    bimestreId: 'B2',
-    bimestre: 'II Bimestre',
-    generadaEn: '2026-07-24T10:00:00-05:00',
-    cursos: [
+    nombreBimestre: 'BIM_2',
+    fechaGeneracion: '2026-07-24',
+    comentariosFinalesTutor: 'Buen avance durante el bimestre.',
+    notasCompetencias: [
       {
-        nombre: 'Matemáticas',
-        grado: '1.° de secundaria',
-        seccion: 'A',
-        docente: 'Prof. Quispe',
-        competencias: [
-          { nombre: 'Resuelve problemas de cantidad', nota: 'B', conclusionDescriptiva: 'Resuelve ejercicios de cantidad y se recomienda continuar practicando estrategias de cálculo.' }
-        ]
+        nombreCurso: 'Matemáticas',
+        nombreCompetencia: 'Resuelve problemas de cantidad',
+        valorNota: 'B',
+        descripcion: 'En proceso',
+        conclusionDescriptiva: 'Se recomienda continuar practicando estrategias de cálculo.'
       },
       {
-        nombre: 'Comunicación',
-        grado: '1.° de secundaria',
-        seccion: 'A',
-        docente: 'Prof. García',
-        competencias: [
-          { nombre: 'Lee diversos tipos de textos en lengua materna', nota: 'A', conclusionDescriptiva: 'Identifica las ideas principales y sustenta sus respuestas con información del texto.' }
-        ]
+        nombreCurso: 'Comunicación',
+        nombreCompetencia: 'Lee diversos tipos de textos en lengua materna',
+        valorNota: 'A',
+        descripcion: 'Logro esperado',
+        conclusionDescriptiva: 'Identifica las ideas principales y sustenta sus respuestas con información del texto.'
       }
-    ],
-    asistencia: { inasistencias: 0, tardanzas: 1 },
-    comentariosTutor: 'Buen avance durante el bimestre. Mantiene una convivencia positiva con sus compañeros.'
+    ]
   }
 ];
 
-export async function listarLibretasEstudianteMock(usuario, estudianteId = usuario?.id) {
-  await new Promise((resolver) => setTimeout(resolver, 180));
-  const estudianteAutorizado = usuario?.rol === 'ESTUDIANTE'
-    ? String(usuario.id) === String(estudianteId)
-    : usuario?.rol === 'APODERADO'
-      && String(usuario.id) === 'APO-001'
-      && ['EST-001', 'EST-003'].includes(String(estudianteId));
-  if (!estudianteAutorizado) {
-    return { exitoso: false, datos: null, mensaje: 'No tienes permiso para consultar las libretas de este estudiante.' };
-  }
-  if (String(estudianteId) !== 'EST-001') {
-    return { exitoso: true, datos: [], mensaje: '' };
-  }
+const esperar = (respuesta) => new Promise((resolver) => {
+  setTimeout(() => resolver(respuesta), 180);
+});
+
+function estudianteAutorizado(usuario, estudianteId) {
+  if (usuario?.rol === 'ESTUDIANTE') return String(usuario.id) === String(estudianteId);
+  return usuario?.rol === 'APODERADO'
+    && String(usuario.id) === 'APO-001'
+    && ['EST-001', 'EST-003'].includes(String(estudianteId));
+}
+
+function errorPermiso(usuario) {
   return {
-    exitoso: true,
-    datos: structuredClone(LIBRETAS_ESTUDIANTE),
-    mensaje: ''
+    exitoso: false,
+    datos: null,
+    mensaje: usuario?.rol === 'APODERADO'
+      ? 'No eres responsable de este estudiante'
+      : 'No puedes consultar libretas de otro estudiante'
   };
+}
+
+export async function listarAniosAcademicosMock() {
+  return esperar({ exitoso: true, datos: structuredClone(ANIOS_ACADEMICOS), mensaje: '' });
+}
+
+export async function listarLibretasEstudianteMock(usuario, estudianteId, anioId) {
+  if (!estudianteAutorizado(usuario, estudianteId)) return errorPermiso(usuario);
+  if (String(anioId) !== '1' || String(estudianteId) !== 'EST-001') {
+    return esperar({ exitoso: true, datos: [], mensaje: '' });
+  }
+  const resumenes = LIBRETAS
+    .filter((libreta) => String(libreta.idEstudiante) === String(estudianteId))
+    .map(({ notasCompetencias, ...libreta }) => libreta);
+  return esperar({ exitoso: true, datos: structuredClone(resumenes), mensaje: '' });
+}
+
+export async function obtenerDetalleLibretaMock(usuario, estudianteId, libretaId) {
+  if (!estudianteAutorizado(usuario, estudianteId)) return errorPermiso(usuario);
+  const libreta = LIBRETAS.find((item) => String(item.idLibreta) === String(libretaId)
+    && String(item.idEstudiante) === String(estudianteId));
+  if (!libreta) {
+    return esperar({ exitoso: false, datos: null, mensaje: 'No se encontró la libreta' });
+  }
+  return esperar({ exitoso: true, datos: structuredClone(libreta), mensaje: '' });
 }

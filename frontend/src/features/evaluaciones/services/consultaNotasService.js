@@ -19,7 +19,7 @@ export function listarEstudiantesConsulta(usuario) {
     });
   }
   if (USAR_MOCK) return listarEstudiantesBajoCargoMock(usuario);
-  return solicitar('/apoderados/me/estudiantes');
+  return solicitar('/usuarios/apoderados/me/estudiantes');
 }
 
 export function listarCursosConsulta(usuario, estudianteId) {
