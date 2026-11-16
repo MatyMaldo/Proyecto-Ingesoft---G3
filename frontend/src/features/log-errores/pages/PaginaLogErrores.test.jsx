@@ -52,13 +52,16 @@ describe('HU-SAT-05 · Logs de errores según el contrato paginado', () => {
     expect(within(tabla).queryByText('500')).not.toBeInTheDocument();
   });
 
-  it('muestra el total arriba y un único paginador al pie, sin repetir el resumen', async () => {
+  it('muestra un único pie con el total y el paginador, y las filas por página', async () => {
     renderizarPagina();
     await esperarListado();
 
     expect(screen.getAllByRole('navigation')).toHaveLength(1);
     expect(screen.getAllByText('1 – 10 de 18 errores')).toHaveLength(1);
-    expect(within(paginador()).queryByText('1 – 10 de 18 errores')).not.toBeInTheDocument();
+    expect(within(paginador()).getByText('1 – 10 de 18 errores')).toBeInTheDocument();
+    const filas = screen.getByRole('group', { name: 'Filas por página' });
+    expect(within(filas).getAllByRole('button').map((boton) => boton.textContent)).toEqual(['10', '25', '50', '100']);
+    expect(within(filas).getByRole('button', { name: '10' })).toHaveAttribute('aria-pressed', 'true');
     expect(within(paginador()).getByLabelText('Número de página')).toHaveValue(1);
     expect(within(paginador()).getByText('de 2')).toBeInTheDocument();
     expect(within(paginador()).getByRole('button', { name: 'Primera página' })).toBeDisabled();
@@ -200,7 +203,7 @@ describe('Log de errores · coherencia con Usuarios y Auditorías', () => {
     renderizarPagina();
     await esperarListado();
 
-    expect(screen.getByRole('heading', { level: 1, name: 'Log de Errores del Sistema' })).toBeInTheDocument();
+    expect(screen.getByRole('heading', { level: 1, name: 'Log de errores' })).toBeInTheDocument();
     expect(screen.queryByText(/Módulo de administración/i)).not.toBeInTheDocument();
     expect(screen.getByText(/Consulta de solo lectura/)).toBeInTheDocument();
   });
@@ -258,13 +261,23 @@ describe('Log de errores · coherencia con Usuarios y Auditorías', () => {
     expect(await esperarListado()).toBeInTheDocument();
   });
 
-  it('con una sola página no muestra el paginador, solo el total', async () => {
+  it('con una sola página el pie conserva el total pero sin controles de página', async () => {
     renderizarPagina();
     await esperarListado();
     await userEvent.selectOptions(screen.getByLabelText('Módulo'), 'AUTENTICACION');
 
     expect(await screen.findByText('1 – 2 de 2 errores')).toBeInTheDocument();
-    expect(screen.queryByRole('navigation')).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Página siguiente' })).not.toBeInTheDocument();
+  });
+
+  it('solo deja elegir tamaños que cambien algo: con 18 errores, 25 y más quedan bloqueados', async () => {
+    renderizarPagina();
+    await esperarListado();
+
+    const filas = screen.getByRole('group', { name: 'Filas por página' });
+    expect(within(filas).getByRole('button', { name: '10' })).toBeEnabled();
+    expect(within(filas).getByRole('button', { name: '25' })).toBeDisabled();
+    expect(within(filas).getByRole('button', { name: '100' })).toBeDisabled();
   });
 
   it('no muestra tarjetas de resumen', async () => {

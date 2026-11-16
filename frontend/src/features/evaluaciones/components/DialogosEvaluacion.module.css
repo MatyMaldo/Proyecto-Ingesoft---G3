@@ -1,0 +1,318 @@
+/* Piezas propias de las minipantallas de Evaluaciones; los campos y avisos comunes salen de camposDialogo. */
+
+.aviso {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  margin: 0;
+  padding: var(--espacio-3);
+  font-size: var(--texto-md);
+  color: var(--tono-ambar-texto);
+  background: var(--tono-ambar-fondo);
+  border: 1px solid var(--tono-ambar-borde);
+  border-radius: var(--radio-md);
+}
+
+.aviso svg {
+  flex-shrink: 0;
+}
+
+.aviso span {
+  min-width: 0;
+}
+
+/* Datos de la evaluación bajo el título del diálogo: tres campos con su rótulo, en una sola fila. */
+.datosEvaluacion {
+  display: grid;
+  grid-template-columns: minmax(0, 2fr) minmax(0, 1fr) minmax(0, 1fr);
+  gap: var(--espacio-3);
+  margin: 0;
+  padding: var(--espacio-3);
+  background: var(--color-superficie-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+}
+
+.datoEvaluacion {
+  min-width: 0;
+}
+
+.datoEvaluacion dt {
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+.datoEvaluacion dd {
+  margin: var(--espacio-1) 0 0;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-medio);
+  color: var(--color-texto);
+  overflow-wrap: anywhere;
+}
+
+/* Avance de la calificación: cuántos estudiantes ya tienen nota y cuántas notas faltan por guardar. */
+.avance {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+}
+
+.avanceTexto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--espacio-1) var(--espacio-3);
+  font-size: var(--texto-sm);
+  color: var(--color-texto-secundario);
+}
+
+.sinGuardar {
+  font-weight: var(--peso-seminegrita);
+  color: var(--tono-ambar-texto);
+}
+
+.filaPendiente {
+  background: var(--tono-ambar-fondo);
+}
+
+.textoAviso {
+  flex: 1 1 12rem;
+}
+
+.accionesAviso {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+}
+
+.botonAviso {
+  min-height: 2rem;
+  padding: 0 var(--espacio-3);
+  font: inherit;
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-seminegrita);
+  color: var(--tono-ambar-texto);
+  background: var(--color-superficie);
+  border: 1px solid var(--tono-ambar-borde);
+  border-radius: var(--radio-sm);
+  cursor: pointer;
+}
+
+.botonAviso:hover {
+  background: var(--tono-ambar-fondo);
+}
+
+.botonAviso:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.avisoCierre {
+  flex-wrap: wrap;
+  align-items: center;
+}
+
+.listaEstudiantes {
+  display: flex;
+  flex-direction: column;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+}
+
+.filaEstudiante {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-2) var(--espacio-3);
+  padding: var(--espacio-2) var(--espacio-3);
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.filaEstudiante:last-child {
+  border-bottom: 0;
+}
+
+.estudiante {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-3);
+  min-width: 0;
+}
+
+.textoEstudiante {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.nombreEstudiante {
+  overflow: hidden;
+  font-weight: var(--peso-medio);
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  color: var(--color-texto);
+}
+
+.codigoEstudiante {
+  font-size: var(--texto-xs);
+  line-height: 1.2;
+  color: var(--color-texto-suave);
+}
+
+.errorFila {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-1);
+  flex-basis: 100%;
+  margin: 0;
+  font-size: var(--texto-xs);
+  color: var(--color-peligro-texto);
+}
+
+/* Indicador de pasos de «Notas de competencias». */
+.pasos {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--espacio-1) var(--espacio-3);
+  margin: 0;
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}
+
+.tituloPaso {
+  font-size: var(--texto-base);
+  font-weight: var(--peso-negrita);
+  color: var(--color-texto);
+}
+
+.progreso {
+  width: 100%;
+  height: 6px;
+  appearance: none;
+  border: 0;
+  border-radius: var(--radio-pildora);
+  overflow: hidden;
+  background: var(--color-borde);
+}
+
+.progreso::-webkit-progress-bar {
+  background: var(--color-borde);
+}
+
+.progreso::-webkit-progress-value {
+  background: var(--color-primario);
+  border-radius: var(--radio-pildora);
+}
+
+.progreso::-moz-progress-bar {
+  background: var(--color-primario);
+}
+
+.descripcionCompetencia {
+  margin: 0;
+  font-size: var(--texto-md);
+  line-height: 1.5;
+  color: var(--color-texto-secundario);
+}
+
+/* «Atrás»: mismo aspecto que «Cancelar» de DialogoBase. */
+.botonAtras {
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-4);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto-secundario);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.botonAtras:hover:not(:disabled) {
+  background: var(--color-superficie-suave);
+}
+
+.botonAtras:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.botonAtras:disabled {
+  cursor: wait;
+  opacity: var(--opacidad-deshabilitado);
+}
+
+/* Bimestres como chips: los cuatro a la vista; los que aún no finalizan no se pueden elegir. */
+.chipsBimestre {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+}
+
+.chipBimestre {
+  min-height: calc(var(--tactil-min) - var(--espacio-2));
+  padding: 0 var(--espacio-4);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-medio);
+  white-space: nowrap;
+  color: var(--color-texto-secundario);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-pildora);
+  cursor: pointer;
+  transition: background var(--transicion), border-color var(--transicion);
+}
+
+.chipBimestre:hover:not(:disabled):not([aria-checked='true']) {
+  background: var(--color-accion-suave);
+  border-color: var(--color-borde-fuerte);
+}
+
+.chipBimestre:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.chipBimestre[aria-checked='true'] {
+  font-weight: var(--peso-seminegrita);
+  color: #fff;
+  background: var(--color-primario);
+  border-color: var(--color-primario);
+}
+
+.chipBimestre:disabled {
+  color: var(--color-texto-suave);
+  background: var(--color-superficie-suave);
+  cursor: not-allowed;
+}
+
+/* En teléfono: la competencia ocupa el ancho y el bimestre y la fecha comparten la segunda fila, para que la lista de
+   estudiantes quede a la vista sin tanto desplazamiento. */
+@media (max-width: 480px) {
+  .datosEvaluacion {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--espacio-2) var(--espacio-3);
+    padding: var(--espacio-2) var(--espacio-3);
+  }
+
+  .datoEvaluacion:first-child {
+    grid-column: 1 / -1;
+  }
+
+  .filaEstudiante {
+    padding: var(--espacio-2);
+  }
+}

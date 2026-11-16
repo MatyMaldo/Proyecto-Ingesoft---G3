@@ -1,0 +1,114 @@
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  min-width: 0;
+  padding: var(--espacio-5);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-sm);
+}
+
+.cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-2);
+}
+
+.nombre {
+  margin: 0;
+  font-size: var(--texto-base);
+  font-weight: var(--peso-negrita);
+  color: var(--color-texto);
+  overflow-wrap: anywhere;
+}
+
+/* Dos líneas como máximo: todas las tarjetas de una fila miden lo mismo. */
+.descripcion {
+  display: -webkit-box;
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--texto-md);
+  line-height: 1.5;
+  color: var(--color-texto-suave);
+  overflow-wrap: anywhere;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+}
+
+.datos {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-1) var(--espacio-4);
+  margin: 0;
+  font-size: var(--texto-sm);
+  color: var(--color-texto-secundario);
+}
+
+.dato {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-1);
+  min-width: 0;
+}
+
+.dato svg {
+  flex-shrink: 0;
+  color: var(--color-texto-suave);
+}
+
+.pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-2);
+  margin-top: auto;
+  padding-top: var(--espacio-3);
+  border-top: 1px solid var(--color-borde);
+}
+
+.autor {
+  font-size: var(--texto-xs);
+  color: var(--color-texto-suave);
+}
+
+.botonNotas {
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-4);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-primario-intenso);
+  background: transparent;
+  border: 1px solid var(--color-primario-intenso);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+  transition: background var(--transicion), color var(--transicion);
+}
+
+.botonNotas:hover:not(:disabled) {
+  color: var(--color-marca-texto);
+  background: var(--color-primario-intenso);
+}
+
+.botonNotas:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+/* Bloqueado pero legible: gris neutro, sin atenuar el texto. */
+.botonNotas:disabled {
+  color: var(--color-texto-suave);
+  background: var(--color-superficie-suave);
+  border-color: var(--color-borde);
+  cursor: not-allowed;
+}
+
+@media (max-width: 767px) {
+  .botonNotas {
+    flex: 1 1 100%;
+  }
+}

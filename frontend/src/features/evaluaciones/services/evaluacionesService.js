@@ -75,7 +75,7 @@ function normalizarEvaluacion(evaluacion, asignacion, anioAcademico) {
     seccionId: asignacion.seccionId,
     seccionNombre: evaluacion.nombreSeccion ?? asignacion.seccionNombre,
     competenciaNombre: evaluacion.nombreCompetencia,
-    bimestreNombre: evaluacion.nombreBimestre,
+    bimestreNombre: NOMBRES_BIMESTRE[evaluacion.nombreBimestre] ?? evaluacion.nombreBimestre,
     idAsignacionCurso: asignacion.idAsignacionCurso,
     anioAcademicoId: anioAcademico?.id,
     anioAcademico: anioAcademico?.anio

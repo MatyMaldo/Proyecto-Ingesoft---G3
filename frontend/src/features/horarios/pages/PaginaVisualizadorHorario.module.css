@@ -65,6 +65,11 @@
   gap: var(--espacio-3);
 }
 
+/* «Actualizar» queda alineado con la base de los campos de la fila (que llevan su etiqueta arriba). */
+.botonFila {
+  align-self: flex-end;
+}
+
 .contextoEstudiante {
   display: flex;
   align-items: flex-start;
@@ -246,21 +251,22 @@
   gap: var(--espacio-3);
 }
 
+/* Cifras de la semana: cuatro tarjetas con la misma forma que el resumen de Asistencia. */
 .datosResumen {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(8rem, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--espacio-3);
   margin: 0;
-  padding: var(--espacio-3) var(--espacio-4);
-  background: var(--color-superficie-suave);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio-md);
 }
 
 .dato {
   display: flex;
   flex-direction: column;
   gap: var(--espacio-1);
+  padding: var(--espacio-4);
+  background: var(--color-superficie-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
 }
 
 .dato dt {
@@ -273,9 +279,59 @@
 
 .dato dd {
   margin: 0;
-  font-size: var(--texto-lg);
-  font-weight: var(--peso-seminegrita);
+  font-size: var(--texto-xl);
+  font-weight: var(--peso-negrita);
   color: var(--color-texto);
+}
+
+@media (max-width: 900px) {
+  .datosResumen {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+/* Aclaración bajo los selectores de mes y semana. */
+.notaRango {
+  margin: calc(var(--espacio-1) * -1) 0 0;
+  font-size: var(--texto-xs);
+  color: var(--color-texto-suave);
+}
+
+/* «Ir a hoy» va pegado a las semanas: es parte del mismo control. */
+.botonHoy {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  min-height: calc(var(--tactil-min) - var(--espacio-2));
+  margin-left: var(--espacio-2);
+  padding: 0 var(--espacio-3);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  white-space: nowrap;
+  color: var(--color-texto-secundario);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+  transition: background var(--transicion);
+}
+
+.botonHoy:hover:not(:disabled) {
+  background: var(--color-superficie-suave);
+}
+
+.botonHoy:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.botonHoy:disabled {
+  color: var(--color-texto-suave);
+  background: var(--color-superficie-suave);
+  border-color: var(--color-borde);
+  cursor: not-allowed;
 }
 
 /* Estados de las sesiones de la semana, con su cantidad. */
@@ -516,17 +572,30 @@
     width: var(--tactil-min);
   }
 
-  /* Las semanas del mes se desplazan en una sola línea entre las dos flechas. */
+  /* En columna el selector debe ocupar una sola «línea»: con `wrap` cada elemento medía lo que su contenido y la fila
+     de semanas se salía de la pantalla. */
+  .selectorSemana {
+    flex-wrap: nowrap;
+  }
+
+  /* Las semanas del mes se desplazan en una sola línea entre las dos flechas; «Ir a hoy» queda debajo. */
   .semanasConFlechas {
+    flex-wrap: wrap;
     min-width: 0;
   }
 
   .semanasDelMes {
-    flex: 1 1 auto;
+    flex: 1 1 0;
     flex-wrap: nowrap;
     min-width: 0;
     overflow-x: auto;
     scrollbar-width: none;
+  }
+
+  .botonHoy {
+    flex: 1 1 100%;
+    min-height: var(--tactil-min);
+    margin-left: 0;
   }
 
   .semanasDelMes::-webkit-scrollbar {
