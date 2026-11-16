@@ -162,10 +162,6 @@ export default function DialogoNotasEvaluacion({ evaluacion, usuario, anioVigent
     >
       <dl className={estilos.datosEvaluacion}>
         <div className={estilos.datoEvaluacion}>
-          <dt>Competencia</dt>
-          <dd>{evaluacion.competenciaNombre || '—'}</dd>
-        </div>
-        <div className={estilos.datoEvaluacion}>
           <dt>Bimestre</dt>
           <dd>{evaluacion.bimestreNombre || '—'}</dd>
         </div>

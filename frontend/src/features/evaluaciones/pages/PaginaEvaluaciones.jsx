@@ -221,7 +221,6 @@ export default function PaginaEvaluaciones() {
           contexto={contexto}
           asignacion={asignacion}
           seccion={seccion}
-          competencias={competencias}
           asignacionSeleccionada={asignacionSeleccionada}
           alCerrar={cerrarDialogo}
           alCrear={(evaluacion, bimestreNombre) => {

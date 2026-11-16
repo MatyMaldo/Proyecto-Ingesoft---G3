@@ -104,7 +104,6 @@ export async function consultarNotasCursoMock(usuario, estudianteId, cursoId) {
       descripcion: evaluacion.descripcion,
       fecha: evaluacion.fecha,
       bimestreNombre: evaluacion.bimestreNombre,
-      competenciaNombre: evaluacion.competenciaNombre,
       estudianteNombre: estudiante.nombre,
       nota: nota?.nota ?? null
     };

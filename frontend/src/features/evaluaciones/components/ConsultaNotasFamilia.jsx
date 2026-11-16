@@ -148,7 +148,6 @@ export default function ConsultaNotasFamilia() {
                               <div><dt>Descripción</dt><dd>{evaluacion.descripcion}</dd></div>
                               <div><dt>Fecha</dt><dd>{evaluacion.fecha}</dd></div>
                               <div><dt>Bimestre</dt><dd>{evaluacion.bimestreNombre}</dd></div>
-                              <div><dt>Competencia</dt><dd>{evaluacion.competenciaNombre}</dd></div>
                               <div><dt>Estudiante</dt><dd>{detalle.estudiante.nombre}</dd></div>
                               <div><dt>Nota</dt><dd>{evaluacion.nota ?? <span className={estilos.sinNota}>no hay nota registrada</span>}</dd></div>
                             </dl>

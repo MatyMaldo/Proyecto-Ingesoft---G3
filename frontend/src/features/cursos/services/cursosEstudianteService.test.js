@@ -163,8 +163,8 @@ const REVISION = {
   nombreCurso: '1er Grado de Secundaria',
   nombreSeccion: 'A',
   evaluaciones: [
-    { idEvaluacion: 7, nombreEvaluacion: 'Práctica 2', descripcion: null, fecha: '2027-05-10', nombreBimestre: 'BIM_2', nombreCompetencia: 'Resuelve problemas de cantidad', valorNota: null },
-    { idEvaluacion: 1, nombreEvaluacion: 'Examen Parcial', descripcion: 'Primeros temas', fecha: '2027-03-20', nombreBimestre: 'BIM_1', nombreCompetencia: 'Resuelve problemas de cantidad', valorNota: 'AD' }
+    { idEvaluacion: 7, nombreEvaluacion: 'Práctica 2', descripcion: null, fecha: '2027-05-10', nombreBimestre: 'BIM_2', valorNota: null },
+    { idEvaluacion: 1, nombreEvaluacion: 'Examen Parcial', descripcion: 'Primeros temas', fecha: '2027-03-20', nombreBimestre: 'BIM_1', valorNota: 'AD' }
   ],
   notasCompetencias: [
     { nombreCompetencia: 'Resuelve problemas de cantidad', nombreBimestre: 'BIM_1', valorNota: 'AD', conclusionDescriptiva: 'Supera el nivel esperado' }
@@ -193,7 +193,6 @@ describe('consultarNotasCursoEstudiante', () => {
     expect(datos.evaluaciones[0]).toMatchObject({
       nombre: 'Examen Parcial',
       bimestreNombre: 'I Bimestre',
-      competenciaNombre: 'Resuelve problemas de cantidad',
       nota: 'AD',
       // Curso, grado, sección y docente salen de la tarjeta, no del `nombreCurso` del backend (que trae el grado).
       cursoNombre: 'Matemáticas',
@@ -202,6 +201,7 @@ describe('consultarNotasCursoEstudiante', () => {
       docenteNombre: 'Juan Perez',
       estudianteNombre: 'Luis Ramirez'
     });
+    expect(datos.evaluaciones[0]).not.toHaveProperty('competenciaNombre');
     expect(datos.evaluaciones[1].nota).toBeNull();
     expect(datos.curso).toMatchObject({ id: '1', nombre: 'Matemáticas' });
     expect(datos.bimestres.map((bimestre) => bimestre.nombre)).toEqual(['I Bimestre', 'II Bimestre', 'III Bimestre', 'IV Bimestre']);

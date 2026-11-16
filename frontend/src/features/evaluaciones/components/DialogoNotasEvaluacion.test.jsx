@@ -28,7 +28,6 @@ const EVALUACION = {
   nombre: 'Examen final',
   cursoNombre: 'Matemáticas',
   seccionNombre: 'A',
-  competenciaNombre: 'Resuelve problemas',
   bimestreNombre: 'I Bimestre',
   fecha: '2026-04-15'
 };
@@ -60,6 +59,7 @@ describe('DialogoNotasEvaluacion', () => {
     expect(within(lista).getAllByRole('listitem')).toHaveLength(6);
     expect(within(dialogo).queryByRole('group', { name: 'Filas por página' })).not.toBeInTheDocument();
     expect(within(dialogo).getByText(/de 14 con nota/)).toBeInTheDocument();
+    expect(within(dialogo).queryByText('Competencia')).not.toBeInTheDocument();
 
     await userEvent.click(within(within(lista).getAllByRole('radiogroup')[0]).getByRole('radio', { name: 'AD' }));
     const paginacion = within(dialogo).getByRole('navigation', { name: 'Paginación de estudiantes' });

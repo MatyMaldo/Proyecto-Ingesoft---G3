@@ -40,7 +40,6 @@ const EVALUACION_BASE = {
   gradoNombre: '1er Grado de Secundaria',
   seccionNombre: 'A',
   docenteNombre: 'Juan Perez',
-  competenciaNombre: 'Resuelve problemas de cantidad',
   estudianteNombre: 'Luis Ramirez'
 };
 const DETALLE = {
@@ -163,7 +162,7 @@ describe('PaginaCursosEstudiante (HU-EVAL-03)', () => {
     expect(await screen.findByRole('list', { name: 'Mis cursos' })).toBeInTheDocument();
   });
 
-  it('muestra la matriz de competencias con las notas de las evaluaciones del bimestre y el logro por bimestre, sin nota final', async () => {
+  it('muestra evaluaciones sin asociarlas a competencias y conserva los logros por bimestre', async () => {
     consultarCursosEstudiante.mockResolvedValue(LISTA);
     consultarNotasCursoEstudiante.mockResolvedValue(DETALLE);
     render(<PaginaCursosEstudiante />);
@@ -173,7 +172,7 @@ describe('PaginaCursosEstudiante (HU-EVAL-03)', () => {
     const selector = await screen.findByLabelText('Bimestre');
     expect(selector).toHaveValue('BIM_2');
     const tabla = screen.getByRole('table', { name: 'Notas por competencia del II Bimestre' });
-    expect(within(tabla).getByRole('columnheader', { name: 'Ev. 1' })).toBeInTheDocument();
+    expect(within(tabla).queryByRole('columnheader', { name: /Ev\./ })).not.toBeInTheDocument();
     // El curso no tiene nota final: el grupo es "Logro por competencia", con una columna por bimestre.
     expect(within(tabla).queryByText(/nota final/i)).not.toBeInTheDocument();
     expect(within(tabla).getByRole('columnheader', { name: 'Logro por competencia' })).toBeInTheDocument();
@@ -197,17 +196,18 @@ describe('PaginaCursosEstudiante (HU-EVAL-03)', () => {
 
     const tablaI = screen.getByRole('table', { name: 'Notas por competencia del I Bimestre' });
     const fila = within(tablaI).getByRole('row', { name: /Resuelve problemas de cantidad/ });
-    // La nota de la evaluación (Ev. 1) y la de la competencia en el I Bimestre.
-    expect(within(fila).getAllByText('AD')).toHaveLength(2);
-    // La otra competencia no tiene evaluaciones en el bimestre.
+    // Solo se muestra el logro de competencia en esta tabla.
+    expect(within(fila).getAllByText('AD')).toHaveLength(1);
+    // Las evaluaciones se listan por separado, sin asignarse a una fila de competencia.
     const filaForma = within(tablaI).getByRole('row', { name: /Resuelve problemas de forma/ });
-    expect(within(filaForma).getByText('sin evaluación')).toBeInTheDocument();
+    expect(within(filaForma).getAllByText('no hay nota de competencia registrada')).toHaveLength(3);
 
     // La lista de evaluaciones trae, en su detalle, los campos que pide la HU.
     const items = within(screen.getByRole('region', { name: 'Evaluaciones · I Bimestre' })).getAllByRole('listitem');
     expect(items).toHaveLength(1);
     expect(within(items[0]).getByText('Examen Parcial', { selector: 'strong' })).toBeInTheDocument();
-    expect(within(items[0]).getByText(/Ev\. 1 · 20 mar/)).toBeInTheDocument();
+    expect(within(items[0]).getByText('20 mar 2027', { selector: 'span' })).toBeInTheDocument();
+    expect(within(items[0]).queryByText('Competencia')).not.toBeInTheDocument();
     expect(within(items[0]).getByText('Luis Ramirez')).toBeInTheDocument();
 
     await userEvent.selectOptions(selector, 'BIM_3');

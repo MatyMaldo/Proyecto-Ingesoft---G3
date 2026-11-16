@@ -247,8 +247,8 @@ export async function guardarNotaEvaluacionMock(evaluacion, estudiante, valor, u
 
 export async function crearEvaluacionMock(datos, docente) {
   await esperar();
-  if (!datos.nombre?.trim() || !datos.descripcion?.trim() || !datos.fecha || !datos.idCompetencia) {
-    return fallo('Completa el nombre, la descripción, la fecha y la competencia.');
+  if (!datos.nombre?.trim() || !datos.descripcion?.trim() || !datos.fecha || !datos.idAsignacionCurso) {
+    return fallo('Completa el nombre, la descripción, la fecha y la asignación del curso.');
   }
   if (!datos.fecha.startsWith(`${ANIO_VIGENTE}-`)) {
     return fallo(`La fecha debe pertenecer al año académico vigente (${ANIO_VIGENTE}).`);
@@ -262,7 +262,6 @@ export async function crearEvaluacionMock(datos, docente) {
     descripcion: datos.descripcion.trim(),
     bimestreNombre: bimestre.nombre,
     nombreBimestre: bimestre.nombre,
-    nombreCompetencia: datos.nombreCompetencia,
     nombreCurso: datos.nombreCurso,
     nombreSeccion: datos.nombreSeccion,
     idAsignacionCurso: datos.idAsignacionCurso,
