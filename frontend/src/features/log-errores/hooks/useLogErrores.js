@@ -3,7 +3,7 @@ import { useSearchParams } from 'react-router-dom';
 
 import { formatearFechaHora, normalizarFechaHoraApi } from '../../../shared/utils/formatoFecha.js';
 import { obtenerMensajeRangoFechas } from '../../../shared/utils/rangoFechas.js';
-import { obtenerErrores } from '../services/logErroresService.js';
+import { obtenerErrores, TAMANIO_PAGINA_LOG_ERRORES } from '../services/logErroresService.js';
 
 /**
  * Opciones del filtro de módulo: catálogo cerrado de HU-SAT-05 / HU-SAT-06.
@@ -104,6 +104,7 @@ export default function useLogErrores() {
   const [fechaHasta, establecerFechaHastaEstado] = useState('');
   const [rangoAplicado, establecerRangoAplicado] = useState({ fechaDesde: '', fechaHasta: '' });
   const [intentoClave, establecerIntentoClave] = useState(0);
+  const [tamanioPagina, establecerTamanioPaginaEstado] = useState(TAMANIO_PAGINA_LOG_ERRORES);
   const idSolicitudRef = useRef(0);
 
   /**
@@ -159,7 +160,8 @@ export default function useLogErrores() {
       fechaHasta: rangoAplicado.fechaHasta,
       modulo: modulo === 'TODOS' ? undefined : modulo,
       busqueda: busquedaAplicada || undefined,
-      page: pagina
+      page: pagina,
+      tamanio: tamanioPagina
     });
 
     if (idActual !== idSolicitudRef.current) {
@@ -195,7 +197,7 @@ export default function useLogErrores() {
     };
     // cargarLista captura el estado de la consulta actual.
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [pagina, modulo, busquedaAplicada, rangoAplicado.fechaDesde, rangoAplicado.fechaHasta, intentoClave]);
+  }, [pagina, modulo, busquedaAplicada, rangoAplicado.fechaDesde, rangoAplicado.fechaHasta, intentoClave, tamanioPagina]);
 
   function aplicarRango(fechaDesdeNueva, fechaHastaNueva) {
     if (obtenerMensajeRangoFechas(fechaDesdeNueva, fechaHastaNueva) !== '') {
@@ -204,6 +206,12 @@ export default function useLogErrores() {
 
     establecerPagina(0);
     establecerRangoAplicado({ fechaDesde: fechaDesdeNueva, fechaHasta: fechaHastaNueva });
+  }
+
+  /** Cambia cuántas filas se muestran por página (10, 25, 50 o 100) y vuelve a la primera. */
+  function cambiarTamanioPagina(nuevoTamanio) {
+    establecerPagina(0);
+    establecerTamanioPaginaEstado(nuevoTamanio);
   }
 
   function cambiarModulo(valor) {
@@ -265,6 +273,8 @@ export default function useLogErrores() {
     establecerFechaDesde: cambiarFechaDesde,
     establecerFechaHasta: cambiarFechaHasta,
     irAPagina,
+    tamanioPagina,
+    cambiarTamanioPagina,
     reintentar: () => establecerIntentoClave((valor) => valor + 1)
   };
 }

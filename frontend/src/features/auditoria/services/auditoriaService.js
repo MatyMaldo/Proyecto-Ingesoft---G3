@@ -50,7 +50,7 @@ export async function listarRegistrosAuditoria(filtros = {}, opciones = {}) {
     fechaFin: filtros.fechaHasta ? `${filtros.fechaHasta}T23:59:59` : undefined,
     busqueda: filtros.busqueda?.trim() || undefined,
     page: filtros.pagina ?? 0,
-    size: TAMANIO_PAGINA_AUDITORIA,
+    size: filtros.tamanio ?? TAMANIO_PAGINA_AUDITORIA,
     sort: 'fechaHora,desc'
   };
 

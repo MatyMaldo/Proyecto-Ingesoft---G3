@@ -13,6 +13,7 @@ import {
   obtenerEtiquetaRol
 } from '../constants/categoriasAuditoria.js';
 import { obtenerEtiquetaAccion, obtenerTonoAccion } from '../constants/tiposAccionAuditoria.js';
+import { TAMANIO_PAGINA_AUDITORIA } from '../constants/paginacionAuditoria.js';
 
 const CATEGORIA_TODOS = 'TODOS';
 const RANGO_VACIO = Object.freeze({ fechaDesde: '', fechaHasta: '' });
@@ -149,6 +150,7 @@ export default function useAuditoria() {
   // Último rango válido aplicado (puede diferir de lo escrito en los campos mientras el rango es inválido).
   const [rangoVigente, establecerRangoVigente] = useState(RANGO_VACIO);
   const [pagina, establecerPaginaEstado] = useState(0);
+  const [tamanioPagina, establecerTamanioPaginaEstado] = useState(TAMANIO_PAGINA_AUDITORIA);
   const [paginacion, establecerPaginacion] = useState({ totalPaginas: 0, totalElementos: 0, cantidadPagina: 0 });
 
   const [detalleRegistro, establecerDetalleRegistro] = useState(null);
@@ -165,6 +167,8 @@ export default function useAuditoria() {
   // siempre consultan con este rango, nunca con uno inválido (docs/planes/auditorias.md §6.3).
   const rangoAplicadoRef = useRef(RANGO_VACIO);
   const paginaRef = useRef(0);
+  // Filas por página elegidas (10, 25, 50 o 100); se envían como `size` en cada consulta.
+  const tamanioRef = useRef(TAMANIO_PAGINA_AUDITORIA);
   // Filtro por tipo de acción: se aplica de inmediato, como el de categoría, y es independiente de ella.
   const tipoAccionRef = useRef('');
 
@@ -190,8 +194,9 @@ export default function useAuditoria() {
       fechaDesde: rangoActual.fechaDesde,
       fechaHasta: rangoActual.fechaHasta,
       tipoAccion: tipoAccionActual || '',
-      // El backend pagina de 10 en 10; cualquier cambio de filtro vuelve a la primera página.
-      pagina: paginaActual
+      // Cualquier cambio de filtro vuelve a la primera página.
+      pagina: paginaActual,
+      tamanio: tamanioRef.current
     };
     paginaRef.current = paginaActual;
     establecerPaginaEstado(paginaActual);
@@ -356,6 +361,17 @@ export default function useAuditoria() {
   }
 
   /**
+   * Cambia cuántas filas se muestran por página y vuelve a la primera, conservando los filtros.
+   *
+   * @param {number} nuevoTamanio 10, 25, 50 o 100.
+   */
+  function cambiarTamanioPagina(nuevoTamanio) {
+    tamanioRef.current = nuevoTamanio;
+    establecerTamanioPaginaEstado(nuevoTamanio);
+    cargarListado(categoria, busqueda.trim(), rangoAplicadoRef.current, tipoAccionRef.current, 0);
+  }
+
+  /**
    * Repite la consulta con los filtros vigentes (incluido el último rango de
    * fechas válido).
    */
@@ -478,6 +494,8 @@ export default function useAuditoria() {
     totalElementos: paginacion.totalElementos,
     cantidadPagina: paginacion.cantidadPagina,
     cambiarPagina,
+    tamanioPagina,
+    cambiarTamanioPagina,
     reintentar,
     detalle: {
       registro: detalleRegistro,

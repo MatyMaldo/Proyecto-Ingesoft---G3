@@ -1,21 +1,11 @@
-<<<<<<< Updated upstream
-=======
 import { useEffect } from 'react';
 
 import Notificacion from '../../../shared/components/Notificacion.jsx';
 import useNotificacion from '../../../shared/hooks/useNotificacion.js';
->>>>>>> Stashed changes
 import PanelGradosSecciones from '../components/PanelGradosSecciones.jsx';
+import useGradosSecciones from '../hooks/useGradosSecciones.js';
 import estilos from './PaginaAnioEscolar.module.css';
 
-<<<<<<< Updated upstream
-/** Contenedor provisional: Matías podrá integrar aquí la configuración del año. */
-export default function PaginaAnioEscolar() {
-  return (
-    <div className={estilos.pagina}>
-      <header><h1>Año escolar</h1>
-        <p className={estilos.subtitulo}>Organiza los grados y las secciones de cada año académico.</p>
-=======
 /**
  * Año escolar: grados y secciones de cada año académico. La cabecera solo da contexto; cada acción vive junto a lo
  * que crea: «Crear grado» entre los chips de grado y «Crear sección» en el título de las secciones del grado elegido.
@@ -44,10 +34,9 @@ export default function PaginaAnioEscolar() {
           <h1 className={estilos.titulo}>Año escolar</h1>
           <p className={estilos.descripcion}>Organiza los grados y las secciones de cada año académico.</p>
         </div>
->>>>>>> Stashed changes
       </header>
-      <div className={estilos.encabezadoBloque}><h2>Grados y secciones</h2></div>
-      <PanelGradosSecciones />
+
+      <PanelGradosSecciones modelo={modelo} />
     </div>
   );
 }
