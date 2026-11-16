@@ -48,7 +48,7 @@ export default function TablaAuditoria({ registros, actualizando, alSeleccionarR
   };
 
   return (
-    <div aria-busy={actualizando || undefined}>
+    <div className={estilos.raiz} aria-busy={actualizando || undefined}>
       {/* Tabla: vista de escritorio y tableta (≥768px) */}
       <div className={estilos.contenedorTabla}>
         <table className={estilos.tabla}>

@@ -1,22 +1,42 @@
+/* Mismo orden y ritmo que Usuarios, Matrículas y Pagos: título, filtros planos, resumen y una sola tabla con su pie.
+   En escritorio la página ocupa el alto y solo la tabla se desplaza. */
 .pagina {
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-5);
+  gap: var(--espacio-3);
 }
 
+@media (min-width: 768px) {
+  .pagina {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .pagina > * {
+    flex-shrink: 0;
+  }
+
+  .pagina > .tarjetaResultados {
+    flex: 1 1 auto;
+    min-height: 12rem;
+  }
+}
+
+/* Barra de título (GUI §6): título y descripción en la misma línea. */
 .cabecera {
   display: flex;
-  flex-direction: column;
-  gap: var(--espacio-1);
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
 }
 
-.sobretitulo {
-  margin: 0;
-  font-size: var(--texto-xs);
-  font-weight: var(--peso-seminegrita);
-  letter-spacing: var(--espaciado-letra-ancho);
-  text-transform: uppercase;
-  color: var(--color-texto-suave);
+.textoCabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--espacio-1) var(--espacio-3);
+  min-width: 0;
 }
 
 .titulo {
@@ -28,19 +48,23 @@
 
 .descripcion {
   margin: 0;
-  font-size: var(--texto-md);
+  font-size: var(--texto-sm);
   color: var(--color-texto-suave);
 }
 
+/* Filtros sin tarjeta: una fila (se acomoda en varias si no cabe) y debajo los filtros aplicados. */
 .filtros {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  min-width: 0;
+}
+
+.filaFiltros {
   display: flex;
   flex-wrap: wrap;
   align-items: flex-end;
   gap: var(--espacio-3);
-  padding: var(--espacio-4);
-  background: var(--color-superficie);
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio-lg);
 }
 
 .campoFecha {
@@ -51,37 +75,18 @@
   min-width: 9rem;
 }
 
+.botonFila {
+  align-self: flex-end;
+}
+
+/* Misma etiqueta que `SelectFiltro` para que todos los filtros de la fila se vean igual. */
 .etiqueta {
-  font-size: var(--texto-sm);
-  font-weight: var(--peso-seminegrita);
+  font-size: var(--texto-md);
+  font-weight: var(--peso-medio);
   color: var(--color-texto-secundario);
 }
 
-.botonActualizar {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--espacio-2);
-  min-height: var(--tactil-min);
-  padding: 0 var(--espacio-4);
-  font: inherit;
-  font-size: var(--texto-md);
-  font-weight: var(--peso-seminegrita);
-  color: var(--color-accion);
-  background: var(--color-superficie);
-  border: 1px solid var(--color-borde-fuerte);
-  border-radius: var(--radio-md);
-  cursor: pointer;
-}
-
-.botonActualizar:hover:not(:disabled) {
-  background: var(--color-superficie-suave);
-}
-
-.botonActualizar:disabled {
-  opacity: var(--opacidad-deshabilitado);
-  cursor: wait;
-}
-
+/* Resumen (KPIs): sin cambios. */
 .resumen {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -137,53 +142,193 @@
   color: var(--color-texto);
 }
 
-.tablaContenedor {
+/* Tarjeta de resultados: la tabla y su pie (selector de filas y paginador). */
+.tarjetaResultados {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-sm);
+}
+
+.vistaTabla {
   overflow-x: auto;
+}
+
+.tabla {
+  width: 100%;
+  min-width: 52rem;
+  table-layout: fixed;
+  border-collapse: collapse;
+  font-size: var(--texto-md);
+}
+
+.tabla thead th {
+  padding: var(--espacio-2) var(--espacio-4);
+  background: var(--color-superficie-suave);
+  color: var(--color-texto-secundario);
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: var(--espaciado-letra-ancho);
+  border-bottom: 1px solid var(--color-borde);
+  white-space: nowrap;
+}
+
+.tabla tbody td {
+  /* Alto fijo para todas las filas, igual que Usuarios, Matrículas y Pagos (42 px; 48 px en pantallas altas). */
+  height: 42px;
+  padding: var(--espacio-1) var(--espacio-4);
+  vertical-align: middle;
+  color: var(--color-texto);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.fila:last-child td {
+  border-bottom: 0;
+}
+
+.fila:hover td {
+  background: var(--color-superficie-suave);
+}
+
+/* Columnas: fecha, curso, grado, sección, horario, estado y observaciones (el resto del ancho). */
+.tabla th:nth-child(1),
+.tabla td:nth-child(1) {
+  width: 13%;
+}
+
+.tabla th:nth-child(2),
+.tabla td:nth-child(2) {
+  width: 15%;
+}
+
+.tabla th:nth-child(3),
+.tabla td:nth-child(3) {
+  width: 21%;
+}
+
+.tabla th:nth-child(4),
+.tabla td:nth-child(4) {
+  width: 8%;
+}
+
+.tabla th:nth-child(5),
+.tabla td:nth-child(5) {
+  width: 13%;
+}
+
+.tabla th:nth-child(6),
+.tabla td:nth-child(6) {
+  width: 12%;
+}
+
+/* La letra de la sección, centrada bajo su encabezado. */
+.tabla th.columnaSeccion,
+.tabla td.columnaSeccion {
+  text-align: center;
+}
+
+.fecha,
+.curso {
+  font-weight: var(--peso-medio);
+  color: var(--color-texto);
+}
+
+.observaciones {
+  color: var(--color-texto-secundario);
+}
+
+.soloLectores {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+/* Pie de la tabla: filas por página a la izquierda y paginador a la derecha. */
+.pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  padding: var(--espacio-2) var(--espacio-4);
+  border-top: 1px solid var(--color-borde);
+}
+
+/* Tarjetas móviles: se muestran por debajo de 768 px en lugar de la tabla. */
+.listaTarjetas {
+  display: none;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  margin: 0;
+  padding: var(--espacio-4);
+  list-style: none;
+}
+
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  padding: var(--espacio-4);
   background: var(--color-superficie);
   border: 1px solid var(--color-borde);
   border-radius: var(--radio-lg);
 }
 
-.tabla {
-  width: 100%;
-  min-width: 56rem;
-  border-collapse: collapse;
-  font-size: var(--texto-sm);
+.filaSuperior {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espacio-3);
 }
 
-.tabla th {
-  padding: var(--espacio-3) var(--espacio-4);
-  font-size: var(--texto-xs);
-  font-weight: var(--peso-seminegrita);
-  letter-spacing: var(--espaciado-letra-ancho);
-  text-align: left;
-  text-transform: uppercase;
-  color: var(--color-texto-suave);
-  background: var(--color-superficie-suave);
-  border-bottom: 1px solid var(--color-borde);
-  white-space: nowrap;
-}
-
-.tabla td {
-  padding: var(--espacio-3) var(--espacio-4);
-  color: var(--color-texto-secundario);
-  border-bottom: 1px solid var(--color-borde);
-  vertical-align: middle;
-}
-
-.tabla tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-.fecha,
-.curso {
+.campo {
+  margin: 0;
+  font-size: var(--texto-md);
   color: var(--color-texto);
-  font-weight: var(--peso-seminegrita);
+  overflow-wrap: anywhere;
 }
 
-.observaciones {
-  max-width: 18rem;
-  overflow-wrap: anywhere;
+.rotuloCampo {
+  font-size: var(--texto-xs);
+  color: var(--color-texto-suave);
+}
+
+/* Pantalla alta: filas de 48 px (estándar GUI). */
+@media (min-width: 768px) and (min-height: 860px) {
+  .tabla tbody td {
+    height: 48px;
+  }
+
+  .tabla thead th {
+    padding: var(--espacio-3) var(--espacio-4);
+  }
+}
+
+/* Escritorio: la tabla es la única zona con desplazamiento vertical (encabezado fijo); la página no. */
+@media (min-width: 768px) {
+  .vistaTabla {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .tabla thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
 }
 
 @media (max-width: 900px) {
@@ -193,20 +338,47 @@
 }
 
 @media (max-width: 767px) {
-  .filtros {
-    align-items: stretch;
+  .vistaTabla {
+    display: none;
   }
 
-  .campoFecha {
-    flex: 1 1 100%;
+  .listaTarjetas {
+    display: flex;
   }
 
-  .botonActualizar {
-    justify-content: center;
+  /* Teléfono: el curso (y el estudiante del apoderado) ocupan el ancho; «Actualizar» queda a su lado y «Desde» y
+     «Hasta» comparten la fila siguiente, en vez de apilarse los cuatro. */
+  .campoSelect {
+    flex: 1 1 calc(100% - 56px);
+    min-width: 0;
+    order: 1;
+  }
+
+  .campoSelect select {
     width: 100%;
   }
 
-  .resumen {
-    grid-template-columns: 1fr;
+  .campoEstudiante {
+    flex-basis: 100%;
+    order: 0;
+  }
+
+  .botonFila {
+    order: 2;
+  }
+
+  .campoFecha {
+    flex: 1 1 calc(50% - var(--espacio-2));
+    min-width: 0;
+    order: 3;
+  }
+
+  /* Teléfono: los KPIs se mantienen en dos columnas (2×2) con menos relleno, en vez de apilarse los cuatro. */
+  .tarjetaResumen {
+    padding: var(--espacio-3);
+  }
+
+  .valorResumen {
+    font-size: var(--texto-lg);
   }
 }

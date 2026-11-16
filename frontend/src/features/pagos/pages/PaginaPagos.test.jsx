@@ -125,12 +125,17 @@ describe('Pagos · listado de alumnos, filtros y acciones', () => {
     mostrar();
     const tabla = await esperarTabla();
 
-    // "Ver pagos" es la acción principal; emitir la pensión va en el menú ⋯ de la fila.
-    expect(within(tabla).getByRole('button', { name: 'Ver compromisos y pagos de Mateo Herrera Campos' })).toBeInTheDocument();
+    // Todas las acciones de la fila van en el menú ⋯: no hay botones sueltos en la tabla.
+    expect(within(tabla).queryByRole('button', { name: /^Ver compromisos y pagos de/ })).not.toBeInTheDocument();
     await userEvent.click(within(tabla).getByRole('button', { name: 'Más acciones de Mateo Herrera Campos' }));
+    expect(screen.getByRole('menuitem', { name: 'Ver compromisos y pagos de Mateo Herrera Campos' })).toBeInTheDocument();
     expect(screen.getByRole('menuitem', { name: 'Emitir compromiso de pensión de Mateo Herrera Campos' })).toBeInTheDocument();
-    // Lucas Torres Vega tiene la matrícula pendiente: no se le ofrece emitir la pensión (ni tiene menú).
-    expect(within(tabla).queryByRole('button', { name: 'Más acciones de Lucas Torres Vega' })).not.toBeInTheDocument();
+    await userEvent.keyboard('{Escape}');
+
+    // Lucas Torres Vega tiene la matrícula pendiente: su menú solo ofrece ver sus pagos, no emitir la pensión.
+    await userEvent.click(within(tabla).getByRole('button', { name: 'Más acciones de Lucas Torres Vega' }));
+    expect(screen.getByRole('menuitem', { name: 'Ver compromisos y pagos de Lucas Torres Vega' })).toBeInTheDocument();
+    expect(screen.queryByRole('menuitem', { name: /Emitir compromiso de pensión/ })).not.toBeInTheDocument();
   });
 
   it('emite el compromiso de pensión de un alumno desde un diálogo y avisa con la notificación', async () => {
@@ -168,7 +173,8 @@ describe('Pagos · listado de alumnos, filtros y acciones', () => {
     mostrar();
     const tabla = await esperarTabla();
 
-    await userEvent.click(within(tabla).getByRole('button', { name: 'Ver compromisos y pagos de Mateo Herrera Campos' }));
+    await userEvent.click(within(tabla).getByRole('button', { name: 'Más acciones de Mateo Herrera Campos' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Ver compromisos y pagos de Mateo Herrera Campos' }));
     const dialogo = screen.getByRole('dialog', { name: 'Mateo Herrera Campos' });
     expect(await within(dialogo).findByText('Compromiso #502', {}, { timeout: 3000 })).toBeInTheDocument();
 
@@ -185,7 +191,8 @@ describe('Pagos · listado de alumnos, filtros y acciones', () => {
     mostrar();
     const tabla = await esperarTabla();
 
-    await userEvent.click(within(tabla).getByRole('button', { name: 'Ver compromisos y pagos de Mateo Herrera Campos' }));
+    await userEvent.click(within(tabla).getByRole('button', { name: 'Más acciones de Mateo Herrera Campos' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Ver compromisos y pagos de Mateo Herrera Campos' }));
     const lista = screen.getByRole('dialog', { name: 'Mateo Herrera Campos' });
     await userEvent.click(await within(lista).findByRole('button', { name: 'Ver detalle del pago #9002' }, { timeout: 3000 }));
 

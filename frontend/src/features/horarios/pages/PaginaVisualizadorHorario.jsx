@@ -306,17 +306,17 @@ export default function PaginaVisualizadorHorario() {
             >
               <Icono nombre="flecha-derecha" tamano={16} />
             </button>
+
+            <button
+              type="button"
+              className={estilos.botonHoy}
+              onClick={irSemanaDeHoy}
+              disabled={esSemanaDeHoy}
+            >
+              Ir a hoy
+            </button>
           </div>
         </div>
-
-        <button
-          type="button"
-          className={estilos.botonSecundario}
-          onClick={irSemanaDeHoy}
-          disabled={esSemanaDeHoy}
-        >
-          Ir a hoy
-        </button>
       </div>
   );
 
@@ -367,6 +367,7 @@ export default function PaginaVisualizadorHorario() {
       </header>
 
       {controlesSemana()}
+      <p className={estilos.notaRango}>Mes y semana se mueven dentro del rango de fechas elegido arriba.</p>
 
       {sesionesSemana.length === 0 ? (
         <EstadoConsulta tipo="vacio" icono="calendario" mensaje={MENSAJE_SIN_SESIONES_SEMANA} />
@@ -471,9 +472,9 @@ export default function PaginaVisualizadorHorario() {
       </header>
 
       <section className={estilos.filtros} aria-label="Filtros de consulta de horario">
-        {/* Fila superior: modo de consulta, y a su lado «Actualizar» y «Limpiar filtros». */}
-        <div className={estilos.filaModo}>
-          {esAdmin && (
+        {/* Administrador: fila superior con el modo de consulta y, a su lado, «Actualizar» y «Limpiar filtros». */}
+        {esAdmin && (
+          <div className={estilos.filaModo}>
             <ControlSegmentado
               id="consulta-horario-tipo"
               etiqueta="Consultar por"
@@ -481,13 +482,13 @@ export default function PaginaVisualizadorHorario() {
               opciones={OPCIONES_TIPO}
               alCambiar={seleccionarTipo}
             />
-          )}
-          <BotonActualizar alActualizar={recargar} actualizando={cargando} />
-          <FiltrosActivos filtros={[]} hayFiltros={hayFiltros} alLimpiar={limpiarFiltros} />
-          {consultaPorSeccion && programacionAbierta && (
-            <a className={estilos.enlaceEdicion} href={rutaEdicion}>Editar horario</a>
-          )}
-        </div>
+            <BotonActualizar alActualizar={recargar} actualizando={cargando} />
+            <FiltrosActivos filtros={[]} hayFiltros={hayFiltros} alLimpiar={limpiarFiltros} />
+            {consultaPorSeccion && programacionAbierta && (
+              <a className={estilos.enlaceEdicion} href={rutaEdicion}>Editar horario</a>
+            )}
+          </div>
+        )}
 
         {/* Debajo, los selectores y el rango de fechas. */}
         <div className={estilos.filaFiltros}>
@@ -560,7 +561,16 @@ export default function PaginaVisualizadorHorario() {
               alCambiar={establecerFechaFin}
             />
           </div>
+
+          {/* Sin selector de modo, «Actualizar» va al final de la fila de filtros, alineado con los campos. */}
+          {!esAdmin && (
+            <div className={estilos.botonFila}>
+              <BotonActualizar alActualizar={recargar} actualizando={cargando} />
+            </div>
+          )}
         </div>
+
+        {!esAdmin && <FiltrosActivos filtros={[]} hayFiltros={hayFiltros} alLimpiar={limpiarFiltros} />}
 
         {esApoderado && estudianteSeleccionado && (
           <p className={estilos.contextoEstudiante}>

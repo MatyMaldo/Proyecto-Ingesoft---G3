@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react';
+import { useState } from 'react';
 
 import BarraBusquedaListado from '../../../shared/components/BarraBusquedaListado.jsx';
 import CampoBusqueda from '../../../shared/components/CampoBusqueda.jsx';
@@ -6,25 +6,35 @@ import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import FiltroRangoFechas from '../../../shared/components/FiltroRangoFechas.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
 import Paginacion from '../../../shared/components/Paginacion.jsx';
+import SelectFiltro from '../../../shared/components/SelectFiltro.jsx';
+import SelectorFilasPagina from '../../../shared/components/SelectorFilasPagina.jsx';
 import estilosUtil from '../../../shared/styles/utilidades.module.css';
 import TablaAuditoria from '../components/TablaAuditoria.jsx';
 import DetalleTransaccion from '../components/DetalleTransaccion.jsx';
 import useAuditoria from '../hooks/useAuditoria.js';
 import { obtenerOpcionesFiltroCategoria } from '../constants/categoriasAuditoria.js';
-import { TAMANIO_PAGINA_AUDITORIA } from '../constants/paginacionAuditoria.js';
+import { OPCIONES_TAMANIO_PAGINA_AUDITORIA } from '../constants/paginacionAuditoria.js';
 import { TIPOS_ACCION_AUDITORIA } from '../constants/tiposAccionAuditoria.js';
 import estilos from './PaginaAuditorias.module.css';
 
-const OPCIONES_CATEGORIA = obtenerOpcionesFiltroCategoria();
+const OPCIONES_MODULO = obtenerOpcionesFiltroCategoria().map((opcion) => ({
+  valor: opcion.valor,
+  etiqueta: opcion.valor === 'TODOS' ? 'Todos los módulos' : opcion.etiqueta
+}));
+
+const OPCIONES_ACCION = [
+  { valor: '', etiqueta: 'Todas las acciones' },
+  ...TIPOS_ACCION_AUDITORIA.map((tipo) => ({ valor: tipo.valor, etiqueta: tipo.etiqueta }))
+];
 
 const MENSAJE_VACIO_TOTAL = 'Aún no hay registros de auditoría.';
 // Esc. 6 (HU-SAT-04, 2026-11-01): texto exacto, sin punto final (docs/planes/auditorias.md §B).
 const MENSAJE_VACIO_FILTRADO = 'No se encontraron registros de auditoría con los criterios indicados';
 
 /**
- * Página de Auditorías del Sistema (HU-SAT-04). Consulta de solo lectura: listado
- * general con filtros, paginación de 10 en 10 y panel de detalle con el historial de
- * una transacción. No hay ningún control de edición ni eliminación.
+ * Página de Auditorías (HU-SAT-04). Consulta de solo lectura: listado general con filtros, paginación y panel de
+ * detalle con el historial de una transacción. No hay ningún control de edición ni eliminación, y tampoco una
+ * acción general: la cabecera solo lleva título y descripción.
  */
 export default function PaginaAuditorias() {
   const {
@@ -49,12 +59,13 @@ export default function PaginaAuditorias() {
     totalElementos,
     cantidadPagina,
     cambiarPagina,
+    tamanioPagina,
+    cambiarTamanioPagina,
     reintentar,
     detalle
   } = useAuditoria();
 
   const [filtrosAbiertos, establecerFiltrosAbiertos] = useState(false);
-  const refInicioListado = useRef(null);
 
   const hayRangoVigente = Boolean(rangoVigente.fechaDesde || rangoVigente.fechaHasta);
   const filtrosActivos = (categoria !== 'TODOS' ? 1 : 0) + (tipoAccion ? 1 : 0) + (hayRangoVigente ? 1 : 0);
@@ -62,37 +73,16 @@ export default function PaginaAuditorias() {
   const mensajeVacio = hayFiltrosAplicados ? MENSAJE_VACIO_FILTRADO : MENSAJE_VACIO_TOTAL;
   const hayResultados = estado === 'listo' && registros.length > 0;
 
-  // Al cambiar de página (sobre todo desde el paginador inferior) la vista vuelve al inicio del listado.
-  const irAPagina = (nuevaPagina) => {
-    cambiarPagina(nuevaPagina);
-    const reducirMovimiento = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    refInicioListado.current?.scrollIntoView?.({ block: 'start', behavior: reducirMovimiento ? 'auto' : 'smooth' });
-  };
-
-  // El mismo paginador va arriba y abajo del listado; solo el superior anuncia el total.
-  const paginador = (posicion) => (
-    <Paginacion
-      pagina={pagina}
-      totalPaginas={totalPaginas}
-      totalElementos={totalElementos}
-      tamanioPagina={TAMANIO_PAGINA_AUDITORIA}
-      cantidadEnPagina={cantidadPagina}
-      alCambiarPagina={irAPagina}
-      etiqueta={`Paginación de auditorías (${posicion})`}
-      unidadSingular="registro"
-      unidadPlural="registros"
-      anunciarTotal={posicion === 'superior'}
-    />
-  );
-
   return (
     <div className={estilos.pagina}>
+      {/* Barra de título (GUI §6): título y descripción en la misma línea. Sin acción global. */}
       <header className={estilos.cabecera}>
-        <h1 className={estilos.titulo}>Auditorías del Sistema</h1>
-        <p className={estilos.descripcion}>
-          <Icono nombre="candado" tamano={16} />
-          <span>Consulta de solo lectura. Los registros de auditoría se conservan de forma permanente.</span>
-        </p>
+        <div className={estilos.textoCabecera}>
+          <h1 className={estilos.titulo}>Auditorías</h1>
+          <p className={estilos.descripcion}>
+            Consulta de solo lectura. Los registros se conservan de forma permanente.
+          </p>
+        </div>
       </header>
 
       {/* Primera línea: buscador, "Actualizar" y "Limpiar filtros". Debajo, los filtros: primero las fechas y luego
@@ -145,64 +135,63 @@ export default function PaginaAuditorias() {
               mensajeError={mensajeErrorRango}
             />
 
-            <div className={estilos.campoFiltro}>
-              <label htmlFor="modulo-auditorias" className={estilos.etiquetaFiltro}>
-                Módulo
-              </label>
-              <select
-                id="modulo-auditorias"
-                className={estilos.selectorFiltro}
-                value={categoria}
-                onChange={(evento) => establecerCategoria(evento.target.value)}
-              >
-                {OPCIONES_CATEGORIA.map((opcion) => (
-                  <option key={opcion.valor} value={opcion.valor}>
-                    {opcion.valor === 'TODOS' ? 'Todos los módulos' : opcion.etiqueta}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SelectFiltro
+              id="modulo-auditorias"
+              etiqueta="Módulo"
+              valor={categoria}
+              opciones={OPCIONES_MODULO}
+              alCambiar={establecerCategoria}
+              apilado
+            />
 
-            <div className={estilos.campoFiltro}>
-              <label htmlFor="tipo-accion-auditorias" className={estilos.etiquetaFiltro}>
-                Tipo de acción
-              </label>
-              <select
-                id="tipo-accion-auditorias"
-                className={estilos.selectorFiltro}
-                value={tipoAccion}
-                onChange={(evento) => establecerTipoAccion(evento.target.value)}
-              >
-                <option value="">Todas las acciones</option>
-                {TIPOS_ACCION_AUDITORIA.map((tipo) => (
-                  <option key={tipo.valor} value={tipo.valor}>
-                    {tipo.etiqueta}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SelectFiltro
+              id="tipo-accion-auditorias"
+              etiqueta="Tipo de acción"
+              valor={tipoAccion}
+              opciones={OPCIONES_ACCION}
+              alCambiar={establecerTipoAccion}
+              apilado
+            />
           </div>
         </div>
       </section>
-
-      {/* Total y paginación arriba del listado, como en Usuarios y Log de errores. */}
-      {hayResultados && <div ref={refInicioListado} className={estilos.barraPaginacion}>{paginador('superior')}</div>}
 
       <section className={estilos.tarjetaResultados} aria-label="Registros de auditoría" aria-busy={estado === 'cargando' || undefined}>
         {estado === 'cargando' && <EstadoConsulta tipo="carga" filasEsqueleto={5} />}
         {estado === 'error' && <EstadoConsulta tipo="error" alReintentar={reintentar} />}
         {estado === 'listo' && registros.length === 0 && (
-          <EstadoConsulta tipo="vacio" mensaje={mensajeVacio} />
+          <EstadoConsulta tipo="vacio" icono="escudo" mensaje={mensajeVacio} />
         )}
         {hayResultados && (
           <>
+            {/* `key` en la página: al cambiar de página la tabla se vuelve a montar y su scroll vuelve arriba. */}
             <TablaAuditoria
+              key={pagina}
               registros={registros}
               actualizando={actualizando}
               alSeleccionarRegistro={detalle.abrir}
             />
-            {/* Con una sola página el total ya está arriba: no se repite abajo. */}
-            {totalPaginas > 1 && <div className={estilos.pie}>{paginador('inferior')}</div>}
+            {/* Un solo pie: filas por página a la izquierda y, a la derecha, el total y el paginador. */}
+            <div className={estilos.pie}>
+              <SelectorFilasPagina
+                opciones={OPCIONES_TAMANIO_PAGINA_AUDITORIA}
+                valor={tamanioPagina}
+                totalElementos={totalElementos}
+                alCambiar={cambiarTamanioPagina}
+              />
+              <Paginacion
+                pagina={pagina}
+                totalPaginas={totalPaginas}
+                totalElementos={totalElementos}
+                tamanioPagina={tamanioPagina}
+                cantidadEnPagina={cantidadPagina}
+                alCambiarPagina={cambiarPagina}
+                etiqueta="Paginación de auditorías"
+                unidadSingular="registro"
+                unidadPlural="registros"
+                anunciarTotal
+              />
+            </div>
           </>
         )}
       </section>

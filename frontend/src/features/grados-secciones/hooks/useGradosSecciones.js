@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { consultarEstructura, crearGrado, crearSeccion, actualizarSeccion } from '../services/gradosSeccionesService.js';
-import { validarGrado, validarSeccion } from '../utils/validacionesGradosSecciones.js';
+import { esAnioFinalizado, validarGrado, validarSeccion } from '../utils/validacionesGradosSecciones.js';
 
 export default function useGradosSecciones() {
   const [datos, establecerDatos] = useState({ anios: [], grados: [], secciones: [], docentes: [] });
@@ -102,7 +102,17 @@ export default function useGradosSecciones() {
     }
   }
 
+  // Lo derivado de la selección actual (año y grado): lo usan la cabecera (acción «Crear sección») y el listado.
+  const anio = datos.anios.find((item) => String(item.id) === anioId);
+  const grado = datos.grados.find((item) => String(item.id) === gradoId);
+  const finalizado = esAnioFinalizado(anio);
+  const secciones = datos.secciones.filter(
+    (item) => String(item.anioAcademicoId) === anioId && String(item.gradoId) === gradoId
+  );
+  const puedeCrearSeccion = Boolean(anio && grado && !finalizado);
+
   return { datos, estado, errorCarga, anioId, establecerAnioId, gradoId, establecerGradoId,
+    anio, grado, finalizado, secciones, puedeCrearSeccion,
     formulario, establecerFormulario, errores, errorGuardado, confirmacion, guardando, abrir, abrirEdicion, guardar,
     reintentar: () => establecerIntento((actual) => actual + 1) };
 }

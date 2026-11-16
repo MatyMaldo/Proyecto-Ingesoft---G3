@@ -583,15 +583,16 @@ function listarRegistrosCrudo(filtros = {}) {
 
     const ordenados = [...filtrados].sort((a, b) => new Date(b.fechaHora) - new Date(a.fechaHora));
 
+    const tamanio = filtros?.tamanio ?? TAMANIO_PAGINA_AUDITORIA;
     const totalElementos = ordenados.length;
-    const totalPaginas = totalElementos === 0 ? 0 : Math.ceil(totalElementos / TAMANIO_PAGINA_AUDITORIA);
-    const inicio = pagina * TAMANIO_PAGINA_AUDITORIA;
-    const contenido = ordenados.slice(inicio, inicio + TAMANIO_PAGINA_AUDITORIA);
+    const totalPaginas = totalElementos === 0 ? 0 : Math.ceil(totalElementos / tamanio);
+    const inicio = pagina * tamanio;
+    const contenido = ordenados.slice(inicio, inicio + tamanio);
 
     return {
       content: clonar(contenido),
       number: pagina,
-      size: TAMANIO_PAGINA_AUDITORIA,
+      size: tamanio,
       totalElements: totalElementos,
       totalPages: totalPaginas,
       last: totalPaginas === 0 || pagina >= totalPaginas - 1

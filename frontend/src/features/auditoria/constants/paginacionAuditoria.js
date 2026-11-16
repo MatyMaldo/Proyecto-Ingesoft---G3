@@ -5,6 +5,9 @@
  */
 export const TAMANIO_PAGINA_AUDITORIA = 10;
 
+/** Filas por página que se pueden elegir (las mismas que Usuarios, Matrículas y Pagos). */
+export const OPCIONES_TAMANIO_PAGINA_AUDITORIA = Object.freeze([10, 25, 50, 100]);
+
 /**
  * Máximo de registros que se piden para el historial de una transacción (no se pagina: la HU solo pagina
  * la búsqueda general, HU-SAT-04 L8).

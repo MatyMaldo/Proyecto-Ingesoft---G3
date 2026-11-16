@@ -40,43 +40,39 @@ function InsigniaPorValidar({ cantidad }) {
 }
 
 /**
- * Acciones de un alumno. En la tabla, "Ver pagos" es la acción principal y emitir su compromiso de pensión (solo con
- * matrícula confirmada) va en un menú ⋯; en las tarjetas móviles ambas son botones. El nombre accesible dice a qué
- * alumno afecta cada acción.
+ * Acciones de un alumno. En la tabla van todas en un menú ⋯ (ver sus compromisos y pagos y, solo con matrícula
+ * confirmada, emitir su pensión); en las tarjetas móviles son botones. El nombre accesible dice a qué alumno afecta
+ * cada acción.
  */
 function AccionesAlumno({ alumno, alEmitirPension, alVerPagos, enMenu = false }) {
   const confirmada = esConfirmada(alumno);
-  const botonVerPagos = (
-    <button
-      type="button"
-      className={`${estilos.boton} ${estilos.botonPrimario}`}
-      aria-label={`Ver compromisos y pagos de ${alumno.nombre}`}
-      onClick={() => alVerPagos(alumno)}
-    >
-      <Icono nombre="tarjeta" tamano={16} />
-      Ver pagos
-    </button>
-  );
 
   if (enMenu) {
+    const items = [{
+      id: 'ver-pagos',
+      etiqueta: 'Ver pagos',
+      ariaLabel: `Ver compromisos y pagos de ${alumno.nombre}`,
+      icono: 'tarjeta',
+      alSeleccionar: () => alVerPagos(alumno)
+    }];
+    if (confirmada) {
+      items.push({
+        id: 'emitir-pension',
+        etiqueta: 'Emitir pensión',
+        ariaLabel: `Emitir compromiso de pensión de ${alumno.nombre}`,
+        icono: 'archivo',
+        alSeleccionar: () => alEmitirPension(alumno)
+      });
+    }
     return (
       <div className={estilos.acciones}>
-        {botonVerPagos}
-        {confirmada && (
-          <MenuDesplegable
-            etiquetaBoton={`Más acciones de ${alumno.nombre}`}
-            claseBoton={estilos.botonMas}
-            alineacion="fin"
-            contenidoBoton={<Icono nombre="mas-opciones" tamano={20} />}
-            items={[{
-              id: 'emitir-pension',
-              etiqueta: 'Emitir pensión',
-              ariaLabel: `Emitir compromiso de pensión de ${alumno.nombre}`,
-              icono: 'archivo',
-              alSeleccionar: () => alEmitirPension(alumno)
-            }]}
-          />
-        )}
+        <MenuDesplegable
+          etiquetaBoton={`Más acciones de ${alumno.nombre}`}
+          claseBoton={estilos.botonMas}
+          alineacion="fin"
+          contenidoBoton={<Icono nombre="mas-opciones" tamano={20} />}
+          items={items}
+        />
       </div>
     );
   }
@@ -94,7 +90,15 @@ function AccionesAlumno({ alumno, alEmitirPension, alVerPagos, enMenu = false })
           Emitir pensión
         </button>
       )}
-      {botonVerPagos}
+      <button
+        type="button"
+        className={`${estilos.boton} ${estilos.botonPrimario}`}
+        aria-label={`Ver compromisos y pagos de ${alumno.nombre}`}
+        onClick={() => alVerPagos(alumno)}
+      >
+        <Icono nombre="tarjeta" tamano={16} />
+        Ver pagos
+      </button>
     </div>
   );
 }

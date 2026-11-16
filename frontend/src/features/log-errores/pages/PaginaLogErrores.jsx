@@ -1,26 +1,25 @@
-import { useRef } from 'react';
-
 import BarraBusquedaListado from '../../../shared/components/BarraBusquedaListado.jsx';
 import CampoBusqueda from '../../../shared/components/CampoBusqueda.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
 import FiltroRangoFechas from '../../../shared/components/FiltroRangoFechas.jsx';
-import Icono from '../../../shared/components/Icono.jsx';
 import Paginacion from '../../../shared/components/Paginacion.jsx';
+import SelectFiltro from '../../../shared/components/SelectFiltro.jsx';
+import SelectorFilasPagina from '../../../shared/components/SelectorFilasPagina.jsx';
 import estilosUtil from '../../../shared/styles/utilidades.module.css';
 import TablaLogErrores from '../components/TablaLogErrores.jsx';
 import useLogErrores, { OPCIONES_MODULO } from '../hooks/useLogErrores.js';
 import {
-  SOPORTA_FILTRO_MODULO_Y_BUSQUEDA,
-  TAMANIO_PAGINA_LOG_ERRORES
+  OPCIONES_TAMANIO_PAGINA_LOG_ERRORES,
+  SOPORTA_FILTRO_MODULO_Y_BUSQUEDA
 } from '../services/logErroresService.js';
 import estilos from './PaginaLogErrores.module.css';
 
 const MENSAJE_VACIO = 'No se encontraron errores con los criterios indicados';
 
 /**
- * Página "Log de Errores del Sistema" (HU-SAT-05, HU-SAT-06 en lo que toca a
- * esta pantalla). Solo lectura, solo ADMIN. Compone la pantalla a partir de
- * `useLogErrores`; no llama a servicios ni filtra datos por su cuenta.
+ * Página "Log de errores" (HU-SAT-05, HU-SAT-06 en lo que toca a esta pantalla). Solo lectura, solo ADMIN. Compone la
+ * pantalla a partir de `useLogErrores`; no llama a servicios ni filtra datos por su cuenta. No tiene una acción
+ * general: la cabecera solo lleva título y descripción.
  */
 export default function PaginaLogErrores() {
   const {
@@ -42,20 +41,10 @@ export default function PaginaLogErrores() {
     establecerFechaDesde,
     establecerFechaHasta,
     irAPagina,
+    tamanioPagina,
+    cambiarTamanioPagina,
     reintentar
   } = useLogErrores();
-
-  const refInicioListado = useRef(null);
-
-  // Al cambiar de página, devuelve la vista al inicio del listado (contador de resultados).
-  const cambiarPagina = (nuevaPagina) => {
-    irAPagina(nuevaPagina);
-    const reducirMovimiento = window.matchMedia?.('(prefers-reduced-motion: reduce)').matches;
-    refInicioListado.current?.scrollIntoView?.({
-      block: 'start',
-      behavior: reducirMovimiento ? 'auto' : 'smooth'
-    });
-  };
 
   const hayRango = Boolean(rangoAplicado.fechaDesde || rangoAplicado.fechaHasta);
   const hayModulo = SOPORTA_FILTRO_MODULO_Y_BUSQUEDA && modulo !== 'TODOS';
@@ -69,19 +58,16 @@ export default function PaginaLogErrores() {
     mensajeRegion = totalPaginas > 1 ? `Página ${pagina + 1} de ${totalPaginas}. ${cantidad}` : cantidad;
   }
 
-  // Arriba solo va el contador; el paginador (sin repetir el resumen) queda al pie del listado.
-  const inicio = pagina * TAMANIO_PAGINA_LOG_ERRORES + 1;
-  const fin = pagina * TAMANIO_PAGINA_LOG_ERRORES + errores.length;
-  const unidad = totalElementos === 1 ? 'error' : 'errores';
-
   return (
     <div className={estilos.pagina}>
+      {/* Barra de título (GUI §6): título y descripción en la misma línea. Sin acción global. */}
       <header className={estilos.cabecera}>
-        <h1 className={estilos.titulo}>Log de Errores del Sistema</h1>
-        <p className={estilos.descripcion}>
-          <Icono nombre="candado" tamano={16} />
-          <span>Consulta de solo lectura. Los errores registrados se conservan de forma permanente.</span>
-        </p>
+        <div className={estilos.textoCabecera}>
+          <h1 className={estilos.titulo}>Log de errores</h1>
+          <p className={estilos.descripcion}>
+            Consulta de solo lectura. Los errores registrados se conservan de forma permanente.
+          </p>
+        </div>
       </header>
 
       {/* Primera línea: buscador, "Actualizar" y "Limpiar filtros". Debajo, los filtros: primero las fechas y luego
@@ -113,35 +99,17 @@ export default function PaginaLogErrores() {
             mensajeError={mensajeErrorRango}
           />
           {SOPORTA_FILTRO_MODULO_Y_BUSQUEDA && (
-            <div className={estilos.campoModulo}>
-              <label htmlFor="modulo-log-errores" className={estilos.etiquetaModulo}>
-                Módulo
-              </label>
-              <select
-                id="modulo-log-errores"
-                className={estilos.selectorModulo}
-                value={modulo}
-                onChange={(evento) => establecerModulo(evento.target.value)}
-              >
-                {OPCIONES_MODULO.map((opcion) => (
-                  <option key={opcion.valor} value={opcion.valor}>
-                    {opcion.etiqueta}
-                  </option>
-                ))}
-              </select>
-            </div>
+            <SelectFiltro
+              id="modulo-log-errores"
+              etiqueta="Módulo"
+              valor={modulo}
+              opciones={OPCIONES_MODULO}
+              alCambiar={establecerModulo}
+              apilado
+            />
           )}
         </div>
       </section>
-
-      {/* Arriba del listado solo el total: con 10 filas por página, el paginador basta al pie. */}
-      <div ref={refInicioListado} className={estilos.barraContador}>
-        {estado === 'listo' && errores.length > 0 && (
-          <p className={estilos.contador}>
-            {inicio} – {fin} de {totalElementos} {unidad}
-          </p>
-        )}
-      </div>
 
       <p className={estilosUtil.ocultoVisualmente} role="status" aria-live="polite">
         {mensajeRegion}
@@ -153,27 +121,33 @@ export default function PaginaLogErrores() {
         {estado === 'error' && <EstadoConsulta tipo="error" alReintentar={reintentar} />}
 
         {estado === 'listo' && errores.length === 0 && (
-          <EstadoConsulta tipo="vacio" mensaje={MENSAJE_VACIO} />
+          <EstadoConsulta tipo="vacio" icono="verificar" mensaje={MENSAJE_VACIO} />
         )}
 
         {estado === 'listo' && errores.length > 0 && (
           <>
-            {recargando && <p className={estilos.actualizando}>Actualizando resultados…</p>}
-            <TablaLogErrores errores={errores} ocupado={recargando} />
-            {totalPaginas > 1 && (
-              <div className={estilos.pie}>
-                <Paginacion
-                  pagina={pagina}
-                  totalPaginas={totalPaginas}
-                  totalElementos={totalElementos}
-                  tamanioPagina={TAMANIO_PAGINA_LOG_ERRORES}
-                  cantidadEnPagina={errores.length}
-                  alCambiarPagina={cambiarPagina}
-                  etiqueta="Paginación de logs de errores"
-                  mostrarResumen={false}
-                />
-              </div>
-            )}
+            {/* `key` en la página: al cambiar de página la tabla se vuelve a montar y su scroll vuelve arriba. */}
+            <TablaLogErrores key={pagina} errores={errores} ocupado={recargando} />
+            {/* Un solo pie: filas por página a la izquierda y, a la derecha, el total y el paginador. */}
+            <div className={estilos.pie}>
+              <SelectorFilasPagina
+                opciones={OPCIONES_TAMANIO_PAGINA_LOG_ERRORES}
+                valor={tamanioPagina}
+                totalElementos={totalElementos}
+                alCambiar={cambiarTamanioPagina}
+              />
+              <Paginacion
+                pagina={pagina}
+                totalPaginas={totalPaginas}
+                totalElementos={totalElementos}
+                tamanioPagina={tamanioPagina}
+                cantidadEnPagina={errores.length}
+                alCambiarPagina={irAPagina}
+                etiqueta="Paginación de logs de errores"
+                unidadSingular="error"
+                unidadPlural="errores"
+              />
+            </div>
           </>
         )}
       </section>
