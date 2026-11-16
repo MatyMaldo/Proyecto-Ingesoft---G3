@@ -74,7 +74,6 @@ function normalizarEvaluacion(evaluacion, asignacion, anioAcademico) {
     cursoNombre: evaluacion.nombreCurso ?? asignacion.cursoNombre,
     seccionId: asignacion.seccionId,
     seccionNombre: evaluacion.nombreSeccion ?? asignacion.seccionNombre,
-    competenciaNombre: evaluacion.nombreCompetencia,
     bimestreNombre: NOMBRES_BIMESTRE[evaluacion.nombreBimestre] ?? evaluacion.nombreBimestre,
     idAsignacionCurso: asignacion.idAsignacionCurso,
     anioAcademicoId: anioAcademico?.id,
@@ -292,10 +291,11 @@ export function guardarNotaEvaluacion(evaluacion, estudiante, valorNota, usuario
     : resultado);
 }
 
-export async function crearEvaluacion(datos, asignacion, docente, competencia) {
+export async function crearEvaluacion(datos, asignacion, docente) {
   const cuerpo = {
-    ...datos,
-    idCompetencia: USAR_MOCK ? datos.idCompetencia : Number(datos.idCompetencia),
+    nombre: datos.nombre,
+    descripcion: datos.descripcion,
+    fecha: datos.fecha,
     idAsignacionCurso: USAR_MOCK ? datos.idAsignacionCurso : Number(datos.idAsignacionCurso)
   };
   const respuesta = USAR_MOCK
@@ -307,10 +307,9 @@ export async function crearEvaluacion(datos, asignacion, docente, competencia) {
       seccionNombre: asignacion.seccionNombre,
       anioAcademicoId: asignacion.anioAcademico?.id,
       anioAcademico: asignacion.anioAcademico?.anio,
-      nombreCompetencia: competencia?.nombre,
       nombreCurso: asignacion.cursoNombre,
       nombreSeccion: asignacion.seccionNombre
-    }, docente, asignacion)
+    }, docente)
     : await solicitar('/evaluaciones', { metodo: 'POST', cuerpo });
   if (!respuesta.exitoso) return respuesta;
   return {

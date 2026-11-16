@@ -1,6 +1,6 @@
 /**
- * Arma la matriz "competencia × evaluaciones del bimestre" de la pestaña Evaluaciones y Notas (HU-EVAL-03).
- * Son funciones puras sobre el modelo que devuelve `consultarNotasCursoEstudiante`.
+ * Arma la matriz "competencia × bimestre" y la lista de evaluaciones del periodo (HU-EVAL-03).
+ * Las evaluaciones ya no están vinculadas a una competencia.
  */
 
 /** Id del bimestre de una evaluación: el propio, o el del bimestre que tenga su nombre (datos simulados). */
@@ -30,59 +30,21 @@ export function bimestreInicial(datos) {
 }
 
 /**
- * Matriz de un bimestre.
- *
- * Cada fila es una competencia del curso (más las que aparezcan en evaluaciones aunque el catálogo no las traiga).
- * Las columnas "Ev. n" numeran, dentro de cada competencia, sus evaluaciones del bimestre por fecha; hay tantas
- * columnas como evaluaciones tenga la competencia que más tiene. Cada fila trae además la nota de la competencia en
- * cada bimestre (`notasPorBimestre`, HU-EVAL-07). El curso no tiene nota final (HU-EVAL-03).
+ * Competencias con sus logros bimestrales y evaluaciones del bimestre seleccionado, sin asociación entre ambas.
  *
  * @param {{ bimestres: Array, evaluaciones: Array, competencias: Array }} datos
  * @param {string} bimestreId
- * @returns {{
- *   columnas: number,
- *   filas: Array<{
- *     id: string, nombre: string, evaluaciones: Array<Object|null>,
- *     notasPorBimestre: Object<string, string>
- *   }>,
- *   evaluaciones: Array<Object>
- * }} `evaluaciones` son las del bimestre por fecha, cada una con su `numero` ("Ev. n") y `competenciaNombre`.
+ * @returns {{ filas: Array, evaluaciones: Array }}
  */
 export function armarMatrizBimestre(datos, bimestreId) {
-  const delBimestre = datos.evaluaciones
+  const evaluaciones = datos.evaluaciones
     .filter((evaluacion) => idBimestreDe(evaluacion, datos.bimestres) === bimestreId)
     .sort(porFecha);
-
-  const filas = new Map(datos.competencias.map((competencia) => [competencia.nombre, {
+  const filas = datos.competencias.map((competencia) => ({
     id: competencia.id,
     nombre: competencia.nombre,
-    evaluaciones: [],
     notasPorBimestre: competencia.notasPorBimestre ?? {}
-  }]));
-  for (const evaluacion of delBimestre) {
-    if (!filas.has(evaluacion.competenciaNombre)) {
-      filas.set(evaluacion.competenciaNombre, {
-        id: evaluacion.competenciaNombre,
-        nombre: evaluacion.competenciaNombre,
-        evaluaciones: [],
-        notasPorBimestre: {}
-      });
-    }
-  }
+  }));
 
-  const numeradas = delBimestre.map((evaluacion) => {
-    const fila = filas.get(evaluacion.competenciaNombre);
-    fila.evaluaciones.push(evaluacion);
-    return { ...evaluacion, numero: fila.evaluaciones.length };
-  });
-
-  const columnas = Math.max(0, ...[...filas.values()].map((fila) => fila.evaluaciones.length));
-  return {
-    columnas,
-    filas: [...filas.values()].map((fila) => ({
-      ...fila,
-      evaluaciones: Array.from({ length: columnas }, (_, indice) => fila.evaluaciones[indice] ?? null)
-    })),
-    evaluaciones: numeradas
-  };
+  return { filas, evaluaciones };
 }

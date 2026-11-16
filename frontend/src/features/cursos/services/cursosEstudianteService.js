@@ -252,7 +252,6 @@ async function consultarNotasDeLaApi(usuario, curso, contexto) {
       fecha: evaluacion.fecha,
       bimestreId: evaluacion.nombreBimestre,
       bimestreNombre: NOMBRES_BIMESTRE[evaluacion.nombreBimestre] ?? evaluacion.nombreBimestre,
-      competenciaNombre: evaluacion.nombreCompetencia,
       estudianteNombre: nombreEstudiante,
       nota: evaluacion.valorNota ?? null
     }))

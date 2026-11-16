@@ -133,7 +133,6 @@ describe('contratos del servicio de evaluaciones', () => {
         descripcion: 'Unidad 1',
         fecha: '2026-04-01',
         nombreBimestre: 'I_BIMESTRE',
-        nombreCompetencia: 'Resuelve problemas',
         nombreCurso: 'Matemática',
         nombreSeccion: 'A'
       }]
@@ -149,9 +148,9 @@ describe('contratos del servicio de evaluaciones', () => {
       cursoId: 3,
       seccionId: 7,
       idAsignacionCurso: 91,
-      competenciaNombre: 'Resuelve problemas',
       anioAcademicoId: 2026
     });
+    expect(respuesta.datos[0]).not.toHaveProperty('competenciaNombre');
   });
 
   it('crea evaluaciones enviando solo los campos del contrato', async () => {
@@ -160,7 +159,6 @@ describe('contratos del servicio de evaluaciones', () => {
       nombre: 'Control',
       descripcion: 'Unidad 1',
       fecha: '2026-04-01',
-      idCompetencia: '5',
       idAsignacionCurso: '91'
     };
     const asignacion = {
@@ -172,7 +170,7 @@ describe('contratos del servicio de evaluaciones', () => {
       anioAcademico: { id: 2026, anio: 2026 }
     };
 
-    await crearEvaluacion(datos, asignacion, { id: 12 }, { nombre: 'Resuelve problemas' });
+    await crearEvaluacion({ ...datos, idCompetencia: '5' }, asignacion, { id: 12 });
 
     expect(solicitar).toHaveBeenCalledWith('/evaluaciones', {
       metodo: 'POST',
@@ -180,7 +178,6 @@ describe('contratos del servicio de evaluaciones', () => {
         nombre: 'Control',
         descripcion: 'Unidad 1',
         fecha: '2026-04-01',
-        idCompetencia: 5,
         idAsignacionCurso: 91
       }
     });

@@ -72,25 +72,16 @@
   min-width: 11rem;
 }
 
-/* Evaluaciones del bimestre elegido y logro por competencia: columnas centradas y separadas de la competencia. */
-.tabla th.grupoEvaluaciones,
+/* Logro por competencia: columnas centradas y separadas de la competencia. */
 .tabla th.grupoLogro,
-.tabla th.colEvaluacion,
 .tabla th.colBimestre,
-.tabla td.colEvaluacion,
 .tabla td.colBimestre {
   text-align: center;
 }
 
-.grupoEvaluaciones,
 .grupoLogro,
-.colEvaluacion,
 .colBimestre {
   border-left: 1px solid var(--color-borde);
-}
-
-.colEvaluacion {
-  min-width: 4.5rem;
 }
 
 .colBimestre {

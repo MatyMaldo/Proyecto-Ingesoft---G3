@@ -6,7 +6,7 @@ import campos from '../../../shared/styles/camposDialogo.module.css';
 import { crearEvaluacion } from '../services/evaluacionesService.js';
 import estilos from './DialogosEvaluacion.module.css';
 
-const FORMULARIO_VACIO = { nombre: '', descripcion: '', fecha: '', competenciaId: '' };
+const FORMULARIO_VACIO = { nombre: '', descripcion: '', fecha: '' };
 
 function encontrarBimestre(fecha, bimestres = []) {
   return bimestres.find((bimestre) => fecha >= bimestre.inicio && fecha <= bimestre.fin);
@@ -23,14 +23,13 @@ function MensajeError({ id, texto }) {
 }
 
 /**
- * Minipantalla «Nueva evaluación»: nombre, fecha, competencia y descripción en una sola vista, con el curso, la
+ * Minipantalla «Nueva evaluación»: nombre, fecha y descripción en una sola vista, con el curso, la
  * sección y el año como contexto fijo. El bimestre lo determina la fecha. Se monta solo mientras está abierta.
  *
  * @param {Object} props
  * @param {Object} props.contexto Contexto del docente (año vigente, bimestres y docente).
  * @param {Object} props.asignacion Curso elegido.
  * @param {Object} props.seccion Sección elegida.
- * @param {Array} props.competencias Competencias del curso.
  * @param {Object} props.asignacionSeleccionada Curso, sección y año tal como los pide el servicio.
  * @param {() => void} props.alCerrar
  * @param {(evaluacion: Object, bimestreNombre: string) => void} props.alCrear Recibe la evaluación ya registrada.
@@ -39,7 +38,6 @@ export default function DialogoNuevaEvaluacion({
   contexto,
   asignacion,
   seccion,
-  competencias,
   asignacionSeleccionada,
   alCerrar,
   alCrear
@@ -50,13 +48,10 @@ export default function DialogoNuevaEvaluacion({
   const [guardando, establecerGuardando] = useState(false);
   const idNombre = useId();
   const idFecha = useId();
-  const idCompetencia = useId();
   const idDescripcion = useId();
 
   const anio = contexto?.anioAcademico?.anio;
   const bimestreFecha = encontrarBimestre(formulario.fecha, contexto?.bimestres);
-  const sinCompetencias = competencias.length === 0;
-
   const cambiar = (campo) => (evento) => establecerFormulario({ ...formulario, [campo]: evento.target.value });
 
   const validar = () => {
@@ -68,7 +63,6 @@ export default function DialogoNuevaEvaluacion({
     if (!formulario.fecha) nuevos.fecha = 'Selecciona la fecha de la evaluación.';
     else if (!formulario.fecha.startsWith(`${anio}-`)) nuevos.fecha = `La fecha debe estar dentro del año académico ${anio}.`;
     else if (!bimestreFecha) nuevos.fecha = 'La fecha debe estar dentro de uno de los bimestres del año académico.';
-    if (!formulario.competenciaId) nuevos.competenciaId = 'Selecciona la competencia que medirá la evaluación.';
     establecerErrores(nuevos);
     return Object.keys(nuevos).length === 0;
   };
@@ -78,14 +72,12 @@ export default function DialogoNuevaEvaluacion({
     if (guardando || !validar()) return;
     establecerErrorGuardado('');
     establecerGuardando(true);
-    const competencia = competencias.find((item) => String(item.id) === formulario.competenciaId);
     const respuesta = await crearEvaluacion({
       nombre: formulario.nombre,
       descripcion: formulario.descripcion,
       fecha: formulario.fecha,
-      idCompetencia: competencia.id,
       idAsignacionCurso: asignacionSeleccionada.idAsignacionCurso
-    }, asignacionSeleccionada, contexto.docente, competencia);
+    }, asignacionSeleccionada, contexto.docente);
     establecerGuardando(false);
     if (!respuesta.exitoso) {
       establecerErrorGuardado(respuesta.mensaje || 'No se pudo registrar la evaluación.');
@@ -102,7 +94,6 @@ export default function DialogoNuevaEvaluacion({
       textoConfirmar="Guardar evaluación"
       textoEnviando="Guardando…"
       enviando={guardando}
-      confirmarDeshabilitado={sinCompetencias}
       error={errorGuardado || null}
       anchoMaximo="36rem"
       cerrarAlClicFuera={false}
@@ -110,83 +101,53 @@ export default function DialogoNuevaEvaluacion({
       alCancelar={alCerrar}
       alConfirmar={guardar}
     >
-      {sinCompetencias ? (
-        <p className={estilos.aviso} role="alert">
-          <Icono nombre="alerta" tamano={16} />
-          <span>
-            Este curso aún no tiene competencias establecidas. Solicita que se configuren en el módulo Cursos antes de
-            crear evaluaciones.
-          </span>
-        </p>
-      ) : (
-        <>
-          <div className={campos.campo}>
-            <label htmlFor={idNombre} className={campos.etiqueta}>Nombre de la evaluación *</label>
-            <input
-              id={idNombre}
-              className={campos.entrada}
-              maxLength={160}
-              value={formulario.nombre}
-              onChange={cambiar('nombre')}
-              aria-invalid={Boolean(errores.nombre) || undefined}
-              aria-describedby={errores.nombre ? `${idNombre}-error` : undefined}
-              data-enfoque-inicial=""
-            />
-            <MensajeError id={`${idNombre}-error`} texto={errores.nombre} />
-          </div>
+      <div className={campos.campo}>
+        <label htmlFor={idNombre} className={campos.etiqueta}>Nombre de la evaluación *</label>
+        <input
+          id={idNombre}
+          className={campos.entrada}
+          maxLength={160}
+          value={formulario.nombre}
+          onChange={cambiar('nombre')}
+          aria-invalid={Boolean(errores.nombre) || undefined}
+          aria-describedby={errores.nombre ? `${idNombre}-error` : undefined}
+          data-enfoque-inicial=""
+        />
+        <MensajeError id={`${idNombre}-error`} texto={errores.nombre} />
+      </div>
 
-          <div className={campos.filaDoble}>
-            <div className={campos.campo}>
-              <label htmlFor={idFecha} className={campos.etiqueta}>Fecha *</label>
-              <input
-                id={idFecha}
-                type="date"
-                className={campos.entrada}
-                value={formulario.fecha}
-                onChange={cambiar('fecha')}
-                aria-invalid={Boolean(errores.fecha) || undefined}
-                aria-describedby={errores.fecha ? `${idFecha}-error` : undefined}
-              />
-              <MensajeError id={`${idFecha}-error`} texto={errores.fecha} />
-            </div>
+      <div className={campos.campo}>
+        <label htmlFor={idFecha} className={campos.etiqueta}>Fecha *</label>
+        <input
+          id={idFecha}
+          type="date"
+          className={campos.entrada}
+          value={formulario.fecha}
+          onChange={cambiar('fecha')}
+          aria-invalid={Boolean(errores.fecha) || undefined}
+          aria-describedby={errores.fecha ? `${idFecha}-error` : undefined}
+        />
+        <MensajeError id={`${idFecha}-error`} texto={errores.fecha} />
+      </div>
 
-            <div className={campos.campo}>
-              <label htmlFor={idCompetencia} className={campos.etiqueta}>Competencia *</label>
-              <select
-                id={idCompetencia}
-                className={campos.selector}
-                value={formulario.competenciaId}
-                onChange={cambiar('competenciaId')}
-                aria-invalid={Boolean(errores.competenciaId) || undefined}
-                aria-describedby={errores.competenciaId ? `${idCompetencia}-error` : undefined}
-              >
-                <option value="">Selecciona una competencia</option>
-                {competencias.map((item) => <option key={item.id} value={item.id}>{item.nombre}</option>)}
-              </select>
-              <MensajeError id={`${idCompetencia}-error`} texto={errores.competenciaId} />
-            </div>
-          </div>
+      <div className={campos.campo}>
+        <label htmlFor={idDescripcion} className={campos.etiqueta}>Descripción *</label>
+        <textarea
+          id={idDescripcion}
+          className={campos.areaTexto}
+          maxLength={1000}
+          rows={3}
+          value={formulario.descripcion}
+          onChange={cambiar('descripcion')}
+          aria-invalid={Boolean(errores.descripcion) || undefined}
+          aria-describedby={errores.descripcion ? `${idDescripcion}-error` : undefined}
+        />
+        <MensajeError id={`${idDescripcion}-error`} texto={errores.descripcion} />
+      </div>
 
-          <div className={campos.campo}>
-            <label htmlFor={idDescripcion} className={campos.etiqueta}>Descripción *</label>
-            <textarea
-              id={idDescripcion}
-              className={campos.areaTexto}
-              maxLength={1000}
-              rows={3}
-              value={formulario.descripcion}
-              onChange={cambiar('descripcion')}
-              aria-invalid={Boolean(errores.descripcion) || undefined}
-              aria-describedby={errores.descripcion ? `${idDescripcion}-error` : undefined}
-            />
-            <MensajeError id={`${idDescripcion}-error`} texto={errores.descripcion} />
-          </div>
-
-          <p className={campos.ayuda}>
-            Bimestre asignado: <strong>{bimestreFecha?.nombre ?? 'se determinará según la fecha'}</strong>
-          </p>
-        </>
-      )}
+      <p className={campos.ayuda}>
+        Bimestre asignado: <strong>{bimestreFecha?.nombre ?? 'se determinará según la fecha'}</strong>
+      </p>
     </DialogoBase>
   );
 }

@@ -19,7 +19,6 @@ async function crearEvaluacion(nombre) {
   const dialogo = await screen.findByRole('dialog', { name: 'Nueva evaluación' });
   await userEvent.type(within(dialogo).getByLabelText(/Nombre de la evaluación/), nombre);
   await userEvent.type(within(dialogo).getByLabelText(/Fecha/), '2026-04-15');
-  await userEvent.selectOptions(within(dialogo).getByLabelText(/Competencia/), within(dialogo).getAllByRole('option')[1]);
   await userEvent.type(within(dialogo).getByLabelText(/Descripción/), 'Descripción de prueba');
   await userEvent.click(within(dialogo).getByRole('button', { name: 'Guardar evaluación' }));
   return screen.findByText('La evaluación se registró correctamente en I Bimestre.', {}, ESPERA);
@@ -75,8 +74,8 @@ describe('Evaluaciones del docente', () => {
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Guardar evaluación' }));
     expect(within(dialogo).getByText('Ingresa el nombre de la evaluación.')).toBeInTheDocument();
     expect(within(dialogo).getByText('Selecciona la fecha de la evaluación.')).toBeInTheDocument();
-    expect(within(dialogo).getByText('Selecciona la competencia que medirá la evaluación.')).toBeInTheDocument();
     expect(within(dialogo).getByText('Ingresa una descripción.')).toBeInTheDocument();
+    expect(within(dialogo).queryByLabelText('Competencia *')).not.toBeInTheDocument();
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }));
 
     expect(await crearEvaluacion('Examen de prueba')).toBeInTheDocument();
@@ -94,7 +93,7 @@ describe('Evaluaciones del docente', () => {
     const dialogo = await screen.findByRole('dialog', { name: 'Notas · Práctica de notas' });
     const lista = await within(dialogo).findByRole('list', { name: 'Estudiantes de la sección' }, ESPERA);
     expect(within(lista).getAllByRole('listitem')).toHaveLength(2);
-    expect(within(dialogo).getByText('Competencia')).toBeInTheDocument();
+    expect(within(dialogo).queryByText('Competencia')).not.toBeInTheDocument();
     expect(within(dialogo).getByText('Bimestre')).toBeInTheDocument();
     expect(within(dialogo).getByText('Fecha')).toBeInTheDocument();
 

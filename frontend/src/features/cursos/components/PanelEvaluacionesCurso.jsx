@@ -55,19 +55,11 @@ function ContenidoEvaluaciones({ datos }) {
             <thead>
               <tr>
                 <th scope="col" rowSpan={2} className={estilos.colCompetencia}>Competencia</th>
-                {matriz.columnas > 0 && (
-                  <th scope="colgroup" colSpan={matriz.columnas} className={estilos.grupoEvaluaciones}>
-                    Evaluaciones del periodo
-                  </th>
-                )}
                 <th scope="colgroup" colSpan={datos.bimestres.length} className={estilos.grupoLogro}>
                   Logro por competencia
                 </th>
               </tr>
               <tr>
-                {Array.from({ length: matriz.columnas }, (_, indice) => (
-                  <th scope="col" key={indice} className={estilos.colEvaluacion}>Ev. {indice + 1}</th>
-                ))}
                 {datos.bimestres.map((actual) => (
                   <th scope="col" key={actual.id} className={estilos.colBimestre}>{actual.nombre}</th>
                 ))}
@@ -77,14 +69,6 @@ function ContenidoEvaluaciones({ datos }) {
               {matriz.filas.map((fila) => (
                 <tr key={fila.id}>
                   <th scope="row" className={estilos.colCompetencia}>{fila.nombre}</th>
-                  {fila.evaluaciones.map((evaluacion, indice) => (
-                    <td key={indice} className={estilos.colEvaluacion}>
-                      {!evaluacion && <SinDato texto="sin evaluación" />}
-                      {evaluacion && (evaluacion.nota
-                        ? <Nota valor={evaluacion.nota} />
-                        : <SinDato texto="no hay nota registrada" />)}
-                    </td>
-                  ))}
                   {datos.bimestres.map((actual) => (
                     <td key={actual.id} className={estilos.colBimestre}>
                       {fila.notasPorBimestre[actual.id]
@@ -113,7 +97,7 @@ function ContenidoEvaluaciones({ datos }) {
                   <div>
                     <strong className={estilos.nombreEvaluacion}>{evaluacion.nombre}</strong>
                     <span className={estilos.fechaEvaluacion}>
-                      {evaluacion.competenciaNombre} · Ev. {evaluacion.numero} · {formatearFecha(evaluacion.fecha)}
+                      {formatearFecha(evaluacion.fecha)}
                     </span>
                   </div>
                   {evaluacion.nota
@@ -130,7 +114,6 @@ function ContenidoEvaluaciones({ datos }) {
                     <div><dt>Descripción</dt><dd>{evaluacion.descripcion || '—'}</dd></div>
                     <div><dt>Fecha</dt><dd>{formatearFecha(evaluacion.fecha)}</dd></div>
                     <div><dt>Bimestre</dt><dd>{evaluacion.bimestreNombre}</dd></div>
-                    <div><dt>Competencia</dt><dd>{evaluacion.competenciaNombre}</dd></div>
                     <div><dt>Estudiante</dt><dd>{evaluacion.estudianteNombre}</dd></div>
                     <div>
                       <dt>Nota</dt>
@@ -148,9 +131,8 @@ function ContenidoEvaluaciones({ datos }) {
 }
 
 /**
- * Pestaña "Evaluaciones y Notas" del detalle de un curso (HU-EVAL-03): una matriz de competencias con la nota de
- * cada evaluación del bimestre elegido y la nota de la competencia en cada bimestre, y debajo la lista de
- * evaluaciones del bimestre con su detalle. El curso no tiene nota final. Solo lectura.
+ * Pestaña "Evaluaciones y Notas" del detalle de un curso (HU-EVAL-03): una matriz con las notas de competencia
+ * por bimestre y, por separado, la lista de evaluaciones del periodo. El curso no tiene nota final. Solo lectura.
  *
  * @param {Object} props
  * @param {Object|null} props.datos Respuesta de `consultarNotasCursoEstudiante`; `null` mientras carga o si falló.

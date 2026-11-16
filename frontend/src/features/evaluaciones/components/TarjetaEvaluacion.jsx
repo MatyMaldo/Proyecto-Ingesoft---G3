@@ -4,7 +4,7 @@ import { formatearFechaVisible } from '../../../shared/utils/formatoFecha.js';
 import estilos from './TarjetaEvaluacion.module.css';
 
 /**
- * Tarjeta de una evaluación: nombre, bimestre, competencia, fecha y descripción, con «Registrar notas» al pie
+ * Tarjeta de una evaluación: nombre, bimestre, fecha y descripción, con «Registrar notas» al pie
  * (mismo patrón que las tarjetas de Cursos). Las notas solo se registran con el año académico vigente.
  *
  * @param {Object} props
@@ -27,12 +27,6 @@ export default function TarjetaEvaluacion({ evaluacion, vigente, alRegistrarNota
           <Icono nombre="calendario" tamano={14} />
           {formatearFechaVisible(evaluacion.fecha)}
         </span>
-        {evaluacion.competenciaNombre && (
-          <span className={estilos.dato} title="Competencia que mide la evaluación">
-            <Icono nombre="libro" tamano={14} />
-            {evaluacion.competenciaNombre}
-          </span>
-        )}
       </p>
 
       <div className={estilos.pie}>
