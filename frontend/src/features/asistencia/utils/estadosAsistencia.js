@@ -32,8 +32,8 @@ export function tonoEstadoAsistencia(estado) {
 }
 
 /**
- * Resume los registros de una consulta. La asistencia general se calcula sobre
- * las sesiones con registro, usando solo PRESENTE como asistencia efectiva.
+ * Resume los registros de una consulta. La asistencia general cuenta PRESENTE y TARDANZA como asistencia y se calcula
+ * sobre las sesiones sin las JUSTIFICADAS: una justificada no es asistencia ni falta.
  */
 export function resumirAsistencia(registros = []) {
   const resumen = {
@@ -53,11 +53,19 @@ export function resumirAsistencia(registros = []) {
     else if (estado === 'JUSTIFICADA') resumen.justificadas += 1;
   });
 
-  resumen.porcentaje = resumen.total > 0
-    ? Number((((resumen.presentes + resumen.tardanzas) / resumen.total) * 100).toFixed(2))
+  const base = resumen.total - resumen.justificadas;
+  resumen.porcentaje = base > 0
+    ? Number((((resumen.presentes + resumen.tardanzas) / base) * 100).toFixed(2))
     : 0;
 
   return resumen;
+}
+
+/** Hora (HH:MM, 24 h) en que se registró una asistencia; «—» si el registro no la trae. */
+export function formatearHoraRegistro(valor) {
+  const fecha = valor ? new Date(valor) : null;
+  if (!fecha || Number.isNaN(fecha.getTime())) return '—';
+  return fecha.toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false });
 }
 
 /** Porcentaje con dos decimales, tal como lo devuelve backend. */

@@ -7,6 +7,7 @@ import {
   normalizarEstadoSesion,
   tonoEstadoSesion
 } from '../utils/estadosSesion.js';
+import { acortarGrado, indicadoresAsistencia } from '../utils/sesionesDocente.js';
 import {
   aMinutos,
   construirEjeTemporal,
@@ -41,14 +42,6 @@ function diaYMes(fecha) {
   return `${fecha.slice(8)}/${fecha.slice(5, 7)}`;
 }
 
-/** "1er Grado de Secundaria" → "1er Grado"; el nombre completo queda en el title. */
-function acortarGrado(grado) {
-  return String(grado ?? '')
-    .replace(/\s+de\s+(Secundaria|Primaria|Inicial)$/i, '')
-    .replace(/\s+(Secundaria|Primaria|Inicial)$/i, '')
-    .trim();
-}
-
 /**
  * Matriz de solo lectura para las sesiones generadas. Se usa una matriz por
  * semana; las filas se construyen con las horas reales de las sesiones.
@@ -60,6 +53,8 @@ function acortarGrado(grado) {
  * @param {boolean} [props.mostrarSeccion] Muestra grado y sección en cada bloque.
  * @param {boolean} [props.ajustarAlto] En escritorio la matriz ocupa el alto disponible y solo ella se desplaza, con
  *   la cabecera de días y la columna de horas fijas (el contenedor padre debe tener alto definido).
+ * @param {boolean} [props.ocultarDocente] No repite el nombre del docente en cada bloque (cuando es su propio horario).
+ * @param {boolean} [props.mostrarAsistencia] Muestra en cada bloque si falta registrar su asistencia o la de los estudiantes.
  * @param {string} [props.lunes] Fecha `YYYY-MM-DD` del lunes de la semana: pone la fecha en cada columna y
  *   marca la de hoy. Si cambia la semana, quien la usa debe darle otra `key` para reiniciar el día activo.
  */
@@ -67,6 +62,8 @@ export default function MatrizSesiones({
   titulo,
   sesiones,
   mostrarSeccion = false,
+  ocultarDocente = false,
+  mostrarAsistencia = false,
   lunes,
   ajustarAlto = false,
   alSeleccionarSesion
@@ -181,13 +178,14 @@ export default function MatrizSesiones({
                     ].filter(Boolean).join(' · ');
                     const estado = normalizarEstadoSesion(sesion.estado);
                     const omitida = estado === 'OMITIDA';
+                    const indicadores = mostrarAsistencia ? indicadoresAsistencia(sesion) : [];
                     const seleccionable = Boolean(alSeleccionarSesion);
                     const contenidoBloque = (
                       <>
                         <span className={`${estilos.curso} ${estilos.cursoSesion}`}>
                           {sesion.cursoNombre}
                         </span>
-                        <span className={estilos.detalle}>{sesion.docenteNombre}</span>
+                        {!ocultarDocente && <span className={estilos.detalle}>{sesion.docenteNombre}</span>}
                         <span className={estilos.detalle}>{sesion.aulaNombre}</span>
                         {mostrarSeccion && etiquetaSeccion && (
                           <span className={`${estilos.detalle} ${estilos.detalleSeccion}`}>
@@ -203,6 +201,15 @@ export default function MatrizSesiones({
                           <Insignia tono={tonoEstadoSesion(sesion.estado)} className={estilos.estadoSesion}>
                             {etiquetaEstadoSesion(sesion.estado)}
                           </Insignia>
+                        )}
+                        {indicadores.length > 0 && (
+                          <span className={estilos.indicadoresAsistencia}>
+                            {indicadores.map((indicador) => (
+                              <Insignia key={indicador.id} tono={indicador.tono} className={estilos.estadoSesion}>
+                                {indicador.texto}
+                              </Insignia>
+                            ))}
+                          </span>
                         )}
                       </>
                     );
@@ -226,7 +233,10 @@ export default function MatrizSesiones({
                               type="button"
                               className={clasesBloque}
                               title={`${descripcion}. Ver detalle`}
-                              aria-label={`Ver detalle de ${sesion.cursoNombre} del ${formatearFecha(sesion.fecha)}`}
+                              aria-label={[
+                                `Ver detalle de ${sesion.cursoNombre} del ${formatearFecha(sesion.fecha)}`,
+                                ...indicadores.map((indicador) => indicador.texto)
+                              ].join('. ')}
                               onClick={() => alSeleccionarSesion(sesion)}
                             >
                               {contenidoBloque}

@@ -167,7 +167,7 @@ describe('Estructura de la pantalla', () => {
     render(<PaginaVisualizadorHorario />);
     await esperarResumen();
 
-    const cabecera = screen.getByRole('heading', { level: 1, name: 'Consulta de horario' }).closest('header');
+    const cabecera = screen.getByRole('heading', { level: 1, name: 'Mi horario' }).closest('header');
     expect(within(cabecera).queryByRole('button')).not.toBeInTheDocument();
     expect(within(cabecera).queryByRole('link')).not.toBeInTheDocument();
     expect(screen.getByRole('button', { name: 'Actualizar' })).toBeInTheDocument();
@@ -224,5 +224,41 @@ describe('Bloques y días de la matriz', () => {
     expect(within(dias).getAllByRole('button').filter(
       (boton) => boton.getAttribute('aria-pressed') === 'true'
     )).toHaveLength(1);
+  });
+});
+
+describe('Leyenda de estados como filtro', () => {
+  it('cada estado es un botón que filtra el horario y se puede quitar desde el diálogo', async () => {
+    render(<PaginaVisualizadorHorario />);
+    await esperarResumen();
+
+    const leyenda = screen.getByRole('list', { name: 'Estados de las sesiones de la semana' });
+    const chip = within(leyenda).getByRole('button', { name: /Programada/ });
+    expect(chip).toHaveAttribute('aria-pressed', 'false');
+    expect(screen.getByRole('status')).toHaveTextContent('Elige un estado para ver solo esas sesiones en el horario.');
+
+    fireEvent.click(chip);
+    expect(chip).toHaveAttribute('aria-pressed', 'true');
+    expect(screen.getByRole('status')).toHaveTextContent('El horario muestra solo sesiones con estado Programada.');
+
+    fireEvent.click(screen.getByRole('button', { name: 'Ver horario' }));
+    const dialogo = await screen.findByRole('dialog', { name: /^Horario/ }, ESPERA);
+    fireEvent.click(within(dialogo).getByRole('button', { name: 'Quitar filtro: Programada' }));
+
+    expect(within(dialogo).queryByRole('button', { name: /Quitar filtro/ })).not.toBeInTheDocument();
+    expect(chip).toHaveAttribute('aria-pressed', 'false');
+  });
+});
+
+describe('Orden de la pantalla del docente', () => {
+  it('muestra primero lo de hoy y después los filtros y el resumen de la semana', async () => {
+    render(<PaginaVisualizadorHorario />);
+    await esperarResumen();
+
+    const hoy = screen.getByRole('region', { name: 'Tus clases' });
+    const filtros = screen.getByRole('region', { name: 'Filtros de consulta de horario' });
+    const resumen = screen.getByRole('region', { name: 'Resumen del horario' });
+    expect(hoy.compareDocumentPosition(filtros) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
+    expect(filtros.compareDocumentPosition(resumen) & Node.DOCUMENT_POSITION_FOLLOWING).toBeTruthy();
   });
 });

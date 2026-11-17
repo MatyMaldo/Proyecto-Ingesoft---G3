@@ -129,11 +129,14 @@ export default function PanelSesionHorario({
             </dd>
           </dl>
 
-          <div className={estilos.aviso}>
-            {puedeCambiar
-              ? 'La omisión conserva la sesión en el historial; puedes restaurarla mientras no haya comenzado.'
-              : motivoSinAccion}
-          </div>
+          {/* El aviso sobre omitir/restaurar es del administrador; con `acciones` (docente) no aplica. */}
+          {!acciones && (
+            <div className={estilos.aviso}>
+              {puedeCambiar
+                ? 'La omisión conserva la sesión en el historial; puedes restaurarla mientras no haya comenzado.'
+                : motivoSinAccion}
+            </div>
+          )}
         </div>
 
         <footer className={estilos.pie}>

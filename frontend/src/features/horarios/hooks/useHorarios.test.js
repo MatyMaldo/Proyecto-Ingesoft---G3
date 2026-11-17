@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buscarAnioAcademicoVigente } from './useHorarios.js';
+import { buscarAnioAcademicoVigente, elegirAnioProgramacion } from './useHorarios.js';
 
 describe('buscarAnioAcademicoVigente', () => {
   const anioVigente = new Date().getFullYear();
@@ -20,5 +20,39 @@ describe('buscarAnioAcademicoVigente', () => {
       anio: String(anioVigente)
     });
     expect(buscarAnioAcademicoVigente(anios, anioVigente + 2)).toBeUndefined();
+  });
+});
+
+describe('elegirAnioProgramacion', () => {
+  const anios = [
+    { id: 1, anio: 2027 },
+    { id: 2, anio: 2026 },
+    { id: 3, anio: 2028 }
+  ];
+  const periodos = (fechas) => new Map(Object.entries(fechas).map(([id, fechaFin]) => [Number(id), { fechaFin }]));
+
+  it('elige el año cuya matrícula todavía no terminó, aunque no sea el año del calendario', () => {
+    // 2026: matrícula terminada en enero; 2027: matrícula abierta hasta febrero de 2027.
+    const porAnio = periodos({ 2: '2026-01-31', 1: '2027-02-01', 3: '2028-02-01' });
+    expect(elegirAnioProgramacion(anios, porAnio, '2026-11-17')).toEqual({ id: 1, anio: 2027 });
+  });
+
+  it('en plena matrícula del año en curso elige ese año', () => {
+    const porAnio = periodos({ 2: '2026-01-31', 1: '2027-02-01', 3: '2028-02-01' });
+    expect(elegirAnioProgramacion(anios, porAnio, '2026-01-10')).toEqual({ id: 2, anio: 2026 });
+  });
+
+  it('el último día de la matrícula todavía cuenta', () => {
+    const porAnio = periodos({ 2: '2026-01-31', 1: '2027-02-01' });
+    expect(elegirAnioProgramacion(anios, porAnio, '2026-01-31')).toEqual({ id: 2, anio: 2026 });
+  });
+
+  it('sin periodos usa el año del calendario y, si no existe, el último registrado', () => {
+    const actual = new Date().getFullYear();
+    expect(elegirAnioProgramacion([{ id: 9, anio: actual }, { id: 8, anio: actual - 1 }], new Map()))
+      .toEqual({ id: 9, anio: actual });
+    expect(elegirAnioProgramacion([{ id: 5, anio: 2001 }, { id: 6, anio: 2002 }], new Map()))
+      .toEqual({ id: 6, anio: 2002 });
+    expect(elegirAnioProgramacion([], new Map())).toBeNull();
   });
 });

@@ -602,3 +602,44 @@
     display: none;
   }
 }
+
+/* Docente: casilla «Mostrar omitidas» junto a los botones del pie del horario. */
+.alternarOmitidas {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  min-height: var(--tactil-min);
+  margin-right: auto;
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+  cursor: pointer;
+}
+
+/* Chip de estado de la leyenda: es un botón que filtra el horario por ese estado. */
+.chipEstado {
+  display: inline-flex;
+  padding: 2px;
+  font: inherit;
+  background: transparent;
+  border: 2px solid transparent;
+  border-radius: var(--radio-pildora);
+  cursor: pointer;
+}
+
+.chipEstado:hover {
+  border-color: var(--color-borde-fuerte);
+}
+
+.chipEstado[aria-pressed='true'] {
+  border-color: var(--color-primario);
+}
+
+.chipEstado:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.notaFiltro {
+  font-size: var(--texto-xs);
+  color: var(--color-texto-suave);
+}

@@ -452,3 +452,10 @@
     display: none;
   }
 }
+
+/* Indicadores de asistencia dentro del bloque de una sesión (solo en el horario del docente). */
+.indicadoresAsistencia {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 4px;
+}

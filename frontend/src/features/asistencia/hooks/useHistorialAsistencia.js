@@ -11,27 +11,27 @@ import { resumirAsistencia } from '../utils/estadosAsistencia.js';
 export const OPCIONES_TAMANO_PAGINA = Object.freeze([10, 25, 50, 100]);
 const TAMANO_PAGINA_INICIAL = 10;
 
-function rangoAnioActual() {
-  const anio = new Date().getFullYear();
-  return {
-    desde: `${anio}-01-01`,
-    hasta: `${anio}-12-31`
-  };
-}
-
+/**
+ * Historial de asistencia del rol autenticado. El backend limita la consulta al año académico de consulta
+ * (HU-GEMAP-11): mientras el usuario no elija fechas se muestra todo ese año, y las fechas que muestra el filtro
+ * salen del año que devuelve la respuesta.
+ */
 export default function useHistorialAsistencia(usuario) {
   const rol = usuario?.rol;
   const esApoderado = rol === ROLES.APODERADO;
-  const rango = rangoAnioActual();
 
   const [estudiantes, establecerEstudiantes] = useState([]);
+  // Un apoderado no sabe si tiene estudiantes hasta que llega la lista: hasta entonces no se muestra el aviso de «sin estudiantes».
+  const [estudiantesListos, establecerEstudiantesListos] = useState(!esApoderado);
   const [estudianteId, fijarEstudianteId] = useState(
     rol === ROLES.ESTUDIANTE ? String(usuario?.id ?? '') : ''
   );
   const [cursos, establecerCursos] = useState([]);
   const [cursoId, fijarCursoId] = useState('');
-  const [fechaInicio, fijarFechaInicio] = useState(rango.desde);
-  const [fechaFin, fijarFechaFin] = useState(rango.hasta);
+  // `null` = sin elegir: se usa el año de consulta completo.
+  const [desdeElegido, fijarDesdeElegido] = useState(null);
+  const [hastaElegido, fijarHastaElegido] = useState(null);
+  const [anioConsulta, establecerAnioConsulta] = useState(null);
   const [registros, establecerRegistros] = useState([]);
   const [resumen, establecerResumen] = useState({ ...resumirAsistencia([]), total: 0 });
   const [pagina, establecerPagina] = useState(0);
@@ -53,12 +53,12 @@ export default function useHistorialAsistencia(usuario) {
   }, []);
 
   const establecerFechaInicio = useCallback((valor) => {
-    fijarFechaInicio(valor);
+    fijarDesdeElegido(valor || null);
     establecerPagina(0);
   }, []);
 
   const establecerFechaFin = useCallback((valor) => {
-    fijarFechaFin(valor);
+    fijarHastaElegido(valor || null);
     establecerPagina(0);
   }, []);
 
@@ -81,11 +81,13 @@ export default function useHistorialAsistencia(usuario) {
       if (!respuesta.exitoso) {
         establecerError(respuesta.mensaje || 'No se pudieron cargar los estudiantes a cargo.');
         establecerCargando(false);
+        establecerEstudiantesListos(true);
         return;
       }
       const lista = Array.isArray(respuesta.datos) ? respuesta.datos : [];
       establecerEstudiantes(lista);
       fijarEstudianteId((actual) => actual || String(lista[0]?.id ?? ''));
+      establecerEstudiantesListos(true);
     }
     cargarEstudiantes();
     return () => {
@@ -95,12 +97,15 @@ export default function useHistorialAsistencia(usuario) {
 
   useEffect(() => {
     if (esApoderado && !estudianteId) {
-      establecerRegistros([]);
-      establecerResumen(resumirAsistencia([]));
-      establecerCargando(false);
+      // Sin estudiante elegido solo se deja de cargar cuando ya se sabe que no hay ninguno (o falló la lista).
+      if (estudiantesListos) {
+        establecerRegistros([]);
+        establecerResumen(resumirAsistencia([]));
+        establecerCargando(false);
+      }
       return undefined;
     }
-    if (!rol || !fechaInicio || !fechaFin || fechaFin < fechaInicio) {
+    if (!rol || (desdeElegido && hastaElegido && hastaElegido < desdeElegido)) {
       establecerRegistros([]);
       establecerResumen(resumirAsistencia([]));
       establecerCargando(false);
@@ -115,8 +120,8 @@ export default function useHistorialAsistencia(usuario) {
         rol,
         estudianteId,
         cursoId,
-        desde: fechaInicio,
-        hasta: fechaFin,
+        desde: desdeElegido ?? undefined,
+        hasta: hastaElegido ?? undefined,
         page: pagina,
         size: tamanoPagina
       });
@@ -143,6 +148,7 @@ export default function useHistorialAsistencia(usuario) {
       const totalJustificadas = numero(datos.totalJustificadas, resumenPagina.justificadas);
 
       establecerCursos(Array.isArray(datos.cursos) ? datos.cursos : []);
+      establecerAnioConsulta(datos.anioAcademico ?? null);
       establecerRegistros(lista);
       establecerResumen({
         total: totalRegistrosRespuesta,
@@ -163,32 +169,44 @@ export default function useHistorialAsistencia(usuario) {
     return () => {
       activo = false;
     };
-  }, [rol, esApoderado, estudianteId, cursoId, fechaInicio, fechaFin, pagina, tamanoPagina, intento]);
+  }, [
+    rol,
+    esApoderado,
+    estudiantesListos,
+    estudianteId,
+    cursoId,
+    desdeElegido,
+    hastaElegido,
+    pagina,
+    tamanoPagina,
+    intento
+  ]);
 
   const recargar = useCallback(() => establecerIntento((valor) => valor + 1), []);
 
   // Filtros que el usuario cambió respecto a los iniciales (el estudiante de un apoderado no cuenta: siempre hay uno).
-  const hayFiltros = cursoId !== '' || fechaInicio !== rango.desde || fechaFin !== rango.hasta;
+  const hayFiltros = cursoId !== '' || desdeElegido !== null || hastaElegido !== null;
 
   const limpiarFiltros = useCallback(() => {
-    const inicial = rangoAnioActual();
     fijarCursoId('');
-    fijarFechaInicio(inicial.desde);
-    fijarFechaFin(inicial.hasta);
+    fijarDesdeElegido(null);
+    fijarHastaElegido(null);
     establecerPagina(0);
   }, []);
 
   return {
     esApoderado,
     estudiantes,
+    estudiantesListos,
     estudianteId,
     establecerEstudianteId,
     cursos,
     cursoId,
     establecerCursoId,
-    fechaInicio,
+    anioConsulta,
+    fechaInicio: desdeElegido ?? anioConsulta?.fechaInicio ?? '',
     establecerFechaInicio,
-    fechaFin,
+    fechaFin: hastaElegido ?? anioConsulta?.fechaFin ?? '',
     establecerFechaFin,
     registros,
     resumen,

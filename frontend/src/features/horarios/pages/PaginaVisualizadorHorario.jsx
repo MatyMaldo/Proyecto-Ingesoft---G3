@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useMemo, useState } from 'react';
 
 import useAuth from '../../../shared/auth/useAuth.js';
 import BotonActualizar from '../../../shared/components/BotonActualizar.jsx';
@@ -10,10 +10,13 @@ import Icono from '../../../shared/components/Icono.jsx';
 import Insignia from '../../../shared/components/Insignia.jsx';
 import Notificacion from '../../../shared/components/Notificacion.jsx';
 import SelectFiltro from '../../../shared/components/SelectFiltro.jsx';
+import SelectorBuscable from '../../../shared/components/SelectorBuscable.jsx';
 import useNotificacion from '../../../shared/hooks/useNotificacion.js';
 import AccionesAsistenciaDocente from '../../asistencia/components/AccionesAsistenciaDocente.jsx';
 import DialogoAsistenciaSesion from '../../asistencia/components/DialogoAsistenciaSesion.jsx';
 import useAsistenciaSesion from '../../asistencia/hooks/useAsistenciaSesion.js';
+import CargaDocente from '../components/CargaDocente.jsx';
+import InicioDocente from '../components/InicioDocente.jsx';
 import MatrizSesiones from '../components/MatrizSesiones.jsx';
 import PanelSesionHorario from '../components/PanelSesionHorario.jsx';
 import SelectorFecha from '../components/SelectorFecha.jsx';
@@ -23,7 +26,12 @@ import {
   normalizarEstadoSesion,
   tonoEstadoSesion
 } from '../utils/estadosSesion.js';
-import { aMinutos, formatearFecha } from '../utils/tiempo.js';
+import {
+  elegirSesionDestacada,
+  indicadoresDeDetalle,
+  sesionesDelDia
+} from '../utils/sesionesDocente.js';
+import { aMinutos, fechaISO, formatearFecha } from '../utils/tiempo.js';
 import estilos from './PaginaVisualizadorHorario.module.css';
 
 const OPCIONES_TIPO = [
@@ -64,7 +72,7 @@ const MENSAJE_SIN_SESIONES_SEMANA = 'No hay sesiones en esta semana.';
 function mensajeSinSeleccion(rol, tipo) {
   if (rol === APODERADO) return 'Selecciona un estudiante para consultar su horario.';
   return tipo === 'seccion'
-    ? 'Selecciona un grado y una sección para consultar su horario.'
+    ? 'Selecciona una sección para consultar su horario.'
     : 'Selecciona un docente para consultar su horario.';
 }
 
@@ -82,6 +90,15 @@ export default function PaginaVisualizadorHorario() {
   const [sesionSeleccionada, establecerSesionSeleccionada] = useState(null);
   const [dialogoAsistencia, establecerDialogoAsistencia] = useState(false);
   const [errorAsistencia, establecerErrorAsistencia] = useState(null);
+  // Desde dónde se abrió el registro de asistencia: el panel de una sesión o la tarjeta «Ahora» del inicio.
+  const [origenDialogo, establecerOrigenDialogo] = useState('panel');
+  // Docente: el rango de fechas va plegado y las sesiones omitidas ocultas, salvo que lo pida.
+  const [rangoAbierto, establecerRangoAbierto] = useState(false);
+  const [mostrarOmitidas, establecerMostrarOmitidas] = useState(false);
+  // Estado elegido en la leyenda para ver solo esas sesiones en el horario (`null`: todas).
+  const [estadoFiltro, establecerEstadoFiltro] = useState(null);
+  // Docente: asistencia registrada en esta pantalla, para refrescar los indicadores sin recargar el horario.
+  const [indicadoresLocales, establecerIndicadoresLocales] = useState({});
   // Diálogo con la matriz de la semana elegida («Ver horario»).
   const [horarioAbierto, establecerHorarioAbierto] = useState(false);
   const rol = usuario?.rol;
@@ -121,7 +138,7 @@ export default function PaginaVisualizadorHorario() {
     establecerFechaFin,
     establecerSemanaSeleccionada,
     seleccionarTipo,
-    seleccionarGrado,
+    seleccionarSeccion,
     seleccionarAnio,
     irSemanaAnterior,
     irSemanaSiguiente,
@@ -133,6 +150,41 @@ export default function PaginaVisualizadorHorario() {
   } = useConsultaHorario(rol, usuario?.nombre);
 
   const asistenciaSesion = useAsistenciaSesion(esDocente ? sesionSeleccionada : null);
+
+  const conIndicadores = useCallback((sesion) => (
+    esDocente && indicadoresLocales[sesion.id] ? { ...sesion, ...indicadoresLocales[sesion.id] } : sesion
+  ), [esDocente, indicadoresLocales]);
+  const todasLasSesiones = useMemo(
+    () => (esDocente ? semanas.flatMap((semana) => semana.sesiones).map(conIndicadores) : []),
+    [esDocente, semanas, conIndicadores]
+  );
+  const hoyISO = fechaISO(new Date());
+  const destacada = esDocente ? elegirSesionDestacada(todasLasSesiones) : null;
+  // La tarjeta «Ahora» necesita el detalle de asistencia de su sesión; una clase de otro día no lo necesita.
+  const asistenciaDestacada = useAsistenciaSesion(
+    destacada && destacada.tipo !== 'proxima' ? destacada.sesion : null
+  );
+  const sesionesHoy = esDocente ? sesionesDelDia(todasLasSesiones, hoyISO) : [];
+  const omitidasHoy = esDocente
+    ? sesionesDelDia(todasLasSesiones, hoyISO, { incluirOmitidas: true }).length - sesionesHoy.length
+    : 0;
+
+  useEffect(() => {
+    const detalle = asistenciaSesion.detalle;
+    if (esDocente && detalle?.sesionId != null) {
+      establecerIndicadoresLocales((actuales) => ({ ...actuales, [detalle.sesionId]: indicadoresDeDetalle(detalle) }));
+    }
+  }, [esDocente, asistenciaSesion.detalle]);
+
+  useEffect(() => {
+    const detalle = asistenciaDestacada.detalle;
+    if (esDocente && detalle?.sesionId != null) {
+      establecerIndicadoresLocales((actuales) => ({ ...actuales, [detalle.sesionId]: indicadoresDeDetalle(detalle) }));
+    }
+  }, [esDocente, asistenciaDestacada.detalle]);
+
+  const sesionDelDialogo = origenDialogo === 'tarjeta' ? (destacada?.sesion ?? null) : sesionSeleccionada;
+  const asistenciaDelDialogo = origenDialogo === 'tarjeta' ? asistenciaDestacada : asistenciaSesion;
 
   const necesitaSeleccion = (esAdmin || esApoderado) && !id;
   const consultaPorSeccion = esAdmin && tipo === 'seccion';
@@ -147,14 +199,15 @@ export default function PaginaVisualizadorHorario() {
     establecerErrorAsistencia(null);
   }, [sesionSeleccionada?.id]);
 
-  function abrirDialogoAsistencia() {
+  function abrirDialogoAsistencia(origen = 'panel') {
+    establecerOrigenDialogo(origen);
     establecerErrorAsistencia(null);
     establecerDialogoAsistencia(true);
   }
 
   async function guardarAsistencia(filas) {
     establecerErrorAsistencia(null);
-    const respuesta = await asistenciaSesion.guardarEstudiantes(filas);
+    const respuesta = await asistenciaDelDialogo.guardarEstudiantes(filas);
     if (!respuesta?.exitoso) {
       establecerErrorAsistencia(
         respuesta?.mensaje || 'No se pudo guardar la asistencia.'
@@ -195,20 +248,19 @@ export default function PaginaVisualizadorHorario() {
     ].filter(Boolean).join(' · ')
     : '';
 
-  const opcionesGrado = [
-    { valor: '', etiqueta: 'Seleccionar grado...' },
-    ...grados.map((grado) => ({ valor: String(grado.id), etiqueta: grado.nombre }))
-  ];
+  const opcionesSeccion = opciones
+    .filter((seccion) => tipo === 'seccion')
+    .slice()
+    .sort((a, b) => (Number(a.gradoId) - Number(b.gradoId)) || String(a.nombre).localeCompare(String(b.nombre), 'es'))
+    .map((seccion) => ({
+      valor: String(seccion.id),
+      etiqueta: `${seccion.gradoNombre ?? `Grado ${seccion.gradoId}`} · ${seccion.nombre}`
+    }));
 
-  const opcionesSeccion = [
-    { valor: '', etiqueta: tipo === 'seccion' ? 'Seleccionar sección...' : 'Seleccionar docente...' },
-    ...(tipo === 'seccion' ? seccionesFiltradas : opciones).map((opcion) => ({
-      valor: String(opcion.id),
-      etiqueta: tipo === 'seccion'
-        ? `${opcion.nombre} (${opcion.anioAcademico ?? anio?.anio ?? ''})`
-        : opcion.nombre
-    }))
-  ];
+  const opcionesDocente = opciones.map((docente) => ({
+    valor: String(docente.id),
+    etiqueta: docente.activo === false ? `${docente.nombre} (inactivo)` : docente.nombre
+  }));
 
   const opcionesAnio = anios.map((elemento) => ({
     valor: String(elemento.id),
@@ -230,7 +282,17 @@ export default function PaginaVisualizadorHorario() {
   const mostrarSemana = !hayError && !estaCargando && !necesitaSeleccion
     && semanas.length > 0 && Boolean(semanaActual);
 
-  const sesionesSemana = semanaActual?.sesiones ?? [];
+  const sesionesSemana = (semanaActual?.sesiones ?? []).map(conIndicadores);
+  const omitidasSemana = sesionesSemana.filter((sesion) => normalizarEstadoSesion(sesion.estado) === 'OMITIDA').length;
+  const estadosSemana = estadosDeLaSemana(sesionesSemana);
+  // Si el estado elegido no existe en la semana que se está viendo, no hay filtro.
+  const filtroActivo = estadoFiltro && estadosSemana.includes(estadoFiltro) ? estadoFiltro : null;
+  let sesionesMatriz = sesionesSemana;
+  if (filtroActivo) {
+    sesionesMatriz = sesionesSemana.filter((sesion) => normalizarEstadoSesion(sesion.estado) === filtroActivo);
+  } else if (esDocente && !mostrarOmitidas) {
+    sesionesMatriz = sesionesSemana.filter((sesion) => normalizarEstadoSesion(sesion.estado) !== 'OMITIDA');
+  }
   const etiquetaSemanaActual = semanaActual
     ? (semanaActual.inicio === semanaActual.fin
       ? `Día ${formatearFecha(semanaActual.inicio)}`
@@ -322,26 +384,39 @@ export default function PaginaVisualizadorHorario() {
 
   /** Cifras de la semana elegida: sesiones, cursos, días con clase y horas semanales. */
   const datosSemana = () => {
-    const minutos = sesionesSemana.reduce((total, sesion) => {
+    // Las omitidas no se dictan: no suman a las cifras (la leyenda de estados ya cuenta cuántas hay).
+    const dictadas = sesionesSemana.filter((sesion) => normalizarEstadoSesion(sesion.estado) !== 'OMITIDA');
+    const minutos = dictadas.reduce((total, sesion) => {
       const inicio = aMinutos(sesion.horaInicio);
       const fin = aMinutos(sesion.horaFin);
       return inicio !== null && fin !== null && fin > inicio ? total + fin - inicio : total;
     }, 0);
     return [
-      { id: 'sesiones', etiqueta: 'Sesiones', valor: sesionesSemana.length },
+      { id: 'sesiones', etiqueta: 'Sesiones', valor: dictadas.length },
       {
         id: 'cursos',
         etiqueta: 'Cursos',
-        valor: new Set(sesionesSemana.map((sesion) => sesion.cursoId ?? sesion.cursoNombre)).size
+        valor: new Set(dictadas.map((sesion) => sesion.cursoId ?? sesion.cursoNombre)).size
       },
       {
         id: 'dias',
         etiqueta: 'Días con clase',
-        valor: new Set(sesionesSemana.map((sesion) => sesion.diaSemana)).size
+        valor: new Set(dictadas.map((sesion) => sesion.diaSemana)).size
       },
       { id: 'horas', etiqueta: 'Horas de clase', valor: formatearHoras(minutos) }
     ];
   };
+
+  const cifrasSemana = () => (
+    <dl className={estilos.datosResumen}>
+      {datosSemana().map((dato) => (
+        <div key={dato.id} className={estilos.dato}>
+          <dt>{dato.etiqueta}</dt>
+          <dd>{dato.valor}</dd>
+        </div>
+      ))}
+    </dl>
+  );
 
   /**
    * Resumen de la consulta: quién y qué semana, el selector de mes y semana, las cifras y el estado de las sesiones.
@@ -367,37 +442,49 @@ export default function PaginaVisualizadorHorario() {
       </header>
 
       {controlesSemana()}
-      <p className={estilos.notaRango}>Mes y semana se mueven dentro del rango de fechas elegido arriba.</p>
+      {!esDocente && (
+        <p className={estilos.notaRango}>Mes y semana se mueven dentro del rango de fechas elegido arriba.</p>
+      )}
 
       {sesionesSemana.length === 0 ? (
         <EstadoConsulta tipo="vacio" icono="calendario" mensaje={MENSAJE_SIN_SESIONES_SEMANA} />
       ) : (
         <>
-          <dl className={estilos.datosResumen}>
-            {datosSemana().map((dato) => (
-              <div key={dato.id} className={estilos.dato}>
-                <dt>{dato.etiqueta}</dt>
-                <dd>{dato.valor}</dd>
-              </div>
-            ))}
-          </dl>
+          {!esDocente && cifrasSemana()}
 
           <div className={estilos.leyenda}>
             <span className={estilos.etiquetaLeyenda}>Estado de la sesión</span>
             <ul className={estilos.listaLeyenda} aria-label="Estados de las sesiones de la semana">
-              {estadosDeLaSemana(sesionesSemana).map((estado) => (
+              {estadosSemana.map((estado) => (
                 <li key={estado} className={estilos.itemEstado}>
-                  {/* El contador va dentro del chip: «Omitida 4» son 4 sesiones omitidas esta semana. */}
-                  <Insignia tono={tonoEstadoSesion(estado)}>
-                    {etiquetaEstadoSesion(estado)}
-                    <span className={estilos.cantidadEstado}>
-                      {sesionesSemana.filter((sesion) => normalizarEstadoSesion(sesion.estado) === estado).length}
-                    </span>
-                  </Insignia>
+                  {/* Cada chip filtra el horario por ese estado; el contador son las sesiones de esa semana. */}
+                  <button
+                    type="button"
+                    className={estilos.chipEstado}
+                    aria-pressed={filtroActivo === estado}
+                    title={filtroActivo === estado ? 'Quitar el filtro' : `Ver solo sesiones con estado ${etiquetaEstadoSesion(estado)} en el horario`}
+                    onClick={() => establecerEstadoFiltro(filtroActivo === estado ? null : estado)}
+                  >
+                    {/* El contador va dentro del chip: «Omitida 4» son 4 sesiones omitidas esta semana. */}
+                    <Insignia tono={tonoEstadoSesion(estado)}>
+                      {etiquetaEstadoSesion(estado)}
+                      <span className={estilos.cantidadEstado}>
+                        {sesionesSemana.filter((sesion) => normalizarEstadoSesion(sesion.estado) === estado).length}
+                      </span>
+                    </Insignia>
+                  </button>
                 </li>
               ))}
             </ul>
+            <span className={estilos.notaFiltro} role="status">
+              {filtroActivo
+                ? `El horario muestra solo sesiones con estado ${etiquetaEstadoSesion(filtroActivo)}.`
+                : 'Elige un estado para ver solo esas sesiones en el horario.'}
+            </span>
           </div>
+
+          {esDocente && cifrasSemana()}
+          {esAdmin && tipo === 'docente' && <CargaDocente sesiones={sesionesSemana} />}
         </>
       )}
     </section>
@@ -431,7 +518,7 @@ export default function PaginaVisualizadorHorario() {
             <AccionesAsistenciaDocente
               sesion={sesionSeleccionada}
               asistencia={asistenciaSesion}
-              alAbrirModal={abrirDialogoAsistencia}
+              alAbrirModal={() => abrirDialogoAsistencia('panel')}
               alNotificar={mostrarNotificacion}
             />
           )}
@@ -457,20 +544,33 @@ export default function PaginaVisualizadorHorario() {
     contenido = <EstadoConsulta tipo="vacio" icono="calendario" mensaje={MENSAJE_SIN_SESIONES_RANGO} />;
   }
 
-  return (
-    <div className={estilos.pagina}>
-      {/* Sin acción general: solo título y descripción. */}
-      <header className={estilos.cabecera}>
-        <div className={estilos.textoCabecera}>
-          <h1 className={estilos.titulo}>Consulta de horario</h1>
-          <p className={estilos.descripcion}>
-            {esAdmin
-              ? 'Consulta de solo lectura de las sesiones programadas.'
-              : 'Consulta de solo lectura. Elige un rango de fechas para ver las sesiones.'}
-          </p>
-        </div>
-      </header>
+  const camposFecha = (
+    <>
+      <div className={`${estilos.campoFiltro} ${estilos.campoFecha}`}>
+        <span className={estilos.etiquetaFiltro}>Desde</span>
+        <SelectorFecha
+          id="consulta-horario-desde"
+          etiqueta="Desde"
+          valor={fechaInicio}
+          max={fechaFin}
+          alCambiar={establecerFechaInicio}
+        />
+      </div>
 
+      <div className={`${estilos.campoFiltro} ${estilos.campoFecha}`}>
+        <span className={estilos.etiquetaFiltro}>Hasta</span>
+        <SelectorFecha
+          id="consulta-horario-hasta"
+          etiqueta="Hasta"
+          valor={fechaFin}
+          min={fechaInicio}
+          alCambiar={establecerFechaFin}
+        />
+      </div>
+    </>
+  );
+
+  const seccionFiltros = (
       <section className={estilos.filtros} aria-label="Filtros de consulta de horario">
         {/* Administrador: fila superior con el modo de consulta y, a su lado, «Actualizar» y «Limpiar filtros». */}
         {esAdmin && (
@@ -492,25 +592,29 @@ export default function PaginaVisualizadorHorario() {
 
         {/* Debajo, los selectores y el rango de fechas. */}
         <div className={estilos.filaFiltros}>
-          {consultaPorSeccion && (
-            <SelectFiltro
-              id="consulta-horario-grado"
-              etiqueta="Grado"
-              valor={gradoId}
-              opciones={opcionesGrado}
-              alCambiar={seleccionarGrado}
-              apilado
+          {/* Grado y sección en un solo campo con búsqueda: «1er Grado · A». */}
+          {esAdmin && tipo === 'seccion' && (
+            <SelectorBuscable
+              id="consulta-horario-opcion"
+              etiqueta="Sección"
+              valor={id}
+              opciones={opcionesSeccion}
+              alCambiar={seleccionarSeccion}
+              placeholder="Buscar grado o sección…"
+              mensajeSinResultados="No se encontró ninguna sección."
             />
           )}
 
-          {esAdmin && (
-            <SelectFiltro
+          {/* Los docentes pueden ser muchos: se busca por nombre en lugar de recorrer una lista. */}
+          {esAdmin && tipo === 'docente' && (
+            <SelectorBuscable
               id="consulta-horario-opcion"
-              etiqueta={tipo === 'seccion' ? 'Sección' : 'Docente'}
+              etiqueta="Docente"
               valor={id}
-              opciones={opcionesSeccion}
+              opciones={opcionesDocente}
               alCambiar={establecerId}
-              apilado
+              placeholder="Buscar docente…"
+              mensajeSinResultados="No se encontró ningún docente."
             />
           )}
 
@@ -540,27 +644,21 @@ export default function PaginaVisualizadorHorario() {
             </div>
           )}
 
-          <div className={`${estilos.campoFiltro} ${estilos.campoFecha}`}>
-            <span className={estilos.etiquetaFiltro}>Desde</span>
-            <SelectorFecha
-              id="consulta-horario-desde"
-              etiqueta="Desde"
-              valor={fechaInicio}
-              max={fechaFin}
-              alCambiar={establecerFechaInicio}
-            />
-          </div>
+          {!esDocente && camposFecha}
 
-          <div className={`${estilos.campoFiltro} ${estilos.campoFecha}`}>
-            <span className={estilos.etiquetaFiltro}>Hasta</span>
-            <SelectorFecha
-              id="consulta-horario-hasta"
-              etiqueta="Hasta"
-              valor={fechaFin}
-              min={fechaInicio}
-              alCambiar={establecerFechaFin}
-            />
-          </div>
+          {/* Docente: el rango de fechas es un filtro avanzado, plegado; lo habitual es moverse por semanas. */}
+          {esDocente && (
+            <button
+              type="button"
+              className={estilos.botonSecundario}
+              aria-expanded={rangoAbierto}
+              aria-controls="consulta-horario-rango"
+              onClick={() => establecerRangoAbierto((abierto) => !abierto)}
+            >
+              <Icono nombre="calendario" tamano={16} />
+              Rango de fechas: {formatearFecha(fechaInicio)} – {formatearFecha(fechaFin)}
+            </button>
+          )}
 
           {/* Sin selector de modo, «Actualizar» va al final de la fila de filtros, alineado con los campos. */}
           {!esAdmin && (
@@ -568,9 +666,28 @@ export default function PaginaVisualizadorHorario() {
               <BotonActualizar alActualizar={recargar} actualizando={cargando} />
             </div>
           )}
+
+          {/* Docente con el rango plegado: «Limpiar filtros» queda en esta misma fila. */}
+          {esDocente && !rangoAbierto && (
+            <div className={estilos.botonFila}>
+              <FiltrosActivos filtros={[]} hayFiltros={hayFiltros} alLimpiar={limpiarFiltros} />
+            </div>
+          )}
         </div>
 
-        {!esAdmin && <FiltrosActivos filtros={[]} hayFiltros={hayFiltros} alLimpiar={limpiarFiltros} />}
+        {/* Docente con el rango desplegado: «Limpiar filtros» va en la misma fila que las fechas. */}
+        {esDocente && rangoAbierto && (
+          <div id="consulta-horario-rango" className={estilos.filaFiltros}>
+            {camposFecha}
+            <div className={estilos.botonFila}>
+              <FiltrosActivos filtros={[]} hayFiltros={hayFiltros} alLimpiar={limpiarFiltros} />
+            </div>
+          </div>
+        )}
+
+        {!esAdmin && !esDocente && (
+          <FiltrosActivos filtros={[]} hayFiltros={hayFiltros} alLimpiar={limpiarFiltros} />
+        )}
 
         {esApoderado && estudianteSeleccionado && (
           <p className={estilos.contextoEstudiante}>
@@ -581,11 +698,48 @@ export default function PaginaVisualizadorHorario() {
           </p>
         )}
       </section>
+  );
 
-      {mostrarSemana ? resumenSemana() : (
-        <section className={estilos.tarjetaResultados} aria-label="Horario" aria-busy={cargando || undefined}>
-          {contenido}
-        </section>
+  return (
+    <div className={estilos.pagina}>
+      {/* Sin acción general: solo título y descripción. */}
+      <header className={estilos.cabecera}>
+        <div className={estilos.textoCabecera}>
+          <h1 className={estilos.titulo}>{esDocente ? 'Mi horario' : 'Consulta de horario'}</h1>
+          <p className={estilos.descripcion}>
+            {esAdmin && 'Consulta las sesiones programadas. Abre una sesión para omitirla o restaurarla.'}
+            {esDocente && 'Tus clases de hoy y de la semana. Abre una sesión para registrar asistencia.'}
+            {!esAdmin && !esDocente && 'Consulta de solo lectura. Elige un rango de fechas para ver las sesiones.'}
+          </p>
+        </div>
+      </header>
+
+      {!esDocente && seccionFiltros}
+
+      {mostrarSemana ? (
+        <>
+          {esDocente && (
+            <InicioDocente
+              destacada={destacada}
+              sesionesHoy={sesionesHoy}
+              omitidasHoy={omitidasHoy}
+              hoy={hoyISO}
+              asistencia={asistenciaDestacada}
+              alAbrirSesion={establecerSesionSeleccionada}
+              alAbrirModal={() => abrirDialogoAsistencia('tarjeta')}
+              alNotificar={mostrarNotificacion}
+            />
+          )}
+          {esDocente && seccionFiltros}
+          {resumenSemana()}
+        </>
+      ) : (
+        <>
+          {esDocente && seccionFiltros}
+          <section className={estilos.tarjetaResultados} aria-label="Horario" aria-busy={cargando || undefined}>
+            {contenido}
+          </section>
+        </>
       )}
 
       {notificacion && <Notificacion mensaje={notificacion.mensaje} error={notificacion.error} />}
@@ -604,6 +758,25 @@ export default function PaginaVisualizadorHorario() {
           sinCancelar
           accionesPie={(
             <>
+              {filtroActivo && (
+                <button
+                  type="button"
+                  className={estilos.botonSecundario}
+                  onClick={() => establecerEstadoFiltro(null)}
+                >
+                  Quitar filtro: {etiquetaEstadoSesion(filtroActivo)}
+                </button>
+              )}
+              {esDocente && !filtroActivo && omitidasSemana > 0 && (
+                <label className={estilos.alternarOmitidas}>
+                  <input
+                    type="checkbox"
+                    checked={mostrarOmitidas}
+                    onChange={(evento) => establecerMostrarOmitidas(evento.target.checked)}
+                  />
+                  Mostrar omitidas ({omitidasSemana})
+                </label>
+              )}
               <button
                 type="button"
                 className={estilos.botonSecundario}
@@ -636,13 +809,21 @@ export default function PaginaVisualizadorHorario() {
             <div className={estilos.matrizDialogo}>
               {sesionesSemana.length === 0 ? (
                 <EstadoConsulta tipo="vacio" icono="calendario" mensaje={MENSAJE_SIN_SESIONES_SEMANA} />
+              ) : sesionesMatriz.length === 0 ? (
+                <EstadoConsulta
+                  tipo="vacio"
+                  icono="calendario"
+                  mensaje="Todas las sesiones de esta semana están omitidas."
+                />
               ) : (
                 <MatrizSesiones
                   key={semanaActual.inicio}
                   ajustarAlto
+                  ocultarDocente={esDocente}
+                  mostrarAsistencia={esDocente}
                   lunes={semanaActual.lunes}
                   titulo={`${tituloConsulta} ${formatearFecha(semanaActual.inicio)}`}
-                  sesiones={sesionesSemana}
+                  sesiones={sesionesMatriz}
                   mostrarSeccion={!esAdmin || tipo === 'docente'}
                   alSeleccionarSesion={(esAdmin || esDocente) ? establecerSesionSeleccionada : undefined}
                 />
@@ -664,12 +845,13 @@ export default function PaginaVisualizadorHorario() {
         </DialogoBase>
       )}
 
-      {dialogoAsistencia && asistenciaSesion.detalle && (
+      {dialogoAsistencia && asistenciaDelDialogo.detalle && (
         <DialogoAsistenciaSesion
-          sesion={sesionSeleccionada}
-          detalle={asistenciaSesion.detalle}
-          guardando={asistenciaSesion.guardando}
-          error={errorAsistencia || asistenciaSesion.errorGuardado || null}
+          sesion={sesionDelDialogo}
+          detalle={asistenciaDelDialogo.detalle}
+          soloLectura={!asistenciaDelDialogo.detalle.puedeRegistrarEstudiantes}
+          guardando={asistenciaDelDialogo.guardando}
+          error={errorAsistencia || asistenciaDelDialogo.errorGuardado || null}
           alCerrar={() => establecerDialogoAsistencia(false)}
           alGuardar={guardarAsistencia}
         />
