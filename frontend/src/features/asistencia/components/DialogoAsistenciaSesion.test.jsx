@@ -50,9 +50,8 @@ describe('DialogoAsistenciaSesion', () => {
     expect(guardar).toBeDisabled();
     expect(screen.getByText('Faltan 1 estudiante por marcar.')).toBeInTheDocument();
 
-    fireEvent.change(screen.getByLabelText('Asistencia de María López'), {
-      target: { value: 'PRESENTE' }
-    });
+    const grupo = screen.getByRole('radiogroup', { name: 'Asistencia de María López' });
+    fireEvent.click(within(grupo).getByRole('radio', { name: 'Asistió' }));
 
     expect(guardar).toBeEnabled();
     fireEvent.click(guardar);
@@ -77,8 +76,32 @@ describe('DialogoAsistenciaSesion', () => {
       />
     );
 
-    const selector = screen.getByLabelText('Asistencia de María López');
-    expect(within(selector).getByRole('option', { name: 'Justificada' })).toBeInTheDocument();
+    const grupo = screen.getByRole('radiogroup', { name: 'Asistencia de María López' });
+    expect(within(grupo).getByRole('radio', { name: 'Justificada' })).toBeInTheDocument();
     expect(screen.getByDisplayValue('Llegó tarde')).toBeInTheDocument();
+  });
+
+  it('marca como Asistió solo a los pendientes y no pisa lo ya marcado', () => {
+    const alGuardar = vi.fn();
+    render(
+      <DialogoAsistenciaSesion
+        sesion={sesion}
+        detalle={detalle}
+        alCerrar={vi.fn()}
+        alGuardar={alGuardar}
+      />
+    );
+
+    const avance = (texto) => screen.getByText((_, nodo) => nodo?.tagName === 'SPAN' && nodo.textContent === texto);
+    expect(avance('1 de 2 marcados')).toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: /como Asistió/ }));
+
+    expect(avance('2 de 2 marcados')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /como Asistió/ })).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole('button', { name: 'Guardar asistencia' }));
+    expect(alGuardar).toHaveBeenCalledWith([
+      expect.objectContaining({ estudianteId: 'EST-001', estado: 'PRESENTE' }),
+      expect.objectContaining({ estudianteId: 'EST-002', estado: 'TARDANZA' })
+    ]);
   });
 });

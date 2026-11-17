@@ -1,0 +1,193 @@
+/* Resumen del compromiso que se paga. */
+.resumen {
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+  padding: var(--espacio-4);
+  background: var(--color-superficie-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+}
+
+.rotulo {
+  display: block;
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+.titulo {
+  display: block;
+  margin-top: var(--espacio-1);
+  font-size: var(--texto-lg);
+  color: var(--color-texto);
+}
+
+.referencia {
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}
+
+.total {
+  text-align: right;
+}
+
+.cifra {
+  display: block;
+  font-size: var(--texto-titulo);
+  font-weight: var(--peso-negrita);
+  white-space: nowrap;
+  color: var(--color-texto);
+}
+
+.mora {
+  font-size: var(--texto-xs);
+  color: var(--tono-ambar-texto);
+}
+
+/* Monto con su moneda delante. */
+.campoMonto {
+  position: relative;
+}
+
+.moneda {
+  position: absolute;
+  top: 50%;
+  left: var(--espacio-3);
+  transform: translateY(-50%);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto-suave);
+  pointer-events: none;
+}
+
+.entradaMonto {
+  padding-left: calc(var(--espacio-3) + 1.75rem);
+  font-size: var(--texto-lg);
+  font-weight: var(--peso-seminegrita);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Zona para elegir o soltar el PDF. El `<input>` real queda accesible pero oculto. */
+.zona {
+  position: relative;
+  display: flex;
+  min-height: 7.5rem;
+  background: var(--color-superficie);
+  border: 2px dashed var(--color-borde);
+  border-radius: var(--radio-lg);
+  transition: border-color var(--transicion), background var(--transicion);
+}
+
+.zona:hover,
+.zonaActiva {
+  background: var(--color-accion-suave);
+  border-color: var(--color-accion);
+}
+
+.zona:focus-within {
+  border-color: var(--color-foco);
+}
+
+.zonaConArchivo {
+  border-style: solid;
+  border-color: var(--tono-verde-borde);
+  background: var(--tono-verde-fondo);
+}
+
+.entradaArchivo {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  opacity: 0;
+  overflow: hidden;
+}
+
+.invitacion {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--espacio-1);
+  padding: var(--espacio-4);
+  font-size: var(--texto-md);
+  text-align: center;
+  color: var(--color-texto-secundario);
+  cursor: pointer;
+}
+
+.invitacion strong {
+  color: var(--color-accion);
+}
+
+.iconoSubir {
+  display: inline-flex;
+  color: var(--color-accion);
+}
+
+.formato {
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}
+
+.archivo {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  gap: var(--espacio-3);
+  padding: var(--espacio-4);
+  min-width: 0;
+}
+
+.iconoArchivo {
+  display: inline-flex;
+  flex: none;
+  align-items: center;
+  justify-content: center;
+  width: 2.75rem;
+  height: 2.75rem;
+  color: var(--tono-verde-texto);
+  background: var(--color-superficie);
+  border: 1px solid var(--tono-verde-borde);
+  border-radius: var(--radio-md);
+}
+
+.datosArchivo {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.datosArchivo strong {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.datosArchivo span {
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}
+
+.quitar {
+  flex: none;
+  min-height: 2rem;
+  padding: 0 var(--espacio-3);
+  font: inherit;
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-peligro-texto);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-peligro-borde);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.quitar:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
