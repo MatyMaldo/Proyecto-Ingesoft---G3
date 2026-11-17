@@ -1,22 +1,45 @@
 import { useEffect, useState } from 'react';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
+import DialogoBase from '../../../shared/components/DialogoBase.jsx';
 import SelectFiltro from '../../../shared/components/SelectFiltro.jsx';
 import useAuth from '../../../shared/auth/useAuth.js';
 import { ROLES } from '../../../shared/auth/roles.js';
 import { listarEstudiantesConsulta } from '../../../features/evaluaciones/services/consultaNotasService.js';
+import DetalleLibreta from '../components/DetalleLibreta.jsx';
+import TarjetaLibreta from '../components/TarjetaLibreta.jsx';
+import TarjetaLibretaPendiente from '../components/TarjetaLibretaPendiente.jsx';
 import {
   listarAniosAcademicosLibretas,
   listarLibretasDelEstudiante,
   obtenerDetalleLibreta,
   obtenerPdfLibreta
 } from '../services/libretasService.js';
+import { etiquetaBimestre } from '../utils/formatoLibreta.js';
 import estilos from './PaginaLibretasEstudiante.module.css';
+
+const evitarEnvio = (evento) => evento.preventDefault();
 
 function elegirAnioInicial(anios) {
   const ordenados = [...anios].sort((a, b) => Number(b.anio) - Number(a.anio));
   return ordenados.find((anio) => Number(anio.anio) === new Date().getFullYear())
     ?? ordenados[0]
     ?? null;
+}
+
+const BIMESTRES_POR_ANIO = 4;
+const numeroBimestre = (libreta) => Number(String(libreta.nombreBimestre).replace(/\D/g, ''));
+
+/** Los cuatro bimestres del año en orden; los que no tienen libreta generada quedan como espacio pendiente. */
+function espaciosBimestres(libretas) {
+  const espacios = Array.from({ length: BIMESTRES_POR_ANIO }, (_, indice) => {
+    const numero = indice + 1;
+    const libreta = libretas.find((item) => numeroBimestre(item) === numero);
+    return { clave: `BIM_${numero}`, nombreBimestre: `BIM_${numero}`, libreta };
+  });
+  const adicionales = libretas
+    .filter((item) => !(numeroBimestre(item) >= 1 && numeroBimestre(item) <= BIMESTRES_POR_ANIO))
+    .map((libreta) => ({ clave: String(libreta.idLibreta), nombreBimestre: libreta.nombreBimestre, libreta }));
+  return [...espacios, ...adicionales];
 }
 
 function nombreEstudiante(estudiante) {
@@ -26,20 +49,10 @@ function nombreEstudiante(estudiante) {
     ?? String(estudiante?.id ?? '');
 }
 
-function formatearFecha(fecha) {
-  return fecha ? fecha.split('-').reverse().join('/') : 'Fecha no disponible';
-}
-
-function agruparNotasPorCurso(notas = []) {
-  const cursos = new Map();
-  notas.forEach((nota) => {
-    const competencias = cursos.get(nota.nombreCurso) ?? [];
-    competencias.push(nota);
-    cursos.set(nota.nombreCurso, competencias);
-  });
-  return [...cursos.entries()];
-}
-
+/**
+ * Libreta de notas de estudiante y apoderado. Misma estructura que los módulos del admin: cabecera en una línea,
+ * filtros, tarjetas que se desplazan por dentro y el detalle de la libreta en un diálogo. El breadcrumb lo pinta el shell.
+ */
 export default function PaginaLibretasEstudiante() {
   const { usuario } = useAuth();
   const esEstudiante = usuario?.rol === ROLES.ESTUDIANTE;
@@ -60,6 +73,7 @@ export default function PaginaLibretasEstudiante() {
   const [errorDetalle, setErrorDetalle] = useState('');
   const [errorPdf, setErrorPdf] = useState('');
   const [pdfCargando, setPdfCargando] = useState(false);
+  const [recarga, setRecarga] = useState(0);
 
   useEffect(() => {
     let activa = true;
@@ -140,7 +154,7 @@ export default function PaginaLibretasEstudiante() {
       setEstadoLibretas('listo');
     });
     return () => { activa = false; };
-  }, [anioId, estudianteId, estadoEstudiantes, usuario?.id, usuario?.rol]);
+  }, [anioId, estudianteId, estadoEstudiantes, recarga, usuario?.id, usuario?.rol]);
 
   useEffect(() => {
     if (!libretaId || !estudianteId) {
@@ -187,19 +201,28 @@ export default function PaginaLibretasEstudiante() {
     window.setTimeout(() => URL.revokeObjectURL(url), 60000);
   }
 
+  function cerrarDetalle() {
+    setLibretaId('');
+    setErrorPdf('');
+  }
+
   const estudianteSeleccionado = estudiantes.find((item) => String(item.id) === estudianteId);
   const libretaSeleccionada = libretas.find((item) => String(item.idLibreta) === libretaId);
+  const listoParaConsultar = estadoAnios === 'listo' && estadoEstudiantes === 'listo' && estudianteId && anioId;
+  const hayLibretas = listoParaConsultar && estadoLibretas === 'listo' && libretas.length > 0;
+  const nombreSeleccionado = nombreEstudiante(estudianteSeleccionado);
 
   return (
-    <main className={estilos.pagina}>
+    <div className={estilos.pagina}>
       <header className={estilos.cabecera}>
-        <p className={estilos.sobretitulo}>Seguimiento académico</p>
-        <h1 className={estilos.titulo}>Libreta de notas</h1>
-        <p className={estilos.descripcion}>
-          {esEstudiante
-            ? 'Consulta tus libretas generadas por año académico.'
-            : 'Selecciona un estudiante bajo tu cargo y un año académico para consultar sus libretas.'}
-        </p>
+        <div className={estilos.textoCabecera}>
+          <h1 className={estilos.titulo}>Libreta de notas</h1>
+          <p className={estilos.descripcion}>
+            {esEstudiante
+              ? 'Consulta tus libretas generadas por año académico.'
+              : 'Selecciona un estudiante bajo tu cargo y un año académico para consultar sus libretas.'}
+          </p>
+        </div>
       </header>
 
       <section className={estilos.filtros} aria-label="Filtros de libretas">
@@ -232,94 +255,77 @@ export default function PaginaLibretasEstudiante() {
         )}
       </section>
 
-      {estadoAnios === 'cargando' && <div className={estilos.estado}><EstadoConsulta tipo="carga" /></div>}
-      {estadoAnios === 'error' && <p className={estilos.error} role="alert">{errorAnios}</p>}
-      {!esEstudiante && estadoEstudiantes === 'cargando'
-        && <div className={estilos.estado}><EstadoConsulta tipo="carga" /></div>}
-      {estadoEstudiantes === 'error' && !esEstudiante
-        && <p className={estilos.error} role="alert">{errorEstudiantes}</p>}
-      {estadoEstudiantes === 'listo' && !esEstudiante && !estudiantes.length
-        && <p className={estilos.vacio}>No hay estudiantes asociados a tu cuenta de apoderado.</p>}
+      {hayLibretas && (
+        <section className={estilos.zonaLibretas} aria-label="Libretas de notas">
+          <ul className={estilos.rejilla}>
+            {espaciosBimestres(libretas).map((espacio) => (
+              <li key={espacio.clave}>
+                {espacio.libreta ? (
+                  <TarjetaLibreta
+                    libreta={espacio.libreta}
+                    alVerDetalle={(item) => setLibretaId(String(item.idLibreta))}
+                  />
+                ) : <TarjetaLibretaPendiente nombreBimestre={espacio.nombreBimestre} />}
+              </li>
+            ))}
+          </ul>
+        </section>
+      )}
 
-      {estadoAnios === 'listo' && estadoEstudiantes === 'listo' && estudianteId && anioId && (
-        <section className={estilos.resultados} aria-label="Libretas disponibles" aria-busy={estadoLibretas === 'cargando'}>
-          {estadoLibretas === 'cargando' && <div className={estilos.estado}><EstadoConsulta tipo="carga" /></div>}
-          {estadoLibretas === 'error' && <p className={estilos.error} role="alert">{errorLibretas}</p>}
-          {estadoLibretas === 'listo' && !libretas.length
-            && <p className={estilos.vacio}>No hay libretas generadas para este estudiante y año académico.</p>}
-          {estadoLibretas === 'listo' && libretas.length > 0 && (
-            <section className={estilos.lista} aria-label="Libretas de notas">
-              {libretas.map((libreta) => {
-                const id = String(libreta.idLibreta);
-                const seleccionada = id === libretaId;
-                return (
-                  <article className={estilos.libreta} key={id}>
-                    <div className={estilos.resumenLibreta}>
-                      <div>
-                        <h2>{libreta.nombreBimestre} · {libreta.anioAcademico}</h2>
-                        <p>Generada el {formatearFecha(libreta.fechaGeneracion)}</p>
-                        {libreta.comentariosFinalesTutor
-                          && <p>{libreta.comentariosFinalesTutor}</p>}
-                      </div>
-                      <button
-                        type="button"
-                        className={estilos.botonDetalle}
-                        aria-expanded={seleccionada}
-                        onClick={() => setLibretaId(seleccionada ? '' : id)}
-                      >
-                        {seleccionada ? 'Cerrar detalle' : 'Ver detalle'}
-                      </button>
-                    </div>
-                  </article>
-                );
-              })}
-            </section>
+      {!hayLibretas && (
+        <section
+          className={estilos.tarjetaResultados}
+          aria-label="Libretas disponibles"
+          aria-busy={estadoLibretas === 'cargando' || undefined}
+        >
+          {estadoAnios === 'cargando' && <EstadoConsulta tipo="carga" filasEsqueleto={3} />}
+          {estadoAnios === 'error' && (
+            <EstadoConsulta tipo="error" mensaje={errorAnios} alReintentar={() => window.location.reload()} />
+          )}
+          {estadoAnios === 'listo' && estadoEstudiantes === 'cargando' && (
+            <EstadoConsulta tipo="carga" filasEsqueleto={3} />
+          )}
+          {estadoEstudiantes === 'error' && (
+            <EstadoConsulta tipo="error" mensaje={errorEstudiantes} alReintentar={() => window.location.reload()} />
+          )}
+          {estadoAnios === 'listo' && estadoEstudiantes === 'listo' && !esEstudiante && !estudiantes.length && (
+            <EstadoConsulta tipo="vacio" mensaje="No hay estudiantes asociados a tu cuenta de apoderado." />
+          )}
+          {listoParaConsultar && estadoLibretas === 'cargando' && (
+            <EstadoConsulta tipo="carga" mensaje="Cargando libretas…" filasEsqueleto={3} />
+          )}
+          {listoParaConsultar && estadoLibretas === 'error' && (
+            <EstadoConsulta tipo="error" mensaje={errorLibretas} alReintentar={() => setRecarga((n) => n + 1)} />
+          )}
+          {listoParaConsultar && estadoLibretas === 'listo' && !libretas.length && (
+            <EstadoConsulta tipo="vacio" mensaje="No hay libretas generadas para este estudiante y año académico." />
           )}
         </section>
       )}
 
-      {libretaSeleccionada && estadoDetalle === 'cargando'
-        && <div className={estilos.estado}><EstadoConsulta tipo="carga" /></div>}
-      {estadoDetalle === 'error' && <p className={estilos.error} role="alert">{errorDetalle}</p>}
-      {detalle && estadoDetalle === 'listo' && (
-        <section className={estilos.detalle} aria-label={`Detalle de ${detalle.nombreBimestre}`}>
-          <header className={estilos.encabezadoDetalle}>
-            <div>
-              <h2>Detalle: {detalle.nombreBimestre} · {detalle.anioAcademico}</h2>
-              <p>{nombreEstudiante(estudianteSeleccionado)} · Generada el {formatearFecha(detalle.fechaGeneracion)}</p>
-            </div>
-            <button type="button" className={estilos.botonDetalle} onClick={visualizarPdf} disabled={pdfCargando}>
-              {pdfCargando ? 'Abriendo PDF…' : 'Visualizar PDF'}
-            </button>
-          </header>
-          {errorPdf && <p className={estilos.error} role="alert">{errorPdf}</p>}
-          <div className={estilos.cursos}>
-            {agruparNotasPorCurso(detalle.notasCompetencias).map(([nombreCurso, competencias]) => (
-              <section className={estilos.curso} key={nombreCurso}>
-                <h3>{nombreCurso}</h3>
-                <ul>
-                  {competencias.map((competencia) => (
-                    <li key={competencia.nombreCompetencia}>
-                      <div>
-                        <strong>{competencia.nombreCompetencia}</strong>
-                        <p>{competencia.descripcion}</p>
-                        <p>{competencia.conclusionDescriptiva}</p>
-                      </div>
-                      <span className={estilos.nota}>{competencia.valorNota}</span>
-                    </li>
-                  ))}
-                </ul>
-              </section>
-            ))}
-            {!detalle.notasCompetencias?.length
-              && <p className={estilos.vacio}>La libreta no tiene notas de competencias.</p>}
-          </div>
-          <section className={estilos.comentarios} aria-label="Comentarios finales del tutor">
-            <h3>Comentarios finales del tutor</h3>
-            <p>{detalle.comentariosFinalesTutor || 'Sin comentarios finales del tutor.'}</p>
-          </section>
-        </section>
+      {libretaSeleccionada && (
+        <DialogoBase
+          idTitulo="dialogo-libreta"
+          titulo={`Libreta · ${etiquetaBimestre(libretaSeleccionada.nombreBimestre)} ${libretaSeleccionada.anioAcademico}`}
+          subtitulo={nombreSeleccionado}
+          textoConfirmar="Visualizar PDF"
+          textoEnviando="Abriendo PDF…"
+          textoCancelar="Cerrar"
+          enviando={pdfCargando}
+          confirmarDeshabilitado={estadoDetalle !== 'listo'}
+          anchoMaximo="60rem"
+          cerrarAlClicFuera={false}
+          botonesExpandidos
+          error={errorPdf || errorDetalle || null}
+          alCancelar={cerrarDetalle}
+          alConfirmar={(evento) => { evitarEnvio(evento); visualizarPdf(); }}
+        >
+          {estadoDetalle === 'cargando' && <EstadoConsulta tipo="carga" mensaje="Cargando libreta…" filasEsqueleto={3} />}
+          {detalle && estadoDetalle === 'listo' && (
+            <DetalleLibreta detalle={detalle} estudiante={nombreSeleccionado} />
+          )}
+        </DialogoBase>
       )}
-    </main>
+    </div>
   );
 }

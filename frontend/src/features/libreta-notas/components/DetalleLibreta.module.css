@@ -1,0 +1,168 @@
+.detalle {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+
+.resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(12rem, 100%), 1fr));
+  gap: var(--espacio-4);
+  margin: 0;
+  padding: var(--espacio-4);
+  background: var(--color-superficie-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+}
+
+.resumen dt {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+.resumen dd {
+  margin: var(--espacio-1) 0 0;
+  font-size: var(--texto-lg);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+  overflow-wrap: anywhere;
+}
+
+/* El comentario del tutor es lo primero que busca el apoderado: va antes de las notas. */
+.comentarios {
+  padding: var(--espacio-4);
+  background: var(--color-accion-suave);
+  border: 1px solid var(--tono-azul-borde);
+  border-radius: var(--radio-lg);
+}
+
+.comentarios h3 {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  margin: 0 0 var(--espacio-2);
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-primario-intenso);
+}
+
+.comentarios p {
+  margin: 0;
+  font-size: var(--texto-base);
+  line-height: 1.6;
+  color: var(--color-texto);
+}
+
+/* Un curso por tarjeta; en diálogo ancho se acomodan en dos columnas para no alargar el scroll. */
+.cursos {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr));
+  gap: var(--espacio-4);
+  align-items: start;
+}
+
+.curso {
+  overflow: hidden;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-sm);
+}
+
+.tituloCurso {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  margin: 0;
+  padding: var(--espacio-3) var(--espacio-4);
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  background: var(--color-superficie-suave);
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.iconoCurso {
+  display: inline-flex;
+  color: var(--color-primario-intenso);
+}
+
+.lista {
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.competencia {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  padding: var(--espacio-3) var(--espacio-4);
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.competencia:last-child {
+  border-bottom: 0;
+}
+
+.texto {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1);
+  min-width: 0;
+}
+
+.texto strong {
+  font-size: var(--texto-md);
+}
+
+.desempeno {
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto-suave);
+}
+
+.texto p {
+  margin: 0;
+  font-size: var(--texto-md);
+  line-height: 1.5;
+  color: var(--color-texto-secundario);
+}
+
+.nota {
+  flex: none;
+  min-width: 2.75rem;
+  justify-content: center;
+  font-size: var(--texto-lg);
+  font-weight: var(--peso-negrita);
+}
+
+.vacio {
+  margin: 0;
+  padding: var(--espacio-5);
+  text-align: center;
+  border-radius: var(--radio-md);
+  background: var(--color-superficie-suave);
+  color: var(--color-texto-suave);
+}
+
+.leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-2);
+  margin: 0;
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}
+
+.notaLeyenda {
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-negrita);
+}

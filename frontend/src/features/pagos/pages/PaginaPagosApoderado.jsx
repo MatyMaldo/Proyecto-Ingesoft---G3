@@ -2,12 +2,14 @@ import { useState } from 'react';
 
 import BotonActualizar from '../../../shared/components/BotonActualizar.jsx';
 import EstadoConsulta from '../../../shared/components/EstadoConsulta.jsx';
+import Insignia from '../../../shared/components/Insignia.jsx';
 import Notificacion from '../../../shared/components/Notificacion.jsx';
 import SelectFiltro from '../../../shared/components/SelectFiltro.jsx';
 import useNotificacion from '../../../shared/hooks/useNotificacion.js';
 import ModalDetallePagoApoderado from '../components/ModalDetallePagoApoderado.jsx';
 import ModalRegistrarPago from '../components/ModalRegistrarPago.jsx';
-import TarjetaCompromisoPago from '../components/TarjetaCompromisoPago.jsx';
+import ModalPagosCompromiso from '../components/ModalPagosCompromiso.jsx';
+import TablaCompromisosPago from '../components/TablaCompromisosPago.jsx';
 import usePagosApoderado from '../hooks/usePagosApoderado.js';
 import estilos from './PaginaPagosApoderado.module.css';
 
@@ -39,6 +41,9 @@ export default function PaginaPagosApoderado() {
 
   const [compromisoARegistrar, establecerCompromisoARegistrar] = useState(null);
   const [pagoDetalle, establecerPagoDetalle] = useState(null);
+  const [compromisoConPagosId, establecerCompromisoConPagos] = useState(null);
+  // Se toma de la lista vigente para que el diálogo refleje los pagos recién cargados o registrados.
+  const compromisoConPagos = compromisos.find((item) => item.id === compromisoConPagosId) ?? null;
 
   const anioSeleccionado = anios.find((anio) => String(anio.id) === String(anioId));
   const estudianteSeleccionado = estudiantes.find(
@@ -70,10 +75,12 @@ export default function PaginaPagosApoderado() {
       {notificacion && <Notificacion mensaje={notificacion.mensaje} error={notificacion.error} />}
 
       <header className={estilos.cabecera}>
-        <h1 className={estilos.titulo}>Mis pagos</h1>
-        <p className={estilos.descripcion}>
-          Selecciona un estudiante y un año académico para consultar sus compromisos y registrar comprobantes de pago.
-        </p>
+        <div className={estilos.textoCabecera}>
+          <h1 className={estilos.titulo}>Mis pagos</h1>
+          <p className={estilos.descripcion}>
+            Selecciona un estudiante y un año académico para consultar sus compromisos y registrar comprobantes de pago.
+          </p>
+        </div>
       </header>
 
       {/* Año y estudiante con el selector compartido (mismo patrón que Auditorías y Matrículas). */}
@@ -106,13 +113,10 @@ export default function PaginaPagosApoderado() {
           actualizando={estadoCompromisos === 'cargando'}
           deshabilitado={estadoAnios !== 'listo'}
         />
+        {contextoEstudiante && (
+          <Insignia tono="azul" className={estilos.contexto}>{contextoEstudiante}</Insignia>
+        )}
       </section>
-
-      {contextoEstudiante && (
-        <p className={estilos.contexto}>
-          {contextoEstudiante}
-        </p>
-      )}
 
       <section className={estilos.resultados} aria-busy={estadoCompromisos === 'cargando' || undefined}>
         {estadoAnios === 'cargando' && <EstadoConsulta tipo="carga" filasEsqueleto={4} />}
@@ -168,20 +172,28 @@ export default function PaginaPagosApoderado() {
 
         {estadoAnios === 'listo' && estudianteId && estadoCompromisos === 'listo'
           && compromisos.length > 0 && (
-            <div className={estilos.listaCompromisos}>
-              {compromisos.map((compromiso) => (
-                <TarjetaCompromisoPago
-                  key={compromiso.id}
-                  compromiso={compromiso}
-                  pagosInfo={pagosPorCompromiso[compromiso.id]}
-                  cargandoPagos={cargandoPagos}
-                  alRegistrar={establecerCompromisoARegistrar}
-                  alVerDetalle={(pago) => establecerPagoDetalle({ pago, compromiso })}
-                />
-              ))}
+            <div className={estilos.tarjetaTabla}>
+              <TablaCompromisosPago
+                compromisos={compromisos}
+                pagosPorCompromiso={pagosPorCompromiso}
+                cargandoPagos={cargandoPagos}
+                alRegistrar={establecerCompromisoARegistrar}
+                alVerPagos={(compromiso) => establecerCompromisoConPagos(compromiso.id)}
+              />
             </div>
           )}
       </section>
+
+      {compromisoConPagos && (
+        <ModalPagosCompromiso
+          compromiso={compromisoConPagos}
+          pagosInfo={pagosPorCompromiso[compromisoConPagos.id]}
+          cargandoPagos={cargandoPagos}
+          onCerrar={() => establecerCompromisoConPagos(null)}
+          alRegistrar={establecerCompromisoARegistrar}
+          alVerDetalle={(pago) => establecerPagoDetalle({ pago, compromiso: compromisoConPagos })}
+        />
+      )}
 
       {pagoDetalle && (
         <ModalDetallePagoApoderado

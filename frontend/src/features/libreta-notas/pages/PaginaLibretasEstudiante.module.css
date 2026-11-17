@@ -1,35 +1,114 @@
-.pagina { display: grid; gap: 1.2rem; width: min(100%, 1120px); margin: 0 auto; padding: 1.5rem; color: #172033; }
-.cabecera { display: grid; gap: .35rem; }
-.sobretitulo { margin: 0; color: #0b63ce; font-size: .8rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; }
-.titulo { margin: 0; font-size: clamp(1.7rem, 4vw, 2.2rem); }
-.descripcion { margin: 0; color: #64748b; }
-.filtros { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(18rem, 100%), 1fr)); gap: .8rem; }
-.resultados { display: grid; gap: 1rem; }
-.lista { display: grid; gap: .8rem; }
-.libreta, .detalle { display: grid; gap: 1rem; padding: 1.2rem; border: 1px solid #e2e8f0; border-radius: 14px; background: #fff; box-shadow: 0 3px 12px #0f172a0a; }
-.resumenLibreta, .encabezadoDetalle { display: flex; justify-content: space-between; align-items: flex-start; gap: 1rem; }
-.resumenLibreta h2, .encabezadoDetalle h2 { margin: .15rem 0; font-size: 1.1rem; }
-.resumenLibreta p, .encabezadoDetalle p { margin: .2rem 0; color: #64748b; font-size: .9rem; }
-.botonDetalle { min-height: 42px; flex: none; border: 0; border-radius: 8px; padding: .65rem 1rem; background: #075fc8; color: white; font: inherit; font-weight: 700; cursor: pointer; }
-.botonDetalle:hover:not(:disabled) { background: #034da6; }
-.botonDetalle:disabled { cursor: wait; opacity: .7; }
-.cursos { display: grid; grid-template-columns: repeat(auto-fit, minmax(min(24rem, 100%), 1fr)); gap: .8rem; }
-.curso { display: grid; align-content: start; gap: .5rem; padding: .9rem; border: 1px solid #e2e8f0; border-radius: 10px; }
-.curso h3, .comentarios h3 { margin: 0; font-size: .98rem; }
-.curso ul { display: grid; gap: .5rem; margin: 0; padding: 0; list-style: none; }
-.curso li { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: start; gap: .7rem; padding-top: .55rem; border-top: 1px solid #f1f5f9; }
-.curso li strong { font-size: .88rem; }
-.curso li p { margin: .25rem 0 0; color: #64748b; font-size: .84rem; line-height: 1.45; }
-.nota { display: grid; min-width: 2.2rem; min-height: 2.2rem; place-items: center; border-radius: 8px; background: #eaf3ff; color: #075bb7; font-weight: 800; }
-.comentarios { display: grid; gap: .4rem; padding: .8rem; border-radius: 9px; background: #f8fafc; }
-.comentarios p { margin: 0; color: #475569; line-height: 1.5; }
-.vacio, .error { margin: 0; padding: 1rem; border-radius: 9px; }
-.vacio { background: #f8fafc; color: #64748b; }
-.error { border: 1px solid #fecaca; background: #fef2f2; color: #b91c1c; }
-.estado { padding: 1rem; }
+/* Mismo patrón que Pagos, Usuarios y Matrículas: la página ocupa el alto del área principal y solo la zona de
+   tarjetas se desplaza por dentro; el detalle de una libreta se abre en un diálogo. */
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+}
+
+@media (min-width: 768px) {
+  .pagina {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .pagina > * {
+    flex-shrink: 0;
+  }
+
+  .pagina > .zonaLibretas,
+  .pagina > .tarjetaResultados {
+    flex: 1 1 auto;
+    min-height: 12rem;
+  }
+}
+
+.cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+}
+
+.textoCabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--espacio-1) var(--espacio-3);
+  min-width: 0;
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--texto-titulo);
+  font-weight: var(--peso-negrita);
+  color: var(--color-texto);
+}
+
+.descripcion {
+  margin: 0;
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}
+
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espacio-3) var(--espacio-4);
+}
+
+/* Contenedor de los estados de carga, vacío y error. */
+.tarjetaResultados {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-sm);
+}
+
+/* Las tarjetas de libreta son ya tarjetas: no se envuelven en otra. */
+.zonaLibretas {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  overflow-y: auto;
+  padding: var(--espacio-1) var(--espacio-1) var(--espacio-4);
+}
+
+/* Un año tiene 4 bimestres: son 4 rectángulos estirados a lo ancho, uno bajo otro. En escritorio se reparten el alto
+   disponible para no dejar el resto de la pantalla vacía. */
+@media (min-width: 768px) {
+  .zonaLibretas > .rejilla {
+    flex: 1 1 auto;
+    grid-auto-rows: minmax(7rem, 1fr);
+  }
+}
+
+.rejilla {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: var(--espacio-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+/* Cada tarjeta ocupa toda la altura de su fila. */
+.rejilla > li {
+  display: flex;
+}
+
+.rejilla > li > * {
+  flex: 1 1 auto;
+}
 
 @media (max-width: 640px) {
-  .pagina { padding: 1rem; }
-  .resumenLibreta, .encabezadoDetalle { flex-direction: column; align-items: flex-start; }
-  .botonDetalle { width: 100%; }
+  .filtros > * {
+    flex: 1 1 100%;
+  }
 }

@@ -10,6 +10,67 @@
   border-radius: var(--radio-md);
 }
 
+.resumenSesion span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-1);
+}
+
+/* Avance de la lista: cuántos están marcados, cuántos de cada estado y el atajo para los pendientes. */
+.avance {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+}
+
+.avanceTexto {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-2) var(--espacio-3);
+  font-size: var(--texto-md);
+  color: var(--color-texto-secundario);
+}
+
+.cuentas {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--espacio-2);
+}
+
+.progreso {
+  width: 100%;
+  height: 0.5rem;
+  accent-color: var(--color-primario);
+}
+
+.botonTodos {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  align-self: flex-start;
+  min-height: 2.25rem;
+  padding: 0 var(--espacio-3);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-accion);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-accion);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.botonTodos:hover {
+  background: var(--color-accion-suave);
+}
+
+.botonTodos:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
 .tablaContenedor {
   overflow-x: auto;
   border: 1px solid var(--color-borde);
@@ -18,7 +79,7 @@
 
 .tabla {
   width: 100%;
-  min-width: 42rem;
+  min-width: 44rem;
   border-collapse: collapse;
   font-size: var(--texto-sm);
 }
@@ -47,12 +108,88 @@
   border-bottom: 0;
 }
 
-.nombre {
-  color: var(--color-texto);
-  font-weight: var(--peso-seminegrita);
+/* Quien aún no tiene estado se resalta para encontrarlo de un vistazo. */
+.filaSinMarcar td {
+  background: var(--tono-ambar-fondo);
 }
 
-.selectorEstado,
+.nombre {
+  display: block;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+}
+
+.codigo {
+  display: block;
+  font-size: var(--texto-xs);
+  color: var(--color-texto-suave);
+}
+
+/* Los cuatro estados a la vista, como la nota segmentada. El activo toma el color de su estado. */
+.estados {
+  display: inline-flex;
+  gap: var(--espacio-1);
+  padding: var(--espacio-1);
+  background: var(--color-superficie-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+}
+
+.estado {
+  min-height: 2rem;
+  padding: 0 var(--espacio-2);
+  font: inherit;
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-seminegrita);
+  white-space: nowrap;
+  color: var(--color-texto-secundario);
+  background: transparent;
+  border: 1px solid transparent;
+  border-radius: var(--radio-sm);
+  cursor: pointer;
+  transition: background var(--transicion), color var(--transicion);
+}
+
+.estado:hover:not(.estadoActivo) {
+  background: var(--color-accion-suave);
+}
+
+.estado:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 1px;
+}
+
+.estadoActivo {
+  background: var(--tono-fondo);
+  color: var(--tono-texto);
+  border-color: var(--tono-borde);
+}
+
+.estadoActivo[data-tono='verde'] {
+  --tono-fondo: var(--tono-verde-fondo);
+  --tono-texto: var(--tono-verde-texto);
+  --tono-borde: var(--tono-verde-borde);
+}
+
+.estadoActivo[data-tono='ambar'] {
+  --tono-fondo: var(--tono-ambar-fondo);
+  --tono-texto: var(--tono-ambar-texto);
+  --tono-borde: var(--tono-ambar-borde);
+}
+
+.estadoActivo[data-tono='rojo'] {
+  --tono-fondo: var(--tono-rojo-fondo);
+  --tono-texto: var(--tono-rojo-texto);
+  --tono-borde: var(--tono-rojo-borde);
+}
+
+.estadoActivo[data-tono='azul'] {
+  --tono-fondo: var(--tono-azul-fondo);
+  --tono-texto: var(--tono-azul-texto);
+  --tono-borde: var(--tono-azul-borde);
+}
+
 .observaciones {
   width: 100%;
   min-height: 2.25rem;
@@ -66,10 +203,6 @@
   border-radius: var(--radio-sm);
 }
 
-.selectorEstado {
-  min-width: 9rem;
-}
-
 .observaciones::placeholder {
   color: var(--color-texto-suave);
 }
@@ -78,4 +211,10 @@
   margin: 0;
   font-size: var(--texto-md);
   color: var(--color-texto-suave);
+}
+
+@media (max-width: 767px) {
+  .estado {
+    min-height: var(--tactil-min);
+  }
 }

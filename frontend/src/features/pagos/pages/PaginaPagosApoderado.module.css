@@ -1,13 +1,42 @@
+/* Mismo patrón que Pagos, Usuarios y Matrículas: la página ocupa el alto del área principal y solo la zona de
+   compromisos se desplaza por dentro; así no hay doble scroll. */
 .pagina {
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-5);
+  gap: var(--espacio-3);
 }
 
+@media (min-width: 768px) {
+  .pagina {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .pagina > * {
+    flex-shrink: 0;
+  }
+
+  .pagina > .resultados {
+    flex: 1 1 auto;
+    min-height: 12rem;
+  }
+}
+
+/* Barra de título (GUI §6): título y descripción en la misma línea. */
 .cabecera {
   display: flex;
-  flex-direction: column;
-  gap: var(--espacio-1);
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+}
+
+.textoCabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--espacio-1) var(--espacio-3);
+  min-width: 0;
 }
 
 .titulo {
@@ -19,8 +48,8 @@
 
 .descripcion {
   margin: 0;
-  font-size: var(--texto-md);
-  color: var(--color-texto-secundario);
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
 }
 
 .filtros {
@@ -31,28 +60,22 @@
 }
 
 .contexto {
-  margin: 0;
-  padding: var(--espacio-3) var(--espacio-4);
-  font-size: var(--texto-md);
-  color: var(--color-texto-secundario);
-  background: var(--color-accion-suave);
-  border: 1px solid var(--tono-azul-borde);
-  border-radius: var(--radio-md);
+  align-self: center;
+  margin-top: var(--espacio-5);
 }
 
 .resultados {
   display: flex;
   flex-direction: column;
-  gap: var(--espacio-4);
+  min-height: 0;
 }
 
-.listaCompromisos {
+/* Muchos compromisos: una tabla en una tarjeta, y solo la tabla se desplaza (mismo patrón que Pagos del admin). */
+.tarjetaTabla {
   display: flex;
+  flex: 1 1 auto;
   flex-direction: column;
-  gap: var(--espacio-4);
-}
-
-.compromiso {
+  min-height: 0;
   overflow: hidden;
   background: var(--color-superficie);
   border: 1px solid var(--color-borde);
@@ -60,172 +83,12 @@
   box-shadow: var(--sombra-sm);
 }
 
-.compromisoCabecera {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: var(--espacio-4);
-  padding: var(--espacio-4);
-  background: var(--color-superficie-suave);
-  border-bottom: 1px solid var(--color-borde);
-}
-
-.compromisoInfo {
-  min-width: 0;
-}
-
-.compromisoReferencia {
-  margin: 0 0 var(--espacio-1);
-  font-size: var(--texto-xs);
-  font-weight: var(--peso-seminegrita);
-  letter-spacing: var(--espaciado-letra-ancho);
-  text-transform: uppercase;
-  color: var(--color-texto-suave);
-}
-
-.compromisoTitulo {
-  margin: 0;
-  font-size: var(--texto-lg);
-  font-weight: var(--peso-negrita);
-  color: var(--color-texto);
-}
-
-.compromisoMeta {
-  margin: var(--espacio-1) 0 0;
-  font-size: var(--texto-md);
-  color: var(--color-texto-secundario);
-}
-
-.compromisoEstado {
-  display: flex;
-  flex-direction: column;
-  align-items: flex-end;
-  gap: var(--espacio-2);
-  text-align: right;
-}
-
-.botonRegistrar {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--espacio-2);
-  min-height: var(--tactil-min);
-  padding: 0 var(--espacio-4);
-  font: inherit;
-  font-size: var(--texto-md);
-  font-weight: var(--peso-seminegrita);
-  color: var(--color-marca-texto);
-  background: var(--color-marca);
-  border: 0;
-  border-radius: var(--radio-md);
-  cursor: pointer;
-}
-
-.botonRegistrar:hover {
-  background: var(--color-primario-intenso);
-}
-
-.motivoBloqueo {
-  max-width: 18rem;
-  margin: 0;
-  font-size: var(--texto-sm);
-  color: var(--tono-ambar-texto);
-}
-
-.pagosCompromiso {
-  padding: var(--espacio-4);
-}
-
-.estadoPagos {
-  margin: 0;
-  font-size: var(--texto-md);
-  color: var(--color-texto-suave);
-}
-
-.errorPagos {
-  margin: 0;
-  font-size: var(--texto-md);
-  color: var(--color-peligro-texto);
-}
-
-.tablaContenedor {
-  overflow-x: auto;
-  border: 1px solid var(--color-borde);
-  border-radius: var(--radio-md);
-}
-
-.tabla {
-  width: 100%;
-  min-width: 48rem;
-  border-collapse: collapse;
-  font-size: var(--texto-md);
-}
-
-.tabla th {
-  padding: var(--espacio-2) var(--espacio-3);
-  font-size: var(--texto-xs);
-  font-weight: var(--peso-seminegrita);
-  letter-spacing: var(--espaciado-letra-ancho);
-  text-align: left;
-  text-transform: uppercase;
-  color: var(--color-texto-suave);
-  background: var(--color-superficie-suave);
-  border-bottom: 1px solid var(--color-borde);
-}
-
-.tabla td {
-  padding: var(--espacio-2) var(--espacio-3);
-  color: var(--color-texto-secundario);
-  border-bottom: 1px solid var(--color-borde);
-}
-
-.tabla tbody tr:last-child td {
-  border-bottom: 0;
-}
-
-.monto {
-  font-weight: var(--peso-seminegrita);
-  color: var(--color-texto);
-  white-space: nowrap;
-}
-
-.evidencia {
-  color: var(--color-accion);
-  font-weight: var(--peso-seminegrita);
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.evidencia:hover {
-  text-decoration: underline;
-}
-
-.botonDetalle {
-  min-height: 2rem;
-  padding: 0 var(--espacio-3);
-  font: inherit;
-  font-size: var(--texto-sm);
-  font-weight: var(--peso-seminegrita);
-  color: var(--color-accion);
-  background: var(--color-superficie);
-  border: 1px solid var(--color-accion);
-  border-radius: var(--radio-md);
-  cursor: pointer;
-  white-space: nowrap;
-}
-
-.botonDetalle:hover {
-  background: var(--color-accion-suave);
-}
-
-.botonDetalle:focus-visible {
-  outline: 2px solid var(--color-foco);
-  outline-offset: 2px;
-}
-
-.observacion {
-  max-width: 18rem;
-  overflow-wrap: anywhere;
+@media (max-width: 767px) {
+  .tarjetaTabla {
+    background: transparent;
+    border: 0;
+    box-shadow: none;
+  }
 }
 
 @media (max-width: 767px) {
@@ -234,13 +97,8 @@
     align-items: stretch;
   }
 
-  .compromisoEstado {
-    align-items: flex-start;
-    text-align: left;
-  }
-
-  .botonRegistrar {
-    width: 100%;
-    justify-content: center;
+  .contexto {
+    align-self: flex-start;
+    margin-top: 0;
   }
 }

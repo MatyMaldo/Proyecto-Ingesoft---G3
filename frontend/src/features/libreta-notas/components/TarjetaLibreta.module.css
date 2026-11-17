@@ -1,0 +1,169 @@
+.tarjeta {
+  position: relative;
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+  padding: var(--espacio-5);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-sm);
+  transition: border-color var(--transicion);
+}
+
+.tarjeta:hover {
+  border-color: var(--color-primario-intenso);
+}
+
+.tarjeta:focus-within {
+  border-color: var(--color-foco);
+}
+
+/* Bimestre sin libreta: mismo tamaño que las demás, pero apagada y sin hover. */
+.pendiente {
+  background: var(--color-superficie-suave);
+  box-shadow: none;
+  border-style: dashed;
+}
+
+.pendiente:hover {
+  border-color: var(--color-borde);
+}
+
+.recuadroPendiente {
+  color: var(--color-texto-suave);
+  background: var(--color-superficie);
+  border-color: var(--color-borde);
+}
+
+.cabecera {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-4);
+}
+
+.recuadroIcono {
+  display: flex;
+  flex-shrink: 0;
+  align-items: center;
+  justify-content: center;
+  width: 3rem;
+  height: 3rem;
+  color: var(--color-primario-intenso);
+  background: var(--color-accion-suave);
+  border: 1px solid var(--tono-azul-borde);
+  border-radius: var(--radio-md);
+}
+
+.contenido {
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--texto-lg);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+}
+
+.fecha {
+  margin: var(--espacio-1) 0 0;
+  font-size: var(--texto-md);
+  color: var(--color-texto-suave);
+}
+
+.comentario {
+  display: -webkit-box;
+  margin: 0;
+  padding: var(--espacio-3);
+  overflow: hidden;
+  font-size: var(--texto-md);
+  line-height: 1.5;
+  color: var(--color-texto-secundario);
+  background: var(--color-superficie-suave);
+  border-radius: var(--radio-md);
+  -webkit-line-clamp: 8;
+  -webkit-box-orient: vertical;
+}
+
+.comentario span {
+  display: block;
+  margin-bottom: var(--espacio-1);
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+.pie {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-2);
+  margin-top: auto;
+  padding-top: var(--espacio-3);
+  border-top: 1px solid var(--color-borde);
+}
+
+.botonDetalle {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-1);
+  min-height: var(--tactil-min);
+  padding: 0;
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-primario-intenso);
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+}
+
+/* Extiende el área de clic a toda la tarjeta. */
+.botonDetalle::after {
+  position: absolute;
+  inset: 0;
+  border-radius: var(--radio-lg);
+  content: '';
+}
+
+.botonDetalle:focus-visible {
+  outline: none;
+}
+
+.botonDetalle:focus-visible::after {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+/* Escritorio: rectángulo estirado a lo ancho, con el bimestre a la izquierda, el comentario al centro y el estado y la
+   acción a la derecha. Por debajo de 768 px la tarjeta sigue siendo una columna. */
+@media (min-width: 768px) {
+  .tarjeta {
+    display: grid;
+    grid-template-columns: minmax(11rem, 14rem) minmax(0, 1fr) auto;
+    align-items: center;
+    column-gap: var(--espacio-4);
+    padding: var(--espacio-4) var(--espacio-5);
+  }
+
+  .cabecera {
+    grid-column: 1;
+  }
+
+  .comentario {
+    grid-column: 2;
+    -webkit-line-clamp: 3;
+  }
+
+  .pie {
+    grid-column: 3;
+    gap: var(--espacio-3);
+    margin: 0;
+    padding: 0;
+    border-top: 0;
+  }
+}

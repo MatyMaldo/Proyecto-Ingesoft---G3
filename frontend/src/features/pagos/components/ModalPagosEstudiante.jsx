@@ -201,6 +201,7 @@ export default function ModalPagosEstudiante({ alumno, anio, onCerrar, alNotific
     [compromiso.compromisoId]: !estaExpandido(compromiso)
   }));
 
+  const porValidarDe = (compromiso) => compromiso.pagos.filter((pago) => pago.estado === 'PENDIENTE').length;
   const totalPorValidar = compromisos.reduce(
     (suma, compromiso) => suma + compromiso.pagos.filter((pago) => pago.estado === 'PENDIENTE').length,
     0
@@ -324,19 +325,24 @@ export default function ModalPagosEstudiante({ alumno, anio, onCerrar, alNotific
                         {etiquetaCompromiso(compromiso)}
                       </h3>
                       <p className={estilos.compromisoMeta}>
-                        Emitido: {formatearFechaVisible(compromiso.fechaEmision)}
-                        {' · '}
-                        Total: {formatearMonto(compromiso.montoTotal)}
+                        Emitido el {formatearFechaVisible(compromiso.fechaEmision)}
                       </p>
+                    </div>
+                    <div className={estilos.compromisoMonto}>
+                      <span className={estilos.compromisoMontoRotulo}>Total</span>
+                      <strong className={estilos.compromisoMontoCifra}>{formatearMonto(compromiso.montoTotal)}</strong>
                       {Number(compromiso.montoMora) > 0 && (
-                        <p className={estilos.compromisoMeta}>
-                          Original: {formatearMonto(compromiso.montoOriginal)}
-                          {' · '}
-                          Mora: {formatearMonto(compromiso.montoMora)}
-                        </p>
+                        <span className={estilos.compromisoMora}>
+                          Incluye mora {formatearMonto(compromiso.montoMora)} · Original {formatearMonto(compromiso.montoOriginal)}
+                        </span>
                       )}
                     </div>
                     <div className={estilos.compromisoLado}>
+                      {porValidarDe(compromiso) > 0 && (
+                        <Insignia tono="ambar">
+                          {porValidarDe(compromiso) === 1 ? '1 por validar' : `${porValidarDe(compromiso)} por validar`}
+                        </Insignia>
+                      )}
                       <Insignia tono={tonoEstadoCompromiso(compromiso.estadoCompromiso)}>
                         {etiquetaEstadoCompromiso(compromiso.estadoCompromiso)}
                       </Insignia>

@@ -1,0 +1,216 @@
+.detalle {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-4);
+}
+
+.resumen {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(13rem, 100%), 1fr));
+  gap: var(--espacio-4);
+  margin: 0;
+  padding: var(--espacio-4);
+  background: var(--color-superficie-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+}
+
+.resumen dt {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+.resumen dd {
+  margin: var(--espacio-1) 0 0;
+  font-size: var(--texto-lg);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+  overflow-wrap: anywhere;
+}
+
+.panel {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-5);
+}
+
+.grupo {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+}
+
+.tituloGrupo {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  margin: 0;
+  padding-bottom: var(--espacio-2);
+  font-size: var(--texto-lg);
+  font-weight: var(--peso-seminegrita);
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.tituloGrupo span {
+  font-size: var(--texto-sm);
+  font-weight: 400;
+  color: var(--color-texto-suave);
+}
+
+.lista {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.evaluacion,
+.competencia {
+  padding: var(--espacio-4);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-sm);
+}
+
+.evaluacion {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-4);
+}
+
+.textoEvaluacion {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  min-width: 0;
+}
+
+.textoEvaluacion strong {
+  font-size: var(--texto-lg);
+}
+
+.textoEvaluacion p {
+  margin: 0;
+  font-size: var(--texto-md);
+  line-height: 1.5;
+  color: var(--color-texto-secundario);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-2) var(--espacio-3);
+}
+
+.fecha {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-1);
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}
+
+.notaBloque,
+.celdaBimestre {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--espacio-1);
+}
+
+.notaBloque {
+  flex: none;
+  min-width: 4.5rem;
+}
+
+.etiquetaNota {
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+}
+
+.nota {
+  min-width: 2.75rem;
+  justify-content: center;
+  font-size: var(--texto-lg);
+  font-weight: var(--peso-negrita);
+}
+
+.sinNota {
+  font-size: var(--texto-sm);
+  font-style: italic;
+  color: var(--color-texto-suave);
+}
+
+.competencia {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+}
+
+.competencia > strong {
+  font-size: var(--texto-lg);
+}
+
+.bimestres {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr));
+  gap: var(--espacio-3);
+}
+
+.celdaBimestre {
+  padding: var(--espacio-3);
+  background: var(--color-superficie-suave);
+  border-radius: var(--radio-md);
+}
+
+.vacio {
+  margin: 0;
+  padding: var(--espacio-5);
+  text-align: center;
+  border-radius: var(--radio-md);
+  background: var(--color-superficie-suave);
+  color: var(--color-texto-suave);
+}
+
+.leyenda {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-2);
+  margin: 0;
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}
+
+.leyenda .nota {
+  min-width: 0;
+  font-size: var(--texto-sm);
+}
+
+@media (max-width: 640px) {
+  .evaluacion {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .notaBloque {
+    flex-direction: row;
+    align-items: center;
+    gap: var(--espacio-2);
+  }
+}
