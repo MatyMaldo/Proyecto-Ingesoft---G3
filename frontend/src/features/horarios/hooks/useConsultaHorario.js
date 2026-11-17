@@ -58,6 +58,39 @@ function leerFiltrosDeUrl() {
   };
 }
 
+const CLAVE_ULTIMA_CONSULTA = 'educoders.horarios.ultimaConsultaAdmin';
+
+/** Última sección o docente que consultó el administrador en este navegador; `{}` si no hay o no se puede leer. */
+function leerUltimaConsulta() {
+  try {
+    const guardado = JSON.parse(window.localStorage.getItem(CLAVE_ULTIMA_CONSULTA) ?? 'null');
+    if (!guardado || !['seccion', 'docente'].includes(guardado.por) || !guardado.id) return {};
+    return { por: guardado.por, grado: guardado.grado ? String(guardado.grado) : null, id: String(guardado.id) };
+  } catch {
+    return {};
+  }
+}
+
+/** Guarda (o, con `null`, olvida) la última consulta; sin almacenamiento disponible no hace nada. */
+function guardarUltimaConsulta(consulta) {
+  try {
+    if (consulta) window.localStorage.setItem(CLAVE_ULTIMA_CONSULTA, JSON.stringify(consulta));
+    else window.localStorage.removeItem(CLAVE_ULTIMA_CONSULTA);
+  } catch {
+    // Sin almacenamiento (modo privado, bloqueado): la consulta simplemente no se recuerda.
+  }
+}
+
+/**
+ * Filtros con que arranca la pantalla: los de la URL y, si el administrador entra sin ninguno, su última consulta.
+ */
+function leerFiltrosIniciales(rol) {
+  const url = leerFiltrosDeUrl();
+  if (rol !== 'ADMINISTRADOR' || url.por || url.grado || url.id) return url;
+  const ultima = leerUltimaConsulta();
+  return { ...url, por: ultima.por ?? null, grado: ultima.grado ?? null, id: ultima.id ?? null };
+}
+
 /**
  * Secciones del año académico consultado. Si la API devuelve secciones de otros años (p. ej. 2027 mientras
  * se consulta 2026), se descartan; las que no informan su año se conservan.
@@ -79,7 +112,7 @@ function seccionesDelAnio(secciones, anio) {
  * @returns {Object} estado de filtros, sesiones por semana y acciones de la pantalla.
  */
 export default function useConsultaHorario(rol, nombreUsuario) {
-  const [inicial] = useState(leerFiltrosDeUrl);
+  const [inicial] = useState(() => leerFiltrosIniciales(rol));
   // Lo que viene de la URL y aún no se pudo aplicar porque depende de listas que llegan después.
   const pendientes = useRef({ id: inicial.id, semana: inicial.semana });
 
@@ -173,7 +206,9 @@ export default function useConsultaHorario(rol, nombreUsuario) {
     });
 
     return () => { activo = false; };
-  }, [rol, tipo, anio]);
+    // La lista de docentes no depende del año: si dependiera, se pediría dos veces (antes y después de conocer el año)
+    // y la segunda borraría la selección que venía de la URL o de la última consulta.
+  }, [rol, tipo, tipo === 'seccion' ? anio : null]);
 
   // Apoderado: estudiantes a su cargo para el año seleccionado.
   useEffect(() => {
@@ -428,6 +463,13 @@ export default function useConsultaHorario(rol, nombreUsuario) {
     establecerGradoId('');
   };
 
+  /** Elige una sección por su id; el grado se deduce de ella. Con `''` quita la selección. */
+  const seleccionarSeccion = (valor) => {
+    const encontrada = opciones.find((opcion) => String(opcion.id) === String(valor));
+    establecerGradoId(encontrada ? String(encontrada.gradoId) : '');
+    establecerId(encontrada ? String(encontrada.id) : '');
+  };
+
   const seleccionarGrado = (nuevoGradoId) => {
     establecerGradoId(nuevoGradoId);
     establecerId('');
@@ -465,10 +507,17 @@ export default function useConsultaHorario(rol, nombreUsuario) {
 
   /** Vuelve al rango del año académico y quita la selección de sección, docente o estudiante. */
   const limpiarFiltros = () => {
+    if (rol === ADMIN) guardarUltimaConsulta(null);
     restablecerRango();
     establecerGradoId('');
     establecerId('');
   };
+
+  // Administrador: recuerda la última sección o docente consultado, para retomarla al volver a la pantalla.
+  useEffect(() => {
+    if (rol !== ADMIN || !id) return;
+    guardarUltimaConsulta({ por: tipo, grado: tipo === 'seccion' ? gradoId : '', id });
+  }, [rol, tipo, gradoId, id]);
 
   // Mantiene la URL al día con los filtros; sin recargar ni añadir entradas al historial.
   const semanaEnUrl = semanaActual && !esSemanaDeHoy ? semanaActual.inicio : '';
@@ -521,6 +570,7 @@ export default function useConsultaHorario(rol, nombreUsuario) {
     establecerSemanaSeleccionada,
     seleccionarTipo,
     seleccionarGrado,
+    seleccionarSeccion,
     seleccionarAnio,
     irSemanaAnterior,
     irSemanaSiguiente,

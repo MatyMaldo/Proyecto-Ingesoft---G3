@@ -70,13 +70,9 @@ import PaginaVisualizadorHorario from './PaginaVisualizadorHorario.jsx';
 import { obtenerPeriodo } from '../services/visualizadoresService.js';
 
 async function seleccionarSeccion() {
-  await screen.findByRole('option', { name: 'Primer grado' });
-  const grado = screen.getByLabelText(/Grado/i);
-  fireEvent.change(grado, { target: { value: '1' } });
-
-  await screen.findByRole('option', { name: /A \(/ });
-  const seccion = screen.getByLabelText(/Sección/i);
-  fireEvent.change(seccion, { target: { value: '3' } });
+  const campo = await screen.findByRole('combobox', { name: 'Sección' });
+  fireEvent.click(campo);
+  fireEvent.mouseDown(await screen.findByRole('option', { name: 'Primer grado · A' }));
 
   await waitFor(() => {
     expect(obtenerPeriodo).toHaveBeenCalledWith(2);

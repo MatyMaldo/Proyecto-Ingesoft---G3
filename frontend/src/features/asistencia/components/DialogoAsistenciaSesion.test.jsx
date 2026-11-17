@@ -104,4 +104,26 @@ describe('DialogoAsistenciaSesion', () => {
       expect.objectContaining({ estudianteId: 'EST-002', estado: 'TARDANZA' })
     ]);
   });
+
+  it('en solo lectura muestra lo registrado sin permitir cambios ni guardar', () => {
+    render(
+      <DialogoAsistenciaSesion
+        sesion={sesion}
+        detalle={detalle}
+        soloLectura
+        alCerrar={vi.fn()}
+        alGuardar={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('Asistencia de la sesión')).toBeInTheDocument();
+    expect(screen.getByText('13/11/2026')).toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: 'Guardar asistencia' })).not.toBeInTheDocument();
+    expect(screen.queryByRole('button', { name: /como Asistió/ })).not.toBeInTheDocument();
+
+    const grupo = screen.getByRole('radiogroup', { name: 'Asistencia de Carlos Ramírez' });
+    expect(within(grupo).getByRole('radio', { name: 'Tardanza' })).toHaveAttribute('aria-checked', 'true');
+    within(grupo).getAllByRole('radio').forEach((radio) => expect(radio).toBeDisabled());
+    expect(screen.getByLabelText('Observaciones de Carlos Ramírez')).toHaveAttribute('readonly');
+  });
 });

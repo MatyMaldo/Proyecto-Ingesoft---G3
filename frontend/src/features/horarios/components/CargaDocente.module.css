@@ -1,0 +1,66 @@
+.carga {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-2);
+  min-width: 0;
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+}
+
+/* En pantallas angostas la tabla se desplaza dentro de su caja, no la página. */
+.contenedor {
+  overflow-x: auto;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+}
+
+.tabla {
+  width: 100%;
+  min-width: 28rem;
+  border-collapse: collapse;
+  font-size: var(--texto-sm);
+}
+
+.tabla th,
+.tabla td {
+  padding: var(--espacio-2) var(--espacio-3);
+  text-align: left;
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.tabla thead th {
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  letter-spacing: var(--espaciado-letra-ancho);
+  text-transform: uppercase;
+  color: var(--color-texto-suave);
+  background: var(--color-superficie-suave);
+}
+
+.tabla tbody th {
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+}
+
+.tabla tfoot th,
+.tabla tfoot td {
+  font-weight: var(--peso-negrita);
+  background: var(--color-superficie-suave);
+  border-bottom: 0;
+}
+
+.numero {
+  text-align: right !important;
+  white-space: nowrap;
+}
+
+.nota {
+  margin: 0;
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}

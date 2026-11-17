@@ -63,14 +63,9 @@ describe('Panel de sesión en consulta de horario', () => {
   it('abre el drawer al hacer clic en una sesión', async () => {
     render(<PaginaVisualizadorHorario />);
 
-    await screen.findByRole('option', { name: 'Primer grado' }, { timeout: 4000 });
-    fireEvent.change(screen.getByLabelText('Grado'), { target: { value: '1' } });
-    await within(screen.getByLabelText('Sección')).findByRole(
-      'option',
-      { name: `B (${anioActual})` },
-      { timeout: 4000 }
-    );
-    fireEvent.change(screen.getByLabelText('Sección'), { target: { value: '3' } });
+    const campo = await screen.findByRole('combobox', { name: 'Sección' }, { timeout: 4000 });
+    fireEvent.click(campo);
+    fireEvent.mouseDown(await screen.findByRole('option', { name: 'Primer grado · B' }, { timeout: 4000 }));
 
     // El horario se ve en un diálogo: «Ver horario» lo abre y el detalle de la sesión se monta dentro de él.
     const verHorario = await screen.findByRole('button', { name: 'Ver horario' }, { timeout: 4000 });

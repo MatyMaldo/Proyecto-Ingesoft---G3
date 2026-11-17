@@ -4,6 +4,7 @@ import { useSearchParams } from 'react-router-dom';
 import {
   aHora,
   aMinutos,
+  fechaISO,
   HORA_FIN_JORNADA,
   bloqueCruzaReceso,
   seSolapan
@@ -35,6 +36,25 @@ const CATALOGOS_VACIOS = {
 
 export function buscarAnioAcademicoVigente(anios, anioVigente = new Date().getFullYear()) {
   return anios.find((anio) => Number(anio.anio) === Number(anioVigente));
+}
+
+/**
+ * Año académico que se programa en esta pantalla: el primero, por año, cuyo periodo de matrícula aún no terminó.
+ * Así, durante la matrícula (que suele abrir en septiembre para el año siguiente) se programa el año que se está
+ * matriculando y no el año del calendario. Si ningún periodo está disponible se usa el año del calendario y, en su
+ * defecto, el último año registrado.
+ *
+ * @param {Array<{ id: number|string, anio: number|string }>} anios
+ * @param {Map<number|string, { fechaFin?: string }>} periodosPorAnio Periodo de matrícula de cada año, por su id.
+ * @param {string} [hoy] Fecha de hoy (`YYYY-MM-DD`).
+ */
+export function elegirAnioProgramacion(anios, periodosPorAnio, hoy = fechaISO(new Date())) {
+  const ordenados = [...anios].sort((a, b) => Number(a.anio) - Number(b.anio));
+  const conMatriculaPorVenir = ordenados.find((anio) => {
+    const fin = periodosPorAnio.get(anio.id)?.fechaFin;
+    return Boolean(fin) && String(fin).slice(0, 10) >= hoy;
+  });
+  return conMatriculaPorVenir ?? buscarAnioAcademicoVigente(ordenados) ?? ordenados.at(-1) ?? null;
 }
 
 function horaComparable(hora) {
@@ -146,6 +166,8 @@ export default function useHorarios() {
   const contadorNuevos = useRef(0);
 
   const [periodo, establecerPeriodo] = useState(null);
+  // Año académico que se programa; se decide al conocer el periodo de matrícula de cada año.
+  const [anioProgramacion, establecerAnioProgramacion] = useState(null);
   const [bimestres, establecerBimestres] = useState([]);
   const [estadoPeriodo, establecerEstadoPeriodo] = useState('inactivo');
   const [errorPeriodo, establecerErrorPeriodo] = useState('');
@@ -178,15 +200,13 @@ export default function useHorarios() {
     };
   }, [intento]);
 
-  // Estado del periodo del año académico actual. Solo afecta a la pantalla de horarios.
+  // Año que se programa y estado de su periodo de matrícula. Solo afecta a la pantalla de horarios.
   useEffect(() => {
     if (estadoCatalogos !== 'listo') return undefined;
-    const anioVigente = buscarAnioAcademicoVigente(catalogos.anios);
-    if (!anioVigente?.id) {
+    if (catalogos.anios.length === 0) {
+      establecerAnioProgramacion(null);
       establecerPeriodo(null);
-      establecerErrorPeriodo(
-        `No se encontró el año académico vigente (${new Date().getFullYear()}).`
-      );
+      establecerErrorPeriodo('No hay años académicos configurados.');
       establecerEstadoPeriodo('error');
       return undefined;
     }
@@ -195,19 +215,30 @@ export default function useHorarios() {
     async function cargarPeriodo() {
       establecerEstadoPeriodo('cargando');
       establecerErrorPeriodo('');
-      const [resultado, respuestaBimestres] = await Promise.all([
-        obtenerPeriodoMatricula(anioVigente.id),
-        listarBimestres(anioVigente.id)
-      ]);
+      const respuestas = await Promise.all(catalogos.anios.map((anio) => obtenerPeriodoMatricula(anio.id)));
       if (cancelado) return;
-      if (!resultado.exitoso) {
+      const periodosPorAnio = new Map();
+      catalogos.anios.forEach((anio, indice) => {
+        if (respuestas[indice]?.exitoso && respuestas[indice].datos) {
+          periodosPorAnio.set(anio.id, respuestas[indice].datos);
+        }
+      });
+
+      const elegido = elegirAnioProgramacion(catalogos.anios, periodosPorAnio);
+      const resultado = respuestas[catalogos.anios.findIndex((anio) => anio.id === elegido?.id)];
+      if (!elegido?.id || !resultado?.exitoso) {
+        establecerAnioProgramacion(elegido ?? null);
         establecerPeriodo(null);
         establecerErrorPeriodo(
-          resultado.mensaje || 'No se pudo consultar el periodo de matrícula.'
+          resultado?.mensaje || 'No se pudo consultar el periodo de matrícula.'
         );
         establecerEstadoPeriodo('error');
         return;
       }
+
+      const respuestaBimestres = await listarBimestres(elegido.id);
+      if (cancelado) return;
+      establecerAnioProgramacion(elegido);
       establecerPeriodo(resultado.datos ?? null);
       establecerBimestres(
         respuestaBimestres.exitoso && Array.isArray(respuestaBimestres.datos)
@@ -232,12 +263,11 @@ export default function useHorarios() {
       return undefined;
     }
 
-    const anioVigente = buscarAnioAcademicoVigente(catalogos.anios);
-    if (!anioVigente?.id) {
+    // Hasta saber qué año se programa no se pueden pedir sus secciones.
+    if (estadoPeriodo === 'cargando' || estadoPeriodo === 'inactivo') return undefined;
+    if (!anioProgramacion?.id) {
       establecerCatalogos((anteriores) => ({ ...anteriores, secciones: [] }));
-      establecerErrorSecciones(
-        `No se encontró el año académico vigente (${new Date().getFullYear()}).`
-      );
+      establecerErrorSecciones('No se encontró el año académico a programar.');
       establecerEstadoSecciones('error');
       return undefined;
     }
@@ -249,12 +279,12 @@ export default function useHorarios() {
       establecerCatalogos((anteriores) => ({ ...anteriores, secciones: [] }));
       const resultado = await listarSeccionesHorario({
         gradoId,
-        anioId: anioVigente.id,
-        anio: anioVigente.anio
+        anioId: anioProgramacion.id,
+        anio: anioProgramacion.anio
       });
       if (cancelado) return;
       if (!resultado.exitoso) {
-        establecerErrorSecciones(resultado.mensaje || 'No se pudieron cargar las secciones del año vigente.');
+        establecerErrorSecciones(resultado.mensaje || 'No se pudieron cargar las secciones del año a programar.');
         establecerEstadoSecciones('error');
         return;
       }
@@ -271,7 +301,7 @@ export default function useHorarios() {
     return () => {
       cancelado = true;
     };
-  }, [estadoCatalogos, gradoId, catalogos.anios]);
+  }, [estadoCatalogos, gradoId, anioProgramacion, estadoPeriodo]);
 
   useEffect(() => {
     if (!consulta) return undefined;
@@ -375,7 +405,7 @@ export default function useHorarios() {
     return () => window.removeEventListener('beforeunload', avisar);
   }, [hayCambios]);
 
-  const anioVigente = buscarAnioAcademicoVigente(catalogos.anios);
+  const anioVigente = anioProgramacion;
   const primerBimestre = bimestres.find((bimestre) => bimestre.nombre === 'BIM_1')
     ?? bimestres[0]
     ?? null;

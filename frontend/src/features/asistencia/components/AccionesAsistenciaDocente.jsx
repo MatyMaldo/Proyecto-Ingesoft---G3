@@ -7,6 +7,20 @@ import {
 } from '../utils/estadosAsistencia.js';
 import estilos from './AccionesAsistenciaDocente.module.css';
 
+const hora = (valor) => String(valor ?? '').slice(0, 5);
+
+/** Hasta cuándo (o desde cuándo) se puede registrar la asistencia de la sesión; vacío si ya no aplica. */
+function textoVentana(detalle) {
+  if (detalle.puedeRegistrarDocente || detalle.puedeRegistrarEstudiantes) {
+    return `Puedes registrar hasta las ${hora(detalle.horaFin)}.`;
+  }
+  const motivo = String(detalle.motivoEstudiantes ?? detalle.motivoDocente ?? '');
+  if (/aún no ha comenzado/i.test(motivo)) {
+    return `Podrás registrar desde las ${hora(detalle.horaInicio)}.`;
+  }
+  return '';
+}
+
 /**
  * Acciones de asistencia dentro del drawer de una sesión del docente.
  * La asistencia del docente es una acción puntual; la de estudiantes abre el
@@ -39,6 +53,8 @@ export default function AccionesAsistenciaDocente({
   if (!detalle) return null;
 
   const estadoDocente = normalizarEstadoAsistencia(detalle.asistenciaDocente?.estado);
+  const ventana = textoVentana(detalle);
+  const hayRegistroEstudiantes = detalle.estudiantes?.some((estudiante) => estudiante.estado) === true;
 
   const registrarDocente = async () => {
     const respuesta = await asistencia.registrarDocente();
@@ -52,6 +68,7 @@ export default function AccionesAsistenciaDocente({
 
   return (
     <div className={estilos.acciones}>
+      {ventana && <p className={estilos.ventana}>{ventana}</p>}
       <section className={estilos.bloque} aria-labelledby="asistencia-docente-titulo">
         <h3 id="asistencia-docente-titulo" className={estilos.tituloBloque}>
           Mi asistencia
@@ -64,7 +81,7 @@ export default function AccionesAsistenciaDocente({
             <span className={estilos.hora}>
               {detalle.asistenciaDocente.fechaHoraRegistro
                 ? new Date(detalle.asistenciaDocente.fechaHoraRegistro)
-                  .toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit' })
+                  .toLocaleTimeString('es-PE', { hour: '2-digit', minute: '2-digit', hour12: false })
                 : ''}
             </span>
           </div>
@@ -100,7 +117,19 @@ export default function AccionesAsistenciaDocente({
               : 'Registrar asistencia de estudiantes'}
           </button>
         ) : (
-          <p className={estilos.motivo}>{detalle.motivoEstudiantes}</p>
+          <>
+            <p className={estilos.motivo}>{detalle.motivoEstudiantes}</p>
+            {hayRegistroEstudiantes && (
+              <button
+                type="button"
+                className={estilos.botonSecundario}
+                onClick={alAbrirModal}
+              >
+                <Icono nombre="archivo" tamano={18} />
+                Ver asistencia de estudiantes
+              </button>
+            )}
+          </>
         )}
       </section>
     </div>

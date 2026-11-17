@@ -86,3 +86,10 @@
   outline: 2px solid var(--color-foco);
   outline-offset: 2px;
 }
+
+.ventana {
+  margin: 0;
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto-suave);
+}

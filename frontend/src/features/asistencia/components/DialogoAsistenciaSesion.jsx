@@ -3,6 +3,7 @@ import { useEffect, useState } from 'react';
 import DialogoBase from '../../../shared/components/DialogoBase.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
 import Insignia from '../../../shared/components/Insignia.jsx';
+import { formatearFecha } from '../../horarios/utils/tiempo.js';
 import {
   ESTADOS_ASISTENCIA,
   etiquetaEstadoAsistencia,
@@ -28,6 +29,7 @@ function filasDesdeDetalle(detalle) {
  * @param {Object} props
  * @param {Object} props.sesion Sesión de clase.
  * @param {{ estudiantes: Array }} props.detalle Estudiantes de la sesión con su estado actual.
+ * @param {boolean} [props.soloLectura] Muestra lo registrado sin permitir cambios (sesión finalizada).
  * @param {boolean} [props.guardando]
  * @param {string|null} [props.error]
  * @param {() => void} props.alCerrar
@@ -36,6 +38,7 @@ function filasDesdeDetalle(detalle) {
 export default function DialogoAsistenciaSesion({
   sesion,
   detalle,
+  soloLectura = false,
   guardando = false,
   error = null,
   alCerrar,
@@ -79,14 +82,14 @@ export default function DialogoAsistenciaSesion({
 
   const enviar = (evento) => {
     evento.preventDefault();
-    if (!completo || guardando) return;
+    if (soloLectura || !completo || guardando) return;
     alGuardar(filas);
   };
 
   return (
     <DialogoBase
       idTitulo="dialogo-asistencia-titulo"
-      titulo="Registrar asistencia"
+      titulo={soloLectura ? 'Asistencia de la sesión' : 'Registrar asistencia'}
       subtitulo={[sesion?.cursoNombre, sesion?.seccionNombre]
         .filter(Boolean)
         .join(' · ')}
@@ -94,18 +97,22 @@ export default function DialogoAsistenciaSesion({
       textoConfirmar="Guardar asistencia"
       textoEnviando="Guardando…"
       enviando={guardando}
+      sinConfirmar={soloLectura}
+      textoCancelar={soloLectura ? 'Cerrar' : 'Cancelar'}
       confirmarDeshabilitado={!completo}
       error={error}
-      notaPie={completo
-        ? `${filas.length} estudiantes listos para guardar.`
-        : `Faltan ${sinMarcar} estudiante${sinMarcar === 1 ? '' : 's'} por marcar.`}
+      notaPie={soloLectura
+        ? 'Solo lectura: la sesión ya no admite cambios.'
+        : completo
+          ? `${filas.length} estudiantes listos para guardar.`
+          : `Faltan ${sinMarcar} estudiante${sinMarcar === 1 ? '' : 's'} por marcar.`}
       cerrarAlClicFuera={false}
       alCancelar={alCerrar}
       alConfirmar={enviar}
     >
       <div className={estilos.resumenSesion}>
         <span><Icono nombre="aula" tamano={14} /> {sesion?.gradoNombre}</span>
-        <span><Icono nombre="calendario" tamano={14} /> {sesion?.fecha}</span>
+        <span><Icono nombre="calendario" tamano={14} /> {sesion?.fecha ? formatearFecha(sesion.fecha) : ''}</span>
         <span>
           <Icono nombre="reloj" tamano={14} />
           {' '}{String(sesion?.horaInicio ?? '').slice(0, 5)} – {String(sesion?.horaFin ?? '').slice(0, 5)}
@@ -113,7 +120,7 @@ export default function DialogoAsistenciaSesion({
         <span><Icono nombre="usuario" tamano={14} /> {sesion?.docenteNombre}</span>
       </div>
 
-      {filas.length > 0 && (
+      {filas.length > 0 && !soloLectura && (
         <div className={estilos.avance}>
           <div className={estilos.avanceTexto} aria-live="polite">
             <span><strong>{marcados}</strong> de {filas.length} marcados</span>
@@ -170,6 +177,7 @@ export default function DialogoAsistenciaSesion({
                           type="button"
                           role="radio"
                           aria-checked={activo}
+                          disabled={soloLectura}
                           data-tono={tonoEstadoAsistencia(estado)}
                           className={activo ? `${estilos.estado} ${estilos.estadoActivo}` : estilos.estado}
                           onClick={() => cambiarEstado(fila.estudianteId, estado)}
@@ -185,7 +193,8 @@ export default function DialogoAsistenciaSesion({
                     className={estilos.observaciones}
                     type="text"
                     value={fila.observaciones}
-                    placeholder="Opcional"
+                    placeholder={soloLectura ? '' : 'Opcional'}
+                    readOnly={soloLectura}
                     aria-label={`Observaciones de ${fila.nombreCompleto}`}
                     onChange={(evento) => cambiarObservaciones(fila.estudianteId, evento.target.value)}
                   />

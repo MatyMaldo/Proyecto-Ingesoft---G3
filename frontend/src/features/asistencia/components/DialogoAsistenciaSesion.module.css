@@ -218,3 +218,12 @@
     min-height: var(--tactil-min);
   }
 }
+
+/* Solo lectura (sesión finalizada): los estados se ven pero no se pulsan. */
+.estado:disabled {
+  cursor: default;
+}
+
+.estado:disabled:not(.estadoActivo) {
+  opacity: 0.55;
+}

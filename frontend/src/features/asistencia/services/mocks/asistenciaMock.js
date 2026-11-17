@@ -247,8 +247,9 @@ export async function consultarHistorialAsistenciaMock({
   const totalTardanzas = registrosFiltrados.filter((registro) => registro.estado === 'TARDANZA').length;
   const totalFaltas = registrosFiltrados.filter((registro) => registro.estado === 'FALTA').length;
   const totalJustificadas = registrosFiltrados.filter((registro) => registro.estado === 'JUSTIFICADA').length;
-  const porcentajeAsistencia = totalRegistros > 0
-    ? Number((((totalPresentes + totalTardanzas) / totalRegistros) * 100).toFixed(2))
+  const baseAsistencia = totalRegistros - totalJustificadas;
+  const porcentajeAsistencia = baseAsistencia > 0
+    ? Number((((totalPresentes + totalTardanzas) / baseAsistencia) * 100).toFixed(2))
     : 0;
 
   return ok({
@@ -262,7 +263,8 @@ export async function consultarHistorialAsistenciaMock({
     totalTardanzas,
     totalFaltas,
     totalJustificadas,
-    porcentajeAsistencia
+    porcentajeAsistencia,
+    anioAcademico: { id: 2, anio: 2026, fechaInicio: '2026-03-01', fechaFin: '2026-12-15' }
   });
 }
 

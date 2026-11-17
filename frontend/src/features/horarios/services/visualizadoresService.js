@@ -48,18 +48,28 @@ export function listarMisEstudiantes(anioId) {
   });
 }
 
+/** Páginas que se piden como máximo al listar docentes (100 por página): evita un bucle ante una respuesta anómala. */
+const MAX_PAGINAS_DOCENTES = 20;
+
 export async function listarDocentes() {
-  const respuesta = await solicitar('/usuarios', {
-    parametros: { tipoUsuario: 'DOCENTE', activo: true, page: 0, size: 100 }
-  });
-  if (!respuesta.exitoso) return respuesta;
-  const docentes = respuesta.datos?.content;
-  if (!Array.isArray(docentes)) {
-    return {
-      exitoso: false,
-      datos: null,
-      mensaje: 'El backend devolvió un formato de docentes no válido.'
-    };
+  const docentes = [];
+  let respuesta = null;
+  for (let pagina = 0; pagina < MAX_PAGINAS_DOCENTES; pagina += 1) {
+    respuesta = await solicitar('/usuarios', {
+      parametros: { tipoUsuario: 'DOCENTE', activo: true, page: pagina, size: 100 }
+    });
+    if (!respuesta.exitoso) return respuesta;
+    const contenido = respuesta.datos?.content;
+    if (!Array.isArray(contenido)) {
+      return {
+        exitoso: false,
+        datos: null,
+        mensaje: 'El backend devolvió un formato de docentes no válido.'
+      };
+    }
+    docentes.push(...contenido);
+    const totalPaginas = Number(respuesta.datos?.totalPages);
+    if (contenido.length === 0 || !Number.isFinite(totalPaginas) || pagina + 1 >= totalPaginas) break;
   }
   return {
     ...respuesta,

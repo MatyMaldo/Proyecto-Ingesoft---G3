@@ -12,16 +12,14 @@ import { formatearFecha } from '../../horarios/utils/tiempo.js';
 import useHistorialAsistencia, { OPCIONES_TAMANO_PAGINA } from '../hooks/useHistorialAsistencia.js';
 import {
   etiquetaEstadoAsistencia,
+  formatearHoraRegistro,
   formatearPorcentajeAsistencia,
   normalizarEstadoAsistencia,
   tonoEstadoAsistencia
 } from '../utils/estadosAsistencia.js';
 import estilos from './PaginaAsistencia.module.css';
 
-function mensajeVacio(rol) {
-  if (rol === ROLES.DOCENTE) return 'No hay registros de asistencia en el rango seleccionado.';
-  return 'No hay registros de asistencia para el rango seleccionado.';
-}
+const MENSAJE_VACIO = 'No hay registros de asistencia disponibles.';
 
 function descripcionPagina(rol) {
   if (rol === ROLES.DOCENTE) return 'Consulta el historial de asistencia de tus cursos por rango de fechas.';
@@ -57,10 +55,12 @@ export default function PaginaAsistencia() {
     );
   }
 
-  const titulo = rol === ROLES.ESTUDIANTE ? 'Mi asistencia' : 'Asistencia';
+  const esDocente = rol === ROLES.DOCENTE;
+  // El docente ve su propia asistencia (HU-ASI-08), igual que el estudiante: «Mi asistencia».
+  const titulo = esDocente || rol === ROLES.ESTUDIANTE ? 'Mi asistencia' : 'Asistencia';
   const opcionesEstudiante = historial.estudiantes.map((estudiante) => ({
     valor: String(estudiante.id),
-    etiqueta: estudiante.nombre ?? estudiante.nombreCompleto ?? String(estudiante.id)
+    etiqueta: estudiante.nombreCompleto ?? estudiante.nombre ?? String(estudiante.id)
   }));
   const opcionesCurso = [
     { valor: '', etiqueta: 'Todos los cursos' },
@@ -70,7 +70,7 @@ export default function PaginaAsistencia() {
     }))
   ];
 
-  if (historial.esApoderado && !historial.estudiantes.length && !historial.cargando) {
+  if (historial.esApoderado && historial.estudiantesListos && !historial.estudiantes.length && !historial.error) {
     return (
       <div className={estilos.pagina}>
         <header className={estilos.cabecera}>
@@ -80,7 +80,7 @@ export default function PaginaAsistencia() {
         </header>
         <EstadoConsulta
           tipo="vacio"
-          mensaje="No cuentas con ningún estudiante a tu cargo."
+          mensaje="No cuenta con ningún estudiante a su cargo"
         />
       </div>
     );
@@ -94,7 +94,10 @@ export default function PaginaAsistencia() {
       <header className={estilos.cabecera}>
         <div className={estilos.textoCabecera}>
           <h1 className={estilos.titulo}>{titulo}</h1>
-          <p className={estilos.descripcion}>{descripcionPagina(rol)}</p>
+          <p className={estilos.descripcion}>
+            {descripcionPagina(rol)}
+            {historial.anioConsulta?.anio ? ` Año académico ${historial.anioConsulta.anio}.` : ''}
+          </p>
         </div>
       </header>
 
@@ -134,7 +137,8 @@ export default function PaginaAsistencia() {
               id="asistencia-desde"
               etiqueta="Desde"
               valor={historial.fechaInicio}
-              max={historial.fechaFin}
+              min={historial.anioConsulta?.fechaInicio}
+              max={historial.fechaFin || historial.anioConsulta?.fechaFin}
               alCambiar={historial.establecerFechaInicio}
             />
           </div>
@@ -145,7 +149,8 @@ export default function PaginaAsistencia() {
               id="asistencia-hasta"
               etiqueta="Hasta"
               valor={historial.fechaFin}
-              min={historial.fechaInicio}
+              min={historial.fechaInicio || historial.anioConsulta?.fechaInicio}
+              max={historial.anioConsulta?.fechaFin}
               alCambiar={historial.establecerFechaFin}
             />
           </div>
@@ -190,7 +195,7 @@ export default function PaginaAsistencia() {
         {!historial.error && historial.cargando && <EstadoConsulta tipo="carga" filasEsqueleto={4} />}
 
         {!historial.error && !historial.cargando && historial.registros.length === 0 && (
-          <EstadoConsulta tipo="vacio" mensaje={mensajeVacio(rol)} />
+          <EstadoConsulta tipo="vacio" mensaje={MENSAJE_VACIO} />
         )}
 
         {hayResultados && (
@@ -205,8 +210,9 @@ export default function PaginaAsistencia() {
                     <th scope="col">Grado</th>
                     <th scope="col" className={estilos.columnaSeccion}>Sección</th>
                     <th scope="col">Horario</th>
+                    {esDocente && <th scope="col">Hora de registro</th>}
                     <th scope="col">Estado</th>
-                    <th scope="col">Observaciones</th>
+                    {!esDocente && <th scope="col">Observaciones</th>}
                   </tr>
                 </thead>
                 <tbody>
@@ -219,14 +225,17 @@ export default function PaginaAsistencia() {
                         <td>{registro.gradoNombre ?? '—'}</td>
                         <td className={estilos.columnaSeccion}>{registro.seccionNombre}</td>
                         <td>{horario(registro)}</td>
+                        {esDocente && <td>{formatearHoraRegistro(registro.fechaHoraRegistro)}</td>}
                         <td>
                           <Insignia tono={tonoEstadoAsistencia(estado)}>
                             {etiquetaEstadoAsistencia(estado)}
                           </Insignia>
                         </td>
-                        <td className={estilos.observaciones} title={registro.observaciones || undefined}>
-                          {registro.observaciones || '—'}
-                        </td>
+                        {!esDocente && (
+                          <td className={estilos.observaciones} title={registro.observaciones || undefined}>
+                            {registro.observaciones || '—'}
+                          </td>
+                        )}
                       </tr>
                     );
                   })}
@@ -253,7 +262,13 @@ export default function PaginaAsistencia() {
                       <span className={estilos.rotuloCampo}>Grado y sección:</span>{' '}
                       {[registro.gradoNombre, registro.seccionNombre].filter(Boolean).join(' · ') || '—'}
                     </p>
-                    {registro.observaciones && (
+                    {esDocente && (
+                      <p className={estilos.campo}>
+                        <span className={estilos.rotuloCampo}>Hora de registro:</span>{' '}
+                        {formatearHoraRegistro(registro.fechaHoraRegistro)}
+                      </p>
+                    )}
+                    {!esDocente && registro.observaciones && (
                       <p className={estilos.campo}>
                         <span className={estilos.rotuloCampo}>Observaciones:</span> {registro.observaciones}
                       </p>
