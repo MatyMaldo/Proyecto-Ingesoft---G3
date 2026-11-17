@@ -107,7 +107,6 @@ export default function DetalleCursoFamilia({ detalle }) {
                           <Icono nombre="calendario" tamano={14} />
                           {formatearFecha(evaluacion.fecha)}
                         </span>
-                        {evaluacion.competenciaNombre && <Insignia tono="gris">{evaluacion.competenciaNombre}</Insignia>}
                       </div>
                     </div>
                     <div className={estilos.notaBloque}>
