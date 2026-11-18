@@ -137,6 +137,10 @@ function ordenarAscendentePorFecha(lista) {
  *
  * @returns {Object} Ver docs/planes/auditorias.md §6.1 para la forma completa.
  */
+/** Aviso del historial de un registro que no está asociado a un solo elemento (operación masiva). */
+const NOTA_HISTORIAL_MASIVO = 'Es una operación masiva: afecta a varios elementos a la vez y no está asociada a uno '
+  + 'solo, por eso su historial incluye únicamente este registro.';
+
 export default function useAuditoria() {
   const [registros, establecerRegistros] = useState([]);
   const [estado, establecerEstado] = useState('cargando');
@@ -417,6 +421,14 @@ export default function useAuditoria() {
 
     if (!resultado.exitoso) {
       establecerHistorial({ estado: 'error', registros: [] });
+      return;
+    }
+
+    // Las operaciones masivas (cargas de usuarios, matrículas o horarios) se auditan en un solo registro que afecta a
+    // muchos elementos y no lleva `entidadId`: no hay un elemento del que pedir el historial. No es un error: el
+    // historial es el propio registro, y se explica por qué no hay más.
+    if (resultado.datos?.sinElemento) {
+      establecerHistorial({ estado: 'listo', registros: [registro], nota: NOTA_HISTORIAL_MASIVO });
       return;
     }
 

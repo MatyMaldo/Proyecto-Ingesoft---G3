@@ -8,7 +8,7 @@
 
 .tabla {
   width: 100%;
-  min-width: 64rem;
+  min-width: 68rem;
   table-layout: fixed;
   border-collapse: collapse;
   font-size: var(--texto-md);
@@ -44,10 +44,11 @@
   background: var(--color-superficie-suave);
 }
 
-/* Columnas equilibradas: el estudiante conserva la mayor parte, pero sin absorber todo el espacio libre. */
+/* Columnas equilibradas: el estudiante conserva la mayor parte, pero sin absorber todo el espacio libre. Las acciones
+   van en un menú ⋯, así que su columna es estrecha y los encabezados caben enteros en una línea. */
 .tabla th.columnaEstudiante,
 .tabla td:nth-child(1) {
-  width: 20%;
+  width: 22%;
 }
 
 .tabla th.columnaAnio,
@@ -57,7 +58,7 @@
 
 .tabla th.columnaFecha,
 .tabla td:nth-child(3) {
-  width: 14%;
+  width: 16%;
 }
 
 .tabla th.columnaGrado,
@@ -67,17 +68,17 @@
 
 .tabla th.columnaSeccion,
 .tabla td:nth-child(5) {
-  width: 8%;
+  width: 9%;
 }
 
 .tabla th.columnaEstado,
 .tabla td:nth-child(6) {
-  width: 12%;
+  width: 14%;
 }
 
 .tabla th.columnaAccion,
 .tabla td:nth-child(7) {
-  width: 27%;
+  width: 10%;
 }
 
 /* La celda de acciones puede envolver: los botones son compactos y no deben salir de la tabla. */
@@ -156,22 +157,16 @@
   padding-left: var(--espacio-2);
 }
 
-/* El encabezado de fecha puede ocupar dos líneas si hace falta. */
-.tabla thead th.columnaFecha {
-  white-space: normal;
-  padding-right: var(--espacio-3);
-}
-
 /* La sección se centra en su columna para separarla visualmente del grado. */
 .tabla thead th.columnaSeccion,
 .tabla td:nth-child(5) {
   text-align: center;
 }
 
-/* La acción se alinea a la izquierda sobre el borde del botón. */
+/* El menú ⋯ (o el guion, si la fila no tiene acciones) se centra bajo su encabezado. */
 .tabla thead th.columnaAccion,
 .tabla td.columnaAccion {
-  text-align: left;
+  text-align: center;
 }
 
 .anio {
@@ -212,6 +207,38 @@
   font-size: var(--texto-xs);
   line-height: 1.2;
   color: var(--color-texto-suave);
+}
+
+/* Botón ⋯ que abre el menú de acciones de la fila (mismo estilo que el de Pagos). */
+.botonMas {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  min-width: 32px;
+  min-height: 32px;
+  padding: 0;
+  color: var(--color-texto-suave);
+  background: transparent;
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.botonMas:hover:not(:disabled) {
+  color: var(--color-texto);
+  background: var(--color-superficie-suave);
+}
+
+.botonMas:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.botonMas:disabled {
+  opacity: var(--opacidad-deshabilitado);
+  cursor: wait;
 }
 
 .botonEmitir {
@@ -304,6 +331,13 @@
   }
 
   .botonEmitir {
+    min-height: 36px;
+  }
+
+  .botonMas {
+    width: 36px;
+    height: 36px;
+    min-width: 36px;
     min-height: 36px;
   }
 }

@@ -1,6 +1,7 @@
 import Avatar, { obtenerInicialesDeNombre } from '../../../shared/components/Avatar.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
 import Insignia from '../../../shared/components/Insignia.jsx';
+import MenuDesplegable from '../../../shared/components/MenuDesplegable.jsx';
 import estilosUtil from '../../../shared/styles/utilidades.module.css';
 import { formatearFechaVisible } from '../../../shared/utils/formatoFecha.js';
 import estilos from './TablaMatriculas.module.css';
@@ -68,7 +69,10 @@ function AccionEmitir({ matricula, estado, emitiendo, alEmitir }) {
   );
 }
 
-/** Acciones de una fila: editar/eliminar solo para pendientes y emitir su compromiso. */
+/**
+ * Acciones de una fila: editar/eliminar solo para pendientes y emitir su compromiso. En la tabla van las tres en un
+ * menú ⋯; en las tarjetas móviles son botones. El nombre accesible dice a qué estudiante afecta cada acción.
+ */
 function AccionesFila({
   matricula,
   estado,
@@ -76,18 +80,61 @@ function AccionesFila({
   eliminando,
   alEmitir,
   alEditar,
-  alEliminar
+  alEliminar,
+  enMenu = false
 }) {
   if (estado !== 'PENDIENTE') {
     return <span className={estilos.sinAccion}>—</span>;
   }
 
+  const nombre = matricula.nombreCompletoEstudiante ?? 'Estudiante';
   const puedeEditar = matricula.puedeEditar !== false;
   const puedeEliminar = matricula.puedeEliminar !== false;
   const motivos = [
     puedeEditar ? null : matricula.motivoNoEditar,
     puedeEliminar ? null : matricula.motivoNoEliminar
   ].filter(Boolean);
+
+  if (enMenu) {
+    return (
+      <MenuDesplegable
+        etiquetaBoton={`Más acciones de ${nombre}`}
+        claseBoton={estilos.botonMas}
+        alineacion="fin"
+        deshabilitado={emitiendo || eliminando}
+        contenidoBoton={<Icono nombre="mas-opciones" tamano={20} />}
+        items={[
+          {
+            id: 'editar',
+            etiqueta: 'Editar',
+            ariaLabel: `Editar matrícula de ${nombre}`,
+            icono: 'editar',
+            deshabilitado: !puedeEditar,
+            descripcion: puedeEditar ? undefined : matricula.motivoNoEditar,
+            alSeleccionar: () => alEditar?.(matricula)
+          },
+          {
+            id: 'emitir',
+            etiqueta: 'Emitir compromiso',
+            ariaLabel: `Emitir compromiso de ${nombre}`,
+            icono: 'archivo',
+            alSeleccionar: () => alEmitir(matricula)
+          },
+          {
+            id: 'eliminar',
+            etiqueta: 'Eliminar',
+            ariaLabel: `Eliminar matrícula de ${nombre}`,
+            icono: 'papelera',
+            tono: 'peligro',
+            separadorAntes: true,
+            deshabilitado: !puedeEliminar,
+            descripcion: puedeEliminar ? undefined : matricula.motivoNoEliminar,
+            alSeleccionar: () => alEliminar?.(matricula)
+          }
+        ]}
+      />
+    );
+  }
 
   return (
     <div className={estilos.accionesFila}>
@@ -154,7 +201,7 @@ export default function TablaMatriculas({
             <tr>
               <th scope="col" className={estilos.columnaEstudiante}>Estudiante</th>
               <th scope="col" className={estilos.columnaAnio}>Año</th>
-              <th scope="col" className={estilos.columnaFecha}>Fecha de asignación</th>
+              <th scope="col" className={estilos.columnaFecha}>Fecha asignación</th>
               <th scope="col" className={estilos.columnaGrado}>Grado</th>
               <th scope="col" className={estilos.columnaSeccion}>Sección</th>
               <th scope="col" className={estilos.columnaEstado}>Estado</th>
@@ -183,6 +230,7 @@ export default function TablaMatriculas({
                       alEmitir={alEmitir}
                       alEditar={alEditar}
                       alEliminar={alEliminar}
+                      enMenu
                     />
                   </td>
                 </tr>

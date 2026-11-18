@@ -94,6 +94,60 @@ describe('DialogoCargaCsv · revisión del archivo', () => {
     expect(within(dialogo).queryByText('Ver formato del archivo')).not.toBeInTheDocument();
   });
 
+  it('en la revisión, Atrás pide confirmar y al descartar vuelve al paso 1 sin cerrar la carga', async () => {
+    const alCerrar = vi.fn();
+    render(<DialogoCargaCsv usuarios={[]} alImportar={vi.fn()} alImportacionCompleta={vi.fn()} alCerrar={alCerrar} />);
+    const dialogo = screen.getByRole('dialog', { name: 'Carga masiva de usuarios' });
+    await userEvent.upload(
+      within(dialogo).getByLabelText(/Seleccionar archivo CSV/),
+      new File([CSV_VALIDO], 'usuarios.csv', { type: 'text/csv' })
+    );
+    await esperarLectura(dialogo);
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Previsualizar' }));
+    await within(dialogo).findByRole('table', { name: 'Revisión de las filas del archivo' });
+
+    expect(within(dialogo).queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument();
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Atrás' }));
+    const aviso = screen.getByRole('dialog', { name: '¿Descartar la importación?' });
+    expect(within(aviso).getByText('Se perderá el archivo «usuarios.csv» y su revisión. No se creará ningún usuario.')).toBeInTheDocument();
+
+    // «Seguir con la carga» deja la revisión como estaba.
+    await userEvent.click(within(aviso).getByRole('button', { name: 'Seguir con la carga' }));
+    expect(within(dialogo).getByRole('table', { name: 'Revisión de las filas del archivo' })).toBeInTheDocument();
+
+    // «Descartar» vuelve al paso 1: sin archivo y con la carga todavía abierta.
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Atrás' }));
+    await userEvent.click(within(screen.getByRole('dialog', { name: '¿Descartar la importación?' })).getByRole('button', { name: 'Descartar' }));
+    expect(alCerrar).not.toHaveBeenCalled();
+    expect(screen.queryByRole('dialog', { name: '¿Descartar la importación?' })).not.toBeInTheDocument();
+    expect(within(dialogo).queryByRole('table', { name: 'Revisión de las filas del archivo' })).not.toBeInTheDocument();
+    expect(within(dialogo).getByText('Selecciona un archivo CSV para continuar.')).toBeInTheDocument();
+    expect(within(dialogo).getByRole('button', { name: 'Previsualizar' })).toBeDisabled();
+
+    // Ya sin archivo, Cancelar cierra sin preguntar.
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }));
+    expect(alCerrar).toHaveBeenCalledTimes(1);
+  });
+
+  it('en la revisión, la X pide confirmar y al descartar cierra toda la carga', async () => {
+    const alCerrar = vi.fn();
+    render(<DialogoCargaCsv usuarios={[]} alImportar={vi.fn()} alImportacionCompleta={vi.fn()} alCerrar={alCerrar} />);
+    const dialogo = screen.getByRole('dialog', { name: 'Carga masiva de usuarios' });
+    await userEvent.upload(
+      within(dialogo).getByLabelText(/Seleccionar archivo CSV/),
+      new File([CSV_VALIDO], 'usuarios.csv', { type: 'text/csv' })
+    );
+    await esperarLectura(dialogo);
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Previsualizar' }));
+    await within(dialogo).findByRole('table', { name: 'Revisión de las filas del archivo' });
+
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Cerrar' }));
+    await userEvent.click(within(screen.getByRole('dialog', { name: '¿Descartar la importación?' })).getByRole('button', { name: 'Descartar' }));
+
+    // No vuelve al paso 1: se cierra la carga.
+    expect(alCerrar).toHaveBeenCalledTimes(1);
+  });
+
   it('un archivo con filas con errores deja avanzar a la revisión, pero no importar', async () => {
     const dialogo = await abrirConArchivo(CSV_CON_ERRORES);
 
