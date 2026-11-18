@@ -30,12 +30,18 @@ describe('Usuarios · formularios en diálogo', () => {
     render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     const dialogo = await abrirRegistro('estudiante');
 
-    for (const etiqueta of ['Nombre', 'Apellido paterno', 'Apellido materno', 'Fecha de nacimiento', 'DNI', 'Teléfono', 'Correo', 'DNI del apoderado']) {
+    for (const etiqueta of ['Nombre', 'Apellido paterno', 'Apellido materno', 'DNI', 'Teléfono', 'Correo', 'Buscar apoderado']) {
       const exacta = new RegExp("^" + etiqueta + "( [*])?$");
       const campo = within(dialogo).getByLabelText(exacta);
       await userEvent.click(within(dialogo).getByText(exacta, { selector: 'label' }));
       expect(campo).toHaveFocus();
     }
+
+    // La fecha usa el calendario compartido; su etiqueta también enfoca el selector.
+    const etiquetaFecha = within(dialogo).getByText(/^Fecha de nacimiento/, { selector: 'label' });
+    const campoFecha = within(dialogo).getByLabelText(/^Fecha de nacimiento/);
+    await userEvent.click(etiquetaFecha);
+    expect(campoFecha).toHaveFocus();
   });
 
   it('agrupa los campos en secciones con título', async () => {
@@ -187,7 +193,13 @@ describe('Usuarios · formularios en diálogo', () => {
 
     await userEvent.type(within(dialogo).getByLabelText(/^Nombre/), 'Ana');
     await userEvent.type(within(dialogo).getByLabelText(/^Apellido/), 'Lopez');
-    await userEvent.type(within(dialogo).getByLabelText(/^Fecha de nacimiento/), '1985-03-12');
+    await userEvent.click(within(dialogo).getByLabelText(/^Fecha de nacimiento/));
+    const calendario = within(dialogo).getByRole('dialog', {
+      name: 'Calendario de Fecha de nacimiento'
+    });
+    await userEvent.selectOptions(within(calendario).getByLabelText('Año'), '1985');
+    await userEvent.selectOptions(within(calendario).getByLabelText('Mes'), '2');
+    await userEvent.click(within(calendario).getByRole('button', { name: '12' }));
     await userEvent.type(within(dialogo).getByLabelText(/^DNI/), '91234567');
     await userEvent.type(within(dialogo).getByLabelText(/^Correo/), 'ana.lopez@correo.com');
     await userEvent.click(within(dialogo).getByRole('button', { name: 'Registrar' }));
@@ -215,15 +227,35 @@ describe('Usuarios · formularios en diálogo', () => {
     expect(within(dialogo).getByText('El DNI debe tener 8 dígitos.')).toBeInTheDocument();
   });
 
-  it('el estudiante necesita un apoderado: busca por DNI, lo muestra y permite quitarlo', async () => {
+  it('el estudiante busca al apoderado por nombre o DNI, lo muestra y permite quitarlo', async () => {
     render(<PaginaUsuarios />, { wrapper: MemoryRouter });
     const dialogo = await abrirRegistro('estudiante');
-    const campoApoderado = within(dialogo).getByLabelText(/^DNI del apoderado/);
+    const campoApoderado = within(dialogo).getByLabelText(/^Buscar apoderado/);
+
+    await userEvent.type(campoApoderado, 'maria');
+    const sugerencia = await within(dialogo).findByRole('option', { name: /María López/ });
+    await userEvent.click(sugerencia);
+
+    expect(within(dialogo).getByText('Apoderado seleccionado')).toBeInTheDocument();
+    expect(within(dialogo).getByText('DNI: 74852136')).toBeInTheDocument();
+    expect(campoApoderado).toHaveValue('74852136');
+
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Quitar apoderado seleccionado' }));
+    expect(within(dialogo).queryByText('Apoderado seleccionado')).not.toBeInTheDocument();
+    expect(campoApoderado).toHaveValue('');
+  });
+
+  it('si no hay coincidencias, Enter mantiene la búsqueda y muestra el error', async () => {
+    render(<PaginaUsuarios />, { wrapper: MemoryRouter });
+    const dialogo = await abrirRegistro('estudiante');
+    const campoApoderado = within(dialogo).getByLabelText(/^Buscar apoderado/);
 
     await userEvent.type(campoApoderado, '00000000');
     // Enter busca sin enviar el formulario completo.
     await userEvent.keyboard('{Enter}');
-    expect(within(dialogo).getByText('No se encontró un apoderado registrado con este DNI.')).toBeInTheDocument();
+    expect(
+      within(dialogo).getByText('No se encontró un apoderado activo con ese nombre o DNI.')
+    ).toBeInTheDocument();
     expect(screen.getByRole('dialog', { name: 'Registrar estudiante' })).toBeInTheDocument();
     expect(campoApoderado).toHaveAttribute('aria-invalid', 'true');
   });

@@ -11,6 +11,7 @@ import {
 } from '../services/usuariosService.js';
 import { separarTelefono, telefonoPeru } from '../utils/telefono.js';
 import CampoApoderado from './CampoApoderado.jsx';
+import CampoFechaNacimiento from './CampoFechaNacimiento.jsx';
 import CampoTelefono from './CampoTelefono.jsx';
 import CampoUsuario from './CampoUsuario.jsx';
 import DialogoDescartarCambios from './DialogoDescartarCambios.jsx';
@@ -82,9 +83,19 @@ export default function DialogoRegistroUsuario({ tipo, usuarios, alRegistrado, a
       setForm((previo) => ({
         ...previo,
         apoderadoSeleccionado: null,
-        apoderadoError: 'No se encontró un apoderado registrado con este DNI.'
+        apoderadoError: 'No se encontró un apoderado activo con ese nombre o DNI.'
       }));
     }
+  };
+
+  const seleccionarApoderado = (apoderado) => {
+    setForm((previo) => ({
+      ...previo,
+      dniApoderado: apoderado.dni,
+      apoderadoSeleccionado: apoderado,
+      apoderadoError: ''
+    }));
+    setErrores((previo) => ({ ...previo, dniApoderado: '' }));
   };
 
   const validar = () => {
@@ -216,6 +227,9 @@ export default function DialogoRegistroUsuario({ tipo, usuarios, alRegistrado, a
   const pideFechaNacimiento = esEstudiante || tipo === 'apoderado';
   const apellidosSeparados = esEstudiante || !USAR_MOCK;
   const telefonoObligatorio = USAR_MOCK ? (esEstudiante || tipo === 'docente') : esEstudiante;
+  const apoderadosDisponibles = usuarios.filter(
+    (usuario) => usuario.rol === 'Apoderado' && usuario.activo
+  );
 
   return (
     <>
@@ -244,7 +258,13 @@ export default function DialogoRegistroUsuario({ tipo, usuarios, alRegistrado, a
               <CampoUsuario etiqueta="Apellido materno" valor={form.apellidoMaterno} alCambiar={(v) => cambiar('apellidoMaterno', v)} onBlur={() => validarCampo('apellidoMaterno')} placeholder="Opcional" error={errores.apellidoMaterno} maxLength={80} />
             )}
             {pideFechaNacimiento && (
-              <CampoUsuario etiqueta="Fecha de nacimiento" type="date" valor={form.fechaNacimiento} alCambiar={(v) => cambiar('fechaNacimiento', v)} onBlur={() => validarCampo('fechaNacimiento')} error={errores.fechaNacimiento} requerido />
+              <CampoFechaNacimiento
+                etiqueta="Fecha de nacimiento"
+                valor={form.fechaNacimiento}
+                alCambiar={(valor) => cambiar('fechaNacimiento', valor)}
+                error={errores.fechaNacimiento}
+                requerido
+              />
             )}
             <CampoUsuario etiqueta="DNI" valor={form.dni} alCambiar={(v) => cambiar('dni', v.replace(/\D/g, ''))} onBlur={() => validarCampo('dni')} placeholder="Ingrese el DNI" error={errores.dni} maxLength={8} inputMode="numeric" autoComplete="off" requerido />
           </SeccionFormulario>
@@ -258,8 +278,10 @@ export default function DialogoRegistroUsuario({ tipo, usuarios, alRegistrado, a
                   setErrores((previo) => ({ ...previo, dniApoderado: '' }));
                 }}
                 alBuscar={buscarApoderado}
-                alQuitar={() => setForm((previo) => ({ ...previo, apoderadoSeleccionado: null, dniApoderado: '' }))}
+                alSeleccionar={seleccionarApoderado}
+                alQuitar={() => setForm((previo) => ({ ...previo, apoderadoSeleccionado: null, dniApoderado: '', apoderadoError: '' }))}
                 apoderado={form.apoderadoSeleccionado}
+                candidatos={apoderadosDisponibles}
                 error={form.apoderadoError || errores.dniApoderado}
               />
             </SeccionFormulario>
