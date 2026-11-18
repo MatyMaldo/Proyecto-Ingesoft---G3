@@ -11,6 +11,11 @@ vi.mock('../../grados-secciones/services/gradosSeccionesService.js', () => ({ co
 
 import {
   contarMatriculasPorEstado,
+  actualizarMatricula,
+  eliminarMatricula,
+  descargarPlantillaMatriculas,
+  exportarMatriculas,
+  confirmarCargaMasivaMatriculas,
   obtenerAlumnos,
   obtenerEstructuraMatricula,
   obtenerEstructuraMatriculaVigente,
@@ -309,6 +314,81 @@ describe('matriculasService', () => {
       cuerpo: { anioId: 2 },
       cabeceras: { 'Idempotency-Key': 'matricula-2026' },
       tiempoEsperaMs: 15000
+    });
+  });
+
+  it('actualiza la sección de una matrícula con PUT', async () => {
+    await actualizarMatricula(10, { seccionId: 3 });
+
+    expect(solicitar).toHaveBeenCalledWith('/matriculas/10', {
+      metodo: 'PUT',
+      cuerpo: { seccionId: 3 }
+    });
+  });
+
+  it('elimina una matrícula con DELETE', async () => {
+    await eliminarMatricula(10);
+
+    expect(solicitar).toHaveBeenCalledWith('/matriculas/10', {
+      metodo: 'DELETE'
+    });
+  });
+
+  it('descarga la plantilla y exporta matrículas', async () => {
+    await descargarPlantillaMatriculas();
+    await exportarMatriculas(2);
+
+    expect(solicitar.mock.calls).toEqual([
+      ['/matriculas/plantilla', { respuestaArchivo: true }],
+      ['/matriculas/exportar', {
+        parametros: { anioId: 2 },
+        respuestaArchivo: true
+      }]
+    ]);
+  });
+
+  it('solicita plantilla y exportación en el formato elegido', async () => {
+    await descargarPlantillaMatriculas('xlsx');
+    await exportarMatriculas(2, 'xlsx');
+
+    expect(solicitar.mock.calls).toEqual([
+      ['/matriculas/plantilla', {
+        parametros: { formato: 'xlsx' },
+        respuestaArchivo: true
+      }],
+      ['/matriculas/exportar', {
+        parametros: { anioId: 2, formato: 'xlsx' },
+        respuestaArchivo: true
+      }]
+    ]);
+  });
+
+  it('confirma la carga masiva con las filas seleccionadas', async () => {
+    await confirmarCargaMasivaMatriculas({
+      anioId: 2,
+      filas: [{
+        previewId: 'p-1',
+        estudianteId: '5',
+        gradoId: '1',
+        seccionId: '3',
+        origen: 'matriculas.csv#2'
+      }]
+    });
+
+    expect(solicitar).toHaveBeenCalledWith('/matriculas/carga-masiva/confirmar', {
+      metodo: 'POST',
+      cuerpo: {
+        anioAcademicoId: 2,
+        filas: [{
+          previewId: 'p-1',
+          estudianteId: 5,
+          anioAcademicoId: 2,
+          gradoId: 1,
+          seccionId: 3,
+          origen: 'matriculas.csv#2'
+        }]
+      },
+      tiempoEsperaMs: 60000
     });
   });
 });

@@ -50,6 +50,7 @@ export default function PaginaHorarios() {
     puedeEditarBloques,
     puedeGenerarSesiones,
     filtros,
+    seleccionarAnio,
     seleccionarGrado,
     seleccionarSeccion,
     seccionesFiltradas,
@@ -67,6 +68,8 @@ export default function PaginaHorarios() {
   const [bloqueElegido, establecerBloqueElegido] = useState(null);
   // 'cambiar' (otra sección) o 'descartar' (volver a lo guardado), cuando hay cambios sin guardar.
   const [confirmacion, establecerConfirmacion] = useState(null);
+  // Año elegido mientras se confirma que se perderán los cambios sin guardar.
+  const [anioPendiente, establecerAnioPendiente] = useState(null);
   const [dialogoSesiones, establecerDialogoSesiones] = useState(false);
   const [dialogoCargaMasiva, establecerDialogoCargaMasiva] = useState(false);
   // Asignación cuya carga horaria docente se está viendo.
@@ -125,6 +128,15 @@ export default function PaginaHorarios() {
       return;
     }
     verHorario();
+  }
+
+  function solicitarCambioAnio(anioId) {
+    if (consulta && horario.hayCambios) {
+      establecerAnioPendiente(anioId);
+      establecerConfirmacion('cambiarAnio');
+      return;
+    }
+    seleccionarAnio(anioId);
   }
 
   async function guardarHorario() {
@@ -333,6 +345,7 @@ export default function PaginaHorarios() {
       <EstadoPeriodo
         estado={estadoPeriodo}
         periodo={periodo}
+        anio={anioVigente?.anio}
         error={errorPeriodo}
         asignacionesAbiertas={puedeEditarAsignaciones}
         bloquesAbiertos={puedeEditarBloques}
@@ -347,11 +360,13 @@ export default function PaginaHorarios() {
         />
       ) : (
         <FiltrosHorario
+          anios={catalogos.anios}
           grados={catalogos.grados}
           secciones={seccionesFiltradas}
           filtros={filtros}
           deshabilitado={estadoCatalogos === 'cargando'}
           seccionesCargando={estadoSecciones === 'cargando'}
+          alCambiarAnio={solicitarCambioAnio}
           alCambiarGrado={seleccionarGrado}
           alCambiarSeccion={seleccionarSeccion}
           alVerHorario={solicitarVerHorario}
@@ -575,11 +590,22 @@ export default function PaginaHorarios() {
           mensaje={
             confirmacion === 'cambiar'
               ? 'Tienes cambios sin guardar en esta matriz. Si consultas otra sección, se perderán.'
-              : 'Se perderán todos los cambios hechos desde el último guardado.'
+              : confirmacion === 'cambiarAnio'
+                ? 'Tienes cambios sin guardar en esta matriz. Si cambias de año académico, se perderán.'
+                : 'Se perderán todos los cambios hechos desde el último guardado.'
           }
           textoConfirmar="Aceptar"
-          alCancelar={() => establecerConfirmacion(null)}
-          alConfirmar={confirmacion === 'cambiar' ? verHorario : descartarCambios}
+          alCancelar={() => {
+            establecerConfirmacion(null);
+            establecerAnioPendiente(null);
+          }}
+          alConfirmar={
+            confirmacion === 'cambiar'
+              ? verHorario
+              : confirmacion === 'cambiarAnio'
+                ? () => seleccionarAnio(anioPendiente ?? '')
+                : descartarCambios
+          }
         />
       )}
 

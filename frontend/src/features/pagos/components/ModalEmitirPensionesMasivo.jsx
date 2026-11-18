@@ -34,6 +34,17 @@ export default function ModalEmitirPensionesMasivo({
   // Matrículas confirmadas del año: las que recibirán un compromiso (las que ya lo tengan se omiten).
   const [confirmadas, establecerConfirmadas] = useState(null);
 
+  // Al abrir, una operación anterior ya terminada no debe seguir bloqueando el formulario.
+  // Si sigue en curso, se conserva para mostrar su progreso real.
+  useEffect(() => {
+    if (operacion && !operacion.enCurso) {
+      claveRef.current = null;
+      operacion.reiniciar();
+    }
+    // Solo al abrir el diálogo.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
   useEffect(() => {
     if (!anioId) {
       establecerConfirmadas(null);
@@ -114,7 +125,7 @@ export default function ModalEmitirPensionesMasivo({
           id={idAnio}
           className={estilos.selector}
           value={anioId}
-          disabled={operacion?.enCurso || Boolean(operacion?.job)}
+          disabled={operacion?.enCurso}
           onChange={(evento) => {
             establecerAnioId(evento.target.value);
             claveRef.current = null;
@@ -134,7 +145,7 @@ export default function ModalEmitirPensionesMasivo({
           id={idMes}
           className={estilos.selector}
           value={mes}
-          disabled={operacion?.enCurso || Boolean(operacion?.job)}
+          disabled={operacion?.enCurso}
           onChange={(evento) => {
             establecerMes(evento.target.value);
             claveRef.current = null;
@@ -176,6 +187,10 @@ export default function ModalEmitirPensionesMasivo({
           job={operacion.job}
           error={operacion.error}
           titulo="Emisión masiva de pensión"
+          onReintentar={() => {
+            claveRef.current = null;
+            operacion.reiniciar();
+          }}
         />
       )}
     </DialogoBase>

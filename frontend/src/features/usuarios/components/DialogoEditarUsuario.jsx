@@ -62,6 +62,8 @@ export default function DialogoEditarUsuario({ usuario, usuarios, alGuardado, al
   const hayCambios = JSON.stringify({ ...form, apoderadoError: '' }) !== JSON.stringify(formularioInicial);
   const solicitarCierre = () => (hayCambios ? setConfirmandoDescarte(true) : alCerrar());
   const esEstudiante = usuario.rol === 'Estudiante';
+  const apoderadosDisponibles = usuarios.filter((candidato) => candidato.rol === 'Apoderado'
+    && (candidato.activo || String(candidato.id) === String(usuario.apoderadoId)));
 
   const cambiar = (clave, valor) => {
     setForm((previo) => ({ ...previo, [clave]: valor }));
@@ -86,9 +88,20 @@ export default function DialogoEditarUsuario({ usuario, usuarios, alGuardado, al
         ...previo,
         apoderadoId: '',
         apoderadoSeleccionado: null,
-        apoderadoError: 'No se encontró un apoderado activo con este DNI.'
+        apoderadoError: 'No se encontró un apoderado activo con ese nombre o DNI.'
       }));
     }
+  };
+
+  const seleccionarApoderado = (apoderado) => {
+    setForm((previo) => ({
+      ...previo,
+      apoderadoId: String(apoderado.id),
+      dniApoderado: apoderado.dni ?? '',
+      apoderadoSeleccionado: apoderado,
+      apoderadoError: ''
+    }));
+    setErrores((previo) => ({ ...previo, apoderadoId: '' }));
   };
 
   const validar = () => {
@@ -239,8 +252,10 @@ export default function DialogoEditarUsuario({ usuario, usuarios, alGuardado, al
                   setErrores((previo) => ({ ...previo, apoderadoId: '' }));
                 }}
                 alBuscar={buscarApoderado}
+                alSeleccionar={seleccionarApoderado}
                 alQuitar={() => setForm((previo) => ({ ...previo, apoderadoId: '', dniApoderado: '', apoderadoSeleccionado: null, apoderadoError: '' }))}
                 apoderado={form.apoderadoSeleccionado}
+                candidatos={apoderadosDisponibles}
                 error={form.apoderadoError || errores.apoderadoId}
               />
             </SeccionFormulario>

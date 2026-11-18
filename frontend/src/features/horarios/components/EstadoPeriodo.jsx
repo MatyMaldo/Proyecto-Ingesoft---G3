@@ -9,6 +9,7 @@ import estilos from './EstadoPeriodo.module.css';
  * @param {Object} props
  * @param {'inactivo'|'cargando'|'listo'|'error'} props.estado
  * @param {{ estado: string }|null} props.periodo
+ * @param {string|number} [props.anio] Año académico al que pertenece el periodo.
  * @param {string} props.error
  * @param {boolean} props.asignacionesAbiertas
  * @param {boolean} props.bloquesAbiertos
@@ -17,11 +18,14 @@ import estilos from './EstadoPeriodo.module.css';
 export default function EstadoPeriodo({
   estado,
   periodo,
+  anio,
   error,
   asignacionesAbiertas,
   bloquesAbiertos,
   sesionesAbiertas
 }) {
+  const tituloAnio = anio != null ? ` · ${anio}` : '';
+
   if (estado === 'error') {
     return (
       <p className={estilos.error} role="alert">
@@ -30,7 +34,11 @@ export default function EstadoPeriodo({
     );
   }
   if (estado === 'cargando') {
-    return <p className={estilos.cargando}>Consultando el periodo de matrícula…</p>;
+    return (
+      <p className={estilos.cargando}>
+        Consultando el periodo de matrícula{tituloAnio ? ` de ${anio}` : ''}…
+      </p>
+    );
   }
   if (estado !== 'listo' || !periodo) {
     return null;
@@ -44,7 +52,7 @@ export default function EstadoPeriodo({
 
   return (
     <section className={estilos.franja} aria-label="Periodo de matrícula">
-      <span className={estilos.titulo}>Periodo de matrícula</span>
+      <span className={estilos.titulo}>Periodo de matrícula{tituloAnio}</span>
       <Insignia tono={tonoPeriodo(periodo.estado)}>{etiquetaPeriodo(periodo.estado)}</Insignia>
       <ul className={estilos.ventanas}>
         {ventanas.map((ventana) => (

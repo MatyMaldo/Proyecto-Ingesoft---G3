@@ -6,6 +6,11 @@
   gap: var(--espacio-3);
 }
 
+.campoAnio {
+  flex: 0 0 9.5rem;
+  min-width: 0;
+}
+
 .campoGrado,
 .campoSeccion {
   flex: 0 0 var(--ancho-selector-filtro);
@@ -44,6 +49,7 @@
 }
 
 @media (max-width: 767px) {
+  .campoAnio,
   .campoGrado,
   .campoSeccion {
     flex: 1 1 100%;

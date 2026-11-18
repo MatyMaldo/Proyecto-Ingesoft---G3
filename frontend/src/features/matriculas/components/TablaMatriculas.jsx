@@ -68,9 +68,68 @@ function AccionEmitir({ matricula, estado, emitiendo, alEmitir }) {
   );
 }
 
+/** Acciones de una fila: editar/eliminar solo para pendientes y emitir su compromiso. */
+function AccionesFila({
+  matricula,
+  estado,
+  emitiendo,
+  eliminando,
+  alEmitir,
+  alEditar,
+  alEliminar
+}) {
+  if (estado !== 'PENDIENTE') {
+    return <span className={estilos.sinAccion}>—</span>;
+  }
+
+  const puedeEditar = matricula.puedeEditar !== false;
+  const puedeEliminar = matricula.puedeEliminar !== false;
+  const motivos = [
+    puedeEditar ? null : matricula.motivoNoEditar,
+    puedeEliminar ? null : matricula.motivoNoEliminar
+  ].filter(Boolean);
+
+  return (
+    <div className={estilos.accionesFila}>
+      <button
+        type="button"
+        className={estilos.botonAccion}
+        aria-label={`Editar matrícula de ${matricula.nombreCompletoEstudiante ?? 'estudiante'}`}
+        title={puedeEditar ? undefined : matricula.motivoNoEditar}
+        disabled={!puedeEditar || eliminando}
+        onClick={() => alEditar?.(matricula)}
+      >
+        <Icono nombre="editar" tamano={15} />
+        Editar
+      </button>
+      <button
+        type="button"
+        className={`${estilos.botonAccion} ${estilos.botonPeligro}`}
+        aria-label={`Eliminar matrícula de ${matricula.nombreCompletoEstudiante ?? 'estudiante'}`}
+        title={puedeEliminar ? undefined : matricula.motivoNoEliminar}
+        disabled={!puedeEliminar || eliminando}
+        onClick={() => alEliminar?.(matricula)}
+      >
+        <Icono nombre="papelera" tamano={15} />
+        {eliminando ? 'Eliminando…' : 'Eliminar'}
+      </button>
+      <AccionEmitir
+        matricula={matricula}
+        estado={estado}
+        emitiendo={emitiendo}
+        alEmitir={alEmitir}
+      />
+      {motivos.length > 0 && (
+        <span className={estilos.motivoAccion}>{[...new Set(motivos)].join(' ')}</span>
+      )}
+    </div>
+  );
+}
+
 /**
  * Listado de matrículas: tabla en escritorio y tarjetas por debajo de 768 px (GUI §11). Las columnas siguen el orden
- * de los filtros (año, grado, sección, estado), con la fecha de asignación como subtexto del año, y cada fila permite emitir su compromiso. Solo pinta; los filtros,
+ * de los filtros (año, grado, sección, estado), con la fecha de asignación como subtexto del año, y cada fila
+ * pendiente permite editar, eliminar o emitir su compromiso. Solo pinta; los filtros,
  * la paginación y las llamadas a la API viven en la página.
  *
  * @param {Object} props
@@ -78,7 +137,14 @@ function AccionEmitir({ matricula, estado, emitiendo, alEmitir }) {
  * @param {(matricula: Object) => void} props.alEmitir Emite el compromiso de una matrícula pendiente.
  * @param {string|number|null} props.emitiendoId Id de la matrícula cuyo compromiso se está emitiendo.
  */
-export default function TablaMatriculas({ matriculas, alEmitir, emitiendoId }) {
+export default function TablaMatriculas({
+  matriculas,
+  alEmitir,
+  alEditar,
+  alEliminar,
+  emitiendoId,
+  eliminandoId
+}) {
   return (
     <div className={estilos.contenedor}>
       <div className={estilos.vistaTabla}>
@@ -108,12 +174,15 @@ export default function TablaMatriculas({ matriculas, alEmitir, emitiendoId }) {
                   <td>{matricula.gradoNombre ?? '—'}</td>
                   <td>{matricula.seccionNombre ?? '—'}</td>
                   <td><InsigniaEstado estado={estado} /></td>
-                  <td className={estilos.columnaAccion}>
-                    <AccionEmitir
+                  <td className={`${estilos.columnaAccion} ${estilos.celdaAcciones}`}>
+                    <AccionesFila
                       matricula={matricula}
                       estado={estado}
                       emitiendo={String(emitiendoId) === String(matricula.id)}
+                      eliminando={String(eliminandoId) === String(matricula.id)}
                       alEmitir={alEmitir}
+                      alEditar={alEditar}
+                      alEliminar={alEliminar}
                     />
                   </td>
                 </tr>
@@ -144,11 +213,14 @@ export default function TablaMatriculas({ matriculas, alEmitir, emitiendoId }) {
               </p>
 
               {estado === 'PENDIENTE' && (
-                <AccionEmitir
+                <AccionesFila
                   matricula={matricula}
                   estado={estado}
                   emitiendo={String(emitiendoId) === String(matricula.id)}
+                  eliminando={String(eliminandoId) === String(matricula.id)}
                   alEmitir={alEmitir}
+                  alEditar={alEditar}
+                  alEliminar={alEliminar}
                 />
               )}
             </li>

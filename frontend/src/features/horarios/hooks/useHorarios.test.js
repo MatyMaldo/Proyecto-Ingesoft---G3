@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 
-import { buscarAnioAcademicoVigente, elegirAnioProgramacion } from './useHorarios.js';
+import { buscarAnioAcademicoVigente, elegirAnioProgramacion, resolverAnioProgramacion } from './useHorarios.js';
 
 describe('buscarAnioAcademicoVigente', () => {
   const anioVigente = new Date().getFullYear();
@@ -54,5 +54,33 @@ describe('elegirAnioProgramacion', () => {
     expect(elegirAnioProgramacion([{ id: 5, anio: 2001 }, { id: 6, anio: 2002 }], new Map()))
       .toEqual({ id: 6, anio: 2002 });
     expect(elegirAnioProgramacion([], new Map())).toBeNull();
+  });
+});
+
+describe('resolverAnioProgramacion', () => {
+  const anios = [
+    { id: 1, anio: 2027 },
+    { id: 2, anio: 2026 },
+    { id: 3, anio: 2028 }
+  ];
+  const porAnio = new Map([
+    [2, { fechaFin: '2026-01-31' }],
+    [1, { fechaFin: '2027-02-01' }],
+    [3, { fechaFin: '2028-02-01' }]
+  ]);
+
+  it('respeta el año elegido aunque otro tenga matrícula abierta', () => {
+    expect(resolverAnioProgramacion(anios, porAnio, '3', '2026-11-17'))
+      .toEqual({ id: 3, anio: 2028 });
+  });
+
+  it('vuelve a la elección automática si el año elegido no existe', () => {
+    expect(resolverAnioProgramacion(anios, porAnio, '999', '2026-11-17'))
+      .toEqual({ id: 1, anio: 2027 });
+  });
+
+  it('sin elección usa la elección automática por periodo', () => {
+    expect(resolverAnioProgramacion(anios, porAnio, '', '2026-11-17'))
+      .toEqual({ id: 1, anio: 2027 });
   });
 });

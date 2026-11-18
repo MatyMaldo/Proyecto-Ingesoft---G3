@@ -21,6 +21,13 @@
   gap: var(--espacio-2);
 }
 
+.contenedorEntrada {
+  position: relative;
+  display: flex;
+  flex: 1 1 auto;
+  min-width: 0;
+}
+
 .entrada {
   flex: 1 1 auto;
   min-width: 0;
@@ -51,6 +58,76 @@
 .entrada[aria-invalid='true'] {
   background: var(--color-peligro-fondo);
   border-color: var(--color-peligro);
+}
+
+/* Sugerencias de apoderados: se despliegan bajo el campo sin mover el formulario. */
+.sugerencias {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  max-height: 14rem;
+  margin: 0;
+  padding: 0;
+  overflow-y: auto;
+  list-style: none;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio-md);
+  box-shadow: var(--sombra-lg);
+}
+
+.sugerencia {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--espacio-2) var(--espacio-3);
+  cursor: pointer;
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.sugerencia:last-child {
+  border-bottom: 0;
+}
+
+.sugerencia:hover,
+.sugerenciaActiva {
+  background: var(--color-accion-suave);
+}
+
+.sugerenciaNombre {
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+}
+
+.sugerenciaDocumento {
+  font-size: var(--texto-xs);
+  color: var(--color-texto-suave);
+}
+
+.sinResultados {
+  position: absolute;
+  top: calc(100% + 4px);
+  left: 0;
+  right: 0;
+  z-index: 20;
+  margin: 0;
+  padding: var(--espacio-2) var(--espacio-3);
+  font-size: var(--texto-xs);
+  color: var(--color-texto-suave);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio-md);
+  box-shadow: var(--sombra-lg);
+}
+
+.ayuda {
+  margin: 0;
+  font-size: var(--texto-xs);
+  line-height: var(--interlineado-xs);
+  color: var(--color-texto-suave);
 }
 
 .botonBuscar {

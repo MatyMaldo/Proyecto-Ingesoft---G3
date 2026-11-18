@@ -14,11 +14,16 @@ import useOperacionMasiva from '../../../shared/hooks/useOperacionMasiva.js';
 import ModalActualizarEstadosMatricula from '../components/ModalActualizarEstadosMatricula.jsx';
 import ModalAsignarAlumno from '../components/ModalAsignarAlumno.jsx';
 import ModalComprobante from '../components/ModalComprobante.jsx';
+import ModalEditarMatricula from '../components/ModalEditarMatricula.jsx';
+import DialogoEliminarMatricula from '../components/DialogoEliminarMatricula.jsx';
+import DialogoCargaMasivaMatriculas from '../components/DialogoCargaMasivaMatriculas.jsx';
 import TablaMatriculas from '../components/TablaMatriculas.jsx';
 import useListadoMatriculas, { OPCIONES_TAMANIO_PAGINA } from '../hooks/useListadoMatriculas.js';
 import {
+  actualizarMatricula,
   cancelarPendientesPorPeriodo,
   crearMatricula,
+  eliminarMatricula,
   emitirCompromisoMatricula
 } from '../services/matriculasService.js';
 import estilos from './PaginaMatriculas.module.css';
@@ -64,7 +69,11 @@ export default function PaginaMatriculas() {
   const [modalAsignarAlumnoAbierto, establecerModalAsignarAlumnoAbierto] = useState(false);
   const [modalComprobanteAbierto, establecerModalComprobanteAbierto] = useState(false);
   const [modalActualizarEstadosAbierto, establecerModalActualizarEstadosAbierto] = useState(false);
+  const [modalCargaMasivaAbierto, establecerModalCargaMasivaAbierto] = useState(false);
+  const [matriculaAEditar, establecerMatriculaAEditar] = useState(null);
+  const [matriculaAEliminar, establecerMatriculaAEliminar] = useState(null);
   const [emitiendoId, establecerEmitiendoId] = useState(null);
+  const [eliminandoId, establecerEliminandoId] = useState(null);
 
   const operacionMatriculas = useOperacionMasiva({
     alTerminar: (job) => {
@@ -92,6 +101,41 @@ export default function PaginaMatriculas() {
     recargar();
     mostrarNotificacion(
       `El alumno ${asignacion.alumno.nombre} ha sido asignado correctamente a ${asignacion.grado.nombre}, sección ${asignacion.seccion.nombre}, año ${asignacion.anio?.anio ?? 'seleccionado'}.`
+    );
+  };
+
+  const confirmarEdicionMatricula = async ({ seccionId, seccion }) => {
+    const respuesta = await actualizarMatricula(matriculaAEditar.id, { seccionId });
+    if (!respuesta.exitoso) {
+      return respuesta;
+    }
+    establecerMatriculaAEditar(null);
+    recargar();
+    mostrarNotificacion(
+      `Matrícula actualizada a ${seccion?.nombre ? `la sección ${seccion.nombre}` : 'la nueva sección'}.`
+    );
+    return respuesta;
+  };
+
+  const confirmarEliminacionMatricula = async () => {
+    if (!matriculaAEliminar) return null;
+    establecerEliminandoId(matriculaAEliminar.id);
+    const respuesta = await eliminarMatricula(matriculaAEliminar.id);
+    establecerEliminandoId(null);
+    if (!respuesta.exitoso) {
+      return respuesta;
+    }
+    establecerMatriculaAEliminar(null);
+    recargar();
+    mostrarNotificacion('Matrícula eliminada correctamente.');
+    return respuesta;
+  };
+
+  const completarCargaMasivaMatriculas = (resumen = {}) => {
+    establecerModalCargaMasivaAbierto(false);
+    recargar();
+    mostrarNotificacion(
+      `Carga masiva completada: ${resumen.creados ?? 0} matrículas creadas.`
     );
   };
 
@@ -204,6 +248,12 @@ export default function PaginaMatriculas() {
               <Icono nombre="chevron-abajo" tamano={16} />
             </>}
             items={[
+              {
+                id: 'carga',
+                etiqueta: 'Carga masiva de matrículas',
+                icono: 'subir',
+                alSeleccionar: () => establecerModalCargaMasivaAbierto(true)
+              },
               {
                 id: 'emitir',
                 etiqueta: 'Emitir compromisos de matrícula',
@@ -327,7 +377,10 @@ export default function PaginaMatriculas() {
               key={pagina}
               matriculas={matriculas}
               alEmitir={emitirDesdeFila}
+              alEditar={establecerMatriculaAEditar}
+              alEliminar={establecerMatriculaAEliminar}
               emitiendoId={emitiendoId}
+              eliminandoId={eliminandoId}
             />
             {/* El pie lleva siempre el selector de filas y el paginador. */}
             <div className={estilos.pie}>
@@ -356,6 +409,33 @@ export default function PaginaMatriculas() {
         <ModalAsignarAlumno
           onCerrar={() => establecerModalAsignarAlumnoAbierto(false)}
           onAceptar={confirmarAsignacion}
+        />
+      )}
+
+      {modalCargaMasivaAbierto && (
+        <DialogoCargaMasivaMatriculas
+          anios={estructura?.anios ?? []}
+          grados={estructura?.grados ?? []}
+          anioIdInicial={filtros.anioId}
+          alCerrar={() => establecerModalCargaMasivaAbierto(false)}
+          alCompletar={completarCargaMasivaMatriculas}
+        />
+      )}
+
+      {matriculaAEditar && (
+        <ModalEditarMatricula
+          key={matriculaAEditar.id}
+          matricula={matriculaAEditar}
+          alCerrar={() => establecerMatriculaAEditar(null)}
+          alGuardar={confirmarEdicionMatricula}
+        />
+      )}
+
+      {matriculaAEliminar && (
+        <DialogoEliminarMatricula
+          matricula={matriculaAEliminar}
+          alCerrar={() => establecerMatriculaAEliminar(null)}
+          alConfirmar={confirmarEliminacionMatricula}
         />
       )}
 

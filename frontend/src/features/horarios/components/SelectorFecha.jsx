@@ -31,7 +31,10 @@ export default function SelectorFecha({
   min,
   max,
   alCambiar,
-  enDialogo = false
+  enDialogo = false,
+  conSelectorMesAnio = false,
+  invalido = false,
+  descritoPor
 }) {
   const [abierto, establecerAbierto] = useState(false);
   const [mesVisible, establecerMesVisible] = useState(() => {
@@ -145,6 +148,21 @@ export default function SelectorFecha({
     ));
   };
 
+  const cambiarMesYAnio = (mes, anio) => {
+    establecerMesVisible(new Date(anio, mes, 1));
+  };
+
+  const anioMinimo = min
+    ? Number(String(min).slice(0, 4))
+    : (conSelectorMesAnio ? 1900 : mesVisible.getFullYear());
+  const anioMaximo = max
+    ? Number(String(max).slice(0, 4))
+    : Math.max(mesVisible.getFullYear(), new Date().getFullYear());
+  const anios = Array.from(
+    { length: Math.max(1, anioMaximo - anioMinimo + 1) },
+    (_, indice) => anioMinimo + indice
+  );
+
   const dialogoDestino = enDialogo ? contenedor.current?.closest('dialog') : null;
   const contenidoPopover = abierto ? (
     <div
@@ -168,7 +186,40 @@ export default function SelectorFecha({
         >
           <Icono nombre="flecha-izquierda" tamano={14} />
         </button>
-        <span className={estilos.mes}>{etiquetaMes(mesVisible)}</span>
+        {conSelectorMesAnio ? (
+          <div className={estilos.selectorMesAnio}>
+            <select
+              className={estilos.selectMesAnio}
+              aria-label="Mes"
+              value={mesVisible.getMonth()}
+              onChange={(evento) => cambiarMesYAnio(
+                Number(evento.target.value),
+                mesVisible.getFullYear()
+              )}
+            >
+              {MESES.map((mes, indice) => (
+                <option key={mes} value={indice}>
+                  {mes.charAt(0).toUpperCase() + mes.slice(1)}
+                </option>
+              ))}
+            </select>
+            <select
+              className={estilos.selectMesAnio}
+              aria-label="Año"
+              value={mesVisible.getFullYear()}
+              onChange={(evento) => cambiarMesYAnio(
+                mesVisible.getMonth(),
+                Number(evento.target.value)
+              )}
+            >
+              {anios.map((anio) => (
+                <option key={anio} value={anio}>{anio}</option>
+              ))}
+            </select>
+          </div>
+        ) : (
+          <span className={estilos.mes}>{etiquetaMes(mesVisible)}</span>
+        )}
         <button
           type="button"
           className={estilos.botonMes}
@@ -231,6 +282,8 @@ export default function SelectorFecha({
         aria-haspopup="dialog"
         aria-expanded={abierto}
         aria-label={`${etiqueta}: ${valor ? formatearFecha(valor) : 'sin fecha'}`}
+        aria-invalid={invalido || undefined}
+        aria-describedby={descritoPor}
         onClick={() => {
           if (!abierto) {
             const fecha = fechaLocal(valor);

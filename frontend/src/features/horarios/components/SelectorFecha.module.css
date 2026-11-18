@@ -33,6 +33,11 @@
   outline-offset: 2px;
 }
 
+.disparador[aria-invalid='true'] {
+  background: var(--color-peligro-fondo);
+  border-color: var(--color-peligro);
+}
+
 .popover {
   position: absolute;
   top: calc(100% + var(--espacio-2));
@@ -87,6 +92,31 @@
   font-weight: var(--peso-seminegrita);
   color: var(--color-texto);
   text-transform: capitalize;
+}
+
+.selectorMesAnio {
+  display: flex;
+  flex: 1 1 auto;
+  gap: 4px;
+  min-width: 0;
+}
+
+.selectMesAnio {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 32px;
+  padding: 0 var(--espacio-1);
+  font: inherit;
+  font-size: var(--texto-xs);
+  color: var(--color-texto);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio-sm);
+}
+
+.selectMesAnio:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
 }
 
 .semana,

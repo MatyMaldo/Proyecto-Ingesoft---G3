@@ -1,0 +1,10 @@
+.estudiante {
+  padding: var(--espacio-3) var(--espacio-4);
+  background: var(--color-superficie-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-md);
+}
+
+.estudiante p {
+  margin: 0;
+}

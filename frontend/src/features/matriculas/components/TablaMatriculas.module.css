@@ -77,7 +77,67 @@
 
 .tabla th.columnaAccion,
 .tabla td:nth-child(7) {
-  width: 18%;
+  width: 27%;
+}
+
+/* La celda de acciones puede envolver: los botones son compactos y no deben salir de la tabla. */
+.tabla tbody td.columnaAccion {
+  white-space: normal;
+}
+
+.accionesFila {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-1);
+}
+
+.botonAccion {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-1);
+  min-height: 32px;
+  padding: 0 var(--espacio-2);
+  font: inherit;
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-medio);
+  white-space: nowrap;
+  color: var(--color-texto-secundario);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde-fuerte);
+  border-radius: var(--radio-sm);
+  cursor: pointer;
+}
+
+.botonAccion:hover:not(:disabled) {
+  background: var(--color-superficie-suave);
+}
+
+.botonPeligro {
+  color: var(--color-peligro-texto);
+  border-color: var(--color-peligro-borde);
+}
+
+.botonPeligro:hover:not(:disabled) {
+  background: var(--color-peligro-fondo);
+}
+
+.botonAccion:disabled {
+  opacity: var(--opacidad-deshabilitado);
+  cursor: not-allowed;
+}
+
+.botonAccion:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+/* Motivo visible cuando una acción está deshabilitada por reglas de negocio. */
+.motivoAccion {
+  flex-basis: 100%;
+  font-size: var(--texto-xs);
+  line-height: var(--interlineado-xs);
+  color: var(--color-texto-suave);
 }
 
 /* Todas las columnas van en una línea, para que las filas tengan la misma altura. */

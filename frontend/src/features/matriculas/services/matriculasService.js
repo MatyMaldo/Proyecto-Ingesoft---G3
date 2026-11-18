@@ -1,9 +1,15 @@
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import { solicitar } from '../../../shared/api/clienteHttp.js';
 import {
+  actualizarMatriculaMock,
+  confirmarCargaMasivaMatriculasMock,
   contarMatriculasPorEstadoMock,
+  descargarPlantillaMatriculasMock,
+  eliminarMatriculaMock,
+  exportarMatriculasMock,
   listarMatriculasMock,
-  obtenerAlumnosMock
+  obtenerAlumnosMock,
+  previsualizarCargaMasivaMatriculasMock
 } from './mocks/matriculasMock.js';
 import { consultarEstructura } from '../../grados-secciones/services/gradosSeccionesService.js';
 
@@ -339,6 +345,88 @@ export async function crearMatricula(asignacion) {
     matriculasCreadasEnSesion.set(String(respuesta.datos.estudianteId), respuesta.datos);
   }
   return respuesta;
+}
+
+/** Actualiza la sección de una matrícula pendiente. */
+export async function actualizarMatricula(id, { seccionId } = {}) {
+  if (USAR_MOCK) return actualizarMatriculaMock(id, { seccionId });
+
+  return solicitar(`/matriculas/${encodeURIComponent(id)}`, {
+    metodo: 'PUT',
+    cuerpo: { seccionId: Number(seccionId) }
+  });
+}
+
+/** Elimina una matrícula pendiente sin pagos asociados. */
+export async function eliminarMatricula(id) {
+  if (USAR_MOCK) return eliminarMatriculaMock(id);
+
+  return solicitar(`/matriculas/${encodeURIComponent(id)}`, {
+    metodo: 'DELETE'
+  });
+}
+
+/** Descarga la plantilla de carga masiva de matrículas. */
+export async function descargarPlantillaMatriculas(formato = null) {
+  if (USAR_MOCK) return descargarPlantillaMatriculasMock();
+
+  return solicitar('/matriculas/plantilla', {
+    ...(formato ? { parametros: { formato } } : {}),
+    respuestaArchivo: true
+  });
+}
+
+/** Exporta las matrículas de un año con el formato de importación. */
+export async function exportarMatriculas(anioId, formato = null) {
+  if (USAR_MOCK) return exportarMatriculasMock(anioId);
+
+  return solicitar('/matriculas/exportar', {
+    parametros: {
+      anioId: Number(anioId),
+      ...(formato ? { formato } : {})
+    },
+    respuestaArchivo: true
+  });
+}
+
+/** Valida un archivo de matrículas sin persistir cambios. */
+export async function previsualizarCargaMasivaMatriculas(archivo, anioId) {
+  if (USAR_MOCK) {
+    return previsualizarCargaMasivaMatriculasMock({ anioId });
+  }
+
+  const formulario = new FormData();
+  formulario.append('archivo', archivo);
+  formulario.append('anioAcademicoId', String(anioId));
+
+  return solicitar('/matriculas/carga-masiva/preview', {
+    metodo: 'POST',
+    cuerpoFormulario: formulario,
+    tiempoEsperaMs: 60000
+  });
+}
+
+/** Confirma la creación masiva de matrículas seleccionadas. */
+export async function confirmarCargaMasivaMatriculas({ anioId, filas } = {}) {
+  if (USAR_MOCK) {
+    return confirmarCargaMasivaMatriculasMock({ filas });
+  }
+
+  return solicitar('/matriculas/carga-masiva/confirmar', {
+    metodo: 'POST',
+    cuerpo: {
+      anioAcademicoId: Number(anioId),
+      filas: (filas ?? []).map((fila) => ({
+        previewId: fila.previewId,
+        estudianteId: Number(fila.estudianteId),
+        anioAcademicoId: Number(fila.anioAcademicoId ?? anioId),
+        gradoId: Number(fila.gradoId),
+        seccionId: Number(fila.seccionId),
+        origen: fila.origen
+      }))
+    },
+    tiempoEsperaMs: 60000
+  });
 }
 
 /**
