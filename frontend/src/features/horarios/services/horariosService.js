@@ -1,5 +1,6 @@
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import { solicitar } from '../../../shared/api/clienteHttp.js';
+import { CACHE_CATALOGO_MS } from '../../../shared/api/constantesCache.js';
 import {
   consultarCatalogosMock,
   listarAsignacionesMock,
@@ -69,7 +70,7 @@ export async function consultarCatalogos() {
 
   const endpoints = ['/grados', '/cursos', '/aulas', '/anios-academicos', '/usuarios'];
   const solicitudes = [
-    ...endpoints.slice(0, 4).map((endpoint) => () => solicitar(endpoint)),
+    ...endpoints.slice(0, 4).map((endpoint) => () => solicitar(endpoint, { cacheMs: CACHE_CATALOGO_MS })),
     () => solicitar('/usuarios', {
       parametros: { tipoUsuario: 'DOCENTE', activo: true, page: 0, size: 100 }
     })

@@ -1,10 +1,11 @@
 import { afterEach, describe, expect, it, vi } from 'vitest';
 
-import { solicitar, configurarCliente } from './clienteHttp.js';
+import { solicitar, configurarCliente, invalidarCache } from './clienteHttp.js';
 
 afterEach(() => {
   vi.unstubAllGlobals();
   configurarCliente();
+  invalidarCache();
 });
 
 describe('cliente HTTP · errores con detalle', () => {
@@ -246,5 +247,75 @@ describe('cliente HTTP · consultas GET idénticas en curso', () => {
     solicitar('/cursos');
 
     expect(fetch).toHaveBeenCalledTimes(2);
+  });
+});
+
+describe('cliente HTTP · caché de catálogos (cacheMs)', () => {
+  function respuestaJson(cuerpo) {
+    return new Response(JSON.stringify(cuerpo), { status: 200, headers: { 'Content-Type': 'application/json' } });
+  }
+
+  it('reutiliza la respuesta mientras no venza y entrega una copia a cada llamador', async () => {
+    const fetch = vi.fn().mockImplementation(async () => respuestaJson({ datos: [{ id: 1 }] }));
+    vi.stubGlobal('fetch', fetch);
+
+    const primera = await solicitar('/grados', { cacheMs: 60000 });
+    const segunda = await solicitar('/grados', { cacheMs: 60000 });
+
+    expect(fetch).toHaveBeenCalledTimes(1);
+    expect(segunda.datos).toEqual(primera.datos);
+    expect(segunda.datos).not.toBe(primera.datos);
+  });
+
+  it('sin cacheMs consulta siempre al servidor', async () => {
+    const fetch = vi.fn().mockImplementation(async () => respuestaJson({ datos: [] }));
+    vi.stubGlobal('fetch', fetch);
+
+    await solicitar('/grados');
+    await solicitar('/grados');
+
+    expect(fetch).toHaveBeenCalledTimes(2);
+  });
+
+  it('vuelve al servidor cuando vence', async () => {
+    vi.useFakeTimers();
+    try {
+      const fetch = vi.fn().mockImplementation(async () => respuestaJson({ datos: [] }));
+      vi.stubGlobal('fetch', fetch);
+
+      await solicitar('/aulas', { cacheMs: 1000 });
+      vi.advanceTimersByTime(1500);
+      await solicitar('/aulas', { cacheMs: 1000 });
+
+      expect(fetch).toHaveBeenCalledTimes(2);
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+
+  it('una escritura descarta el caché', async () => {
+    const fetch = vi.fn().mockImplementation(async () => respuestaJson({ datos: [] }));
+    vi.stubGlobal('fetch', fetch);
+
+    await solicitar('/grados', { cacheMs: 60000 });
+    await solicitar('/grados', { metodo: 'POST', cuerpo: { nombre: 'Quinto' } });
+    await solicitar('/grados', { cacheMs: 60000 });
+
+    expect(fetch).toHaveBeenCalledTimes(3);
+  });
+
+  it('no se comparte entre usuarios distintos ni se guardan los errores', async () => {
+    const fetch = vi.fn()
+      .mockResolvedValueOnce(new Response(JSON.stringify({ error: 'falló' }), { status: 500 }))
+      .mockImplementation(async () => respuestaJson({ datos: [] }));
+    vi.stubGlobal('fetch', fetch);
+
+    configurarCliente({ obtenerToken: () => 'token-a' });
+    expect((await solicitar('/grados', { cacheMs: 60000 })).exitoso).toBe(false);
+    expect((await solicitar('/grados', { cacheMs: 60000 })).exitoso).toBe(true);
+    configurarCliente({ obtenerToken: () => 'token-b' });
+    await solicitar('/grados', { cacheMs: 60000 });
+
+    expect(fetch).toHaveBeenCalledTimes(3);
   });
 });

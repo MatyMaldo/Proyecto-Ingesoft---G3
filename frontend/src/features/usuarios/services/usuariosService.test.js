@@ -348,7 +348,7 @@ describe('usuariosService', () => {
     const resultado = await listarSeccionesTutor(12);
 
     expect(solicitar).toHaveBeenNthCalledWith(1, '/secciones');
-    expect(solicitar).toHaveBeenNthCalledWith(2, '/grados');
+    expect(solicitar).toHaveBeenNthCalledWith(2, '/grados', { cacheMs: 60000 });
     expect(resultado.datos).toEqual([{
       seccionNombre: 'A',
       gradoNombre: 'Primero de secundaria',

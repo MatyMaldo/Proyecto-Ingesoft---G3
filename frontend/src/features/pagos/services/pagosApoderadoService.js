@@ -1,10 +1,11 @@
 import { solicitar } from '../../../shared/api/clienteHttp.js';
+import { CACHE_CATALOGO_MS } from '../../../shared/api/constantesCache.js';
 
 const TIEMPO_ESPERA_ACCION_MS = 60000;
 
 /** Años académicos disponibles para el filtro global. */
 export function listarAniosAcademicos() {
-  return solicitar('/anios-academicos');
+  return solicitar('/anios-academicos', { cacheMs: CACHE_CATALOGO_MS });
 }
 
 /** Estudiantes vinculados al apoderado autenticado. */

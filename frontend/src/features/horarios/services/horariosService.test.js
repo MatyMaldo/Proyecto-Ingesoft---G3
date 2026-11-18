@@ -65,10 +65,10 @@ describe('servicio de horarios · contrato API v1', () => {
     const respuesta = await consultarCatalogos();
 
     expect(solicitar.mock.calls).toEqual([
-      ['/grados'],
-      ['/cursos'],
-      ['/aulas'],
-      ['/anios-academicos'],
+      ['/grados', { cacheMs: 60000 }],
+      ['/cursos', { cacheMs: 60000 }],
+      ['/aulas', { cacheMs: 60000 }],
+      ['/anios-academicos', { cacheMs: 60000 }],
       ['/usuarios', {
         parametros: { tipoUsuario: 'DOCENTE', activo: true, page: 0, size: 100 }
       }]

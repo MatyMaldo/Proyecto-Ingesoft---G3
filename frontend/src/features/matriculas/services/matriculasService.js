@@ -1,5 +1,6 @@
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import { solicitar } from '../../../shared/api/clienteHttp.js';
+import { CACHE_CATALOGO_MS } from '../../../shared/api/constantesCache.js';
 import {
   actualizarMatriculaMock,
   confirmarCargaMasivaMatriculasMock,
@@ -76,7 +77,7 @@ export async function obtenerEstructuraMatricula() {
 
   const [respuestaAnios, respuestaGrados] = await Promise.all([
     solicitar('/anios-academicos/con-periodo-matricula-vigente'),
-    solicitar('/grados')
+    solicitar('/grados', { cacheMs: CACHE_CATALOGO_MS })
   ]);
   const error = [respuestaAnios, respuestaGrados].find((respuesta) => !respuesta.exitoso);
   if (error) return error;
@@ -119,8 +120,8 @@ export async function obtenerEstructuraMatriculaVigente() {
   }
 
   const [respuestaAnios, respuestaGrados] = await Promise.all([
-    solicitar('/anios-academicos'),
-    solicitar('/grados')
+    solicitar('/anios-academicos', { cacheMs: CACHE_CATALOGO_MS }),
+    solicitar('/grados', { cacheMs: CACHE_CATALOGO_MS })
   ]);
   const error = [respuestaAnios, respuestaGrados].find((respuesta) => !respuesta.exitoso);
   if (error) return error;
@@ -170,8 +171,8 @@ export async function obtenerEstructuraListadoMatriculas() {
   }
 
   const [respuestaAnios, respuestaGrados] = await Promise.all([
-    solicitar('/anios-academicos'),
-    solicitar('/grados')
+    solicitar('/anios-academicos', { cacheMs: CACHE_CATALOGO_MS }),
+    solicitar('/grados', { cacheMs: CACHE_CATALOGO_MS })
   ]);
   const error = [respuestaAnios, respuestaGrados].find((respuesta) => !respuesta.exitoso);
   if (error) return error;
