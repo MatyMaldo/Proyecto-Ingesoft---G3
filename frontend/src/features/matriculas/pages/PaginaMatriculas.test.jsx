@@ -35,14 +35,52 @@ describe('Matrículas · listado, filtros y acciones', () => {
     expect(within(cabecera).queryByRole('button', { name: 'Actualizar estados de matrícula' })).not.toBeInTheDocument();
   });
 
-  it('ofrece las dos acciones masivas en el menú y abre su diálogo', async () => {
+  it('ofrece las acciones masivas en el menú y abre su diálogo', async () => {
     mostrar();
     await esperarTabla();
 
     await userEvent.click(screen.getByRole('button', { name: 'Acciones masivas' }));
     expect(screen.getByRole('menuitem', { name: 'Actualizar estados de matrícula' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Carga masiva de matrículas' })).toBeInTheDocument();
     await userEvent.click(screen.getByRole('menuitem', { name: 'Emitir compromisos de matrícula' }));
     expect(screen.getByRole('dialog', { name: 'Emitir compromisos de matrícula' })).toBeInTheDocument();
+  });
+
+  it('previsualiza el archivo de matrículas con resumen, filtros y filas editables', async () => {
+    mostrar();
+    await esperarTabla();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Acciones masivas' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Carga masiva de matrículas' }));
+    const seleccion = screen.getByRole('dialog', { name: 'Carga masiva de matrículas' });
+
+    await userEvent.selectOptions(
+      within(seleccion).getByLabelText('Año académico destino'),
+      '1'
+    );
+    await userEvent.upload(
+      within(seleccion).getByLabelText(/Seleccionar archivo/i),
+      new File(['DNI;Código;Año;Grado;Sección\n'], 'matriculas.csv', { type: 'text/csv' })
+    );
+    await userEvent.click(within(seleccion).getByRole('button', { name: 'Previsualizar' }));
+
+    const preview = await screen.findByRole(
+      'dialog',
+      { name: 'Previsualizar carga masiva' },
+      { timeout: 3000 }
+    );
+    expect(within(preview).getByText('filas en el archivo')).toBeInTheDocument();
+    expect(within(preview).getByText('1 válida')).toBeInTheDocument();
+    expect(within(preview).getByText('1 duplicada')).toBeInTheDocument();
+    expect(within(preview).getByText('1 con error')).toBeInTheDocument();
+    expect(within(preview).getByText('María López García')).toBeInTheDocument();
+    expect(within(preview).getByText('Carlos Ramirez Soto')).toBeInTheDocument();
+    // Las filas con problemas muestran el detalle del backend.
+    expect(
+      within(preview).getByText('La sección no pertenece al grado indicado.')
+    ).toBeInTheDocument();
+    // El archivo cargado se puede cambiar sin cerrar el diálogo.
+    expect(within(preview).getByRole('button', { name: 'Cambiar archivo' })).toBeInTheDocument();
   });
 
   it('abre "Asignar alumno a sección" en un diálogo con los campos del formulario', async () => {
@@ -87,8 +125,37 @@ describe('Matrículas · listado, filtros y acciones', () => {
     expect(within(screen.getByRole('group', { name: 'Filas por página' })).getByRole('button', { name: '25' })).toBeDisabled();
     // El nombre accesible dice a qué estudiante afecta la acción.
     expect(within(tabla).getByRole('button', { name: 'Emitir compromiso de Mateo Herrera Campos' })).toBeInTheDocument();
+    expect(within(tabla).getByRole('button', { name: 'Editar matrícula de Mateo Herrera Campos' })).toBeEnabled();
+    expect(within(tabla).getByRole('button', { name: 'Eliminar matrícula de Mateo Herrera Campos' })).toBeEnabled();
     // Las matrículas que no están pendientes no tienen acción.
     expect(within(tabla).queryByRole('button', { name: /Isabella Flores Ruiz/ })).not.toBeInTheDocument();
+  });
+
+  it('abre el diálogo de edición con el año fijo y permite cancelar sin cambios', async () => {
+    mostrar();
+    const tabla = await esperarTabla();
+
+    await userEvent.click(within(tabla).getByRole('button', { name: 'Editar matrícula de Mateo Herrera Campos' }));
+    const dialogo = screen.getByRole('dialog', { name: 'Editar matrícula' });
+    expect(within(dialogo).getByLabelText('Año académico')).toBeDisabled();
+    // La sección actual viene preseleccionada: sin cambios no se puede guardar.
+    expect(within(dialogo).getByRole('button', { name: 'Guardar cambios' })).toBeDisabled();
+
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('pide confirmación antes de eliminar una matrícula', async () => {
+    mostrar();
+    const tabla = await esperarTabla();
+
+    await userEvent.click(within(tabla).getByRole('button', { name: 'Eliminar matrícula de Mateo Herrera Campos' }));
+    const dialogo = screen.getByRole('dialog', { name: 'Eliminar matrícula' });
+    expect(within(dialogo).getAllByText('Mateo Herrera Campos').length).toBeGreaterThan(0);
+    expect(within(dialogo).getByRole('button', { name: 'Eliminar' })).toBeInTheDocument();
+
+    await userEvent.click(within(dialogo).getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
   });
 
   it('el estado se filtra con chips, y "Limpiar filtros" aparece solo con algún filtro y lo restablece', async () => {

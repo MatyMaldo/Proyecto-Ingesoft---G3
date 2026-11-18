@@ -62,20 +62,27 @@ export const obtenerAlumnosMock = (filtros = {}) => esperar(() => {
   return exito(coincidencias);
 });
 
-const MATRICULAS_MOCK = ALUMNOS.map((alumno, indice) => ({
-  id: 100 + indice,
-  fechaAsignacion: `2026-10-${String(15 + indice).padStart(2, '0')}`,
-  estado: indice === 1 ? 'CONFIRMADA' : indice === 2 ? 'CANCELADA' : 'PENDIENTE',
-  estudianteId: alumno.id,
-  nombreCompletoEstudiante: alumno.nombre,
-  codigoEstudiante: alumno.codigo,
-  gradoId: 1,
-  gradoNombre: '1er Grado de Secundaria',
-  seccionId: indice % 2 === 0 ? 1 : 2,
-  seccionNombre: indice % 2 === 0 ? 'A' : 'B',
-  anioAcademicoId: 1,
-  anioAcademico: 2026
-}));
+const MATRICULAS_MOCK = ALUMNOS.map((alumno, indice) => {
+  const estado = indice === 1 ? 'CONFIRMADA' : indice === 2 ? 'CANCELADA' : 'PENDIENTE';
+  return {
+    id: 100 + indice,
+    fechaAsignacion: `2026-10-${String(15 + indice).padStart(2, '0')}`,
+    estado,
+    estudianteId: alumno.id,
+    nombreCompletoEstudiante: alumno.nombre,
+    codigoEstudiante: alumno.codigo,
+    gradoId: 1,
+    gradoNombre: '1er Grado de Secundaria',
+    seccionId: indice % 2 === 0 ? 1 : 2,
+    seccionNombre: indice % 2 === 0 ? 'A' : 'B',
+    anioAcademicoId: 1,
+    anioAcademico: 2026,
+    puedeEditar: estado === 'PENDIENTE',
+    puedeEliminar: estado === 'PENDIENTE',
+    motivoNoEditar: estado === 'PENDIENTE' ? null : 'Solo se pueden editar matrículas pendientes.',
+    motivoNoEliminar: estado === 'PENDIENTE' ? null : 'Solo se pueden eliminar matrículas pendientes.'
+  };
+});
 
 /** Aplica los filtros del listado; `ignorarEstado` es para contar por estado (el estado no filtra ese conteo). */
 const filtrarMatriculasMock = (filtros, { ignorarEstado = false } = {}) => {
@@ -116,3 +123,115 @@ export const listarMatriculasMock = (filtros = {}) => esperar(() => {
     size
   });
 });
+
+const SECCIONES_MOCK = [
+  { id: 1, nombre: 'A', gradoId: 1, gradoNombre: '1er Grado de Secundaria', anioAcademicoId: 1 },
+  { id: 2, nombre: 'B', gradoId: 1, gradoNombre: '1er Grado de Secundaria', anioAcademicoId: 1 },
+  { id: 3, nombre: 'C', gradoId: 1, gradoNombre: '1er Grado de Secundaria', anioAcademicoId: 1 }
+];
+
+export const actualizarMatriculaMock = (id, datos = {}) => esperar(() => {
+  const matricula = MATRICULAS_MOCK.find((item) => String(item.id) === String(id));
+  if (!matricula) return fallo('No se encontró la matrícula.');
+  if (matricula.estado !== 'PENDIENTE') {
+    return fallo('Solo se pueden editar matrículas pendientes.');
+  }
+  const seccion = SECCIONES_MOCK.find(
+    (item) => String(item.id) === String(datos.seccionId)
+  );
+  if (!seccion) return fallo('No se encontró la sección seleccionada.');
+
+  Object.assign(matricula, {
+    seccionId: seccion.id,
+    seccionNombre: seccion.nombre,
+    gradoNombre: seccion.gradoNombre
+  });
+  return exito(matricula);
+});
+
+export const eliminarMatriculaMock = (id) => esperar(() => {
+  const indice = MATRICULAS_MOCK.findIndex((item) => String(item.id) === String(id));
+  if (indice < 0) return fallo('No se encontró la matrícula.');
+  if (MATRICULAS_MOCK[indice].estado !== 'PENDIENTE') {
+    return fallo('Solo se pueden eliminar matrículas pendientes.');
+  }
+  MATRICULAS_MOCK.splice(indice, 1);
+  return exito({ id });
+});
+
+export const descargarPlantillaMatriculasMock = () => esperar(() => exito(
+  new Blob([
+    '\uFEFFDNI;Código;Año;Grado;Sección\n',
+    '74852136;EST-001;2026;1er Grado de Secundaria;A\n'
+  ], { type: 'text/csv;charset=utf-8' })
+));
+
+export const exportarMatriculasMock = () => esperar(() => exito(
+  new Blob([
+    '\uFEFFDNI;Código;Año;Grado;Sección\n',
+    '74852136;EST-001;2026;1er Grado de Secundaria;A\n'
+  ], { type: 'text/csv;charset=utf-8' })
+));
+
+export const previsualizarCargaMasivaMatriculasMock = ({ anioId } = {}) => esperar(() => exito({
+  resumen: { filas: 3, validas: 1, conError: 1, duplicadas: 1, conflictos: 0 },
+  secciones: SECCIONES_MOCK.map((seccion) => ({
+    ...seccion,
+    anioAcademicoId: anioId ?? seccion.anioAcademicoId
+  })),
+  filas: [
+    {
+      previewId: 'm-1',
+      origen: 'matriculas.csv#2',
+      fila: 2,
+      estudianteId: 1,
+      dni: '74852136',
+      codigo: 'EST-001',
+      nombreCompleto: 'María López García',
+      anioAcademicoId: anioId ?? 1,
+      gradoId: 1,
+      gradoNombre: '1er Grado de Secundaria',
+      seccionId: 2,
+      seccionNombre: 'B',
+      estado: 'VALIDO',
+      errores: []
+    },
+    {
+      previewId: 'm-2',
+      origen: 'matriculas.csv#3',
+      fila: 3,
+      estudianteId: 2,
+      dni: '72341198',
+      codigo: 'EST-002',
+      nombreCompleto: 'Carlos Ramirez Soto',
+      anioAcademicoId: anioId ?? 1,
+      gradoId: 1,
+      gradoNombre: '1er Grado de Secundaria',
+      seccionId: 3,
+      seccionNombre: 'C',
+      estado: 'ERROR',
+      errores: ['La sección no pertenece al grado indicado.']
+    },
+    {
+      previewId: 'm-3',
+      origen: 'matriculas.csv#4',
+      fila: 4,
+      estudianteId: 3,
+      dni: '75012378',
+      codigo: 'EST-003',
+      nombreCompleto: 'Lucas Torres Vega',
+      anioAcademicoId: anioId ?? 1,
+      gradoId: 1,
+      gradoNombre: '1er Grado de Secundaria',
+      seccionId: 1,
+      seccionNombre: 'A',
+      estado: 'DUPLICADO',
+      errores: ['El estudiante ya tiene una matrícula en este año académico.']
+    }
+  ]
+}));
+
+export const confirmarCargaMasivaMatriculasMock = ({ filas = [] } = {}) => esperar(() => exito({
+  creados: filas.length,
+  errores: []
+}));

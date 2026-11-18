@@ -41,13 +41,21 @@ function elegirAnioInicial(anios) {
  *   asignacion: { alumno: Object, anio: Object, grado: Object, seccion: Object }|null
  * }}
  */
-export default function useMatriculas() {
+export default function useMatriculas({ matriculaInicial = null } = {}) {
   const [busqueda, establecerBusqueda] = useState('');
   const [busquedaDebounced, establecerBusquedaDebounced] = useState('');
   const [resultados, establecerResultados] = useState([]);
   const [buscando, establecerBuscando] = useState(false);
   const [errorBusqueda, establecerErrorBusqueda] = useState('');
-  const [alumnoSeleccionado, establecerAlumnoSeleccionado] = useState(null);
+  const [alumnoSeleccionado, establecerAlumnoSeleccionado] = useState(
+    matriculaInicial
+      ? {
+        id: matriculaInicial.estudianteId,
+        nombre: matriculaInicial.nombreCompletoEstudiante,
+        codigo: matriculaInicial.codigoEstudiante
+      }
+      : null
+  );
 
   const [estructura, establecerEstructura] = useState(null);
   const [estadoEstructura, establecerEstadoEstructura] = useState('cargando');
@@ -57,6 +65,7 @@ export default function useMatriculas() {
   const [gradoId, establecerGradoId] = useState(null);
   const [seccionId, establecerSeccionId] = useState(null);
   const [intentoClave, establecerIntentoClave] = useState(0);
+  const seccionInicialAplicada = useRef(false);
 
   // Descarta la respuesta de una búsqueda si ya se lanzó otra más reciente.
   const idBusquedaRef = useRef(0);
@@ -109,9 +118,17 @@ export default function useMatriculas() {
         return;
       }
 
-      const anioInicial = elegirAnioInicial(respuesta.datos.anios);
+      const anioInicial = matriculaInicial
+        ? respuesta.datos.anios.find(
+          (anio) => String(anio.id) === String(matriculaInicial.anioAcademicoId)
+        ) ?? elegirAnioInicial(respuesta.datos.anios)
+        : elegirAnioInicial(respuesta.datos.anios);
       establecerEstructura(respuesta.datos);
       establecerAnioId(anioInicial?.id != null ? Number(anioInicial.id) : null);
+      if (matriculaInicial?.gradoId != null) {
+        establecerGradoId(Number(matriculaInicial.gradoId));
+      }
+      seccionInicialAplicada.current = false;
       establecerErrorEstructura('');
       establecerEstadoEstructura('listo');
     });
@@ -139,6 +156,18 @@ export default function useMatriculas() {
         return;
       }
       establecerSecciones(respuesta.datos.sort((a, b) => a.nombre.localeCompare(b.nombre)));
+      establecerErrorEstructura('');
+      establecerEstadoEstructura('listo');
+      if (
+        !seccionInicialAplicada.current
+        && matriculaInicial?.seccionId != null
+        && respuesta.datos.some(
+          (seccion) => String(seccion.id) === String(matriculaInicial.seccionId)
+        )
+      ) {
+        establecerSeccionId(Number(matriculaInicial.seccionId));
+        seccionInicialAplicada.current = true;
+      }
     });
 
     return () => {
