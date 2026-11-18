@@ -1,5 +1,6 @@
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import { solicitar } from '../../../shared/api/clienteHttp.js';
+import { CACHE_CATALOGO_MS } from '../../../shared/api/constantesCache.js';
 import {
   emitirCompromisoPensionMock,
   emitirCompromisosPensionLoteMock,
@@ -112,7 +113,7 @@ export async function obtenerAnioAcademico() {
   if (USAR_MOCK) return obtenerAnioAcademicoMock();
 
   const [respuestaAnios] = await Promise.all([
-    solicitar('/anios-academicos')
+    solicitar('/anios-academicos', { cacheMs: CACHE_CATALOGO_MS })
   ]);
   const error = [respuestaAnios].find((respuesta) => !respuesta.exitoso);
   if (error) return error;
@@ -134,7 +135,7 @@ export async function obtenerAnioAcademico() {
 export async function obtenerGrados() {
   if (USAR_MOCK) return obtenerGradosMock();
 
-  const respuesta = await solicitar('/grados');
+  const respuesta = await solicitar('/grados', { cacheMs: CACHE_CATALOGO_MS });
   if (!respuesta.exitoso) return respuesta;
   return Array.isArray(respuesta.datos) ? respuesta : falloFormato('los grados');
 }

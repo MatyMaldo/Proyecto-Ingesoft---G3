@@ -65,7 +65,7 @@ describe('matriculasService', () => {
     const resultado = await obtenerEstructuraMatricula();
 
     expect(solicitar).toHaveBeenNthCalledWith(1, '/anios-academicos/con-periodo-matricula-vigente');
-    expect(solicitar).toHaveBeenNthCalledWith(2, '/grados');
+    expect(solicitar).toHaveBeenNthCalledWith(2, '/grados', { cacheMs: 60000 });
     expect(resultado.datos).toEqual({
       anios: [{ id: 1, anio: 2026 }],
       grados: [{ id: 2, nombre: 'Primero' }]
@@ -106,8 +106,8 @@ describe('matriculasService', () => {
 
     const resultado = await obtenerEstructuraMatriculaVigente();
 
-    expect(solicitar).toHaveBeenNthCalledWith(1, '/anios-academicos');
-    expect(solicitar).toHaveBeenNthCalledWith(2, '/grados');
+    expect(solicitar).toHaveBeenNthCalledWith(1, '/anios-academicos', { cacheMs: 60000 });
+    expect(solicitar).toHaveBeenNthCalledWith(2, '/grados', { cacheMs: 60000 });
     expect(solicitar).toHaveBeenNthCalledWith(3, '/anios-academicos/1/periodo-matricula');
     expect(solicitar).toHaveBeenNthCalledWith(4, '/anios-academicos/2/periodo-matricula');
     expect(resultado.datos.anios).toEqual([
@@ -122,8 +122,8 @@ describe('matriculasService', () => {
 
     const resultado = await obtenerEstructuraListadoMatriculas();
 
-    expect(solicitar).toHaveBeenNthCalledWith(1, '/anios-academicos');
-    expect(solicitar).toHaveBeenNthCalledWith(2, '/grados');
+    expect(solicitar).toHaveBeenNthCalledWith(1, '/anios-academicos', { cacheMs: 60000 });
+    expect(solicitar).toHaveBeenNthCalledWith(2, '/grados', { cacheMs: 60000 });
     expect(resultado.datos).toEqual({
       anios: [{ id: 1, anio: 2026 }],
       grados: [{ id: 2, nombre: 'Primero' }]

@@ -41,7 +41,7 @@ const RUTAS_LISTA = {
     { cursoId: 2, cursoNombre: 'Comunicación', docenteNombre: 'Maria Gomez' },
     { cursoId: 1, cursoNombre: 'Matemáticas', docenteNombre: 'Otro docente' }
   ]),
-  '/bloques-horario?gradoId=1&anioId=1': ok([
+  '/bloques-horario?seccionId=1': ok([
     { cursoId: 1, seccionId: 1, aulaNombre: 'Aula 101' },
     { cursoId: 1, seccionId: 1, aulaNombre: 'Aula 202' },
     { cursoId: 1, seccionId: 1, aulaNombre: 'Aula 202' },
@@ -96,7 +96,7 @@ describe('consultarCursosEstudiante', () => {
       ...RUTAS_LISTA,
       '/matriculas/estudiante/5/seccion?anioId=1': falla(404),
       '/asignaciones-curso?gradoId=1&seccionId=3&anioId=2': ok([{ cursoId: 1, cursoNombre: 'Matemáticas', docenteNombre: 'Juan Perez' }]),
-      '/bloques-horario?gradoId=1&anioId=2': ok([])
+      '/bloques-horario?seccionId=3': ok([])
     });
 
     const respuesta = await consultarCursosEstudiante(USUARIO);
@@ -122,7 +122,7 @@ describe('consultarCursosEstudiante', () => {
   it('sigue mostrando los cursos si fallan el aula y la descripción', async () => {
     simularApi({
       ...RUTAS_LISTA,
-      '/bloques-horario?gradoId=1&anioId=1': falla(500),
+      '/bloques-horario?seccionId=1': falla(500),
       '/cursos': falla(500)
     });
 

@@ -24,8 +24,8 @@ describe('gradosSeccionesService', () => {
 
     const resultado = await consultarEstructura();
 
-    expect(solicitar).toHaveBeenNthCalledWith(1, '/anios-academicos');
-    expect(solicitar).toHaveBeenNthCalledWith(2, '/grados');
+    expect(solicitar).toHaveBeenNthCalledWith(1, '/anios-academicos', { cacheMs: 60000 });
+    expect(solicitar).toHaveBeenNthCalledWith(2, '/grados', { cacheMs: 60000 });
     expect(solicitar).toHaveBeenNthCalledWith(3, '/secciones');
     expect(solicitar).toHaveBeenNthCalledWith(4, '/usuarios', {
       parametros: { tipoUsuario: 'DOCENTE', activo: true, page: 0, size: 100 }

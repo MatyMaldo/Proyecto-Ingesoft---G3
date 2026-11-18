@@ -135,7 +135,7 @@ describe('pagosService · panel admin', () => {
     const grados = await obtenerGrados();
     const secciones = await obtenerSecciones(1, 2);
 
-    expect(solicitar).toHaveBeenNthCalledWith(1, '/grados');
+    expect(solicitar).toHaveBeenNthCalledWith(1, '/grados', { cacheMs: 60000 });
     expect(solicitar).toHaveBeenNthCalledWith(2, '/secciones', {
       parametros: { gradoId: 1, anioId: 2 }
     });

@@ -1,4 +1,5 @@
 import { solicitar } from '../../../shared/api/clienteHttp.js';
+import { CACHE_CATALOGO_MS } from '../../../shared/api/constantesCache.js';
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import {
   consultarNotasCurso as consultarNotasCursoMock,
@@ -81,7 +82,7 @@ function agruparAulasPorCurso(bloques) {
  * TODO(backend, 2026-11-11): el backend no comprueba que el año ya haya iniciado (HU-EVAL-03); aquí tampoco.
  */
 async function buscarAnioDeConsulta(estudianteId) {
-  const anios = await solicitar('/anios-academicos');
+  const anios = await solicitar('/anios-academicos', { cacheMs: CACHE_CATALOGO_MS });
   if (!anios.exitoso) {
     return { fallo: fallo(anios) };
   }
@@ -127,8 +128,9 @@ async function listarCursosDeLaApi(usuario) {
     solicitar('/asignaciones-curso', {
       parametros: { gradoId: matricula.gradoId, seccionId: matricula.seccionId, anioId: anio.id }
     }),
-    solicitar('/bloques-horario', { parametros: { gradoId: matricula.gradoId, anioId: anio.id } }),
-    solicitar('/cursos')
+    // Solo los bloques de la sección del estudiante: pedir los de todo el grado trae varias secciones de más.
+    solicitar('/bloques-horario', { parametros: { seccionId: matricula.seccionId } }),
+    solicitar('/cursos', { cacheMs: CACHE_CATALOGO_MS })
   ]);
   if (!asignaciones.exitoso) {
     return fallo(asignaciones);

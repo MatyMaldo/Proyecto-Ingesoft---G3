@@ -1,4 +1,5 @@
 import { solicitar } from '../../../shared/api/clienteHttp.js';
+import { CACHE_CATALOGO_MS } from '../../../shared/api/constantesCache.js';
 import {
   cambiarOmisionSesion as cambiarOmisionSesionBase,
   listarSesiones,
@@ -104,5 +105,5 @@ export async function listarSecciones(anioId) {
 }
 
 export function listarAniosAcademicos() {
-  return solicitar('/anios-academicos');
+  return solicitar('/anios-academicos', { cacheMs: CACHE_CATALOGO_MS });
 }

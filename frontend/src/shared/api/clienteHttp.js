@@ -83,6 +83,8 @@ export function configurarCliente({
  * @property {AbortSignal} [signal] - Señal externa para cancelar la solicitud.
  * @property {boolean} [sinVersionApi] - Usa `/api` en lugar de la ruta API versionada.
  * @property {number} [tiempoEsperaMs] - Tiempo máximo de espera para esta solicitud.
+ * @property {number} [cacheMs] - Solo GET: guarda la respuesta exitosa este tiempo (ms) y la reutiliza en consultas idénticas
+ *   del mismo usuario. Cualquier POST, PUT, PATCH o DELETE descarta el caché. Úsese en catálogos que casi no cambian.
  */
 
 /**
@@ -204,6 +206,17 @@ async function ejecutarSolicitud(ruta, opciones = {}) {
 /** Consultas GET en curso, por clave (URL + token + cabeceras), para compartir una sola petición entre llamadas idénticas. */
 const consultasEnCurso = new Map();
 
+/** Respuestas GET exitosas guardadas por quien pidió `cacheMs`, con su vencimiento. La clave incluye el token. */
+const cacheRespuestas = new Map();
+/** Cambia con cada invalidación para no guardar una respuesta que empezó antes de una escritura. */
+let generacionCache = 0;
+
+/** Descarta las respuestas en caché (se llama tras cualquier escritura y al cerrar sesión). */
+export function invalidarCache() {
+  generacionCache += 1;
+  cacheRespuestas.clear();
+}
+
 function copiarRespuesta(respuesta) {
   if (respuesta.datos === null || typeof respuesta.datos !== 'object') {
     return { ...respuesta };
@@ -227,25 +240,50 @@ function copiarRespuesta(respuesta) {
  * @returns {Promise<RespuestaSolicitud>}
  */
 export function solicitar(ruta, opciones = {}) {
-  const { metodo = 'GET', respuestaArchivo = false, signal, cabeceras, parametros, sinVersionApi = false } = opciones;
+  const {
+    metodo = 'GET', respuestaArchivo = false, signal, cabeceras, parametros, sinVersionApi = false, cacheMs = 0
+  } = opciones;
   const compartible = metodo === 'GET' && !respuestaArchivo && opciones.cuerpo === undefined
     && opciones.cuerpoFormulario === undefined;
 
   if (!compartible) {
-    return ejecutarSolicitud(ruta, opciones);
+    const promesa = ejecutarSolicitud(ruta, opciones);
+    if (metodo !== 'GET') {
+      // Cualquier escritura puede cambiar lo que hay en caché: se descarta todo y la siguiente consulta vuelve al servidor.
+      promesa.finally(invalidarCache);
+    }
+    return promesa;
   }
 
   const clave = JSON.stringify([ruta, parametros ?? null, sinVersionApi, cabeceras ?? null, obtenerToken()]);
+
+  const enCache = cacheMs > 0 ? cacheRespuestas.get(clave) : undefined;
+  if (enCache) {
+    if (enCache.expira > Date.now()) {
+      return Promise.resolve(copiarRespuesta(enCache.respuesta));
+    }
+    cacheRespuestas.delete(clave);
+  }
+
   let consulta = consultasEnCurso.get(clave);
 
   if (!consulta) {
     const controlador = new AbortController();
+    const generacion = generacionCache;
     consulta = { controlador, suscriptores: 0, promesa: null };
-    consulta.promesa = ejecutarSolicitud(ruta, { ...opciones, signal: controlador.signal }).finally(() => {
-      if (consultasEnCurso.get(clave) === consulta) {
-        consultasEnCurso.delete(clave);
-      }
-    });
+    consulta.promesa = ejecutarSolicitud(ruta, { ...opciones, signal: controlador.signal })
+      .then((respuesta) => {
+        // Solo se guarda si fue exitosa y no hubo ninguna escritura mientras estaba en vuelo.
+        if (cacheMs > 0 && respuesta.exitoso && generacion === generacionCache) {
+          cacheRespuestas.set(clave, { expira: Date.now() + cacheMs, respuesta });
+        }
+        return respuesta;
+      })
+      .finally(() => {
+        if (consultasEnCurso.get(clave) === consulta) {
+          consultasEnCurso.delete(clave);
+        }
+      });
     consultasEnCurso.set(clave, consulta);
   }
 

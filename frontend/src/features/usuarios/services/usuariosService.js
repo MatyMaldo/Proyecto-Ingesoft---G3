@@ -1,6 +1,7 @@
 import { USUARIOS_INICIAL, CODIGOS_ESTUDIANTE_HISTORICOS } from './mocks/usuariosMock.js';
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import { solicitar } from '../../../shared/api/clienteHttp.js';
+import { CACHE_CATALOGO_MS } from '../../../shared/api/constantesCache.js';
 import { separarTelefono } from '../utils/telefono.js';
 
 const ROLES_API = Object.freeze({
@@ -243,7 +244,7 @@ export async function listarSeccionesTutor(id) {
 
   const [respuestaSecciones, respuestaGrados] = await Promise.all([
     solicitar('/secciones'),
-    solicitar('/grados')
+    solicitar('/grados', { cacheMs: CACHE_CATALOGO_MS })
   ]);
   const error = [respuestaSecciones, respuestaGrados].find((respuesta) => !respuesta.exitoso);
   if (error) return error;

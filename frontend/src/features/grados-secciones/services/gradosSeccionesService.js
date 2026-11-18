@@ -1,5 +1,6 @@
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import { solicitar } from '../../../shared/api/clienteHttp.js';
+import { CACHE_CATALOGO_MS } from '../../../shared/api/constantesCache.js';
 import {
   consultarEstructuraMock,
   crearGradoMock,
@@ -21,8 +22,8 @@ export async function consultarEstructura() {
   }
 
   const [respuestaAnios, respuestaGrados, respuestaSecciones, respuestaDocentes] = await Promise.all([
-    solicitar('/anios-academicos'),
-    solicitar('/grados'),
+    solicitar('/anios-academicos', { cacheMs: CACHE_CATALOGO_MS }),
+    solicitar('/grados', { cacheMs: CACHE_CATALOGO_MS }),
     solicitar('/secciones'),
     solicitar('/usuarios', {
       parametros: { tipoUsuario: 'DOCENTE', activo: true, page: 0, size: 100 }

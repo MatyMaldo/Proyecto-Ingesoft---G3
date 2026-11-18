@@ -1,5 +1,6 @@
 import { USAR_MOCK } from '../../../shared/api/configuracionApi.js';
 import { solicitar } from '../../../shared/api/clienteHttp.js';
+import { CACHE_CATALOGO_MS } from '../../../shared/api/constantesCache.js';
 import { generarLibretaPdf } from '../utils/generarLibretaPdf.js';
 import {
   listarAniosAcademicosMock,
@@ -18,7 +19,7 @@ function validarIdLong(valor, nombre) {
 
 export function listarAniosAcademicosLibretas() {
   if (USAR_MOCK) return listarAniosAcademicosMock();
-  return solicitar('/anios-academicos');
+  return solicitar('/anios-academicos', { cacheMs: CACHE_CATALOGO_MS });
 }
 
 export function listarLibretasDelEstudiante(usuario, estudianteId, anioId) {
