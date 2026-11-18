@@ -57,6 +57,22 @@ export function elegirAnioProgramacion(anios, periodosPorAnio, hoy = fechaISO(ne
   return conMatriculaPorVenir ?? buscarAnioAcademicoVigente(ordenados) ?? ordenados.at(-1) ?? null;
 }
 
+/**
+ * Año efectivo de programación: si la URL o el selector traen un año válido, manda esa elección;
+ * si no, se conserva la elección automática por periodo de matrícula.
+ */
+export function resolverAnioProgramacion(
+  anios,
+  periodosPorAnio,
+  anioSeleccionadoId,
+  hoy = fechaISO(new Date())
+) {
+  const seleccionado = anios.find(
+    (anio) => String(anio.id) === String(anioSeleccionadoId)
+  );
+  return seleccionado ?? elegirAnioProgramacion(anios, periodosPorAnio, hoy);
+}
+
 function horaComparable(hora) {
   return String(hora ?? '').slice(0, 5);
 }
@@ -168,6 +184,10 @@ export default function useHorarios() {
   const [periodo, establecerPeriodo] = useState(null);
   // Año académico que se programa; se decide al conocer el periodo de matrícula de cada año.
   const [anioProgramacion, establecerAnioProgramacion] = useState(null);
+  // Elección explícita del usuario o de la URL (`?anio=`). Vacía significa "usar la automática".
+  const [anioSeleccionadoId, establecerAnioSeleccionadoId] = useState(
+    () => parametros.get('anio') ?? ''
+  );
   const [bimestres, establecerBimestres] = useState([]);
   const [estadoPeriodo, establecerEstadoPeriodo] = useState('inactivo');
   const [errorPeriodo, establecerErrorPeriodo] = useState('');
@@ -224,7 +244,11 @@ export default function useHorarios() {
         }
       });
 
-      const elegido = elegirAnioProgramacion(catalogos.anios, periodosPorAnio);
+      const elegido = resolverAnioProgramacion(
+        catalogos.anios,
+        periodosPorAnio,
+        anioSeleccionadoId
+      );
       const resultado = respuestas[catalogos.anios.findIndex((anio) => anio.id === elegido?.id)];
       if (!elegido?.id || !resultado?.exitoso) {
         establecerAnioProgramacion(elegido ?? null);
@@ -252,7 +276,7 @@ export default function useHorarios() {
     return () => {
       cancelado = true;
     };
-  }, [estadoCatalogos, catalogos.anios]);
+  }, [estadoCatalogos, catalogos.anios, anioSeleccionadoId]);
 
   useEffect(() => {
     if (estadoCatalogos !== 'listo') return undefined;
@@ -413,7 +437,32 @@ export default function useHorarios() {
   const puedeEditarBloques = periodo?.crudBloquesHorarioAbierta === true;
   const puedeGenerarSesiones = periodo?.generacionSesionesAbierta === true;
 
-  const filtrosCompletos = gradoId !== '' && seccion !== '';
+  const anioIdFiltro = anioSeleccionadoId
+    && catalogos.anios.some((anio) => String(anio.id) === String(anioSeleccionadoId))
+    ? String(anioSeleccionadoId)
+    : (anioProgramacion?.id != null ? String(anioProgramacion.id) : '');
+  const filtrosCompletos = anioIdFiltro !== '' && gradoId !== '' && seccion !== '';
+
+  const seleccionarAnio = (valor) => {
+    const id = valor === '' || valor == null ? '' : String(valor);
+    const anioElegido = catalogos.anios.find((anio) => String(anio.id) === id) ?? null;
+    establecerAnioSeleccionadoId(id);
+    establecerAnioProgramacion(anioElegido);
+    establecerPeriodo(null);
+    establecerGradoId('');
+    establecerSeccion('');
+    establecerConsulta(null);
+    establecerCatalogos((anteriores) => ({ ...anteriores, secciones: [] }));
+    establecerBloques({});
+    establecerBloquesGuardados({});
+    establecerConflictos([]);
+    establecerBimestres([]);
+    establecerVersion(0);
+    establecerEstadoPeriodo('cargando');
+    establecerErrorPeriodo('');
+    seccionDeUrl.current = false;
+    establecerParametros(id ? { anio: id } : {}, { replace: true });
+  };
 
   const seleccionarGrado = (valor) => {
     establecerGradoId(valor);
@@ -426,22 +475,27 @@ export default function useHorarios() {
     const seccionSeleccionada = catalogos.secciones.find(
       (elemento) => String(elemento.id) === String(seccion)
     );
+    const anioDeConsulta = seccionSeleccionada?.anioAcademicoId
+      ?? seccionSeleccionada?.anioId
+      ?? anioProgramacion?.id;
     const anioSeleccionado = catalogos.anios.find(
-      (elemento) => String(elemento.id) === String(
-        seccionSeleccionada?.anioAcademicoId ?? seccionSeleccionada?.anioId
-      )
+      (elemento) => String(elemento.id) === String(anioDeConsulta)
     );
     establecerBloques({});
     establecerBloquesGuardados({});
     establecerConflictos([]);
     establecerVersion(0);
-    establecerParametros({ grado: gradoId, seccion });
+    establecerParametros({
+      ...(anioDeConsulta != null ? { anio: String(anioDeConsulta) } : {}),
+      grado: gradoId,
+      seccion
+    });
     establecerConsulta({
       gradoId,
       seccion,
       seccionId: seccion,
-      anioAcademicoId: seccionSeleccionada?.anioAcademicoId ?? seccionSeleccionada?.anioId,
-      anioId: seccionSeleccionada?.anioAcademicoId ?? seccionSeleccionada?.anioId,
+      anioAcademicoId: anioDeConsulta,
+      anioId: anioDeConsulta,
       anioAcademico: seccionSeleccionada?.anioAcademico,
       fechaInicioAnio: anioSeleccionado?.fechaInicio,
       fechaFinAnio: anioSeleccionado?.fechaFin
@@ -665,8 +719,9 @@ export default function useHorarios() {
     puedeEditarAsignaciones,
     puedeEditarBloques,
     puedeGenerarSesiones,
-    filtros: { gradoId, seccion, completos: filtrosCompletos },
+    filtros: { anioId: anioIdFiltro, gradoId, seccion, completos: filtrosCompletos },
     seccionesFiltradas: catalogos.secciones,
+    seleccionarAnio,
     seleccionarGrado,
     seleccionarSeccion: establecerSeccion,
     verHorario,

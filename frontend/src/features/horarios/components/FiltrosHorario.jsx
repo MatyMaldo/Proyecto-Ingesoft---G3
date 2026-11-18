@@ -3,28 +3,36 @@ import CampoSelect from './CampoSelect.jsx';
 import estilos from './FiltrosHorario.module.css';
 
 /**
- * Filtros obligatorios de la pantalla: grado y sección. Sin ambos no se muestra nada más.
+ * Filtros obligatorios de la pantalla: año académico, grado y sección. Sin los tres no se muestra nada más.
  *
  * @param {Object} props
+ * @param {Array<{ id: string|number, anio: string|number }>} props.anios
  * @param {Array<{ id: string, nombre: string }>} props.grados
  * @param {Array<{ id: string, nombre: string }>} props.secciones
- * @param {{ gradoId: string, seccion: string, completos: boolean }} props.filtros
+ * @param {{ anioId: string, gradoId: string, seccion: string, completos: boolean }} props.filtros
  * @param {boolean} props.deshabilitado
  * @param {boolean} [props.seccionesCargando]
+ * @param {(valor: string) => void} props.alCambiarAnio
  * @param {(valor: string) => void} props.alCambiarGrado
  * @param {(valor: string) => void} props.alCambiarSeccion
  * @param {() => void} props.alVerHorario
  */
 export default function FiltrosHorario({
+  anios = [],
   grados,
   secciones,
   filtros,
   deshabilitado,
   seccionesCargando = false,
+  alCambiarAnio,
   alCambiarGrado,
   alCambiarSeccion,
   alVerHorario
 }) {
+  const opcionesAnio = [...anios]
+    .sort((a, b) => Number(b.anio) - Number(a.anio))
+    .map((anio) => ({ valor: String(anio.id), etiqueta: String(anio.anio) }));
+
   return (
     <form
       className={estilos.filtros}
@@ -33,6 +41,18 @@ export default function FiltrosHorario({
         alVerHorario();
       }}
     >
+      <div className={estilos.campoAnio}>
+        <CampoSelect
+          id="horarios-anio"
+          etiqueta="Año académico"
+          requerido
+          placeholder="Seleccionar año..."
+          valor={filtros.anioId}
+          deshabilitado={deshabilitado}
+          opciones={opcionesAnio}
+          alCambiar={alCambiarAnio}
+        />
+      </div>
       <div className={estilos.campoGrado}>
         <CampoSelect
           id="horarios-grado"
