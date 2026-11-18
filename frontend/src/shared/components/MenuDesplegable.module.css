@@ -55,6 +55,37 @@
   outline-offset: -2px;
 }
 
+/* Opción no disponible: se ve atenuada y no reacciona al ratón; sigue enfocable para leer su motivo. */
+.opcion[aria-disabled='true'] {
+  opacity: var(--opacidad-deshabilitado);
+  cursor: not-allowed;
+}
+
+.opcion[aria-disabled='true']:hover {
+  background: transparent;
+}
+
+/* Con descripción la opción crece en alto: el texto y su nota van en dos líneas. */
+.opcion:has(.textoOpcion) {
+  align-items: flex-start;
+  padding-top: var(--espacio-2);
+  padding-bottom: var(--espacio-2);
+}
+
+.textoOpcion {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.descripcion {
+  max-width: 15rem;
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-normal);
+  white-space: normal;
+  color: var(--color-texto-suave);
+}
+
 .separador {
   height: 1px;
   margin: var(--espacio-1) var(--espacio-2);

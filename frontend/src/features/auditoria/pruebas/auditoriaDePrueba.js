@@ -660,6 +660,10 @@ export async function listarRegistrosAuditoriaDePrueba(filtros = {}) {
 
 /** Misma forma que `obtenerHistorialAuditoria` del servicio. */
 export async function obtenerHistorialAuditoriaDePrueba(registro) {
+  // Igual que el servicio real: un registro sin elemento asociado (operación masiva) no tiene historial que pedir.
+  if (registro.entidadId === null) {
+    return { exitoso: true, datos: { registros: [], sinElemento: true }, mensaje: '' };
+  }
   const respuesta = await historialCrudo(registro.idElemento);
   return {
     ...respuesta,

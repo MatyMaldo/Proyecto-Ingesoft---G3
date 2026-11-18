@@ -79,8 +79,127 @@ describe('Matrículas · listado, filtros y acciones', () => {
     expect(
       within(preview).getByText('La sección no pertenece al grado indicado.')
     ).toBeInTheDocument();
-    // El archivo cargado se puede cambiar sin cerrar el diálogo.
-    expect(within(preview).getByRole('button', { name: 'Cambiar archivo' })).toBeInTheDocument();
+    // Volver al paso anterior es «Atrás»: ya no hay un botón aparte para cambiar el archivo.
+    expect(within(preview).queryByRole('button', { name: 'Cambiar archivo' })).not.toBeInTheDocument();
+    expect(within(preview).getByRole('button', { name: 'Atrás' })).toBeInTheDocument();
+    expect(within(preview).queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument();
+  });
+
+  /** Abre la carga masiva, sube un archivo y llega a la vista previa. */
+  async function abrirVistaPrevia() {
+    await userEvent.click(screen.getByRole('button', { name: 'Acciones masivas' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Carga masiva de matrículas' }));
+    const seleccion = screen.getByRole('dialog', { name: 'Carga masiva de matrículas' });
+    await userEvent.selectOptions(within(seleccion).getByLabelText('Año académico destino'), '1');
+    await userEvent.upload(
+      within(seleccion).getByLabelText(/Seleccionar archivo/i),
+      new File(['DNI;Código;Año;Grado;Sección\n'], 'matriculas.csv', { type: 'text/csv' })
+    );
+    await userEvent.click(within(seleccion).getByRole('button', { name: 'Previsualizar' }));
+    return screen.findByRole('dialog', { name: 'Previsualizar carga masiva' }, { timeout: 3000 });
+  }
+
+  it('en la vista previa, Atrás pide confirmar y al descartar vuelve al paso anterior sin cerrar', async () => {
+    mostrar();
+    await esperarTabla();
+    const preview = await abrirVistaPrevia();
+
+    await userEvent.click(within(preview).getByRole('button', { name: 'Atrás' }));
+    const aviso = screen.getByRole('dialog', { name: '¿Descartar la importación?' });
+    expect(within(aviso).getByText('Se perderá el archivo «matriculas.csv» y su revisión. No se creará ninguna matrícula.')).toBeInTheDocument();
+
+    // «Seguir con la carga» deja la vista previa como estaba.
+    await userEvent.click(within(aviso).getByRole('button', { name: 'Seguir con la carga' }));
+    expect(screen.queryByRole('dialog', { name: '¿Descartar la importación?' })).not.toBeInTheDocument();
+    expect(screen.getByRole('dialog', { name: 'Previsualizar carga masiva' })).toBeInTheDocument();
+
+    // «Descartar» vuelve a elegir el archivo, con el diálogo abierto y sin archivo.
+    await userEvent.click(within(screen.getByRole('dialog', { name: 'Previsualizar carga masiva' })).getByRole('button', { name: 'Atrás' }));
+    await userEvent.click(within(screen.getByRole('dialog', { name: '¿Descartar la importación?' })).getByRole('button', { name: 'Descartar' }));
+    const seleccion = screen.getByRole('dialog', { name: 'Carga masiva de matrículas' });
+    expect(screen.queryByRole('dialog', { name: '¿Descartar la importación?' })).not.toBeInTheDocument();
+    expect(within(seleccion).getByRole('button', { name: 'Previsualizar' })).toBeDisabled();
+
+    // Ya sin archivo, Cancelar cierra sin preguntar.
+    await userEvent.click(within(seleccion).getByRole('button', { name: 'Cancelar' }));
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('en la vista previa, la X pide confirmar y al descartar cierra toda la carga', async () => {
+    mostrar();
+    await esperarTabla();
+    const preview = await abrirVistaPrevia();
+
+    await userEvent.click(within(preview).getByRole('button', { name: 'Cerrar' }));
+    const aviso = screen.getByRole('dialog', { name: '¿Descartar la importación?' });
+
+    // «Seguir con la carga» deja la vista previa como estaba.
+    await userEvent.click(within(aviso).getByRole('button', { name: 'Seguir con la carga' }));
+    expect(screen.getByRole('dialog', { name: 'Previsualizar carga masiva' })).toBeInTheDocument();
+
+    await userEvent.click(within(screen.getByRole('dialog', { name: 'Previsualizar carga masiva' })).getByRole('button', { name: 'Cerrar' }));
+    await userEvent.click(within(screen.getByRole('dialog', { name: '¿Descartar la importación?' })).getByRole('button', { name: 'Descartar' }));
+
+    // No vuelve al paso 1: se cierra todo.
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('con el archivo elegido pero sin previsualizar, Cancelar pide confirmar y descartar cierra la carga', async () => {
+    mostrar();
+    await esperarTabla();
+    await userEvent.click(screen.getByRole('button', { name: 'Acciones masivas' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Carga masiva de matrículas' }));
+    const seleccion = screen.getByRole('dialog', { name: 'Carga masiva de matrículas' });
+    await userEvent.upload(
+      within(seleccion).getByLabelText(/Seleccionar archivo/i),
+      new File(['x'], 'matriculas.csv', { type: 'text/csv' })
+    );
+
+    await userEvent.click(within(seleccion).getByRole('button', { name: 'Cancelar' }));
+    const aviso = screen.getByRole('dialog', { name: '¿Descartar la importación?' });
+    expect(within(aviso).getByText('Se perderá el archivo «matriculas.csv». No se creará ninguna matrícula.')).toBeInTheDocument();
+    await userEvent.click(within(aviso).getByRole('button', { name: 'Descartar' }));
+
+    expect(screen.queryByRole('dialog')).not.toBeInTheDocument();
+  });
+
+  it('la casilla de incluir todas está en la cabecera de la tabla, no junto al total de filas', async () => {
+    mostrar();
+    await esperarTabla();
+
+    await userEvent.click(screen.getByRole('button', { name: 'Acciones masivas' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Carga masiva de matrículas' }));
+    const seleccion = screen.getByRole('dialog', { name: 'Carga masiva de matrículas' });
+    await userEvent.selectOptions(within(seleccion).getByLabelText('Año académico destino'), '1');
+    await userEvent.upload(
+      within(seleccion).getByLabelText(/Seleccionar archivo/i),
+      new File(['DNI;Código;Año;Grado;Sección\n'], 'matriculas.csv', { type: 'text/csv' })
+    );
+    await userEvent.click(within(seleccion).getByRole('button', { name: 'Previsualizar' }));
+    const preview = await screen.findByRole('dialog', { name: 'Previsualizar carga masiva' }, { timeout: 3000 });
+
+    // El resumen solo muestra la cifra: ya no lleva la casilla al lado.
+    expect(within(within(preview).getByRole('status')).queryByRole('checkbox')).not.toBeInTheDocument();
+
+    const encabezado = within(preview).getAllByRole('rowgroup')[0];
+    const todas = within(encabezado).getByRole('checkbox', { name: /Incluir todas las filas/ });
+    const incluidas = () => within(preview).getAllByRole('checkbox', { name: /^Incluir / })
+      .filter((casilla) => casilla !== todas);
+    const marcadas = () => incluidas().filter((casilla) => casilla.checked).length;
+
+    // Al abrir solo está incluida la fila válida: la casilla de la cabecera queda indeterminada.
+    expect(marcadas()).toBe(1);
+    expect(todas.checked).toBe(false);
+    expect(todas.indeterminate).toBe(true);
+
+    // Un clic incluye todas las filas que se pueden incluir (la duplicada no) y otro las quita todas.
+    await userEvent.click(todas);
+    expect(marcadas()).toBe(2);
+    expect(todas.checked).toBe(true);
+
+    await userEvent.click(todas);
+    expect(marcadas()).toBe(0);
+    expect(todas.checked).toBe(false);
   });
 
   it('abre "Asignar alumno a sección" en un diálogo con los campos del formulario', async () => {
@@ -123,10 +242,14 @@ describe('Matrículas · listado, filtros y acciones', () => {
     expect(screen.getAllByRole('navigation', { name: 'Paginación de matrículas' })).toHaveLength(1);
     // Con 5 matrículas ninguna opción de más filas (25, 50, 100) está disponible.
     expect(within(screen.getByRole('group', { name: 'Filas por página' })).getByRole('button', { name: '25' })).toBeDisabled();
-    // El nombre accesible dice a qué estudiante afecta la acción.
-    expect(within(tabla).getByRole('button', { name: 'Emitir compromiso de Mateo Herrera Campos' })).toBeInTheDocument();
-    expect(within(tabla).getByRole('button', { name: 'Editar matrícula de Mateo Herrera Campos' })).toBeEnabled();
-    expect(within(tabla).getByRole('button', { name: 'Eliminar matrícula de Mateo Herrera Campos' })).toBeEnabled();
+    // Las tres acciones viven en un menú ⋯ por fila; el nombre accesible dice a qué estudiante afecta cada una.
+    const menu = within(tabla).getByRole('button', { name: 'Más acciones de Mateo Herrera Campos' });
+    expect(menu).toHaveAttribute('aria-haspopup', 'menu');
+    expect(within(tabla).queryByRole('button', { name: /^(Editar|Eliminar|Emitir)/ })).not.toBeInTheDocument();
+    await userEvent.click(menu);
+    expect(screen.getByRole('menuitem', { name: 'Editar matrícula de Mateo Herrera Campos' })).not.toHaveAttribute('aria-disabled');
+    expect(screen.getByRole('menuitem', { name: 'Emitir compromiso de Mateo Herrera Campos' })).toBeInTheDocument();
+    expect(screen.getByRole('menuitem', { name: 'Eliminar matrícula de Mateo Herrera Campos' })).not.toHaveAttribute('aria-disabled');
     // Las matrículas que no están pendientes no tienen acción.
     expect(within(tabla).queryByRole('button', { name: /Isabella Flores Ruiz/ })).not.toBeInTheDocument();
   });
@@ -135,7 +258,8 @@ describe('Matrículas · listado, filtros y acciones', () => {
     mostrar();
     const tabla = await esperarTabla();
 
-    await userEvent.click(within(tabla).getByRole('button', { name: 'Editar matrícula de Mateo Herrera Campos' }));
+    await userEvent.click(within(tabla).getByRole('button', { name: 'Más acciones de Mateo Herrera Campos' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Editar matrícula de Mateo Herrera Campos' }));
     const dialogo = screen.getByRole('dialog', { name: 'Editar matrícula' });
     expect(within(dialogo).getByLabelText('Año académico')).toBeDisabled();
     // La sección actual viene preseleccionada: sin cambios no se puede guardar.
@@ -149,7 +273,8 @@ describe('Matrículas · listado, filtros y acciones', () => {
     mostrar();
     const tabla = await esperarTabla();
 
-    await userEvent.click(within(tabla).getByRole('button', { name: 'Eliminar matrícula de Mateo Herrera Campos' }));
+    await userEvent.click(within(tabla).getByRole('button', { name: 'Más acciones de Mateo Herrera Campos' }));
+    await userEvent.click(screen.getByRole('menuitem', { name: 'Eliminar matrícula de Mateo Herrera Campos' }));
     const dialogo = screen.getByRole('dialog', { name: 'Eliminar matrícula' });
     expect(within(dialogo).getAllByText('Mateo Herrera Campos').length).toBeGreaterThan(0);
     expect(within(dialogo).getByRole('button', { name: 'Eliminar' })).toBeInTheDocument();

@@ -60,13 +60,17 @@ export async function listarRegistrosAuditoria(filtros = {}, opciones = {}) {
 
 /**
  * Obtiene el historial paginado de la entidad afectada por un registro.
+ *
+ * Un registro sin entidad o sin `entidadId` (p. ej. el de una carga masiva, que afecta a muchos elementos) no tiene un
+ * elemento del cual pedir el historial: no es un fallo y no se llama al backend. Responde con `sinElemento: true` para
+ * que quien lo usa muestre el propio registro con una explicación en lugar de un error.
  */
 export async function obtenerHistorialAuditoria(registro, opciones = {}) {
-  if (registro.entidad === undefined || registro.entidadId === undefined || registro.entidadId === null) {
+  if (registro.entidad == null || registro.entidadId == null) {
     return {
-      exitoso: false,
-      datos: null,
-      mensaje: 'El registro no contiene la entidad necesaria para consultar su historial.'
+      exitoso: true,
+      datos: { registros: [], sinElemento: true },
+      mensaje: ''
     };
   }
 

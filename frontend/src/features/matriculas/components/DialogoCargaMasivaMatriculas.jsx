@@ -1,6 +1,7 @@
 import { Fragment, useEffect, useMemo, useRef, useState } from 'react';
 
 import DialogoBase from '../../../shared/components/DialogoBase.jsx';
+import DialogoDescartarImportacion from '../../../shared/components/DialogoDescartarImportacion.jsx';
 import Icono from '../../../shared/components/Icono.jsx';
 import Insignia from '../../../shared/components/Insignia.jsx';
 import Paginacion from '../../../shared/components/Paginacion.jsx';
@@ -130,6 +131,8 @@ export default function DialogoCargaMasivaMatriculas({
   const [erroresConfirmacion, establecerErroresConfirmacion] = useState([]);
   const [procesando, establecerProcesando] = useState(false);
   const [arrastrando, establecerArrastrando] = useState(false);
+  // Qué pidió el usuario al descartar: `'atras'` (botón Atrás, vuelve al paso 1) o `'cerrar'` (X o Esc, cierra todo).
+  const [confirmandoDescarte, establecerConfirmandoDescarte] = useState(null);
   const tablaRef = useRef(null);
   const refErrores = useRef(null);
 
@@ -378,10 +381,28 @@ export default function DialogoCargaMasivaMatriculas({
     establecerErroresConfirmacion([]);
   };
 
-  const volverASeleccion = () => {
-    establecerVista('seleccion');
+  // Hay algo que perder mientras haya un archivo elegido o una vista previa que aún no se confirmó.
+  const hayCambios = esPreview || Boolean(archivo);
+  // X, Esc y Cancelar (paso 1) cierran toda la carga; en la vista previa, «Atrás» solo vuelve al paso 1.
+  const solicitarCierre = () => (hayCambios ? establecerConfirmandoDescarte('cerrar') : alCerrar());
+  const solicitarAtras = () => establecerConfirmandoDescarte('atras');
+
+  const descartar = () => {
+    const modo = confirmandoDescarte;
+    establecerConfirmandoDescarte(null);
+    if (modo !== 'atras') {
+      alCerrar();
+      return;
+    }
+    establecerArchivo(null);
+    establecerFilas([]);
+    establecerSeleccion({});
+    establecerSecciones([]);
+    establecerFiltros({ estado: '', gradoId: '', busqueda: '' });
+    establecerPagina(0);
     establecerError(null);
     establecerErroresConfirmacion([]);
+    establecerVista('seleccion');
   };
 
   const notaPie = esPreview
@@ -397,6 +418,7 @@ export default function DialogoCargaMasivaMatriculas({
         : 'Archivo listo para previsualizar.';
 
   return (
+    <>
     <DialogoBase
       idTitulo="dialogo-carga-masiva-matriculas"
       titulo={esPreview ? 'Previsualizar carga masiva' : 'Carga masiva de matrículas'}
@@ -418,6 +440,9 @@ export default function DialogoCargaMasivaMatriculas({
       error={error}
       notaPie={notaPie}
       cerrarAlClicFuera={false}
+      textoCancelar={esPreview ? 'Atrás' : 'Cancelar'}
+      alPulsarCancelar={esPreview ? solicitarAtras : undefined}
+      alSolicitarCierre={solicitarCierre}
       alCancelar={alCerrar}
       alConfirmar={confirmar}
     >
@@ -642,19 +667,7 @@ export default function DialogoCargaMasivaMatriculas({
           <>
             <div role="status" className={estilos.resumen}>
               <div className={estilos.resumenTotal}>
-                <div className={estilos.cifraConCasilla}>
-                  <input
-                    type="checkbox"
-                    className={estilos.casillaTodas}
-                    aria-label={etiquetaTodas}
-                    title={etiquetaTodas}
-                    checked={todasIncluidas}
-                    ref={(casilla) => { if (casilla) casilla.indeterminate = algunasIncluidas; }}
-                    disabled={elegiblesFiltradas.length === 0}
-                    onChange={() => incluirFiltradas(!todasIncluidas)}
-                  />
-                  <span className={estilos.cifra}>{filas.length}</span>
-                </div>
+                <span className={estilos.cifra}>{filas.length}</span>
                 <span className={estilos.rotuloCifra}>
                   {filas.length === 1 ? 'fila en el archivo' : 'filas en el archivo'}
                 </span>
@@ -756,9 +769,6 @@ export default function DialogoCargaMasivaMatriculas({
                 )}
               </div>
 
-              <button type="button" className={estilos.enlace} onClick={volverASeleccion}>
-                Cambiar archivo
-              </button>
             </div>
 
             <div className={estilos.tablaPreviewContenedor} ref={tablaRef}>
@@ -766,7 +776,18 @@ export default function DialogoCargaMasivaMatriculas({
                 <thead>
                   <tr>
                     <th scope="col" className={estilos.colIncluir}>
-                      <span className={estilos.soloLectores}>Incluir</span>
+                      {/* En escritorio el texto es solo para lectores de pantalla; en móvil se ve junto a la casilla. */}
+                      <label className={estilos.etiquetaTodas} title={etiquetaTodas}>
+                        <input
+                          type="checkbox"
+                          className={estilos.casilla}
+                          checked={todasIncluidas}
+                          ref={(casilla) => { if (casilla) casilla.indeterminate = algunasIncluidas; }}
+                          disabled={elegiblesFiltradas.length === 0}
+                          onChange={() => incluirFiltradas(!todasIncluidas)}
+                        />
+                        <span className={estilos.textoTodas}>{etiquetaTodas}</span>
+                      </label>
                     </th>
                     <th scope="col" className={estilos.colEstudiante}>Estudiante</th>
                     <th scope="col" className={estilos.colGrado}>Grado</th>
@@ -936,5 +957,16 @@ export default function DialogoCargaMasivaMatriculas({
         )}
       </div>
     </DialogoBase>
+
+    {confirmandoDescarte && (
+      <DialogoDescartarImportacion
+        mensaje={esPreview
+          ? `Se perderá el archivo «${archivo?.name ?? ''}» y su revisión. No se creará ninguna matrícula.`
+          : `Se perderá el archivo «${archivo?.name ?? ''}». No se creará ninguna matrícula.`}
+        alDescartar={descartar}
+        alSeguir={() => establecerConfirmandoDescarte(null)}
+      />
+    )}
+    </>
   );
 }

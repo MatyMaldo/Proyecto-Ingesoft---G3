@@ -77,6 +77,14 @@ describe('servicio de auditoría · contrato backend', () => {
     });
   });
 
+  it('un registro sin elemento asociado (carga masiva) no llama al backend y no es un fallo', async () => {
+    const resultado = await obtenerHistorialAuditoria({ entidad: 'BloqueHorario', entidadId: null });
+
+    expect(solicitar).not.toHaveBeenCalled();
+    expect(resultado).toEqual({ exitoso: true, datos: { registros: [], sinElemento: true }, mensaje: '' });
+    expect((await obtenerHistorialAuditoria({ entidadId: 7 })).datos.sinElemento).toBe(true);
+  });
+
   it('consulta el detalle de auditoría por su ID', async () => {
     const registro = { id: 21, detalles: [] };
     solicitar.mockResolvedValue({ exitoso: true, datos: registro, mensaje: '' });

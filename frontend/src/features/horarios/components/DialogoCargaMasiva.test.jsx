@@ -276,7 +276,7 @@ describe('DialogoCargaMasiva', () => {
       fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
 
       expect(alCancelar).toHaveBeenCalledTimes(1);
-      expect(screen.queryByText('Cambios sin guardar')).not.toBeInTheDocument();
+      expect(screen.queryByText('¿Descartar la importación?')).not.toBeInTheDocument();
     });
 
     it('pide confirmación antes de descartar archivos ya elegidos', () => {
@@ -284,12 +284,12 @@ describe('DialogoCargaMasiva', () => {
       fireEvent.change(entrada, { target: { files: archivos(1) } });
 
       fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
-      expect(screen.getByText('Cambios sin guardar')).toBeInTheDocument();
+      expect(screen.getByText('¿Descartar la importación?')).toBeInTheDocument();
       expect(alCancelar).not.toHaveBeenCalled();
 
-      // "Cancelar" del aviso: se sigue en la carga.
-      fireEvent.click(screen.getAllByRole('button', { name: 'Cancelar' }).at(-1));
-      expect(screen.queryByText('Cambios sin guardar')).not.toBeInTheDocument();
+      // "Seguir con la carga": se continúa en la carga.
+      fireEvent.click(screen.getByRole('button', { name: 'Seguir con la carga' }));
+      expect(screen.queryByText('¿Descartar la importación?')).not.toBeInTheDocument();
       expect(alCancelar).not.toHaveBeenCalled();
 
       fireEvent.click(screen.getByRole('button', { name: 'Cancelar' }));
@@ -299,6 +299,52 @@ describe('DialogoCargaMasiva', () => {
   });
 
   describe('vista previa', () => {
+    it('Atrás pide confirmar y, al descartar, vuelve al paso de elegir archivos sin cerrar', async () => {
+      const { alCancelar, operacion } = await abrirPreview(3);
+
+      expect(screen.queryByRole('button', { name: 'Cancelar' })).not.toBeInTheDocument();
+      fireEvent.click(screen.getByRole('button', { name: 'Atrás' }));
+      expect(screen.getByText('¿Descartar la importación?')).toBeInTheDocument();
+      expect(screen.getByText(/Se perderán los archivos y su vista previa/)).toBeInTheDocument();
+
+      // «Seguir con la carga» deja la vista previa como estaba.
+      fireEvent.click(screen.getByRole('button', { name: 'Seguir con la carga' }));
+      expect(screen.getByRole('button', { name: /^Crear/ })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Atrás' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Descartar' }));
+
+      // Vuelve a elegir archivos: sin vista previa y sin haber cerrado el diálogo.
+      expect(screen.queryByRole('button', { name: /^Crear/ })).not.toBeInTheDocument();
+      expect(screen.getByRole('button', { name: 'Previsualizar' })).toBeDisabled();
+      expect(alCancelar).not.toHaveBeenCalled();
+      expect(operacion.reiniciar).toHaveBeenCalled();
+    });
+
+    it('la X pide confirmar y, al descartar, cierra toda la carga', async () => {
+      const { alCancelar } = await abrirPreview(3);
+
+      fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }));
+      expect(screen.getByText('¿Descartar la importación?')).toBeInTheDocument();
+      expect(alCancelar).not.toHaveBeenCalled();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Seguir con la carga' }));
+      expect(screen.getByRole('button', { name: /^Crear/ })).toBeInTheDocument();
+
+      fireEvent.click(screen.getByRole('button', { name: 'Cerrar' }));
+      fireEvent.click(screen.getByRole('button', { name: 'Descartar' }));
+      expect(alCancelar).toHaveBeenCalledTimes(1);
+    });
+
+    it('la casilla de incluir todas está en la cabecera de la tabla, no junto al total de filas', async () => {
+      await abrirPreview(3);
+
+      const resumen = screen.getByRole('status');
+      expect(resumen.querySelector('input[type="checkbox"]')).toBeNull();
+      const cabecera = screen.getByRole('columnheader', { name: /Incluir todas las filas/ });
+      expect(cabecera.querySelector('input[type="checkbox"]')).not.toBeNull();
+    });
+
     it('junta curso y docente y omite el origen cuando hay un solo archivo', async () => {
       await abrirPreview(3);
 
@@ -308,7 +354,7 @@ describe('DialogoCargaMasiva', () => {
       expect(screen.queryByRole('columnheader', { name: 'Docente' })).not.toBeInTheDocument();
       expect(screen.queryByRole('columnheader', { name: 'Origen' })).not.toBeInTheDocument();
       // La casilla de cada fila no lleva cabecera visible: solo un texto para lectores de pantalla.
-      expect(screen.getByRole('columnheader', { name: 'Incluir' })).toBeInTheDocument();
+      expect(screen.getByRole('columnheader', { name: /Incluir todas las filas/ })).toBeInTheDocument();
       // La columna de estado tampoco muestra título: es un icono, con el nombre solo para lectores de pantalla.
       expect(screen.getByRole('columnheader', { name: 'Estado' })).toBeInTheDocument();
       expect(casillasDeFila()).toHaveLength(3);

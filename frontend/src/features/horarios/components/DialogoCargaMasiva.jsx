@@ -15,7 +15,7 @@ import {
   previsualizarCargaMasiva
 } from '../services/horariosService.js';
 import { guardarArchivo } from '../utils/guardarArchivo.js';
-import DialogoDescartarCambios from './DialogoDescartarCambios.jsx';
+import DialogoDescartarImportacion from '../../../shared/components/DialogoDescartarImportacion.jsx';
 import estilos from './DialogoCargaMasiva.module.css';
 
 const MENSAJE_ERROR_GENERICO = 'Se registró un error inesperado';
@@ -150,7 +150,8 @@ export default function DialogoCargaMasiva({
   const [cargandoPreview, establecerCargandoPreview] = useState(false);
   const [errorPlantilla, establecerErrorPlantilla] = useState('');
   const [arrastrando, establecerArrastrando] = useState(false);
-  const [confirmandoDescarte, establecerConfirmandoDescarte] = useState(false);
+  // Qué pidió el usuario al descartar: `'atras'` (botón Atrás, vuelve al paso 1) o `'cerrar'` (X o Esc, cierra todo).
+  const [confirmandoDescarte, establecerConfirmandoDescarte] = useState(null);
   const claveRef = useRef(null);
   const tablaRef = useRef(null);
 
@@ -244,7 +245,19 @@ export default function DialogoCargaMasiva({
 
   // Hay algo que perder mientras haya archivos o una vista previa que aún no se confirmó.
   const hayCambios = archivos.length > 0 && !job;
-  const solicitarCierre = () => (hayCambios ? establecerConfirmandoDescarte(true) : alCancelar());
+  // X, Esc y Cancelar (paso 1) cierran toda la carga; en la vista previa, «Atrás» solo vuelve al paso 1.
+  const solicitarCierre = () => (hayCambios ? establecerConfirmandoDescarte('cerrar') : alCancelar());
+  const solicitarAtras = () => establecerConfirmandoDescarte('atras');
+
+  const descartar = () => {
+    const modo = confirmandoDescarte;
+    establecerConfirmandoDescarte(null);
+    if (modo === 'atras') {
+      procesarArchivos([]);
+    } else {
+      alCancelar();
+    }
+  };
 
   // Cada cambio de lo que se enviará es una operación nueva: no debe reutilizar la clave de idempotencia anterior.
   function invalidarClave() {
@@ -475,7 +488,8 @@ export default function DialogoCargaMasiva({
         anchoMaximo={vistaActual === 'preview' ? (variosArchivos ? '57.5rem' : '51rem') : '42rem'}
         textoConfirmar={textoConfirmar}
         textoEnviando={esPreview ? 'Creando…' : 'Validando…'}
-        textoCancelar={vistaActual === 'progreso' || resultadoConErrores ? 'Cerrar' : 'Cancelar'}
+        textoCancelar={vistaActual === 'progreso' || resultadoConErrores ? 'Cerrar' : vistaActual === 'preview' ? 'Atrás' : 'Cancelar'}
+        alPulsarCancelar={vistaActual === 'preview' ? solicitarAtras : undefined}
         sinConfirmar={vistaActual === 'progreso'}
         sinCancelar={vistaActual === 'resultado' && !resultadoConErrores}
         enviando={enviando}
@@ -696,19 +710,7 @@ export default function DialogoCargaMasiva({
             <>
               <div role="status" className={estilos.resumen}>
                 <div className={estilos.resumenTotal}>
-                  <div className={estilos.cifraConCasilla}>
-                    <input
-                      type="checkbox"
-                      className={estilos.casillaTodas}
-                      aria-label={etiquetaTodas}
-                      title={etiquetaTodas}
-                      checked={todasIncluidas}
-                      ref={(casilla) => { if (casilla) casilla.indeterminate = algunasIncluidas; }}
-                      disabled={elegiblesFiltradas.length === 0}
-                      onChange={() => incluirFiltradas(!todasIncluidas)}
-                    />
-                    <span className={estilos.cifra}>{bloques.length}</span>
-                  </div>
+                  <span className={estilos.cifra}>{bloques.length}</span>
                   <span className={estilos.rotuloCifra}>
                     {bloques.length === 1 ? 'fila en los archivos' : 'filas en los archivos'}
                   </span>
@@ -816,7 +818,18 @@ export default function DialogoCargaMasiva({
                   <thead>
                     <tr>
                       <th scope="col" className={estilos.colIncluir}>
-                        <span className={estilos.soloLectores}>Incluir</span>
+                        {/* En escritorio el texto es solo para lectores de pantalla; en móvil se ve junto a la casilla. */}
+                        <label className={estilos.etiquetaTodas} title={etiquetaTodas}>
+                          <input
+                            type="checkbox"
+                            className={estilos.casilla}
+                            checked={todasIncluidas}
+                            ref={(casilla) => { if (casilla) casilla.indeterminate = algunasIncluidas; }}
+                            disabled={elegiblesFiltradas.length === 0}
+                            onChange={() => incluirFiltradas(!todasIncluidas)}
+                          />
+                          <span className={estilos.textoTodas}>{etiquetaTodas}</span>
+                        </label>
                       </th>
                       {variosArchivos && <th scope="col" className={estilos.colOrigen}>Origen</th>}
                       <th scope="col" className={estilos.colSeccion}>Grado - sección</th>
@@ -1048,13 +1061,12 @@ export default function DialogoCargaMasiva({
       </DialogoBase>
 
       {confirmandoDescarte && (
-        <DialogoDescartarCambios
+        <DialogoDescartarImportacion
           mensaje={esPreview
-            ? 'Se perderá la vista previa y los cambios que hayas hecho. No se creará ningún bloque.'
+            ? 'Se perderán los archivos y su vista previa, con los cambios que hayas hecho. No se creará ningún bloque.'
             : 'Se perderán los archivos seleccionados. No se creará ningún bloque.'}
-          textoConfirmar="Descartar"
-          alCancelar={() => establecerConfirmandoDescarte(false)}
-          alConfirmar={alCancelar}
+          alDescartar={descartar}
+          alSeguir={() => establecerConfirmandoDescarte(null)}
         />
       )}
     </>

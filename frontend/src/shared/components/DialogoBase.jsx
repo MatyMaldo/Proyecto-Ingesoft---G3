@@ -38,6 +38,9 @@ let overflowOriginal = '';
  * @param {boolean} [props.enfocarCancelar] Al abrir, el foco va a Cancelar (la opción segura en confirmaciones).
  * @param {() => void} [props.alSolicitarCierre] Si se indica, Esc, X, Cancelar y el velo ya no cierran el diálogo por sí
  *   solos: llaman a esta función para que quien lo usa decida (p. ej. pedir confirmación antes de descartar cambios).
+ * @param {() => void} [props.alPulsarCancelar] Si se indica, el botón de cancelar del pie llama a esto en lugar de cerrar
+ *   el diálogo (o de pedir el cierre). Sirve para que ese botón sea «Atrás» dentro de un flujo de pasos, mientras la X,
+ *   Esc y el velo siguen cerrando todo el diálogo.
  * @param {() => void} props.alCancelar Se llama al cerrar el diálogo (Esc, clic en el velo, X o Cancelar).
  * @param {(evento: SubmitEvent) => void} props.alConfirmar
  * @param {import('react').ReactNode} props.children Cuerpo del diálogo.
@@ -62,6 +65,7 @@ export default function DialogoBase({
   botonesExpandidos = false,
   textoCancelar = 'Cancelar',
   alSolicitarCierre,
+  alPulsarCancelar,
   alCancelar,
   alConfirmar,
   children
@@ -197,7 +201,7 @@ export default function DialogoBase({
               type="button"
               className={estilos.botonSecundario}
               disabled={enviando}
-              onClick={cerrar}
+              onClick={alPulsarCancelar ?? cerrar}
               data-enfoque-inicial={enfocarCancelar ? '' : undefined}
             >
               {textoCancelar}

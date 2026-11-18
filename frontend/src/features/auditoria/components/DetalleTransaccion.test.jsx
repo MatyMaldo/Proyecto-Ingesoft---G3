@@ -100,6 +100,23 @@ describe('HU-SAT-04 · Escenario 3: historial de la transacción, del más antig
     expect(textos[3]).toMatch(/Validó pago/);
   });
 
+  it('con una nota, la muestra en lugar de la leyenda de orden y lista el propio registro', () => {
+    const registro = construirRegistro({ id: 'AUD-0004', tipoTransaccion: 'Carga masiva confirmada' });
+    render(
+      <DetalleTransaccion
+        registro={registro}
+        historial={{ estado: 'listo', registros: [registro], nota: 'Es una operación masiva: solo este registro.' }}
+        alReintentarHistorial={vi.fn()}
+        alCerrar={vi.fn()}
+      />
+    );
+
+    expect(screen.getByText('Es una operación masiva: solo este registro.')).toBeInTheDocument();
+    expect(screen.queryByText(/Del más antiguo al más reciente/)).not.toBeInTheDocument();
+    expect(screen.queryByText('Se registró un error inesperado')).not.toBeInTheDocument();
+    expect(screen.getByText('Carga masiva confirmada', { selector: 'p' })).toBeInTheDocument();
+  });
+
   it('muestra el estado de carga y el de error del historial, con el botón Reintentar', () => {
     const alReintentarHistorial = vi.fn();
     const { rerender } = render(

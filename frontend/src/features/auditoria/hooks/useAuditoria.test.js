@@ -79,6 +79,22 @@ describe('HU-SAT-04 · Escenario 4: búsqueda general con filtros combinados, de
   });
 });
 
+describe('HU-SAT-04 · Historial de un registro sin elemento asociado (operación masiva)', () => {
+  it('no pide historial ni falla: muestra el propio registro con una nota', async () => {
+    const { result } = renderHook(() => useAuditoria());
+    await esperarCargaInicial(result);
+    const registroMasivo = { ...result.current.registros[0], id: 'AUD-MASIVA', entidad: 'BloqueHorario', entidadId: null };
+
+    act(() => {
+      result.current.detalle.abrir(registroMasivo, null);
+    });
+
+    await waitFor(() => expect(result.current.detalle.historial.estado).toBe('listo'));
+    expect(result.current.detalle.historial.registros.map((registro) => registro.id)).toEqual(['AUD-MASIVA']);
+    expect(result.current.detalle.historial.nota).toMatch(/operación masiva/);
+  });
+});
+
 describe('HU-SAT-04 · Escenario 3: historial del mismo elemento, del más antiguo al más reciente', () => {
   it('muestra el historial de un pago registrado y rechazado en orden ascendente', async () => {
     const { result } = renderHook(() => useAuditoria());

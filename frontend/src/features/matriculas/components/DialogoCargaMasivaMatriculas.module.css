@@ -485,12 +485,6 @@
   border-right: 1px solid var(--color-borde);
 }
 
-.cifraConCasilla {
-  display: flex;
-  align-items: center;
-  gap: var(--espacio-2);
-}
-
 .cifra {
   font-size: var(--texto-xl);
   line-height: 2rem;
@@ -503,20 +497,6 @@
   line-height: var(--interlineado-xs);
   text-align: center;
   color: var(--color-texto-suave);
-}
-
-.casillaTodas {
-  flex-shrink: 0;
-  width: 1.1rem;
-  min-height: 0;
-  height: 1.1rem;
-  margin: 0;
-  accent-color: var(--color-accion);
-  cursor: pointer;
-}
-
-.casillaTodas:disabled {
-  cursor: not-allowed;
 }
 
 .grupos {
@@ -699,6 +679,24 @@
 
 .colIncluir {
   width: 2.5rem;
+}
+
+/* Casilla de "incluir todas" en la cabecera: centrada sobre las casillas de las filas. */
+.etiquetaTodas {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+}
+
+/* Solo para lectores de pantalla; en móvil se muestra (ver el bloque de 767 px). */
+.textoTodas {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
 }
 
 .colGrado {
@@ -992,12 +990,45 @@
     display: block;
   }
 
-  .tablaPreview thead {
+  /* La cabecera no se muestra (cada fila es una tarjeta), salvo la casilla de "incluir todas". */
+  .tablaPreview thead,
+  .tablaPreview thead tr {
+    display: block;
+  }
+
+  .tablaPreview thead th:not(.colIncluir) {
     position: absolute;
     width: 1px;
     height: 1px;
     overflow: hidden;
     clip-path: inset(50%);
+  }
+
+  .tablaPreview thead th.colIncluir {
+    display: block;
+    width: auto;
+    padding: var(--espacio-2) var(--espacio-3);
+    text-transform: none;
+    letter-spacing: normal;
+    background: transparent;
+    border-bottom: 0;
+    box-shadow: none;
+  }
+
+  .tablaPreview .etiquetaTodas {
+    justify-content: flex-start;
+    gap: var(--espacio-2);
+  }
+
+  .tablaPreview .textoTodas {
+    position: static;
+    width: auto;
+    height: auto;
+    overflow: visible;
+    clip-path: none;
+    font-size: var(--texto-md);
+    font-weight: var(--peso-medio);
+    color: var(--color-texto-secundario);
   }
 
   .tablaPreview tbody tr {

@@ -19,8 +19,10 @@ const SEPARACION_BOTON_PX = 4;
  * @param {import('react').ReactNode} props.contenidoBoton Contenido visible del botón (ícono y/o texto).
  * @param {string} props.claseBoton Clase del botón; el estilo del botón lo define quien lo usa.
  * @param {Array<{ id: string, etiqueta: string, ariaLabel?: string, icono?: string,
- *   tono?: 'peligro', separadorAntes?: boolean, alSeleccionar: () => void }>} props.items
- *   `separadorAntes` dibuja una línea divisoria encima de la opción, para agrupar.
+ *   tono?: 'peligro', separadorAntes?: boolean, deshabilitado?: boolean, descripcion?: string,
+ *   alSeleccionar: () => void }>} props.items
+ *   `separadorAntes` dibuja una línea divisoria encima de la opción, para agrupar. `deshabilitado` la deja visible
+ *   pero sin acción, y `descripcion` muestra debajo una nota corta (por ejemplo, por qué no se puede usar).
  * @param {'inicio' | 'fin'} [props.alineacion] Borde del botón con el que se alinea el menú.
  * @param {boolean} [props.deshabilitado] Deshabilita el botón (el menú no se puede abrir).
  */
@@ -148,6 +150,10 @@ export default function MenuDesplegable({
   };
 
   const elegir = (item) => {
+    // Una opción deshabilitada no hace nada y el menú sigue abierto para que se lea su motivo.
+    if (item.deshabilitado) {
+      return;
+    }
     cerrar(true);
     item.alSeleccionar();
   };
@@ -183,16 +189,27 @@ export default function MenuDesplegable({
             {items.map((item) => (
               <Fragment key={item.id}>
                 {item.separadorAntes && <div role="separator" className={estilos.separador} />}
+                {/* `aria-disabled` y no `disabled`: la opción sigue siendo enfocable con el teclado y se oye su motivo. */}
                 <button
                   type="button"
                   role="menuitem"
                   tabIndex={-1}
                   aria-label={item.ariaLabel}
+                  aria-disabled={item.deshabilitado || undefined}
+                  aria-describedby={item.descripcion ? `${idMenu}-${item.id}-descripcion` : undefined}
+                  title={item.descripcion}
                   className={`${estilos.opcion} ${item.tono === 'peligro' ? estilos.opcionPeligro : ''}`}
                   onClick={() => elegir(item)}
                 >
                   {item.icono && <Icono nombre={item.icono} tamano={16} />}
-                  {item.etiqueta}
+                  {item.descripcion ? (
+                    <span className={estilos.textoOpcion}>
+                      {item.etiqueta}
+                      <span id={`${idMenu}-${item.id}-descripcion`} className={estilos.descripcion}>
+                        {item.descripcion}
+                      </span>
+                    </span>
+                  ) : item.etiqueta}
                 </button>
               </Fragment>
             ))}

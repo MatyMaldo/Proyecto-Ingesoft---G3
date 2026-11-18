@@ -22,7 +22,7 @@ import {
 } from '../utils/cargaCsv.js';
 import { telefonoPeru } from '../utils/telefono.js';
 import estilos from './DialogoCargaCsv.module.css';
-import DialogoDescartarCambios from './DialogoDescartarCambios.jsx';
+import DialogoDescartarImportacion from '../../../shared/components/DialogoDescartarImportacion.jsx';
 
 // La revisión se pagina: con 8 filas por página la tabla cabe en el diálogo sin desplazarse (las tarjetas de las
 // pantallas compactas son más altas, y el archivo puede traer hasta 1000 filas).
@@ -110,7 +110,8 @@ export default function DialogoCargaCsv({ usuarios, alImportar, alRecargar, alIm
     montadoRef.current = true;
     return () => { montadoRef.current = false; };
   }, []);
-  const [confirmandoDescarte, setConfirmandoDescarte] = useState(false);
+  // Qué pidió el usuario al descartar: `'atras'` (botón Atrás, vuelve al paso 1) o `'cerrar'` (X o Esc, cierra todo).
+  const [confirmandoDescarte, setConfirmandoDescarte] = useState(null);
   // Primer paso: plantilla y archivo. Segundo paso: revisión de las filas antes de importar.
   const [paso, setPaso] = useState('archivo');
 
@@ -125,7 +126,9 @@ export default function DialogoCargaCsv({ usuarios, alImportar, alRecargar, alIm
       alCerrar();
     }
   };
-  const solicitarCierre = () => (hayCambios ? setConfirmandoDescarte(true) : cerrarDialogo());
+  // X, Esc y Cancelar (paso 1) cierran toda la carga; en la revisión, «Atrás» solo vuelve al paso 1.
+  const solicitarCierre = () => (hayCambios ? setConfirmandoDescarte('cerrar') : cerrarDialogo());
+  const solicitarAtras = () => setConfirmandoDescarte('atras');
 
   const filasConErrores = detalle.filter((fila) => fila.problemas.length > 0);
   const hayErroresFilas = filasConErrores.length > 0;
@@ -376,6 +379,16 @@ export default function DialogoCargaCsv({ usuarios, alImportar, alRecargar, alIm
     procesarArchivo(undefined);
   };
 
+  const descartar = () => {
+    const modo = confirmandoDescarte;
+    setConfirmandoDescarte(null);
+    if (modo === 'atras') {
+      reiniciar();
+    } else {
+      alCerrar();
+    }
+  };
+
   const hayArchivoValido = filas.length > 0 && !hayErroresFilas && erroresArchivo.length === 0;
 
   // Explica junto a los botones qué falta o qué ocurrirá, para que "Importar" deshabilitado nunca sea un misterio.
@@ -428,6 +441,8 @@ export default function DialogoCargaCsv({ usuarios, alImportar, alRecargar, alIm
         // La previsualización (segundo paso) tiene el mismo ancho que la de la carga masiva de horarios.
         anchoMaximo={vista === 'preparar' && paso === 'revision' ? '51rem' : '42rem'}
         cerrarAlClicFuera={false}
+        textoCancelar={vista === 'preparar' && paso === 'revision' ? 'Atrás' : 'Cancelar'}
+        alPulsarCancelar={vista === 'preparar' && paso === 'revision' ? solicitarAtras : undefined}
         alSolicitarCierre={solicitarCierre}
         alCancelar={alCerrar}
         alConfirmar={importar}
@@ -758,12 +773,10 @@ export default function DialogoCargaCsv({ usuarios, alImportar, alRecargar, alIm
         </div>
       </DialogoBase>
       {confirmandoDescarte && (
-        <DialogoDescartarCambios
-          titulo="¿Descartar la importación?"
+        <DialogoDescartarImportacion
           mensaje={`Se perderá el archivo «${nombreArchivo}» y su revisión. No se creará ningún usuario.`}
-          textoSeguir="Seguir con la carga"
-          alDescartar={alCerrar}
-          alSeguirEditando={() => setConfirmandoDescarte(false)}
+          alDescartar={descartar}
+          alSeguir={() => setConfirmandoDescarte(null)}
         />
       )}
     </>

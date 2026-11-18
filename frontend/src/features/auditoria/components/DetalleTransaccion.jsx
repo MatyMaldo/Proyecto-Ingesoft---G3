@@ -76,7 +76,8 @@ function ItemHistorial({ item, esSeleccionado }) {
  *
  * @param {Object} props
  * @param {Object|null} props.registro RegistroVista. `null` → el diálogo está cerrado.
- * @param {{ estado: 'cargando'|'error'|'listo', registros: Array }} props.historial
+ * @param {{ estado: 'cargando'|'error'|'listo', registros: Array, nota?: string }} props.historial
+ *   `nota` reemplaza la leyenda de orden cuando el historial no corresponde a un solo elemento (operación masiva).
  * @param {() => void} props.alReintentarHistorial
  * @param {() => void} props.alCerrar Se llama cuando el diálogo se cierra (Esc, velo o botón Cerrar).
  */
@@ -231,10 +232,10 @@ export default function DetalleTransaccion({
               {historial.estado === 'listo' && (
                 <>
                   <p className={estilos.subtituloHistorial}>
-                    Del más antiguo al más reciente ·{' '}
-                    {historial.registros.length === 1
-                      ? '1 registro'
-                      : `${historial.registros.length} registros`}
+                    {historial.nota
+                      ?? `Del más antiguo al más reciente · ${historial.registros.length === 1
+                        ? '1 registro'
+                        : `${historial.registros.length} registros`}`}
                   </p>
                   <ol className={estilos.listaHistorial}>
                     {historial.registros.map((item) => (
