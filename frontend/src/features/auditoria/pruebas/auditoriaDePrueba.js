@@ -351,7 +351,7 @@ const REGISTROS = congelarProfundo([
     // 2026-11-03: la generación de libreta se audita en Notas (antes EVALUACIONES).
     categoria: 'NOTAS',
     tipoAccion: 'CAMBIO_ESTADO',
-    tipoTransaccion: 'Generación de libreta',
+    tipoTransaccion: 'Generación de libreta parcial',
     valoresAntes: [
       { campo: 'Estudiante', valor: 'Diego Paredes Soto' },
       { campo: 'Sección', valor: '3.° A' },

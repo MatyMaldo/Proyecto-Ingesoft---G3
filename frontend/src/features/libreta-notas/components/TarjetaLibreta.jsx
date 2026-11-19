@@ -39,7 +39,7 @@ export default function TarjetaLibreta({ libreta, alVerDetalle }) {
         <button
           type="button"
           className={estilos.botonDetalle}
-          aria-label={`Ver libreta de ${titulo}`}
+          aria-label={`Ver libreta parcial de ${titulo}`}
           onClick={() => alVerDetalle(libreta)}
         >
           Ver libreta

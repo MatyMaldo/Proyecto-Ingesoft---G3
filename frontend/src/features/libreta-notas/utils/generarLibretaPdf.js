@@ -37,7 +37,7 @@ function agregarEnvuelto(lineas, texto, opciones = {}) {
 function crearLineas(libreta) {
   const lineas = [];
   agregarEnvuelto(lineas, 'INSTITUCIÓN EDUCATIVA SAN MARCOS', { negrita: true, tamano: 16 });
-  agregarEnvuelto(lineas, 'LIBRETA DE NOTAS', { negrita: true, tamano: 13 });
+  agregarEnvuelto(lineas, 'LIBRETAS PARCIALES DE NOTAS', { negrita: true, tamano: 13 });
   lineas.push({ texto: '' });
   agregarEnvuelto(lineas, `Estudiante: ${libreta.idEstudiante}`, { negrita: true });
   agregarEnvuelto(lineas, `Año académico: ${libreta.anioAcademico}`);

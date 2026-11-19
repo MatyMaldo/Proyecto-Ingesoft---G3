@@ -68,7 +68,7 @@ function errorPermiso(usuario) {
     datos: null,
     mensaje: usuario?.rol === 'APODERADO'
       ? 'No eres responsable de este estudiante'
-      : 'No puedes consultar libretas de otro estudiante'
+      : 'No puedes consultar libretas parciales de otro estudiante'
   };
 }
 
@@ -92,7 +92,7 @@ export async function obtenerDetalleLibretaMock(usuario, estudianteId, libretaId
   const libreta = LIBRETAS.find((item) => String(item.idLibreta) === String(libretaId)
     && String(item.idEstudiante) === String(estudianteId));
   if (!libreta) {
-    return esperar({ exitoso: false, datos: null, mensaje: 'No se encontró la libreta' });
+    return esperar({ exitoso: false, datos: null, mensaje: 'No se encontró la libreta parcial' });
   }
   return esperar({ exitoso: true, datos: structuredClone(libreta), mensaje: '' });
 }

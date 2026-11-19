@@ -12,7 +12,7 @@ import estilos from './TarjetaLibreta.module.css';
  */
 export default function TarjetaLibretaPendiente({ nombreBimestre }) {
   return (
-    <article className={`${estilos.tarjeta} ${estilos.pendiente}`} aria-label={`${etiquetaBimestre(nombreBimestre)}: libreta aún no generada`}>
+    <article className={`${estilos.tarjeta} ${estilos.pendiente}`} aria-label={`${etiquetaBimestre(nombreBimestre)}: libreta parcial aún no generada`}>
       <div className={estilos.cabecera}>
         <span className={`${estilos.recuadroIcono} ${estilos.recuadroPendiente}`} aria-hidden="true">
           <Icono nombre="archivo" tamano={22} />
