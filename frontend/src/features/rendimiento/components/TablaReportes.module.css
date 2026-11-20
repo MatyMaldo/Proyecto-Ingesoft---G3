@@ -1,0 +1,153 @@
+.contenedor {
+  width: 100%;
+}
+
+.vistaTabla {
+  overflow-x: auto;
+}
+
+.tabla {
+  width: 100%;
+  min-width: 52rem;
+  border-collapse: collapse;
+  font-size: var(--texto-md);
+}
+
+.tabla thead th {
+  padding: var(--espacio-3) var(--espacio-4);
+  background: var(--color-superficie-suave);
+  color: var(--color-texto-secundario);
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: var(--espaciado-letra-ancho);
+  border-bottom: 1px solid var(--color-borde);
+  white-space: nowrap;
+}
+
+.tabla tbody td {
+  height: 56px;
+  padding: var(--espacio-2) var(--espacio-4);
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-borde);
+  color: var(--color-texto);
+  white-space: nowrap;
+}
+
+.fila:last-child td {
+  border-bottom: 0;
+}
+
+.fila:hover td {
+  background: var(--color-superficie-suave);
+}
+
+.tabla th.centrado,
+.tabla td.centrado {
+  text-align: center;
+}
+
+.profesor {
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+}
+
+.grado {
+  color: var(--color-texto-suave);
+}
+
+.sinDato {
+  color: var(--color-texto-suave);
+}
+
+/* Versión compacta del botón secundario compartido (Boton.module.css). */
+.contenedor .botonDetalle {
+  gap: var(--espacio-2);
+  min-height: 36px;
+  padding: var(--espacio-2) var(--espacio-4);
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  border-radius: var(--radio-md);
+  white-space: nowrap;
+}
+
+.contenedor .botonDetalle:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+/* Tarjetas móviles: se muestran por debajo de 768 px en lugar de la tabla. */
+.listaTarjetas {
+  display: none;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  margin: 0;
+  padding: var(--espacio-4);
+  list-style: none;
+}
+
+.tarjeta {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+  padding: var(--espacio-4);
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+}
+
+.filaSuperior {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+}
+
+.campo {
+  margin: 0;
+  font-size: var(--texto-md);
+  color: var(--color-texto);
+}
+
+.rotuloCampo {
+  font-size: var(--texto-xs);
+  color: var(--color-texto-suave);
+}
+
+/* Escritorio: la tabla es la única zona con desplazamiento vertical (encabezado fijo). */
+@media (min-width: 768px) {
+  .contenedor {
+    display: flex;
+    flex-direction: column;
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .vistaTabla {
+    flex: 1 1 auto;
+    min-height: 0;
+    overflow: auto;
+  }
+
+  .tabla thead th {
+    position: sticky;
+    top: 0;
+    z-index: 1;
+  }
+}
+
+@media (max-width: 767px) {
+  .vistaTabla {
+    display: none;
+  }
+
+  .listaTarjetas {
+    display: flex;
+  }
+
+  .tarjeta .botonDetalle {
+    justify-content: center;
+    min-height: var(--tactil-min);
+  }
+}

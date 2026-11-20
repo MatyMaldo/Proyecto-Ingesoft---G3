@@ -32,8 +32,15 @@ export const SECCIONES_NAVEGACION = Object.freeze([
         roles: Object.freeze([ROLES.DOCENTE, ROLES.ESTUDIANTE, ROLES.APODERADO])
       }),
       Object.freeze({
+        id: 'rendimiento-academico',
+        etiqueta: 'Rendimiento Academico',
+        ruta: '/rendimiento-academico',
+        icono: 'calendario',
+        roles: Object.freeze([ROLES.ESTUDIANTE, ROLES.APODERADO])
+      }),      
+      Object.freeze({
         id: 'libreta-notas',
-        etiqueta: 'Libreta de notas',
+        etiqueta: 'Libretas parciales de notas',
         ruta: '/libreta-notas',
         icono: 'archivo',
         roles: Object.freeze([ROLES.DOCENTE, ROLES.ESTUDIANTE, ROLES.APODERADO])

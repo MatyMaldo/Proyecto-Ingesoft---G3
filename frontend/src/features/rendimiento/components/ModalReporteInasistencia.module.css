@@ -1,0 +1,130 @@
+.subtituloSeccion {
+  display: flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  margin: 0 0 var(--espacio-3);
+  font-size: var(--texto-sm);
+  font-weight: var(--peso-seminegrita);
+  text-transform: uppercase;
+  letter-spacing: var(--espaciado-letra-ancho);
+  color: var(--color-texto-secundario);
+}
+
+/* Información del estudiante */
+.tarjetaInfo {
+  padding: var(--espacio-4) var(--espacio-5);
+  background: var(--color-superficie-suave);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+}
+
+.grillaDatos {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--espacio-4) var(--espacio-4);
+  margin: 0;
+}
+
+.dato {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-1);
+  min-width: 0;
+}
+
+.dato dt {
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  text-transform: uppercase;
+  letter-spacing: var(--espaciado-letra-ancho);
+  color: var(--color-texto-suave);
+}
+
+.dato dd {
+  margin: 0;
+  font-weight: var(--peso-seminegrita);
+  color: var(--color-texto);
+  overflow-wrap: anywhere;
+}
+
+/* Faltas cometidas */
+.subtituloFaltas {
+  color: var(--tono-rojo-texto);
+}
+
+.marcoTabla {
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  overflow: hidden;
+}
+
+.tabla {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: var(--texto-md);
+}
+
+.tabla thead th {
+  padding: var(--espacio-3) var(--espacio-4);
+  background: var(--color-superficie-suave);
+  color: var(--color-texto-secundario);
+  font-size: var(--texto-xs);
+  font-weight: var(--peso-seminegrita);
+  text-align: left;
+  text-transform: uppercase;
+  letter-spacing: var(--espaciado-letra-ancho);
+  border-bottom: 1px solid var(--color-borde);
+}
+
+.tabla td {
+  padding: var(--espacio-3) var(--espacio-4);
+  vertical-align: middle;
+  border-bottom: 1px solid var(--color-borde);
+  color: var(--color-texto);
+}
+
+.tabla tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.tabla th:first-child,
+.tabla td:first-child {
+  width: 70%;
+  border-right: 1px solid var(--color-borde);
+}
+
+.observacion {
+  display: block;
+  font-size: var(--texto-xs);
+  color: var(--color-texto-suave);
+}
+
+.sinFaltas {
+  margin: 0;
+  color: var(--color-texto-suave);
+}
+
+/* Comentarios del docente */
+.tarjetaComentarios {
+  padding: var(--espacio-4) var(--espacio-5);
+  background: var(--tono-ambar-fondo);
+  border: 1px solid var(--tono-ambar-borde);
+  border-radius: var(--radio-lg);
+}
+
+.subtituloComentarios {
+  color: var(--tono-ambar-texto);
+}
+
+.comentario {
+  margin: 0;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--tono-ambar-texto);
+}
+
+@media (max-width: 480px) {
+  .grillaDatos {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

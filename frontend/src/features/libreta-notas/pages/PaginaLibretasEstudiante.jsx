@@ -142,7 +142,7 @@ export default function PaginaLibretasEstudiante() {
     listarLibretasDelEstudiante(usuario, estudianteId, anioId).then((respuesta) => {
       if (!activa) return;
       if (!respuesta.exitoso || !Array.isArray(respuesta.datos)) {
-        setErrorLibretas(respuesta.mensaje || 'No se pudieron cargar las libretas de notas.');
+        setErrorLibretas(respuesta.mensaje || 'No se pudieron cargar las libretas parciales de notas.');
         setEstadoLibretas('error');
         return;
       }
@@ -170,7 +170,7 @@ export default function PaginaLibretasEstudiante() {
     obtenerDetalleLibreta(usuario, estudianteId, libretaId).then((respuesta) => {
       if (!activa) return;
       if (!respuesta.exitoso || !respuesta.datos) {
-        setErrorDetalle(respuesta.mensaje || 'No se pudo cargar el detalle de la libreta.');
+        setErrorDetalle(respuesta.mensaje || 'No se pudo cargar el detalle de la libreta parcial.');
         setEstadoDetalle('error');
         return;
       }
@@ -183,7 +183,7 @@ export default function PaginaLibretasEstudiante() {
   async function visualizarPdf() {
     const ventana = window.open('', '_blank');
     if (!ventana) {
-      setErrorPdf('Permite las ventanas emergentes para visualizar la libreta en PDF.');
+      setErrorPdf('Permite las ventanas emergentes para visualizar la libreta parcial en PDF.');
       return;
     }
     ventana.opener = null;
@@ -193,7 +193,7 @@ export default function PaginaLibretasEstudiante() {
     setPdfCargando(false);
     if (!respuesta.exitoso || !(respuesta.datos instanceof Blob)) {
       ventana.close();
-      setErrorPdf(respuesta.mensaje || 'No se pudo abrir el PDF de la libreta.');
+      setErrorPdf(respuesta.mensaje || 'No se pudo abrir el PDF de la libreta parcial.');
       return;
     }
     const url = URL.createObjectURL(respuesta.datos);
@@ -216,16 +216,16 @@ export default function PaginaLibretasEstudiante() {
     <div className={estilos.pagina}>
       <header className={estilos.cabecera}>
         <div className={estilos.textoCabecera}>
-          <h1 className={estilos.titulo}>Libreta de notas</h1>
+          <h1 className={estilos.titulo}>Libretas parciales de notas</h1>
           <p className={estilos.descripcion}>
             {esEstudiante
-              ? 'Consulta tus libretas generadas por año académico.'
-              : 'Selecciona un estudiante bajo tu cargo y un año académico para consultar sus libretas.'}
+              ? 'Consulta tus libretas parciales generadas por año académico.'
+              : 'Selecciona un estudiante bajo tu cargo y un año académico para consultar sus libretas parciales.'}
           </p>
         </div>
       </header>
 
-      <section className={estilos.filtros} aria-label="Filtros de libretas">
+      <section className={estilos.filtros} aria-label="Filtros de libretas parciales">
         <SelectFiltro
           apilado
           id="filtro-anio-libretas"
@@ -256,7 +256,7 @@ export default function PaginaLibretasEstudiante() {
       </section>
 
       {hayLibretas && (
-        <section className={estilos.zonaLibretas} aria-label="Libretas de notas">
+        <section className={estilos.zonaLibretas} aria-label="Libretas parciales de notas">
           <ul className={estilos.rejilla}>
             {espaciosBimestres(libretas).map((espacio) => (
               <li key={espacio.clave}>
@@ -275,7 +275,7 @@ export default function PaginaLibretasEstudiante() {
       {!hayLibretas && (
         <section
           className={estilos.tarjetaResultados}
-          aria-label="Libretas disponibles"
+          aria-label="Libretas parciales disponibles"
           aria-busy={estadoLibretas === 'cargando' || undefined}
         >
           {estadoAnios === 'cargando' && <EstadoConsulta tipo="carga" filasEsqueleto={3} />}
@@ -292,13 +292,13 @@ export default function PaginaLibretasEstudiante() {
             <EstadoConsulta tipo="vacio" mensaje="No hay estudiantes asociados a tu cuenta de apoderado." />
           )}
           {listoParaConsultar && estadoLibretas === 'cargando' && (
-            <EstadoConsulta tipo="carga" mensaje="Cargando libretas…" filasEsqueleto={3} />
+            <EstadoConsulta tipo="carga" mensaje="Cargando libretas parciales…" filasEsqueleto={3} />
           )}
           {listoParaConsultar && estadoLibretas === 'error' && (
             <EstadoConsulta tipo="error" mensaje={errorLibretas} alReintentar={() => setRecarga((n) => n + 1)} />
           )}
           {listoParaConsultar && estadoLibretas === 'listo' && !libretas.length && (
-            <EstadoConsulta tipo="vacio" mensaje="No hay libretas generadas para este estudiante y año académico." />
+            <EstadoConsulta tipo="vacio" mensaje="No hay libretas parciales generadas para este estudiante y año académico." />
           )}
         </section>
       )}
@@ -306,7 +306,7 @@ export default function PaginaLibretasEstudiante() {
       {libretaSeleccionada && (
         <DialogoBase
           idTitulo="dialogo-libreta"
-          titulo={`Libreta · ${etiquetaBimestre(libretaSeleccionada.nombreBimestre)} ${libretaSeleccionada.anioAcademico}`}
+          titulo={`Libreta parcial · ${etiquetaBimestre(libretaSeleccionada.nombreBimestre)} ${libretaSeleccionada.anioAcademico}`}
           subtitulo={nombreSeleccionado}
           textoConfirmar="Visualizar PDF"
           textoEnviando="Abriendo PDF…"
@@ -320,7 +320,7 @@ export default function PaginaLibretasEstudiante() {
           alCancelar={cerrarDetalle}
           alConfirmar={(evento) => { evitarEnvio(evento); visualizarPdf(); }}
         >
-          {estadoDetalle === 'cargando' && <EstadoConsulta tipo="carga" mensaje="Cargando libreta…" filasEsqueleto={3} />}
+          {estadoDetalle === 'cargando' && <EstadoConsulta tipo="carga" mensaje="Cargando libreta parcial…" filasEsqueleto={3} />}
           {detalle && estadoDetalle === 'listo' && (
             <DetalleLibreta detalle={detalle} estudiante={nombreSeleccionado} />
           )}

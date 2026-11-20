@@ -47,7 +47,7 @@ export default function DetalleLibreta({ detalle, estudiante }) {
       </section>
 
       {cursos.length === 0 ? (
-        <p className={estilos.vacio}>La libreta no tiene notas de competencias.</p>
+        <p className={estilos.vacio}>La libreta parcial no tiene notas de competencias.</p>
       ) : (
         <div className={estilos.cursos}>
           {cursos.map(([nombreCurso, competencias]) => (
