@@ -7,35 +7,101 @@ import {
   listarLibretasEstudianteMock,
   obtenerDetalleLibretaMock,
   listarOpcionesLibretaTutorMock,
+  obtenerVistaPreviaLibretaTutorMock,
   generarLibretaTutorMock
 } from './mocks/libretasMock.js';
 
-/**
- * Contrato esperado para GET /docente/libretas/contexto:
- * { anioAcademico, seccion, estudiantes, bimestresFinalizados, opciones }.
- * Cada opción incluye estudiante, bimestre, estado (LISTA|INCOMPLETA|GENERADA), faltantes,
- * libreta (si existe) y datosGeneracion con notas, asistencia, tutor e institución.
- */
-export function listarOpcionesLibretaTutor(usuario) {
+/** Contexto de año, estudiantes tutorados, bimestres y estado de sus libretas. */
+export async function listarOpcionesLibretaTutor(usuario) {
   if (USAR_MOCK) return listarOpcionesLibretaTutorMock(usuario);
-  return solicitar('/docente/libretas/contexto');
+  const respuesta = await solicitar('/libretas/contexto-tutor');
+  return respuesta.exitoso
+    ? { ...respuesta, datos: normalizarContextoTutor(respuesta.datos) }
+    : respuesta;
 }
 
-/** Guarda una libreta parcial del bimestre para un estudiante de la sección del docente tutor. */
-export function generarLibretaTutor(datos) {
-  if (!datos?.estudianteId || !datos?.bimestreId) {
-    return Promise.resolve({ exitoso: false, datos: null, mensaje: 'Selecciona un estudiante y un bimestre finalizado.' });
+export function esBimestreFinalizado(bimestre) {
+  if (!bimestre) return false;
+  if (bimestre.finalizado === true || bimestre.esFinalizado === true
+    || bimestre.isFinalizado === true || bimestre.haFinalizado === true
+    || bimestre.cerrado === true) return true;
+  if (bimestre.finalizado === 1 || bimestre.esFinalizado === 1
+    || bimestre.isFinalizado === 1 || bimestre.haFinalizado === 1
+    || bimestre.cerrado === 1) return true;
+
+  const estado = bimestre.estado
+    ?? bimestre.estadoBimestre
+    ?? bimestre.estadoNombre
+    ?? bimestre.estadoPeriodo;
+  const normalizado = String(estado ?? bimestre.finalizado ?? bimestre.esFinalizado ?? '')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .trim()
+    .toUpperCase();
+  return ['FINALIZADO', 'CERRADO', 'TERMINADO', 'COMPLETADO', 'TRUE', '1'].includes(normalizado);
+}
+
+export function normalizarContextoTutor(contexto) {
+  if (!contexto || typeof contexto !== 'object') return contexto;
+  const estudiantesPorId = new Map();
+  for (const estudiante of Array.isArray(contexto.estudiantes) ? contexto.estudiantes : []) {
+    const id = estudiante?.idEstudiante ?? estudiante?.estudianteId ?? estudiante?.id;
+    if (id === null || id === undefined || id === '') continue;
+    const clave = String(id);
+    const anterior = estudiantesPorId.get(clave);
+    const nombre = estudiante?.nombreCompleto
+      ?? estudiante?.nombre
+      ?? anterior?.nombre
+      ?? String(id);
+    estudiantesPorId.set(clave, {
+      ...anterior,
+      ...estudiante,
+      idEstudiante: id,
+      nombre
+    });
   }
-  if (!String(datos.comentariosFinalesTutor ?? '').trim()) {
+  return {
+    ...contexto,
+    estudiantes: [...estudiantesPorId.values()],
+    bimestres: (Array.isArray(contexto.bimestres) ? contexto.bimestres : []).map((bimestre) => ({
+      ...bimestre,
+      id: bimestre.id ?? bimestre.idBimestre,
+      nombre: bimestre.nombre ?? bimestre.nombreBimestre,
+      finalizado: esBimestreFinalizado(bimestre)
+    }))
+  };
+}
+
+export function obtenerVistaPreviaLibretaTutor(usuario, estudianteId, bimestreId) {
+  const errorEstudiante = validarIdLong(estudianteId, 'idEstudiante');
+  if (errorEstudiante) return Promise.resolve(errorEstudiante);
+  const errorBimestre = validarIdLong(bimestreId, 'idBimestre');
+  if (errorBimestre) return Promise.resolve(errorBimestre);
+  if (USAR_MOCK) return obtenerVistaPreviaLibretaTutorMock(usuario, estudianteId, bimestreId);
+  return solicitar(`/estudiantes/${encodeURIComponent(estudianteId)}/libretas/vista-previa`, {
+    parametros: { idBimestre: bimestreId }
+  });
+}
+
+/** Genera una libreta del estudiante para un bimestre finalizado. */
+export function generarLibretaTutor(datos) {
+  const errorEstudiante = validarIdLong(datos?.estudianteId, 'idEstudiante');
+  if (errorEstudiante) return Promise.resolve(errorEstudiante);
+  const errorBimestre = validarIdLong(datos?.bimestreId, 'idBimestre');
+  if (errorBimestre) return Promise.resolve(errorBimestre);
+  const comentariosFinalesTutor = String(datos.comentariosFinalesTutor ?? '').trim();
+  if (!comentariosFinalesTutor) {
     return Promise.resolve({ exitoso: false, datos: null, mensaje: 'Ingresa los comentarios finales del tutor.' });
   }
-  if (USAR_MOCK) return generarLibretaTutorMock(datos.usuario, datos);
-  return solicitar('/docente/libretas', {
+  if (comentariosFinalesTutor.length > 2000) {
+    return Promise.resolve({ exitoso: false, datos: null, mensaje: 'Los comentarios no pueden superar los 2000 caracteres.' });
+  }
+  if (USAR_MOCK) return generarLibretaTutorMock(datos.usuario, { ...datos, comentariosFinalesTutor });
+  return solicitar(`/estudiantes/${encodeURIComponent(datos.estudianteId)}/libretas`, {
     metodo: 'POST',
     cuerpo: {
-      idEstudiante: Number(datos.estudianteId),
       idBimestre: Number(datos.bimestreId),
-      comentariosFinalesTutor: datos.comentariosFinalesTutor.trim()
+      comentariosFinalesTutor
     }
   });
 }

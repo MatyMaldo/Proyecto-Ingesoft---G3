@@ -137,38 +137,80 @@ export async function listarOpcionesLibretaTutorMock(usuario) {
   const contextoRespuesta = await obtenerContextoTutor(usuario);
   if (!contextoRespuesta.exitoso) return contextoRespuesta;
   const contexto = contextoRespuesta.datos;
-  const opciones = [];
-  for (const estudiante of contexto.estudiantes) {
-    for (const bimestre of contexto.bimestres) {
+  const estudiantes = contexto.estudiantes.map((estudiante) => ({
+    idEstudiante: estudiante.id,
+    codigo: estudiante.codigo,
+    nombre: estudiante.nombre,
+    idSeccion: contexto.seccion?.id,
+    nombreSeccion: contexto.seccion?.nombre,
+    estadoLibretas: contexto.bimestres.map((bimestre) => {
       const existente = LIBRETAS.find((item) => String(item.idEstudiante) === String(estudiante.id)
         && Number(item.anioAcademico) === Number(contexto.anio.anio)
         && item.nombreBimestre === BIMESTRE_A_CLAVE(bimestre));
-      const compilado = await compilarNotasEstudiante(contexto, estudiante.id, bimestre);
-      opciones.push({
-        estudiante,
-        bimestre: { ...bimestre, clave: BIMESTRE_A_CLAVE(bimestre) },
-        estado: existente ? 'GENERADA' : (compilado.faltantes?.length ? 'INCOMPLETA' : 'LISTA'),
-        faltantes: compilado.faltantes ?? [],
-        libreta: existente ? { ...existente } : null,
-        datosGeneracion: compilado.faltantes?.length ? null : {
-          notasCompetencias: compilado.notas,
-          inasistencias: String(estudiante.id) === 'EST-001' ? 2 : 0,
-          tardanzas: String(estudiante.id) === 'EST-001' ? 1 : 0,
-          tutorNombre: contexto.tutorNombre,
-          gradoNombre: contexto.gradoNombre,
-          seccionNombre: contexto.seccion.nombre,
-          institucion: 'Colegio San Marcos'
-        }
-      });
-    }
-  }
+      return {
+        idBimestre: bimestre.id,
+        nombreBimestre: BIMESTRE_A_CLAVE(bimestre),
+        libretaGenerada: Boolean(existente),
+        fechaGeneracion: existente?.fechaGeneracion ?? null
+      };
+    })
+  }));
   return esperar({ exitoso: true, datos: {
-    anioAcademico: contexto.anio,
-    seccion: contexto.seccion ? `${contexto.gradoNombre} · Sección ${contexto.seccion.nombre}` : null,
-    estudiantes: contexto.estudiantes,
-    bimestresFinalizados: contexto.bimestres,
-    opciones
+    anioAcademico: contexto.anio ? {
+      id: contexto.anio.id,
+      anio: contexto.anio.anio,
+      fechaInicio: contexto.anio.fechaInicio,
+      fechaFin: contexto.anio.fechaFin
+    } : null,
+    estudiantes,
+    bimestres: contexto.bimestres.map((bimestre) => ({
+      id: bimestre.id,
+      nombre: BIMESTRE_A_CLAVE(bimestre),
+      fechaInicio: bimestre.inicio,
+      fechaFin: bimestre.fin,
+      finalizado: bimestre.finalizado
+    }))
   }, mensaje: '' });
+}
+
+export async function obtenerVistaPreviaLibretaTutorMock(usuario, estudianteId, bimestreId) {
+  const respuesta = await obtenerContextoTutor(usuario);
+  if (!respuesta.exitoso) return respuesta;
+  const contexto = respuesta.datos;
+  const estudiante = contexto.estudiantes.find((item) => String(item.id) === String(estudianteId));
+  const bimestre = contexto.bimestres.find((item) => String(item.id) === String(bimestreId));
+  if (!estudiante || !bimestre) {
+    return esperar({ exitoso: false, datos: null, mensaje: 'No se encontró el estudiante o bimestre solicitado.' });
+  }
+  const compilado = await compilarNotasEstudiante(contexto, estudianteId, bimestre);
+  if (compilado.error) {
+    return esperar({ exitoso: false, datos: null, mensaje: compilado.error });
+  }
+  if (compilado.faltantes.length) {
+    return esperar({
+      exitoso: false,
+      datos: null,
+      mensaje: 'Faltan notas de competencias para generar la libreta.'
+    });
+  }
+  return esperar({
+    exitoso: true,
+    datos: {
+      idEstudiante: estudiante.id,
+      nombreEstudiante: estudiante.nombre,
+      idSeccion: contexto.seccion?.id,
+      nombreSeccion: contexto.seccion?.nombre,
+      nombreTutor: contexto.tutorNombre,
+      idBimestre: bimestre.id,
+      nombreBimestre: BIMESTRE_A_CLAVE(bimestre),
+      anioAcademico: contexto.anio.anio,
+      nombreInstitucion: 'Colegio San Marcos',
+      inasistencias: String(estudiante.id) === 'EST-001' ? 2 : 0,
+      tardanzas: String(estudiante.id) === 'EST-001' ? 1 : 0,
+      notasCompetencias: structuredClone(compilado.notas)
+    },
+    mensaje: ''
+  });
 }
 
 /** Genera una sola vez la libreta parcial tras validar tutoría, matrícula, bimestre y calificaciones completas. */
@@ -220,8 +262,13 @@ const esperar = (respuesta) => new Promise((resolver) => {
   setTimeout(() => resolver(respuesta), 180);
 });
 
-function estudianteAutorizado(usuario, estudianteId) {
+async function estudianteAutorizado(usuario, estudianteId) {
   if (usuario?.rol === 'ESTUDIANTE') return String(usuario.id) === String(estudianteId);
+  if (usuario?.rol === 'DOCENTE') {
+    const contexto = await obtenerContextoTutor(usuario);
+    return contexto.exitoso
+      && contexto.datos.estudiantes.some((item) => String(item.id) === String(estudianteId));
+  }
   return usuario?.rol === 'APODERADO'
     && String(usuario.id) === 'APO-001'
     && ['EST-001', 'EST-002', 'EST-003', 'EST-004'].includes(String(estudianteId));
@@ -242,7 +289,7 @@ export async function listarAniosAcademicosMock() {
 }
 
 export async function listarLibretasEstudianteMock(usuario, estudianteId, anioId) {
-  if (!estudianteAutorizado(usuario, estudianteId)) return errorPermiso(usuario);
+  if (!(await estudianteAutorizado(usuario, estudianteId))) return errorPermiso(usuario);
   if (Number(anioId) !== 1) {
     return esperar({ exitoso: true, datos: [], mensaje: '' });
   }
@@ -253,7 +300,7 @@ export async function listarLibretasEstudianteMock(usuario, estudianteId, anioId
 }
 
 export async function obtenerDetalleLibretaMock(usuario, estudianteId, libretaId) {
-  if (!estudianteAutorizado(usuario, estudianteId)) return errorPermiso(usuario);
+  if (!(await estudianteAutorizado(usuario, estudianteId))) return errorPermiso(usuario);
   const libreta = LIBRETAS.find((item) => String(item.idLibreta) === String(libretaId)
     && String(item.idEstudiante) === String(estudianteId));
   if (!libreta) {
