@@ -207,6 +207,14 @@ const CATALOGO_ICONOS = {
     { tag: 'circle', props: { cx: 9, cy: 7, r: 4 } },
     { tag: 'polyline', props: { points: '16 11 18 13 22 9' } }
   ],
+  'alerta-circulo': [
+    { tag: 'circle', props: { cx: 12, cy: 12, r: 10 } },
+    { tag: 'line', props: { x1: 12, x2: 12, y1: 8, y2: 12 } },
+    { tag: 'line', props: { x1: 12, x2: 12.01, y1: 16, y2: 16 } }
+  ],
+  mensaje: [
+    { tag: 'path', props: { d: 'M21 15a2 2 0 0 1-2 2H7l-4 4V5a2 2 0 0 1 2-2h14a2 2 0 0 1 2 2z' } }
+  ],
   aula: [
     { tag: 'path', props: { d: 'M15 21v-8a1 1 0 0 0-1-1h-4a1 1 0 0 0-1 1v8' } },
     { tag: 'path', props: { d: 'M3 10a2 2 0 0 1 .709-1.528l7-5.999a2 2 0 0 1 2.582 0l7 5.999A2 2 0 0 1 21 10v9a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z' } }

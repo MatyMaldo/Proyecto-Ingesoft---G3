@@ -1,0 +1,131 @@
+.pagina {
+  display: flex;
+  flex-direction: column;
+  gap: var(--espacio-3);
+}
+
+/* Escritorio: la página ocupa el alto del área principal y solo la tabla se desplaza, así no hay doble scroll
+   (mismo comportamiento que Usuarios y Matrículas). */
+@media (min-width: 768px) {
+  .pagina {
+    flex: 1 1 auto;
+    min-height: 0;
+  }
+
+  .pagina > * {
+    flex-shrink: 0;
+  }
+
+  .pagina > .tarjetaResultados {
+    flex: 1 1 auto;
+    min-height: 12rem;
+  }
+}
+
+/* Barra de título (GUI §6): título y descripción (gris, pequeña) en la misma línea a la izquierda y la acción
+   global a la derecha. */
+.cabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+}
+
+.textoCabecera {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--espacio-1) var(--espacio-3);
+  min-width: 0;
+}
+
+.titulo {
+  margin: 0;
+  font-size: var(--texto-titulo);
+  font-weight: var(--peso-negrita);
+  color: var(--color-texto);
+}
+
+.descripcion {
+  margin: 0;
+  font-size: var(--texto-sm);
+  color: var(--color-texto-suave);
+}
+
+.acciones {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-3);
+}
+
+.boton {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--espacio-2);
+  min-height: var(--tactil-min);
+  padding: 0 var(--espacio-4);
+  font: inherit;
+  font-size: var(--texto-md);
+  font-weight: var(--peso-seminegrita);
+  white-space: nowrap;
+  border-radius: var(--radio-md);
+  cursor: pointer;
+}
+
+.boton:focus-visible {
+  outline: 2px solid var(--color-foco);
+  outline-offset: 2px;
+}
+
+.boton:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.botonPrimario {
+  color: #fff;
+  background: var(--color-primario);
+  border: 1px solid var(--color-primario);
+}
+
+.botonPrimario:hover:not(:disabled) {
+  background: var(--color-primario-hover);
+}
+
+.botonPrimario:active:not(:disabled) {
+  background: var(--color-primario-activo);
+}
+
+.tarjetaResultados {
+  display: flex;
+  flex-direction: column;
+  min-height: 0;
+  background: var(--color-superficie);
+  border: 1px solid var(--color-borde);
+  border-radius: var(--radio-lg);
+  box-shadow: var(--sombra-sm);
+  overflow: hidden;
+}
+
+.pie {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--espacio-3);
+  padding: var(--espacio-2) var(--espacio-4);
+  border-top: 1px solid var(--color-borde);
+}
+/* Selector de estudiante del apoderado. */
+.filtros {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--espacio-3);
+}
+
+.filtros > * {
+  min-width: 16rem;
+}
