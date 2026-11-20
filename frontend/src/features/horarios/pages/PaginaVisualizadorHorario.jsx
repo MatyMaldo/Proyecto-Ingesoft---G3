@@ -12,6 +12,7 @@ import Notificacion from '../../../shared/components/Notificacion.jsx';
 import SelectFiltro from '../../../shared/components/SelectFiltro.jsx';
 import SelectorBuscable from '../../../shared/components/SelectorBuscable.jsx';
 import useNotificacion from '../../../shared/hooks/useNotificacion.js';
+import DialogoGenerarReporte from '../../rendimiento/components/DialogoGenerarReporte.jsx';
 import AccionesAsistenciaDocente from '../../asistencia/components/AccionesAsistenciaDocente.jsx';
 import DialogoAsistenciaSesion from '../../asistencia/components/DialogoAsistenciaSesion.jsx';
 import useAsistenciaSesion from '../../asistencia/hooks/useAsistenciaSesion.js';
@@ -92,6 +93,8 @@ export default function PaginaVisualizadorHorario() {
   const [errorAsistencia, establecerErrorAsistencia] = useState(null);
   // Desde dónde se abrió el registro de asistencia: el panel de una sesión o la tarjeta «Ahora» del inicio.
   const [origenDialogo, establecerOrigenDialogo] = useState('panel');
+  // Diálogo del docente para emitir un reporte de inasistencias.
+  const [generarReporteAbierto, establecerGenerarReporteAbierto] = useState(false);
   // Docente: el rango de fechas va plegado y las sesiones omitidas ocultas, salvo que lo pida.
   const [rangoAbierto, establecerRangoAbierto] = useState(false);
   const [mostrarOmitidas, establecerMostrarOmitidas] = useState(false);
@@ -429,16 +432,28 @@ export default function PaginaVisualizadorHorario() {
           <h2 className={estilos.tituloSemana} aria-live="polite">{tituloConsulta || 'Horario'}</h2>
           <p className={estilos.subtituloSemana}>{etiquetaSemanaActual}</p>
         </div>
-        <button
-          type="button"
-          className={estilos.botonPrimario}
-          disabled={sesionesSemana.length === 0}
-          title={sesionesSemana.length === 0 ? MENSAJE_SIN_SESIONES_SEMANA : undefined}
-          onClick={() => establecerHorarioAbierto(true)}
-        >
-          <Icono nombre="calendario" tamano={18} />
-          Ver horario
-        </button>
+        <div className={estilos.accionesResumen}>
+          {esDocente && (
+            <button
+              type="button"
+              className={estilos.botonSecundario}
+              onClick={() => establecerGenerarReporteAbierto(true)}
+            >
+              <Icono nombre="agregar" tamano={18} />
+              Generar reporte de inasistencias
+            </button>
+          )}
+          <button
+            type="button"
+            className={estilos.botonPrimario}
+            disabled={sesionesSemana.length === 0}
+            title={sesionesSemana.length === 0 ? MENSAJE_SIN_SESIONES_SEMANA : undefined}
+            onClick={() => establecerHorarioAbierto(true)}
+          >
+            <Icono nombre="calendario" tamano={18} />
+            Ver horario
+          </button>
+        </div>
       </header>
 
       {controlesSemana()}
@@ -743,6 +758,16 @@ export default function PaginaVisualizadorHorario() {
       )}
 
       {notificacion && <Notificacion mensaje={notificacion.mensaje} error={notificacion.error} />}
+
+      {esDocente && generarReporteAbierto && (
+        <DialogoGenerarReporte
+          onCerrar={() => establecerGenerarReporteAbierto(false)}
+          alGenerar={(mensaje) => {
+            establecerGenerarReporteAbierto(false);
+            mostrarNotificacion(mensaje);
+          }}
+        />
+      )}
 
       {/* Con el horario abierto, el detalle de la sesión se monta dentro de su diálogo (ver abajo). */}
       {!horarioAbierto && panelesSesion(false)}
