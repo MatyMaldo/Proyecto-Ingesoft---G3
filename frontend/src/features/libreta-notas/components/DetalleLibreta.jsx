@@ -19,7 +19,9 @@ export default function DetalleLibreta({ detalle, estudiante }) {
 
   return (
     <div className={estilos.detalle}>
+      {detalle.esParcial && <p><strong>Libreta parcial · Documento no formal</strong></p>}
       <dl className={estilos.resumen}>
+        {detalle.institucion && <div><dt>Institución</dt><dd>{detalle.institucion}</dd></div>}
         <div>
           <dt><Icono nombre="birrete" tamano={16} /> Estudiante</dt>
           <dd>{estudiante || '—'}</dd>
@@ -32,6 +34,11 @@ export default function DetalleLibreta({ detalle, estudiante }) {
           <dt><Icono nombre="archivo" tamano={16} /> Generada el</dt>
           <dd>{formatearFechaLibreta(detalle.fechaGeneracion)}</dd>
         </div>
+        {detalle.tutorNombre && <div><dt>Tutor</dt><dd>{detalle.tutorNombre}</dd></div>}
+        {detalle.gradoNombre && <div><dt>Grado y sección</dt><dd>{detalle.gradoNombre} · {detalle.seccionNombre ?? ''}</dd></div>}
+        {(detalle.inasistencias != null || detalle.tardanzas != null) && (
+          <div><dt>Asistencia</dt><dd>{detalle.inasistencias ?? 0} inasistencias · {detalle.tardanzas ?? 0} tardanzas</dd></div>
+        )}
       </dl>
 
       <section className={estilos.comentarios} aria-label="Comentarios finales del tutor">

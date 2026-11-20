@@ -5,8 +5,40 @@ import { generarLibretaPdf } from '../utils/generarLibretaPdf.js';
 import {
   listarAniosAcademicosMock,
   listarLibretasEstudianteMock,
-  obtenerDetalleLibretaMock
+  obtenerDetalleLibretaMock,
+  listarOpcionesLibretaTutorMock,
+  generarLibretaTutorMock
 } from './mocks/libretasMock.js';
+
+/**
+ * Contrato esperado para GET /docente/libretas/contexto:
+ * { anioAcademico, seccion, estudiantes, bimestresFinalizados, opciones }.
+ * Cada opción incluye estudiante, bimestre, estado (LISTA|INCOMPLETA|GENERADA), faltantes,
+ * libreta (si existe) y datosGeneracion con notas, asistencia, tutor e institución.
+ */
+export function listarOpcionesLibretaTutor(usuario) {
+  if (USAR_MOCK) return listarOpcionesLibretaTutorMock(usuario);
+  return solicitar('/docente/libretas/contexto');
+}
+
+/** Guarda una libreta parcial del bimestre para un estudiante de la sección del docente tutor. */
+export function generarLibretaTutor(datos) {
+  if (!datos?.estudianteId || !datos?.bimestreId) {
+    return Promise.resolve({ exitoso: false, datos: null, mensaje: 'Selecciona un estudiante y un bimestre finalizado.' });
+  }
+  if (!String(datos.comentariosFinalesTutor ?? '').trim()) {
+    return Promise.resolve({ exitoso: false, datos: null, mensaje: 'Ingresa los comentarios finales del tutor.' });
+  }
+  if (USAR_MOCK) return generarLibretaTutorMock(datos.usuario, datos);
+  return solicitar('/docente/libretas', {
+    metodo: 'POST',
+    cuerpo: {
+      idEstudiante: Number(datos.estudianteId),
+      idBimestre: Number(datos.bimestreId),
+      comentariosFinalesTutor: datos.comentariosFinalesTutor.trim()
+    }
+  });
+}
 
 function validarIdLong(valor, nombre) {
   if (valor !== null && valor !== undefined && /^\d+$/.test(String(valor))) return null;

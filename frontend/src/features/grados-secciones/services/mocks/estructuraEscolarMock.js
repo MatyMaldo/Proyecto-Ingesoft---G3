@@ -9,7 +9,7 @@ const estructura = {
   docentes: [{ id: 1, nombreCompleto: 'Docente de demostración' }],
   grados: [1, 2, 3, 4, 5].map((id) => ({ id, nombre: `${id}.° de secundaria` })),
   secciones: [
-    { id: 1, nombre: 'A', capacidadMaxima: 30, gradoId: 1, anioAcademicoId: 1 },
+    { id: 1, nombre: 'A', capacidadMaxima: 30, gradoId: 1, anioAcademicoId: 1, tutorId: 3, tutorNombreCompleto: 'Prof. Quispe' },
     { id: 2, nombre: 'B', capacidadMaxima: 30, gradoId: 1, anioAcademicoId: 1 },
     { id: 3, nombre: 'A', capacidadMaxima: 25, gradoId: 2, anioAcademicoId: 1 },
     { id: 4, nombre: 'A', capacidadMaxima: 30, gradoId: 1, anioAcademicoId: 2 }
