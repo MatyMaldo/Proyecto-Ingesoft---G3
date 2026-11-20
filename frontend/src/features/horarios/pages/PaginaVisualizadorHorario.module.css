@@ -643,3 +643,11 @@
   font-size: var(--texto-xs);
   color: var(--color-texto-suave);
 }
+
+/* Acciones de la cabecera del resumen: «Generar reporte de inasistencias» (docente) y «Ver horario». */
+.accionesResumen {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--espacio-3);
+}

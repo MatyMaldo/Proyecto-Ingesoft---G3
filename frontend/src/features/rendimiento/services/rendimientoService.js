@@ -122,3 +122,145 @@ export const listarReportes = (estudianteId) => (estudianteId == null
 export const obtenerDetalleReporte = (reporteId, estudianteId) => (estudianteId == null
   ? obtenerDetalleReporteEstudiante(reporteId)
   : obtenerDetalleReporteApoderado(estudianteId, reporteId));
+
+// ---------------------------------------------------------------------------
+// Docente: generación de reportes de inasistencia
+// ---------------------------------------------------------------------------
+
+/**
+ * Asignaciones de curso del docente en sesión con su año académico (`/evaluaciones/contexto-docente`).
+ *
+ * @returns {Promise<{ exitoso: boolean, datos: { anioAcademico: Object, asignaciones: Array }|null, mensaje: string }>}
+ */
+export async function obtenerAsignacionesDocente() {
+  const respuesta = await solicitar('/evaluaciones/contexto-docente');
+  if (!respuesta.exitoso) return respuesta;
+
+  const datos = respuesta.datos;
+  if (!datos?.anioAcademico || !Array.isArray(datos.asignaciones)) {
+    return falloFormato('las asignaciones del docente');
+  }
+
+  const anioAcademico = {
+    id: datos.anioAcademico.id,
+    anio: datos.anioAcademico.anio,
+    fechaInicio: datos.anioAcademico.fechaInicio ?? null,
+    fechaFin: datos.anioAcademico.fechaFin ?? null
+  };
+
+  return {
+    exitoso: true,
+    datos: {
+      anioAcademico,
+      asignaciones: datos.asignaciones.map((asignacion) => ({
+        id: asignacion.idAsignacionCurso,
+        curso: asignacion.nombreCurso ?? '',
+        grado: asignacion.nombreGrado ?? '',
+        seccion: asignacion.nombreSeccion ?? '',
+        anio: anioAcademico.anio
+      }))
+    },
+    mensaje: ''
+  };
+}
+
+/** Estudiantes con matrícula confirmada de una asignación de curso. */
+export async function obtenerEstudiantesAsignacion(asignacionId) {
+  const respuesta = await solicitar(`/asignaciones-curso/${encodeURIComponent(asignacionId)}/estudiantes`);
+  if (!respuesta.exitoso) return respuesta;
+  if (!Array.isArray(respuesta.datos)) return falloFormato('los estudiantes de la asignación');
+
+  return {
+    exitoso: true,
+    datos: respuesta.datos
+      .filter((estudiante) => !estudiante.estadoMatricula || estudiante.estadoMatricula === 'CONFIRMADA')
+      .map((estudiante) => ({
+        id: estudiante.idEstudiante ?? estudiante.id,
+        codigo: estudiante.codigo ?? '',
+        nombre: [estudiante.nombre, estudiante.apellidoPaterno, estudiante.apellidoMaterno].filter(Boolean).join(' ')
+      }))
+      .sort((a, b) => a.nombre.localeCompare(b.nombre, 'es')),
+    mensaje: ''
+  };
+}
+
+const MENSAJE_GENERICO_CLIENTE = 'No se pudo completar la operación.';
+const MENSAJE_REPORTE_DUPLICADO = 'Ya existe un reporte para este estudiante en el rango de fechas seleccionado.';
+
+/**
+ * Reportes ya emitidos en esta sesión del navegador (estudiante + rango). Es una protección del frontend mientras el
+ * backend no rechaza los duplicados: sobrevive a recargas de la pestaña, pero no a otro navegador u otro docente.
+ */
+const CLAVE_REPORTES_EMITIDOS = 'rendimiento.reportesEmitidos';
+/** Envíos en curso, para que dos clics seguidos no lancen dos solicitudes iguales. */
+const reportesEnCurso = new Set();
+
+const claveReporte = ({ estudianteId, desde, hasta }) => `${Number(estudianteId)}|${desde}|${hasta}`;
+
+function leerReportesEmitidos() {
+  try {
+    const guardados = JSON.parse(sessionStorage.getItem(CLAVE_REPORTES_EMITIDOS) ?? '[]');
+    return new Set(Array.isArray(guardados) ? guardados : []);
+  } catch {
+    return new Set();
+  }
+}
+
+function registrarReporteEmitido(clave) {
+  const emitidos = leerReportesEmitidos();
+  emitidos.add(clave);
+  try {
+    sessionStorage.setItem(CLAVE_REPORTES_EMITIDOS, JSON.stringify([...emitidos]));
+  } catch {
+    // Sin sessionStorage (modo privado lleno, etc.) solo se pierde esta protección local.
+  }
+}
+
+/**
+ * Crea un reporte de inasistencia. El backend valida que el estudiante tenga faltas o tardanzas en el rango; esos
+ * rechazos llegan como `exitoso: false` con su mensaje. Antes de llamar, se bloquea el envío si ya se emitió en esta
+ * sesión un reporte para el mismo estudiante y rango de fechas, o si hay uno idéntico en curso.
+ *
+ * @param {Object} datos
+ * @param {number} datos.asignacionId
+ * @param {number} datos.estudianteId
+ * @param {string} datos.desde `YYYY-MM-DD`
+ * @param {string} datos.hasta `YYYY-MM-DD`
+ * @param {string} datos.comentarios
+ */
+export async function generarReporteInasistencia({ asignacionId, estudianteId, desde, hasta, comentarios }) {
+  const clave = claveReporte({ estudianteId, desde, hasta });
+  if (reportesEnCurso.has(clave) || leerReportesEmitidos().has(clave)) {
+    return { exitoso: false, datos: null, mensaje: MENSAJE_REPORTE_DUPLICADO, estado: 409 };
+  }
+
+  reportesEnCurso.add(clave);
+  let respuesta;
+  try {
+    respuesta = await solicitar(
+      `/asistencias/reportes/docente/asignaciones/${encodeURIComponent(asignacionId)}`
+        + `/estudiantes/${encodeURIComponent(estudianteId)}`,
+      {
+        metodo: 'POST',
+        cuerpo: { desde, hasta, comentarios: comentarios.trim() }
+      }
+    );
+  } finally {
+    reportesEnCurso.delete(clave);
+  }
+
+  if (respuesta.exitoso) {
+    registrarReporteEmitido(clave);
+    return respuesta;
+  }
+
+  // Si el backend no envía un mensaje propio, se usa uno según el código HTTP.
+  if (!respuesta.mensaje || respuesta.mensaje === MENSAJE_GENERICO_CLIENTE) {
+    const porEstado = {
+      409: MENSAJE_REPORTE_DUPLICADO,
+      422: 'El estudiante no tiene faltas ni tardanzas en el rango de fechas seleccionado.'
+    };
+    return { ...respuesta, mensaje: porEstado[respuesta.estado] ?? 'No se pudo generar el reporte de inasistencia.' };
+  }
+  return respuesta;
+}
